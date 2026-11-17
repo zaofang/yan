@@ -7188,6 +7188,118 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/drop_grid_dict.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_list.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_option.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_record.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_str.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_sum.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/drop_grid_tuple.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.1",
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 2 3 4\n2 1 1 2 -1 6\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/else_results_in_inner_block.yag",
    "kind": "run",
    "milestone": "M1",
