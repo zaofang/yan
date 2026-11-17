@@ -1,0 +1,5 @@
+spec = "3.5"
+note = "variant names are wire tags and stay bare, so two modules of one package may not declare one; refused until variants are module-qualified"
+command = ["check"]
+code = "E017"
+at = "src/main.yag:1:1"
