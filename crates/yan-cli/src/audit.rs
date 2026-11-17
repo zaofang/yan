@@ -5,9 +5,10 @@
 use std::path::Path;
 
 use yan_core::ast::{Attr, Contract, FnDef, Item, ItemKind, XItem};
+use yan_db::closure::Node;
 use yan_db::{Database, Loaded};
 
-use crate::test;
+use crate::{closure, test};
 
 pub struct Finding {
     pub kind: &'static str,
@@ -140,10 +141,34 @@ fn item_findings(module: &str, it: &Item, key: &str, out: &mut Vec<Finding>) {
     }
 }
 
+/// One `foreign_lib` finding per extern library in the closure of the package at `root`, with the
+/// shortest dependency path that brings it in (RFC 0079 D3). Libraries are spelled as a ceiling spells
+/// them, so the line can be pasted into `capabilities`.
+fn foreign_libraries(root: &Path) -> Vec<Finding> {
+    let packages = crate::graph::packages(root);
+    let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
+    let Some(start) = packages.iter().position(|p| p.role == yan_db::Role::Root) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for path in closure::reach(&nodes, start) {
+        let at = *path.last().unwrap_or(&start);
+        for lib in &packages[at].foreign.libs {
+            let route: Vec<&str> = path.iter().map(|&i| nodes[i].name.as_str()).collect();
+            out.push(Finding {
+                kind: "foreign_lib",
+                item: closure::entry(&nodes[at], &lib.name, at == start),
+                detail: format!("link {}, via {}", lib.link, route.join(" -> ")),
+            });
+        }
+    }
+    out
+}
+
 /// Findings for every module of the package at `root`, in module order. Modules that do not
 /// elaborate are reported as `unchecked`.
 pub fn audit(root: &Path) -> Result<Vec<Finding>, String> {
-    let mut out = Vec::new();
+    let mut out = foreign_libraries(root);
     for (name, file) in test::modules(root)? {
         let mut db = Database::new(false, false);
         let f = db.open(&file)?;

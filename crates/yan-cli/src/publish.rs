@@ -59,13 +59,18 @@ pub fn check(root: &Path) -> Result<Vec<Diagnostic>, String> {
     Ok(refusals(&manifest))
 }
 
-/// The foreign fields of the version's `.info` (R1034), computed from source.
+/// The foreign fields of the version's `.info` (R1034), computed from source, and the declared
+/// ceiling: a version whose `.info` has no `capabilities` is unchecked against its closure (RFC 0079 D3).
 pub fn info_fields(root: &Path) -> serde_json::Value {
     let set = yan_db::foreign_set(root);
-    serde_json::json!({
+    let mut v = serde_json::json!({
         "ffi": set.modules,
         "libs": set.libs.iter().map(|l| serde_json::json!({"name": l.name, "link": l.link})).collect::<Vec<_>>(),
-    })
+    });
+    if let Some(ceiling) = crate::lock::manifest_at(root).and_then(|m| m.capabilities) {
+        v["capabilities"] = serde_json::json!(ceiling);
+    }
+    v
 }
 
 #[cfg(test)]
@@ -121,6 +126,23 @@ mod tests {
         assert_eq!(
             v["libs"],
             serde_json::json!([{"name": "zlib", "link": "z"}])
+        );
+        assert!(v.get("capabilities").is_none());
+    }
+
+    #[test]
+    fn info_fields_publish_the_declared_ceiling() {
+        let d = std::env::temp_dir().join(format!("yan-publish-cap-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(
+            d.join("package.yag"),
+            "package: Package = Package(name=\"@t/a\", version=\"0.1.0\", capabilities=[\"io\", \"zlib\"])\n",
+        )
+        .unwrap();
+        assert_eq!(
+            info_fields(&d)["capabilities"],
+            serde_json::json!(["io", "zlib"])
         );
     }
 }

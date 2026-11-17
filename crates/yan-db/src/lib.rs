@@ -3,6 +3,7 @@
 //! its elaborated Yan Core, its diagnostics and its items. Std's Yan Agent sources are parsed here too,
 //! since the elaborator depends on no surface crate (R560).
 
+pub mod closure;
 mod docs;
 mod foreign;
 mod graph;
@@ -10,7 +11,8 @@ mod graph;
 use foreign::is_ffi_module;
 pub use foreign::{ForeignLib, ForeignSet, foreign_set};
 pub use graph::{
-    GraphBuilder, Package, PackageGraph, Role, consented, install_graph_builder, owner,
+    GraphBuilder, Package, PackageGraph, Role, consented, graph_diagnostics, install_graph_builder,
+    owner,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -108,6 +110,11 @@ impl Database {
         use salsa::Setter;
         Settings::get(&self).set_tools(&mut self).to(true);
         self
+    }
+
+    /// E023 and E314 of every workspace package seen so far, on their `package.yag` (RFC 0079 D3).
+    pub fn graph_diagnostics(&self) -> Vec<Diagnostic> {
+        graph::graph_diagnostics(self, PackageGraph::get(self)).clone()
     }
 
     /// The file at `path` with text `text`: the existing input, updated if the text changed.

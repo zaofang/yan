@@ -5,6 +5,10 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+use yan_diag::{Diagnostic, Span};
+
+use crate::Db;
+use crate::closure::{self, Node};
 use crate::foreign::ForeignSet;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -62,6 +66,47 @@ pub fn consented(packages: &[Package], pkg: &Package) -> bool {
         .iter()
         .find(|p| p.role == Role::Root && p.root == pkg.workspace)
         .is_none_or(|root| root.manifest.allow_ffi.contains(name))
+}
+
+/// E023 and E314 (RFC 0079 D3, D5) for each package of the workspace, on its `package.yag`, once per
+/// package rather than per module. The closure runs over every package in the graph, so a member added
+/// without `yan lock` or a hand-edited lock is still checked.
+#[salsa::tracked(returns(ref))]
+pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
+    let packages = graph.packages(db);
+    let at = |p: &Package| p.root.join("package.yag").display().to_string();
+    let local = |p: &Package| p.role != Role::Locked;
+    let top = Span {
+        line: 1,
+        col: 1,
+        end_line: 1,
+        end_col: 1,
+    };
+    let mut out = Vec::new();
+    for p in packages.iter().filter(|p| local(p)) {
+        if !p.foreign.is_empty() && !consented(packages, p) {
+            out.push(Diagnostic::error(
+                "E023",
+                &at(p),
+                top,
+                "",
+                "this package holds foreign code and the root's `allow_ffi` does not name it",
+            ));
+        }
+    }
+    let nodes: Vec<Node> = packages.iter().map(closure::from_package).collect();
+    for (i, message) in closure::violations(&nodes) {
+        if local(&packages[i]) {
+            out.push(Diagnostic::error(
+                "E314",
+                &at(&packages[i]),
+                top,
+                "",
+                message,
+            ));
+        }
+    }
+    out
 }
 
 /// Builds the packages around a path: the driver's, since it knows the workspace layout.
