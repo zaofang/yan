@@ -146,6 +146,9 @@ enum Command {
         /// The last published version's package directory.
         #[arg(long)]
         base: Option<PathBuf>,
+        /// Print the `ffi` and `libs` fields the version's `.info` will carry (19.2).
+        #[arg(long)]
+        info: bool,
         #[arg(long, value_enum)]
         format: Option<Format>,
     },
@@ -486,7 +489,9 @@ fn main() -> ExitCode {
                 }
             }))
         }
-        Command::Publish { base, format, .. } => {
+        Command::Publish {
+            base, format, info, ..
+        } => {
             let found = publish::check(Path::new(".")).and_then(|mut d| {
                 if let Some(base) = &base {
                     d.extend(semver::findings(Path::new("."), base, "E008")?);
@@ -494,7 +499,12 @@ fn main() -> ExitCode {
                 Ok(d)
             });
             match found {
-                Ok(d) => emit_records(&d, format),
+                Ok(d) => {
+                    if info {
+                        println!("{}", publish::info_fields(Path::new(".")));
+                    }
+                    emit_records(&d, format)
+                }
                 Err(msg) => tool_failure(&msg),
             }
         }

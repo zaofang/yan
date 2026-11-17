@@ -127,14 +127,15 @@ pub fn check(
             }
         }
     }
-    if offline {
-        let store = crate::registry::configured_store(root);
-        let roots = crate::store::roots(root, store.as_deref());
-        for p in &records {
-            let Some(digest) = p.get("digest").and_then(toml::Value::as_str) else {
-                continue;
-            };
-            if crate::store::source(&roots, digest)?.is_none() {
+    let store = crate::registry::configured_store(root);
+    let roots = crate::store::roots(root, store.as_deref());
+    for p in &records {
+        let Some(digest) = p.get("digest").and_then(toml::Value::as_str) else {
+            continue;
+        };
+        match crate::store::source(&roots, digest)? {
+            Some(dir) => verify_set(p, &dir)?,
+            None if offline => {
                 return Err(fail(
                     "E020",
                     format!(
@@ -142,9 +143,51 @@ pub fn check(
                     ),
                 ));
             }
+            None => {}
         }
     }
     Ok(())
+}
+
+/// The foreign set a `[[package]]` record states (R1034).
+fn recorded_set(p: &toml::Value) -> yan_db::ForeignSet {
+    let mut modules: Vec<String> = p
+        .get("ffi")
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|x| x.as_str().map(str::to_owned))
+        .collect();
+    let mut libs: Vec<yan_db::ForeignLib> = p
+        .get("libs")
+        .and_then(toml::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|x| {
+            Some(yan_db::ForeignLib {
+                name: x.get("name")?.as_str()?.to_owned(),
+                link: x.get("link")?.as_str()?.to_owned(),
+            })
+        })
+        .collect();
+    modules.sort();
+    libs.sort();
+    yan_db::ForeignSet { modules, libs }
+}
+
+/// E020 when the set recomputed from the verified archive differs from the record's (R1034).
+fn verify_set(record: &toml::Value, dir: &Path) -> Result<(), Box<Diagnostic>> {
+    if recorded_set(record) == yan_db::foreign_set(dir) {
+        return Ok(());
+    }
+    let name = record
+        .get("name")
+        .and_then(toml::Value::as_str)
+        .unwrap_or("");
+    Err(fail(
+        "E020",
+        format!("`yan.lock` records a foreign set for `{name}` that its archive does not have"),
+    ))
 }
 
 /// The `[[package]]` records of the existing `yan.lock`, if it reads.
@@ -204,6 +247,7 @@ struct Locked {
     capability_digest: Option<String>,
     /// The `ffi` modules and extern libraries the package holds (R1018).
     ffi: Vec<String>,
+    libs: Vec<yan_db::ForeignLib>,
     publisher: Option<String>,
     approvals: Vec<String>,
     rebuilds: Vec<String>,
@@ -362,6 +406,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
                 digest: None,
                 capability_digest: None,
                 ffi: Vec::new(),
+                libs: Vec::new(),
                 publisher: None,
                 approvals: Vec::new(),
                 rebuilds: Vec::new(),
@@ -449,6 +494,7 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
             rebuilds: kept("rebuilds"),
             capability_digest: info.capability_digest,
             ffi: info.ffi,
+            libs: info.libs,
             name: key.0.clone(),
             version: info.version,
             source,
@@ -503,7 +549,12 @@ fn subgraph_kinds(
 
 /// An override's package: where it is recorded, its manifest and, for a git commit, the digest of
 /// its archive.
-type Overridden = (String, yan_elab::Manifest, Option<String>, Vec<String>);
+type Overridden = (
+    String,
+    yan_elab::Manifest,
+    Option<String>,
+    yan_db::ForeignSet,
+);
 
 /// The root's `overrides` (R950): `"@org/name major": "path/to/dir"` or
 /// `"git+https://host/repo@<commit> sha256:<hex>"`, each replacing that (name, major).
@@ -548,7 +599,7 @@ fn load_overrides(
                 format!("override `{key}`: `{recorded}` is not `{name}`"),
             ));
         }
-        let ffi = yan_db::foreign_set(&dir).modules;
+        let ffi = yan_db::foreign_set(&dir);
         out.insert(
             identity(name, major.trim()),
             (recorded, manifest, digest, ffi),
@@ -640,7 +691,7 @@ fn overridden(
     path: &str,
     manifest: &yan_elab::Manifest,
     digest: Option<String>,
-    ffi: Vec<String>,
+    foreign: yan_db::ForeignSet,
 ) -> Result<Info, Box<Diagnostic>> {
     let version = manifest.version.clone().unwrap_or_default();
     if parts(&version) < parts(&m.want) {
@@ -660,7 +711,8 @@ fn overridden(
         digest: digest.unwrap_or_default(),
         publisher: String::new(),
         capability_digest: None,
-        ffi,
+        ffi: foreign.modules,
+        libs: foreign.libs,
         requirements: manifest.requirements.clone(),
         yanked: false,
         yank_reason: None,
@@ -722,6 +774,20 @@ fn render(packages: &[Locked], pylock: Option<&str>) -> String {
         if !p.ffi.is_empty() {
             let items: Vec<_> = p.ffi.iter().map(|k| quoted(k)).collect();
             text += &format!("ffi = [{}]\n", items.join(", "));
+        }
+        if !p.libs.is_empty() {
+            let items: Vec<_> = p
+                .libs
+                .iter()
+                .map(|l| {
+                    format!(
+                        "{{ name = {}, link = {} }}",
+                        quoted(&l.name),
+                        quoted(&l.link)
+                    )
+                })
+                .collect();
+            text += &format!("libs = [{}]\n", items.join(", "));
         }
         if !p.kinds.is_empty() {
             let items: Vec<_> = p.kinds.iter().map(|k| quoted(k)).collect();
@@ -874,5 +940,80 @@ mod tests {
         assert_eq!(write(&dir).unwrap_err().code, "E021");
         let dir = workspace("y", "\"@a/b 1.5\"", "name=\"@a/b\", version=\"1.4.2\"");
         assert_eq!(write(&dir).unwrap_err().code, "E021");
+    }
+
+    const Z: &[u8] = b"unsafe extern \"C\" lib zlib link \"z\"\n  safe f() -> c_int\n";
+
+    /// A workspace whose lock pins an archive holding `ffi/z.yn`, with `record` as foreign fields.
+    fn foreign_world(tag: &str, record: &str) -> (PathBuf, [String; 1]) {
+        let dir = std::env::temp_dir().join(format!("yan-lock-set-{}-{tag}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let bytes = crate::store::tests::zip_of(&[("package.yag", b""), ("ffi/z.yn", Z)]);
+        let digest = crate::store::sha256(&bytes);
+        std::fs::create_dir_all(dir.join("vendor/archives")).unwrap();
+        std::fs::write(dir.join(format!("vendor/archives/{digest}.zip")), bytes).unwrap();
+        std::fs::write(
+            dir.join("yan.lock"),
+            format!(
+                "format = 1\n\n[[package]]\nname = \"@a/b\"\nversion = \"1.0.0\"\ndigest = \"sha256:{digest}\"\n{record}"
+            ),
+        )
+        .unwrap();
+        (dir, ["@a/b 1.0.0".to_owned()])
+    }
+
+    #[test]
+    fn locked_build_recomputes_the_foreign_set_from_the_archive() {
+        let ok = "ffi = [\"ffi/z.yn\"]\nlibs = [{ name = \"zlib\", link = \"z\" }]\n";
+        let (dir, reqs) = foreign_world("ok", ok);
+        assert!(check(&dir, &reqs, true, false).is_ok());
+        for (tag, bad) in [
+            ("none", ""),
+            (
+                "ffi",
+                "ffi = [\"ffi/y.yn\"]\nlibs = [{ name = \"zlib\", link = \"z\" }]\n",
+            ),
+            (
+                "libs",
+                "ffi = [\"ffi/z.yn\"]\nlibs = [{ name = \"zlib\", link = \"zz\" }]\n",
+            ),
+            ("nolibs", "ffi = [\"ffi/z.yn\"]\n"),
+        ] {
+            let (dir, reqs) = foreign_world(tag, bad);
+            assert_eq!(
+                check(&dir, &reqs, true, false).unwrap_err().code,
+                "E020",
+                "{tag}"
+            );
+        }
+    }
+
+    #[test]
+    fn libs_round_trip_through_the_lock() {
+        let p = Locked {
+            name: "@a/b".into(),
+            version: "1.0.0".into(),
+            source: "index".into(),
+            key: identity("@a/b", "1.0.0"),
+            digest: None,
+            capability_digest: None,
+            ffi: vec!["ffi/z.yn".into()],
+            libs: vec![yan_db::ForeignLib {
+                name: "zlib".into(),
+                link: "z".into(),
+            }],
+            publisher: None,
+            approvals: Vec::new(),
+            rebuilds: Vec::new(),
+            path: None,
+            kinds: Vec::new(),
+        };
+        let text = render(&[p], None);
+        assert!(
+            text.contains("ffi = [\"ffi/z.yn\"]\nlibs = [{ name = \"zlib\", link = \"z\" }]\n")
+        );
+        let table: toml::Table = text.parse().unwrap();
+        let rec = &table["package"].as_array().unwrap()[0];
+        assert_eq!(recorded_set(rec).libs[0].link, "z");
     }
 }
