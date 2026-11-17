@@ -37,6 +37,12 @@ impl Lower<'_, '_, '_> {
         else {
             return Ok(None);
         };
+        // A message crosses to the actor's task, so every argument is Send (6.4).
+        for (p, a) in sig.params.iter().skip(1).zip(args) {
+            if !yan_core::auto_traits::auto_traits(&|n| self.g.components(n), &p.ty.core()).send {
+                self.err("E415", a.span, super::call_expr::NOT_SEND.into());
+            }
+        }
         if kind == "SendOnly"
             && !matches!((&b.kind, &self.sent_through), (j::ExprKind::Name(n), Some(s)) if n == s)
         {
