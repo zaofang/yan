@@ -1,0 +1,3 @@
+pub def main() -> None uses io:
+    x = a.mk()
+    y = b.mk()

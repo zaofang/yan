@@ -34,10 +34,10 @@
 | Processes | `proc.spawn` with argv | shell strings | injection |
 | ABI | C profile `yan_abi_v1`, no Yan-to-Yan ABI | a stable native ABI | Swift's resilience needs runtime metadata |
 | Supply chain | witnessed log, registry-built archives, SLSA L3, OIDC-only publishing, computed capabilities, signed approvals | API tokens; uploaded tarballs | xz backdoor; npm worms; slopsquatting |
-| Stability | bit-identical output across 1.x; surface-only editions; enforced semver; 12-week minors | LTS branches; nightly channel | Rust and Go promises, Elm enforcement |
-| Implementation language | Yan for 1.0, bootstrapped from a Rust stage 0 that is frozen at the fixpoint (R966 to R970, replacing R215); a non-shipping Lean 4 model of the core under `formal/` (R680) | Python reference, then a Rust port; Rust only (R215); self-hosting after RC | the language is proved on its own compiler before 1.0; byte-equality gates against stage 0 keep one behavior; the conformance suite is the oracle |
+| Stability | bit-identical output across 0.1.x; surface-only editions; enforced semver; 12-week minors | LTS branches; nightly channel | Rust and Go promises, Elm enforcement |
+| Implementation language | Yan for 0.1.0, bootstrapped from a Rust stage 0 that is frozen at the fixpoint (R966 to R970, replacing R215); a non-shipping Lean 4 model of the core under `formal/` (R680) | Python reference, then a Rust port; Rust only (R215); self-hosting after RC | the language is proved on its own compiler before 0.1.0; byte-equality gates against stage 0 keep one behavior; the conformance suite is the oracle |
 | Third surface | Yan Meta, dense ASCII with spelling kept as trivia, admitting any form that lowers to the core (R516 to R521) | one printing per tree (Chang 1); no third surface | a design playground that stays one language: same items, same hashes, same checker |
-| Yan Agent 1.0 rules | model-first rules on the Python shape: full headers as the contract, undecided checks as runtime checks with W820, ... holes, header changes report broken callers, a wide lenient reader (R210 to R214, R280 to R289) | Yue, a token-minimal surface (research only); implicit string copies (R283) | in the dry run output was about 5% of loop tokens and repair rounds dominated, so rounds and pass@1 matter more than terseness; copies stay explicit and the autofix inserts them |
+| Yan Agent 0.1.0 rules | model-first rules on the Python shape: full headers as the contract, undecided checks as runtime checks with W820, ... holes, header changes report broken callers, a wide lenient reader (R210 to R214, R280 to R289) | Yue, a token-minimal surface (research only); implicit string copies (R283) | in the dry run output was about 5% of loop tokens and repair rounds dominated, so rounds and pass@1 matter more than terseness; copies stay explicit and the autofix inserts them |
 
 ### 26.2 Non-goals
 
@@ -47,11 +47,11 @@
 - No formatting options.
 - No Unicode identifiers, and no localized keywords.
 - No hiding of remoteness: distribution is visible in capabilities and failure types.
-- No optional features or conditional dependencies in 1.0.
+- No optional features or conditional dependencies in 0.1.0.
 - No generic associated types.
-- No stable Yan Core-to-Yan ABI, no direct C++ interop, no dylib plugins passing Yan Core types in 1.0.
-- No `Condvar` in 1.0.
-- No user-written lint analyzers in 1.0 (R820).
+- No stable Yan Core-to-Yan ABI, no direct C++ interop, no dylib plugins passing Yan Core types in 0.1.0.
+- No `Condvar` in 0.1.0.
+- No user-written lint analyzers in 0.1.0 (R820).
 - No variant names resolved from the expected type in Yan or Yan Agent; a variant is written with its type name, as in `Color.Red` (R799). Other surfaces may offer it where it lowers to the qualified name.
 
 These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as sugar over the core, such as `null` for `None`, lossless widening written out in Yan Core, `extends` as delegation and `async`/`await` as branch and join; the Yan Core it elaborates to keeps every non-goal above.
@@ -63,7 +63,7 @@ These are non-goals for Yan Core. Yan Meta (16.6) may spell some of them as suga
 3. GPU code generation from `par for` bodies through MLIR (M4).
 4. Whether Yan Agent's remaining non-Python constructs (`uses`, `pre`, `post`, `ex`, `var`, `take`, `fail`, `&`, `from`) need the 21.6 fluency plan to reach parity with Python on pass@1.
 5. Every token-cost claim must be re-measured against the target models' own tokenizers.
-6. Behaviour-oriented concurrency (R455) was deferred past 1.0 on 2026-10-31, as a possible first-party package `@yan/boc`. E718 stays reserved for it. The study found that its deterministic subset rarely beats a loop or `par for` followed by an ordered commit, and that live use needs `uses nondet`, as Mutex does. Before any adoption, seven defects need rows: no Yan Agent or Yan spelling, an undefined waiting scope, no result path to the scheduler, one cell named twice, E718 across calls, an unmeasured scheduling cost, and how a package registers waits under R396. Revisit when an M2a benchmark program needs atomic updates across several objects.
+6. Behaviour-oriented concurrency (R455) was deferred past 0.1.0 on 2026-10-31, as a possible first-party package `@yan/boc`. E718 stays reserved for it. The study found that its deterministic subset rarely beats a loop or `par for` followed by an ordered commit, and that live use needs `uses nondet`, as Mutex does. Before any adoption, seven defects need rows: no Yan Agent or Yan spelling, an undefined waiting scope, no result path to the scheduler, one cell named twice, E718 across calls, an unmeasured scheduling cost, and how a package registers waits under R396. Revisit when an M2a benchmark program needs atomic updates across several objects.
 
 ### 26.4 Glossary
 
@@ -107,7 +107,7 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 | R358 | The project has one lead, the owner. Agents propose, draft, implement and review. They never accept, approve, merge or publish. |
 | R359 | RFC pipeline: draft, adversarial review by an independent reviewer whose findings carry witnesses (R185), decision by the lead, spec rows, `@preview` (R180), stable (R172). Once public, RFCs live in `rfcs/NNNN-slug.md`, rejected ones included. |
 | R360 | An RFC is required for anything in the freeze table (R171), editions, the std public API, the grammar of any surface, registry policy and these rows. |
-| R361 | A core team forms when 3 outside humans each have 10 or more merged PRs within 6 months. It decides by consensus, the lead keeps a veto, and a 14-day comment period starts. The marks, domains and registry move to an entity (a fiscal sponsor or an LLC) before the 1.0 release. |
+| R361 | A core team forms when 3 outside humans each have 10 or more merged PRs within 6 months. It decides by consensus, the lead keeps a veto, and a 14-day comment period starts. The marks, domains and registry move to an entity (a fiscal sponsor or an LLC) before the 0.1.0 release. |
 | R362 | A sealed succession instruction names who receives the marks, domains, GitHub org, publishing identities (R194), namespace-admin passkeys and witness keys (R191). |
 | R363 | The repository carries CODE\_OF\_CONDUCT.md (Contributor Covenant 3.0), SECURITY.md (private reporting, 90-day disclosure, OSV advisories per R202) and CONTRIBUTING.md (DCO, AI disclosure, RFC scope). |
 | R364 | YAN (word) and the 言 logo (R775) are registered in classes 9 and 42: US first, then Madrid designating CN and EU. Yan Agent and the other "Yan <job>" names are unregistered sub-names. The logo calligraphy MUST be original or assigned in writing. |
@@ -116,9 +116,9 @@ The owner accepted these rows on 2026-10-31 from the licensing and governance de
 
 ### 26.6 Research track (R522 to R535, R554 to R557, R780 to R786)
 
-Accepted for research on 2026-11-01, not normative for 1.0. Each row names the 1.0 text it would amend if adopted; adoption takes its own RFC. The study is; the Yan Meta forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study). Rows R780 to R786 come from RFC 0029 (study). Yan Meta (16.6) spells each item first, as an experimental form that K1 rejects until the extension lands; no extension is enabled early for one surface (law 1).
+Accepted for research on 2026-11-01, not normative for 0.1.0. Each row names the 0.1.0 text it would amend if adopted; adoption takes its own RFC. The study is; the Yan Meta forms waiting on each row are in RFC 0001. Rows R554 to R557 come from RFC 0003 (study). Rows R780 to R786 come from RFC 0029 (study). Yan Meta (16.6) spells each item first, as an experimental form that K1 rejects until the extension lands; no extension is enabled early for one surface (law 1).
 
-| Row | Research item | 1.0 text it would amend |
+| Row | Research item | 0.1.0 text it would amend |
 | --- | --- | --- |
 | R522 | Lexical effect handlers with one-shot resume, the handler passed as a capability parameter (Effekt). | 10.5 (no continuations), for one-shot lexical segments only |
 | R523 | Information-flow labels `T@L` on a Lub lattice, with `declassify` behind a `Declassify[L]` capability (Jif, FlowCaml). | law 4 (a sixth fact) |

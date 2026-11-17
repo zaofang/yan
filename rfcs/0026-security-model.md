@@ -26,7 +26,7 @@ A handler that reaches the host is built only by the platform before `main` (7.3
 
 ### D3: attenuators for every confined capability
 
-Std ships `fs.only(read=..., write=...)` and `fs.sub(dir)`, `proc.only(programs=...)` and `env.only(vars=...)` at 1.0, beside `net.only`. File paths resolve beneath the granted directories: no `..` above them, no symlink out of them, using `openat2` with `RESOLVE_BENEATH` where the OS has it. Package ceilings may carry the same patterns (this makes R556 normative).
+Std ships `fs.only(read=..., write=...)` and `fs.sub(dir)`, `proc.only(programs=...)` and `env.only(vars=...)` at 0.1.0, beside `net.only`. File paths resolve beneath the granted directories: no `..` above them, no symlink out of them, using `openat2` with `RESOLVE_BENEATH` where the OS has it. Package ceilings may carry the same patterns (this makes R556 normative).
 
 - Decision: accepted (Antonio, card, 2026-11-01)
 - Row: R674

@@ -417,9 +417,12 @@ impl An<'_, '_> {
             Rhs::Closure(k) => Some(vec![Lin::konst(i128::from(
                 self.resource == Resource::Alloc && !k.captures.is_empty(),
             ))]),
-            Rhs::Atom(_) | Rhs::Ctor(_) | Rhs::Proj(_) | Rhs::Copy(_) | Rhs::Move(_) => {
-                Some(vec![Lin::konst(0)])
-            }
+            Rhs::Atom(_)
+            | Rhs::Ctor(_)
+            | Rhs::Proj(_)
+            | Rhs::Copy(_)
+            | Rhs::Move(_)
+            | Rhs::Rest { .. } => Some(vec![Lin::konst(0)]),
         }
     }
 

@@ -1,6 +1,6 @@
 ## 25. Diagnostics catalogue
 
-This is the complete registry of diagnostic codes for 1.0. Codes keep their meaning forever and are never reused; retired codes stay listed. E is an error, W a warning or lint, H a hole, V a verification result, P a patch rejection, N a lenient-reader note and I an internal error. Codes marked *new* were numbered at consolidation from rows that asked for a code without giving one.
+This is the complete registry of diagnostic codes for 0.1.0. Codes keep their meaning forever and are never reused; retired codes stay listed. E is an error, W a warning or lint, H a hole, V a verification result, P a patch rejection, N a lenient-reader note and I an internal error. Codes marked *new* were numbered at consolidation from rows that asked for a code without giving one.
 
 ### 25.1 Families
 
@@ -18,7 +18,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | W8xx | lints |
 | E9xx | unsafe, FFI, layout, linking and inline assembly |
 | P0xx | patches |
-| N01 to N54 | lenient-reader notes (14.4) |
+| N01 to N56 | lenient-reader notes (14.4) |
 | I001 to I999 | internal errors |
 
 ### 25.2 Packages, registry and stability
@@ -42,6 +42,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E015 | approved test in tests.lock is missing new | 18.4 |
 | E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
+| E024 | layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, or a reserved top-level module name (R1064) *new* | 19.1 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
 | E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, an offline archive is absent, or a recorded foreign set differs from the archive (R1034) *new* | 19.1, 19.2 |
@@ -250,7 +251,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E728 | session protocol cannot be projected onto a role (R633) new | 9.5 |
 | E729 | `actor.send(h).f(args)` names a handler with a non-unit result or a fail type (R813) new | 9.6 |
 | E717 | Lub get() inside a par block that writes the cell (R454) new | 9.3 (R454) |
-| E718 | reserved (R455, deferred past 1.0) | 9.3 |
+| E718 | reserved (R455, deferred past 0.1.0) | 9.3 |
 
 ### 25.10 Lints
 
@@ -331,7 +332,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P004 | replaced or deleted item missing |
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
-| N01 to N54 | lenient-reader normalizations (14.4) |
+| N01 to N56 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yan validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

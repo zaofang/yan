@@ -68,9 +68,6 @@ fn e022(message: String) -> Box<Diagnostic> {
 /// Rejects links, absolute and `..` paths and duplicate paths (E022).
 pub fn unpack(store: &Path, digest: &str, bytes: &[u8]) -> Result<PathBuf, Box<Diagnostic>> {
     let dest = store.join("src").join(hex(digest));
-    if dest.is_dir() {
-        return Ok(dest);
-    }
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| {
         e022(format!(
             "`sha256:{}` is not a readable archive: {e}",
@@ -83,6 +80,22 @@ pub fn unpack(store: &Path, digest: &str, bytes: &[u8]) -> Result<PathBuf, Box<D
             "`sha256:{}` has a duplicate path",
             hex(digest)
         )));
+    }
+    // A tree unpacked earlier is used only while it still holds exactly the archive's files, so
+    // an edited `src/<digest>` cannot stand in for the archive the digest names.
+    if dest.is_dir() {
+        return if tree_matches(&mut zip, &dest) {
+            Ok(dest)
+        } else {
+            Err(fail(
+                "E020",
+                format!(
+                    "`{}` differs from its archive `sha256:{}`; remove it to unpack again",
+                    dest.display(),
+                    hex(digest)
+                ),
+            ))
+        };
     }
     let tmp = store
         .join("src")
@@ -101,6 +114,40 @@ pub fn unpack(store: &Path, digest: &str, bytes: &[u8]) -> Result<PathBuf, Box<D
         let _ = std::fs::remove_dir_all(&tmp);
     }
     result.map(|()| dest)
+}
+
+/// Whether `dir` holds exactly the files of the archive, byte for byte.
+fn tree_matches(zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>, dir: &Path) -> bool {
+    fn files(dir: &Path, n: &mut usize) {
+        for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                files(&p, n);
+            } else {
+                *n += 1;
+            }
+        }
+    }
+    let mut archived = 0;
+    for i in 0..zip.len() {
+        let Ok(mut f) = zip.by_index(i) else {
+            return false;
+        };
+        if f.is_dir() {
+            continue;
+        }
+        archived += 1;
+        let name = String::from_utf8_lossy(f.name_raw()).into_owned();
+        let mut data = Vec::new();
+        if f.read_to_end(&mut data).is_err()
+            || std::fs::read(dir.join(&name)).ok().as_deref() != Some(&data[..])
+        {
+            return false;
+        }
+    }
+    let mut on_disk = 0;
+    files(dir, &mut on_disk);
+    on_disk == archived
 }
 
 /// The entry count in the end-of-central-directory record (`None` for zip64 or no record).

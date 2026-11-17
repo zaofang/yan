@@ -82,10 +82,15 @@ pub fn check(
                 .flatten()
                 .filter_map(|x| x.as_str().map(str::to_owned))
                 .collect();
+            let libs: Vec<String> = recorded_set(p)
+                .libs
+                .into_iter()
+                .map(|l| format!("lib {}", l.name))
+                .collect();
             consent(
                 &top,
                 p.get("name").and_then(toml::Value::as_str).unwrap_or(""),
-                &ffi,
+                ffi.first().or(libs.first()),
             )?;
         }
     }
@@ -478,7 +483,8 @@ fn resolve(root: &Path) -> Result<Vec<Locked>, Box<Diagnostic>> {
         ));
     }
     for (key, (_, info)) in &chosen {
-        consent(&top, &key.0, &info.ffi)?;
+        let lib = info.libs.first().map(|l| format!("lib {}", l.name));
+        consent(&top, &key.0, info.ffi.first().or(lib.as_ref()))?;
     }
     closure::check(&closure_nodes(root, &top, &members, &chosen))?;
     let kinds = subgraph_kinds(&top, &members, &chosen);
@@ -779,8 +785,12 @@ fn overridden(
 /// E023: a package holding `ffi` modules or extern libraries that the root's `allow_ffi` does not
 /// name (R1018, R1019). The consent is by name, so an update that gives a package its first
 /// `ffi` module is refused too.
-fn consent(top: &yan_elab::Manifest, name: &str, ffi: &[String]) -> Result<(), Box<Diagnostic>> {
-    match ffi.first() {
+fn consent(
+    top: &yan_elab::Manifest,
+    name: &str,
+    foreign: Option<&String>,
+) -> Result<(), Box<Diagnostic>> {
+    match foreign {
         Some(first) if !top.allow_ffi.iter().any(|a| a == name) => Err(fail(
             "E023",
             format!(

@@ -492,7 +492,7 @@ impl Lower<'_, '_, '_> {
             self.expect(&xt, pt, x.span);
             let conv = if *take { Conv::Sink } else { Conv::Let };
             if *take {
-                self.sink_of_element(&a, x.span);
+                self.implicit_copy(&a, &xt, x.span);
             }
             out.push(Arg::Value(conv, a, x.span));
         }

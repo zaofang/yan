@@ -1,0 +1,51 @@
+"""Lexical tour of Yan Agent (spec 13.1)."""
+
+@@prove
+# line comment
+#: doc of the next field
+#> total + 1
+type Money = newtype[int] where self >= 0
+type Shape = Circle(r: float) | Square(side: float)
+type Fs = uses io, net as http
+
+@wire(name="slug")
+class Row:
+    id: int
+    #: display label
+    label: str = "x"
+
+trait Show:
+    def show(self: Self) -> str: ...
+
+impl Show for Row:
+    def show(self: Self) -> str:
+        return f"{self.id}: {self.label!r:>5}"
+
+pub def demo(xs: list[int], var acc: list[int], take buf: bytes, who: str = 'w') -> int fail Err uses io, net as http:
+    """Docstring with \"escape\"."""
+    pre len(xs) > 0
+    post out >= 0 and old(len(acc)) <= 9
+    ex demo([1], [], b"", "a") == 3
+    cost steps <= 10, alloc <= 2
+    n = 0xFF_FF + 0o17 + 0b1010 + 1_000
+    f = 2.5e-3 * 150 * ms
+    raw = r"C:\no\escape"
+    data = b"\x00\x01"
+    ch = c'a'
+    cs = c"text"
+    msg = f"hi {who} total {len(xs):>5} {{literal}} {xs[1:2]} {'a'}"
+    tpl = t"""
+    select {who}
+    """
+    out = []
+    match = re.match(who, msg)
+    for x in xs:
+        acc.append(x ** 2 // 3)
+    q = qs.get(who) else fail Missing(sym=who)
+    r = http.get_text(who)?
+    vals = par [g(x)? for x in xs]
+    with net = fake_net():
+        pass
+    try:
+        pass
+    return n if n >= 1 and not False else None

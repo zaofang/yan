@@ -22,7 +22,7 @@ def vscode(mode: str, t: dict[str, Any]) -> str:
     s, a = t["syntax"], t["ansi"]
     scopes = [
         ("comment", s["comment"], "italic"),
-        ("keyword, storage", s["keyword"], ""),
+        ("keyword, storage, entity.other.attribute-name", s["keyword"], ""),
         ("entity.name.type, support.type", s["type"], ""),
         ("string, constant.character", s["string"], ""),
         ("constant.numeric, constant.language", s["number"], ""),

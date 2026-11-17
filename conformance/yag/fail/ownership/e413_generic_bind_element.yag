@@ -1,0 +1,9 @@
+# spec: 4.2
+# rows: R1
+# expect: W820 at 8:9
+# expect: E413 at 9:12
+# note: a name bound to an element of a list of a type parameter is a view; returning it is E413 (#1500 item 6)
+
+def first[T](xs: list[T]) -> T:
+    y = xs[0]
+    return y
