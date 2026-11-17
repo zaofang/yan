@@ -72,6 +72,6 @@ Goal: earn the speed claim, then polish.
 4. Formal model beyond phase 0 (`formal/`).
 5. Package manager crate and registry path (#764).
 6. Go public (#461, #462, #423).
-7. 1.0 candidate under the spec's evidence-gated-change law.
+7. 0.1.0 candidate under the spec's evidence-gated-change law.
 
 Exit: every gap issue closed or owned and dated; every figure generated or dated; diagnostics pass; two consecutive releases with no unexplained differential diff and no regression beyond budget.
