@@ -56,11 +56,11 @@ pub fn owner<'a>(packages: &'a [Package], path: &Path) -> Option<&'a Package> {
         .max_by_key(|p| p.root.components().count())
 }
 
-/// R1018: a package is consented to when the root of its workspace names it in `allow_ffi`; a package
-/// without a name has nothing to name.
+/// R1018: a package is consented to when the root of its workspace names it in `allow_ffi`. A
+/// package without a name cannot be named there, so it is never consented to.
 pub fn consented(packages: &[Package], pkg: &Package) -> bool {
     let Some(name) = &pkg.name else {
-        return true;
+        return false;
     };
     packages
         .iter()

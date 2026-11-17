@@ -1327,6 +1327,7 @@ impl<'a> Fold<'a> {
                 no("`?` with a conversion").map_err(|e| e.at(call.span))
             }
             y::Rhs::Proj(p) | y::Rhs::Move(p) => self.place(p),
+            y::Rhs::Rest { .. } => no("`rest` (optimized Yan Core)"),
             y::Rhs::Copy(p) => {
                 let x = self.place(p)?;
                 Ok(call(attr(x, "copy"), Vec::new()))
@@ -2047,6 +2048,7 @@ fn count_rhs(r: &y::Rhs, uses: &mut HashMap<String, usize>) {
         }
         y::Rhs::Ctor(y::Ctor::Tuple(xs)) => xs.iter().for_each(|a| count_atom(a, uses)),
         y::Rhs::Proj(p) | y::Rhs::Copy(p) | y::Rhs::Move(p) => count_place(p, uses),
+        y::Rhs::Rest { root, .. } => count_name(root, uses),
         // A closure's body is counted when it is raised.
         y::Rhs::Closure(c) => c.captures.iter().for_each(|(_, n, _)| count_name(n, uses)),
     }
