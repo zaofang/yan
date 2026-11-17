@@ -142,7 +142,7 @@ query takes it. `yan-machine` and the interpreter take `--target` and model that
 is the host. `wasm32` is then an entry (4-byte pointers, 8-byte maximum scalar alignment), not a
 backend-specific layout.
 
-Yan 1.0 targets are little-endian. A big-endian target is a diagnostic at target selection until an
+Yan 0.1.0 targets are little-endian. A big-endian target is a diagnostic at target selection until an
 RFC says what byte views of multi-byte scalars mean there.
 
 - Decision: accepted as recommended (lead, 2026-11-17)

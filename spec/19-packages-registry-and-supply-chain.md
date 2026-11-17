@@ -10,7 +10,7 @@ The design behind this section is the Yan supply-chain security design.
 | --- | --- |
 | `name`, `version` | `@org/name` and a semver version; in 0.y.z, y is the major |
 | `edition` | the language edition for every `.yag` and `.yn` file of the package (20.4) |
-| `yan` | the required toolchain and std API version, `"1.x"` (20.3) |
+| `yan` | the required toolchain and std API version, `"0.1.x"` (20.3) |
 | `dependencies` | local root name to requirement `"@org/name x.y[.z]"` (R635, R642); each major is a distinct package |
 | `dev_dependencies` | as `dependencies`, for tests, fixtures and benches only (R636) |
 | `tools` | packages `yan x` runs, each under its own ceiling (R636) |
@@ -40,7 +40,7 @@ The design behind this section is the Yan supply-chain security design.
 
 **Python dependencies (R638).** Libraries declare the Python packages their `py` calls need in `python`; a package with a `python` field must list `py` in its ceiling. The root resolves one Python environment for the whole graph with uv into `pylock.toml` (PEP 751), and `yan.lock` pins that file's digest. Conflicting requirements between packages are a resolve error naming both. Only wheels are installed; no source distribution is built.
 
-Optional features and conditional dependencies are a non-goal for 1.0; platform variation goes through platform bundles and capability handlers.
+Optional features and conditional dependencies are a non-goal for 0.1.0; platform variation goes through platform bundles and capability handlers.
 
 **Version selection** is minimal version selection over minimum requirements (SQ30). A plain build never selects new versions. Package identity is (name, major), so majors coexist. A dependency is public when its types appear in a `pub` signature (inferred).
 

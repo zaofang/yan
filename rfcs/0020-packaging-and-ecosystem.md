@@ -55,7 +55,7 @@ A `python` field, `Python(requires=">=3.12", dependencies=[...])`. Libraries dec
 requirements; the root resolves one environment for the whole graph with uv into `pylock.toml`
 (PEP 751), whose digest `yan.lock` pins. A package with a `python` field must list `py` in its
 ceiling. Conflicting requirements are a resolve error naming both packages. Wheels only. Rejected:
-root packages only; none at 1.0.
+root packages only; none at 0.1.0.
 
 - Decision: libraries declare, root locks (owner, 2026-11-01)
 - Row: R638
@@ -64,7 +64,7 @@ root packages only; none at 1.0.
 
 The toolchain bundles the native libraries first-party packages bind (ICU4X for `@yan/i18n`),
 built reproducibly with the toolchain under its cargo-vet audits (19.6). Packages stay C-only at
-1.0; Rust sources in packages is a post-1.0 RFC. Rejected: Rust sources at 1.0; prebuilt binaries.
+0.1.0; Rust sources in packages is a post-0.1.0 RFC. Rejected: Rust sources at 0.1.0; prebuilt binaries.
 
 - Decision: bundle in the toolchain (owner, 2026-11-01)
 - Row: R639
@@ -80,7 +80,7 @@ derived from Yan provenance. The `yan` PyPI wheel is also a PEP 517 build backen
 
 ### D7: npm
 
-No npm path at 1.0. With M4 components, `yan bind --lang js` runs jco transpile and writes an npm
+No npm path at 0.1.0. With M4 components, `yan bind --lang js` runs jco transpile and writes an npm
 package whose capabilities are explicit imports, published with npm trusted publishing.
 
 - Decision: M4 through components and jco (owner, 2026-11-01)
@@ -91,7 +91,7 @@ package whose capabilities are explicit imports, published with npm trusted publ
 Accepted together (owner, 2026-11-01).
 
 - S1 requirement syntax `"@org/name x.y[.z]"` (R642)
-- S2 pre-release selection and the 1.0 rule (R643)
+- S2 pre-release selection and the 0.1.0 rule (R643)
 - S3 yank by the publisher, with a logged reason (R644)
 - S4 signed daily search snapshot `/-/index.jsonl` (R645)
 - S5 E016 for manifests `yan publish` refuses (R646)

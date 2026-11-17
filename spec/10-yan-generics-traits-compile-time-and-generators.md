@@ -50,7 +50,7 @@ Indexing a user type, `x[k]` and `x[k] = v`, resolves to `Index[K]`, whose `at` 
 
 **Hygiene.** Names in `derived` bodies and attribute functions resolve where they are written. Reified names are collision-checked (E265). Generated items have stable paths (`Point.derived.Eq`); `yan expand` and the MCP `query` tool print them.
 
-**Incremental evaluation.** Each stage-0 call is a query keyed by the callee body hash, argument hashes, embedded file hashes and the hash of every `TypeInfo` field read, with early cutoff and local and remote caching. The 1.0 evaluator is a bytecode interpreter; `yan check --stage0-profile` reports steps and cache hits.
+**Incremental evaluation.** Each stage-0 call is a query keyed by the callee body hash, argument hashes, embedded file hashes and the hash of every `TypeInfo` field read, with early cutoff and local and remote caching. The 0.1.0 evaluator is a bytecode interpreter; `yan check --stage0-profile` reports steps and cache hits.
 
 **Surfaces.** Yan Core spells stage 0 `comptime`; Yan writes `#for`, `#if` and `#expr` (L5). Yan Agent has compile-time parameters in generic brackets and may apply derives, annotations and attribute functions, but cannot define reflective code.
 
@@ -86,7 +86,7 @@ Generators are the only control handlers. A generator (Yan L5 `gen name(params) 
 | `@deny(code)` | make a W8xx lint an error inside the item in every build mode (18.2, R797) | L0 |
 | `@deprecated(since, note)` | warn at uses (W815); `yan fix` inlines forwarders (20.5) | L0 |
 | `@preview("name")` | unstable; use needs opt-in (20.6) | L0 |
-| `@since("1.x")` | std API version (20.3) | std |
+| `@since("0.1.x")` | std API version (20.3) | std |
 | `@derivative(f)` | custom differentiation rule (11.5) | L1 |
 | `@attribute` | the function is an attribute function | L5 |
 | other std attributes | @kernel, @interrupt, @task, @stack (17.1); @cases, @test\_support, @trace, @schedule (18.4); @plan (11.9); @messages, @mf2\_function (17.9); @diagnostic, @trusted\_input, @wire, @cli, @durable, @remote and @fip are each defined in the section that introduces them (R377) | as defined there |

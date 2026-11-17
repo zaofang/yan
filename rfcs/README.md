@@ -81,7 +81,7 @@ conformance case in the same PR set.
 | [0054](0054-shared-move-drop-analysis.md) | One dataflow move and drop analysis | accepted | R961 to R965 |
 | [0055](0055-kernel-access-verification.md) | `@kernel` functions and E274 body verification | accepted | R953 to R955 |
 | [0056](0056-actor-runtime.md) | Actor runtime: spawn, handler calls, mailboxes, supervision, native and Remote on `std.sim` | accepted | R956 to R960 |
-| [0057](0057-self-hosted-compiler.md) | Self-hosted compiler for 1.0; Rust as the frozen stage 0 (replaces R215) | accepted | R966 to R970 |
+| [0057](0057-self-hosted-compiler.md) | Self-hosted compiler for 0.1.0; Rust as the frozen stage 0 (replaces R215) | accepted | R966 to R970 |
 | [0058](0058-kernel-launch.md) | Launching a `@kernel` function: `gpu.launch`, the grid, whole tiles | accepted | R971 to R973 |
 | [0059](0059-actor-send-surface.md) | Actor overflow policies, send-only handles and send failures | accepted | R974 to R977 |
 | [0060](0060-actor-supervision-surface.md) | Actor supervision: the surface and what stops an actor | accepted | R978 to R981 |
@@ -108,3 +108,4 @@ conformance case in the same PR set.
 | [0081](0081-mutex-try-lock-ownership-and-auto-traits.md) | Mutex try_lock, owned access, auto traits and the wait check | accepted | R1038-R1042 |
 | [0083](0083-size-of-and-layout.md) | `size_of`, `align_of`, layout classes, niches and the C boundary | accepted | pending (#1519) |
 | [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |
+| [0085](0085-first-milestone-is-0-1-0.md) | The first milestone is 0.1.0 | accepted | none |

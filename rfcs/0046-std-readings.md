@@ -66,7 +66,7 @@ the module defines the name.
 `Error` is `{message: str, context: list[str]}`, outermost first, the message the wrapped failure's `Show`. `?` into a
 function that fails with `Error` converts through `std.error.wrap`; `f().context(msg)` yields the value or fails with
 the added context. Options for downcast: (a) none now, text only; (b) keep the wrapped value as a `Dyn` field so
-`e is HttpError(...)` works. Recommendation: (a) for 1.0 contracts (`Wire` stays total), with (b) a post-1.0 additive
+`e is HttpError(...)` works. Recommendation: (a) for 0.1.0 contracts (`Wire` stays total), with (b) a post-0.1.0 additive
 field; recorded as deferred.
 
 - Decision: as recommended; Antonio, 2026-11-07
