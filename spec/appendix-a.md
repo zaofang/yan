@@ -371,6 +371,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1023 | a `MutexGuard` is second-class: passing it on, returning it, rebinding it or storing it is E414 | 4.5, 6.3 |
 | R1024 | a guard is live from its binding to the end of its block; a call that may wait on another task, or a `par`, in that range is E323 (R395) | 6.3, 17.1 |
 | R1025 | a closure argument's captured capabilities must be declared in the callee's `uses`, else E301 at the closure (RFC 0078 D1) | 4, 7.2 |
+| R1026 | `list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises | 17.3 |
+| R1027 | N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)` | 14.4, 17.3 |
 | R1028 | method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404) | 17.2 |
 
 <!-- /rows -->

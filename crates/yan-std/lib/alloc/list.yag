@@ -112,3 +112,36 @@ pub def fold[T, A](self: list[T], init: A, f: Callable[[A, T], A]) -> A:
 @intrinsic
 @since("1.0")
 pub def iter[T](self: list[T]) -> iter[T]: ...
+
+@since("1.0")
+pub def clear[T](var self: list[T]) -> None:
+    """Remove every element (Python's `list.clear`)."""
+    while self.len() > 0:
+        _ = self.pop()
+
+@since("1.0")
+pub def remove_at[T](var self: list[T], i: int) -> T:
+    """Remove and return the element at `i`; a negative `i` counts from the end (Python's `list.pop(i)`)."""
+    pre -self.len() <= i and i < self.len()
+    j = i + self.len() if i < 0 else i
+    tail: list[T] = []
+    while self.len() > j + 1:
+        tail.append(self.pop())
+    x = self.pop()
+    while tail.len() > 0:
+        self.append(tail.pop())
+    return x
+
+@since("1.0")
+pub def remove[T: Eq](var self: list[T], x: T) -> None:
+    """Remove the first element equal to `x` (Python's `list.remove`)."""
+    pre self.contains(x)
+    i = self.index(x)
+    if i is None:
+        return
+    tail: list[T] = []
+    while self.len() > i + 1:
+        tail.append(self.pop())
+    _ = self.pop()
+    while tail.len() > 0:
+        self.append(tail.pop())

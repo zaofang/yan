@@ -25,6 +25,7 @@ mod jsonvalue;
 mod knot;
 mod log;
 mod math;
+mod mutex;
 mod ordering;
 mod path;
 mod pattern;
@@ -1171,6 +1172,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Arena
                 | Shape::Ref(_)
                 | Shape::Atomic(_)
+                | Shape::Mutex(_)
+                | Shape::Guard(_)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),

@@ -304,6 +304,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::mutex::MUTEX_IDS.contains(&id) {
+            return self.mutex_call(id, c, dst);
+        }
         if super::sync::ATOMIC_IDS.contains(&id) {
             return self.atomic_call(id, c, dst);
         }
