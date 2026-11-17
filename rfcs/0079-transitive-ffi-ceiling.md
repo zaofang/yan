@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: [capability security review, 2026-11-16](../docs/research/2026-11-16-capability-security-review.md) (finding F2); RFC 0077 D3; #1427 items 1 to 3
-- Rows: R1026 to R1029
+- Rows: R1031 to R1034
 
 ## Summary
 
@@ -61,7 +61,7 @@ Only extern items carry a trusted `uses` claim, so only foreign libraries need t
 package is checked against its own ceiling, as its own root of the presence rule.
 
 - Decision: accepted as recommended (lead, card, 2026-11-17)
-- Row: R1026
+- Row: R1031
 
 ### D2: how a transitive library is named in a ceiling
 
@@ -79,7 +79,7 @@ ceiling entry names one fact. `:` is free in ceiling entries (`.` is the attenua
 `yan add` and `yan update` print the entries a new library needs; they never write the ceiling.
 
 - Decision: accepted as recommended (lead, card, 2026-11-17)
-- Row: R1027
+- Row: R1032
 
 ### D3: every package in the graph is checked, and where
 
@@ -101,7 +101,7 @@ all three, one function, so a lock edited by hand, a member added without `yan l
 cannot skip the check.
 
 - Decision: accepted as recommended (lead, card, 2026-11-17)
-- Row: R1028
+- Row: R1033
 
 ### D4: one computed foreign set, recomputed from source
 
@@ -128,7 +128,7 @@ recompute, because the lock is editable and the pre-registry static index (R636)
 is parsing the `ffi/` modules of packages that have them.
 
 - Decision: accepted as recommended (lead, card, 2026-11-17)
-- Row: R1029
+- Row: R1034
 
 ### D5: the package graph the compiler reads
 

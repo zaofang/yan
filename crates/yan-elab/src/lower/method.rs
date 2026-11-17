@@ -208,17 +208,20 @@ impl Lower<'_, '_, '_> {
             .as_ref()
             .and_then(Ty::module)
             .filter(|module| crate::stdlib::decl(&format!("std.{module}.{m}")).is_some());
-        // A prelude function (`set`) does not hide the receiver's own method.
-        if self.g.fns.contains_key(m) && !(self.g.std_fns.contains(m) && recv_decl.is_some()) {
-            if let Some(module) = recv_decl {
-                self.cx.warn(
-                    "W819",
-                    at,
-                    &self.item.clone(),
-                    format!("this module's `{m}` hides `std.{module}.{m}`"),
-                );
-            }
+        // The module that declares the receiver's type is searched before this module (17.2, R1028).
+        if self.g.fns.contains_key(m) && recv_decl.is_none() {
             return self.user_call(m, Some(b), args, at);
+        }
+        if let Some(module) = recv_decl
+            && self.g.fns.contains_key(m)
+            && !self.g.std_fns.contains(m)
+        {
+            self.cx.warn(
+                "W819",
+                at,
+                &self.item.clone(),
+                format!("`std.{module}.{m}` hides this module's `{m}`"),
+            );
         }
         self.dict_places.clear();
         let (p, t) = self.place(b)?;
@@ -244,6 +247,8 @@ impl Lower<'_, '_, '_> {
             (Ty::Str, "is_lower") => "islower",
             (Ty::Str, "is_space") => "isspace",
             (Ty::Data(n), "findall" | "finditer") if n == "Regex" => "find_all",
+            (Ty::List(_), "pop") if args.len() == 1 => "remove_at",
+            (Ty::Dict(..), "pop") if args.len() == 1 => "remove",
             _ => m,
         };
         if canon != m && !self.cx.strict {
@@ -336,6 +341,9 @@ impl Lower<'_, '_, '_> {
                 at,
                 format!("`{m}` dereferences a `Ptr`; call it inside `unsafe`"),
             );
+        }
+        if path == "std.arena.ref.set" {
+            self.ref_set_exclusive(b, at);
         }
         let Some(d) = crate::stdlib::decl(&path) else {
             let names = crate::stdlib::members(module);

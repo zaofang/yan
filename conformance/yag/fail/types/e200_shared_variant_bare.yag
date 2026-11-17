@@ -1,0 +1,10 @@
+# spec: 14.1
+# rows: R799
+# expect: E200 at 9:9
+
+type A = X() | Y()
+type B = X() | Z()
+
+pub def main() uses io:
+    a = X()
+    io.print("hi")

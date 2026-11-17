@@ -1823,20 +1823,40 @@ sections = "4, 7.2"
 
 [[entry]]
 rows = "R1026"
+topic = "`list.clear()`, `list.remove_at(i)` (negative counts from the end, `pre` in range) and `list.remove(x)` (`pre` contains) panic with `contract` where Python raises"
+sections = "17.3"
+
+[[entry]]
+rows = "R1027"
+topic = "N34 reads `xs.pop(i)` as `remove_at(i)` and `d.pop(k)` as `dict.remove(k)`"
+sections = "14.4, 17.3"
+
+[[entry]]
+rows = "R1028"
+topic = "method resolution searches the receiver type's declaring module before the current module, so a module function never captures a method call on a std type (replaces the current-module-first order of R348; #1404)"
+sections = "17.2"
+
+[[entry]]
+rows = "R1029"
+topic = "f-string format specs: fill, align, sign, zero pad, width, `,`, and `.Nf` on a float rounded on its exact value (#1401); other types are E017"
+sections = "17.3"
+
+[[entry]]
+rows = "R1031"
 topic = "a foreign library is a ceiling entry of every package whose normal-dependency closure declares it, called or not; confined capabilities stay transitive by `uses` (RFC 0079 D1)"
 sections = "7.4, 12, 19.2"
 
 [[entry]]
-rows = "R1027"
+rows = "R1032"
 topic = "another package's library is spelled `\"@org/name:lib\"` in a ceiling, own libraries bare; two packages' `lib zlib` are two capabilities (RFC 0079 D2)"
 sections = "12, 19.1"
 
 [[entry]]
-rows = "R1028"
+rows = "R1033"
 topic = "every package's closure ceiling checked at resolution (E314 with path), publish (E006) and compile; `yan update` holds back, `yan add` fails (RFC 0079 D3)"
 sections = "19.2, 19.4, 25"
 
 [[entry]]
-rows = "R1029"
+rows = "R1034"
 topic = "one foreign set computed from source; `.info` and `yan.lock` record `ffi` and `libs`; a locked build recomputes it, E020 on mismatch (RFC 0079 D4)"
 sections = "19.1, 19.2, 25"

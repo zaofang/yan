@@ -11,33 +11,6 @@ a week (DL14).
 Found by the real-programs sweep ([examples/real/README.md](../../examples/real/README.md)). Each fails on every
 backend, at `yan check`.
 
-### [#1401](https://github.com/zaofang/yan/issues/1401): float and zero-pad format specs
-
-`{x:.2f}` and `{7:04}` are E017. Alignment specs such as `{w:<6}` work. No workaround for fixed-precision floats.
-
-```yag gap=examples/real/gaps/fstring_float_spec.yag
-# Gap #1401: float and zero-pad format specs are E017.
-def main() uses io:
-    io.print(f"{3.14159:.2f} {7:04}")
-```
-
-### [#1402](https://github.com/zaofang/yan/issues/1402): list and dict methods Python programs use
-
-`list.clear`, `list.remove`, `list.pop(i)` and `dict.pop` are E203 or E202. Workaround: build a new list or dict
-without the element, as `examples/real/lru_cache.yag` does.
-
-```yag gap=examples/real/gaps/container_methods.yag
-# Gap #1402: list.clear, list.remove, list.pop(i), dict.pop.
-def main() uses io:
-    xs = [1, 2, 3]
-    d = {"a": 1}
-    xs.remove(2)
-    first = xs.pop(0)
-    d.pop("a")
-    xs.clear()
-    io.print(f"{first}")
-```
-
 ### [#1403](https://github.com/zaofang/yan/issues/1403): store into a dict held in a record field
 
 `c.vals[k] = v` is E017. Workaround: pass the dict as a separate `var` parameter.
@@ -56,28 +29,8 @@ def main() uses io:
     io.print(f"{c.vals.len()}")
 ```
 
-### [#1404](https://github.com/zaofang/yan/issues/1404): a user function named like a builtin method
-
-A module function `get` captures `d.get(k)` calls on dicts. Workaround: rename the function.
-
-```yag gap=examples/real/gaps/user_fn_shadows_method.yag
-# Gap #1404: a user `get` captures `dict.get`.
-class Cache:
-    vals: dict[str, int]
-    hits: int
-
-def get(var c: Cache, key: str) -> int | None:
-    v = c.vals.get(key)
-    c.hits += 1
-    return v
-
-def main() uses io:
-    c = Cache(vals={"a": 1}, hits=0)
-    io.print(f"{get(&c, 'a')}")
-```
-
 Fixed since the sweep: #1398 (I001 on a constructor call in a match branch), #1399 (native `list.pop`,
-`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`).
+`x in [lit, ...]`, `StrJoin`), #1400 (method call on a module-level const), #1405 (`Sender.close`), #1402 (`list.clear`, `list.remove`, `list.pop(i)`, `dict.pop`), #1404 (a module function no longer captures a method of the receiver's type; 17.2), #1401 (`.2f`, `04` and the other common f-string specs).
 
 ## Backend and checker coverage
 
