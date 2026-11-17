@@ -142,4 +142,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-16 | Design: `std.sync.atomic` and `Mutex` lowering, `--ub` ordering edges | #1369 (under #1319); D1 to D9, slices S1 to S7; cards Q1 to Q3; no rows |
 | 2026-11-16 | Capability security review: escapes from `uses` and the ceiling | F1 to F4: #1388 (High), #1389 (High), #1390 (Medium), #1391 (Low); no rows |
 | 2026-11-17 | Module, file and package structure: keep and avoid across 16 ecosystems | RFC 0084; D1 to D12; no rows |
-| 2026-11-17 | Design: one ownership analysis in `yan-check`, Drop/`@linear` partial-move rejection | #1583; D1 to D6, slices 1 to 4; D5 needs a lead decision; no rows |
+| 2026-11-17 | Design: one ownership analysis in `yan-check`, Drop/`@linear` partial-move rejection | #1583; D1 to D6, slices 1 to 4; D5 accepted 2026-11-17; no rows |
