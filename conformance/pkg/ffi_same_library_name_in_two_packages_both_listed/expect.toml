@@ -1,0 +1,4 @@
+spec = "12"
+rows = "R1032"
+note = "each of two same-named libraries resolves when its qualified spelling is in the ceiling"
+command = ["lock"]

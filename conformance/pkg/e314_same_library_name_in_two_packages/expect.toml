@@ -1,0 +1,6 @@
+spec = "12"
+rows = "R1032, R1033"
+note = "two packages declaring `lib zlib` are two capabilities, so naming one qualified entry leaves the other outside the ceiling"
+command = ["lock"]
+code = "E314"
+at = "yan.lock:0:0"

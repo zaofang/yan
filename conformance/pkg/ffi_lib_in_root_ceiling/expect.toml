@@ -1,0 +1,4 @@
+spec = "19.2"
+rows = "R1031, R1032, R1033"
+note = "a dependency library named in the root ceiling by its qualified spelling resolves"
+command = ["lock"]
