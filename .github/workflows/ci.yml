@@ -210,6 +210,14 @@ jobs:
       - run: >-
           uv run python -m tools.ubsweep
           --yan ${{ github.workspace }}/target/release/yan
+      # Valgrind sweep (#1583): every program built natively and run under valgrind; nightly only (about 2 min on 4 cores).
+      # `yan build` links libyan_rt.a from beside the executable. Programs it fails are listed in tools/valgrind_allow.toml with an issue.
+      - if: github.event_name == 'schedule'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+          cargo build --locked --release -p yan-rt
+          uv run python -m tools.valgrind_sweep --yan ${{ github.workspace }}/target/release/yan
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

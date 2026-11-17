@@ -1,0 +1,2 @@
+# Programs that fail under valgrind on native today (#1583). Each entry needs the issue that owns
+# the fix; an entry that no longer fails fails tools/valgrind_sweep.py as stale, so the list only shrinks.
