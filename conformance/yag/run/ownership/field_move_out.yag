@@ -1,0 +1,16 @@
+# spec: 4.1, 4.2
+# rows: R1
+# note: moving one field out of an owned record leaves the other fields owned by the record and freed at its end (#1500 item 3)
+# stdout:
+# 1
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take xs: list[int]) -> int:
+    return xs.len()
+
+def main() uses io:
+    h = H(s="a".upper(), xs=[1])
+    n = eat(h.xs)
+    io.print(f"{n}")
