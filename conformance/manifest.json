@@ -5918,7 +5918,7 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "3\n[1, 2]\n",
+   "stdout": "1\n[1, 2]\n",
    "exit": 0
   },
   {
