@@ -6690,6 +6690,38 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_pool_lowest_panic.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "8.3"
+   ],
+   "rows": [
+    "R1073"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/par_pool_results.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1072"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "832040 4950000 75025\n6 48 1 [0, 1, 4, 9]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_source_order.yag",
    "kind": "run",
    "milestone": "M1",

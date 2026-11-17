@@ -414,6 +414,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1066 | a binding declared outside a `par` must be Sync in every branch that borrows it with `let` and Send in every branch that moves or `inout`-borrows it, by type and even in a single branch, E417 or E415 (#1502 item 20, owner decision 2026-11-17) | 6.4 |
 | R1067 | Yan `use` binds a module alias for a module of the package and `use .m` a sibling; qualified names reach other modules in expressions, types and patterns; an unknown module is E200 (RFC 0084 D4, slice 2b) | 15.2, 15.3 |
 | R1068 | a binder of a pattern on a list element, a slice pattern's element binder or any view of an indexed projection is a view: moving it out is E413 with the `.copy()` fix, as for the `let` of a projection (#1573 item 1) | 4.2 |
+| R1072, R1073 | native plain `par` runs pool-safe arms on `YAN_THREADS` workers (off by default until #1583), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584) | 6.7, 9.1 |
 | R1069 | `pkg` visibility: an item is private, `pkg` or `pub`; a private item is named in its own module only, and a path to a private item of another module is E287 (RFC 0084 D3, slice 2c) | 3.5, 13.1, 15.2, 25 |
 | R1070 | a non-copy owned local that is used again later and leaves into a tuple or list element, an `Ok`, `Err` or `Some` argument, a conditional-expression arm or an `else` fallback value is E413 with the `.copy()` fix, as at a bind or a `sink` argument (#1573 item 4) | 4.2 |
 

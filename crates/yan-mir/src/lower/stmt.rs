@@ -388,15 +388,23 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.cur = join;
                 Ok(())
             }
+            // Each arm and the join start a block of their own, so `pool` finds the arms
+            // (the shape `pool::arms` reads).
             K::Par { blocks, .. } => {
                 self.emit(Inst::Arm(ArmEvent::Fork));
+                let entries: Vec<BlockId> = blocks.iter().map(|_| self.block_new()).collect();
+                let join = self.block_new();
+                self.finish(Term::Jump(entries.first().copied().unwrap_or(join)));
                 for (k, b) in blocks.iter().enumerate() {
+                    self.cur = entries[k];
                     self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
                     self.emit(Inst::Arm(ArmEvent::Exit));
+                    self.finish(Term::Jump(entries.get(k + 1).copied().unwrap_or(join)));
                 }
+                self.cur = join;
                 self.emit(Inst::Arm(ArmEvent::Join));
                 Ok(())
             }

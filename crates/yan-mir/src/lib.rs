@@ -11,6 +11,7 @@ mod co;
 pub mod ffi;
 mod layout;
 mod lower;
+mod pool;
 mod tasks;
 
 pub use layout::{Layout, SumLayout, layout};
@@ -640,6 +641,12 @@ pub enum RtFn {
     ParCancel,
     /// `(handle)`: leave the block.
     ParEnd,
+    /// `(n) -> i64`: 1 when the plain `par` of `n` arms runs on the pool (`yan_rt::pool`), 0 when
+    /// it runs inline.
+    PoolBegin,
+    /// `(frame, n)`: run the arms of a plain `par` on the pool and wait for all of them. Words
+    /// `0..n` of `frame` are the arms' code addresses, each `(frame) -> i64`.
+    PoolRun,
     /// `(state, words, capacity, policy, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
     ActorSpawn,
     /// `(actor, out, in_task) -> status`: a handler takes the state.
@@ -729,6 +736,169 @@ pub enum RtFn {
 }
 
 impl RtFn {
+    /// Whether a call may run on a pool worker (`pool`): it touches no thread-local state that
+    /// a worker would not share with its forking thread, no handler and no I/O. A list of what
+    /// is safe, so a new `RtFn` is refused until it is audited (RFC 0086 D4).
+    pub fn pool_safe(self) -> bool {
+        use RtFn::*;
+        matches!(
+            self,
+            Concat
+                | ShowI64
+                | ShowU64
+                | ShowF64
+                | DivI64
+                | DivU64
+                | ShowBool
+                | Repr
+                | StrEq
+                | StrRepeat
+                | ShowFixed
+                | GraphemeCount
+                | StrPartition
+                | CharCount
+                | ByteLen
+                | IntOf
+                | FloatOf
+                | TruncF64
+                | RoundF64
+                | IntToF64
+                | AbsI64
+                | AbsF64
+                | Floor
+                | Ceil
+                | TruncF
+                | NextUp
+                | NextDown
+                | Fmod
+                | Pown
+                | Pow
+                | Ldexp
+                | FrexpM
+                | FrexpE
+                | StrSplit
+                | StrSplitLines
+                | StrUpper
+                | StrLower
+                | StrStrip
+                | StrStarts
+                | StrEnds
+                | StrContains
+                | StrContainsChar
+                | StrReplace
+                | StrJoin
+                | BytesOfStr
+                | RegexCheck
+                | RegexEscape
+                | RegexSplit
+                | RegexSub
+                | RegexFind
+                | RegexFindAll
+                | CharStr
+                | StrChars
+                | CharAt
+                | CharPred
+                | StrPred
+                | StrCount
+                | ChrCheck
+                | BytesFromList
+                | BytesFree
+                | BytesCopy
+                | BytesSet
+                | BytesPush
+                | BytesExtend
+                | BytesPop
+                | BytesClear
+                | BytesLen
+                | BytesConcat
+                | BytesToList
+                | BytesStarts
+                | BytesEnds
+                | BytesHex
+                | BytesLossy
+                | BytesRepr
+                | BigFromInt
+                | BigBin
+                | BigCmp
+                | BigShift
+                | BigPow
+                | BigNot
+                | BigBits
+                | BigStr
+                | BytesIndex
+                | BytesAt
+                | BytesFind
+                | BytesSlice
+                | Utf8Check
+                | HexCheck
+                | HexDecode
+                | Base64
+                | Base64Check
+                | Base64Decode
+                | EncodingErrorShow
+                | KeyCmp
+                | ListInsert
+                | ListRemove
+                | ListSliceExact
+                | ParseInt
+                | ParseFloat
+                | Math1
+                | Math2
+                | Rounded
+                | DotExact
+                | Copysign
+                | IsNan
+                | IsInf
+                | IsFinite
+                | ListNew
+                | ListPush
+                | ListLen
+                | ListData
+                | ListAt
+                | ListCopy
+                | MapNew
+                | MapFind
+                | MapIndex
+                | MapPush
+                | MapRemove
+                | MapLen
+                | MapAt
+                | HeapUp
+                | HeapFix
+                | HeapPop
+                | HeapPushPop
+                | HeapSort
+                | KeyEq
+                | ListReverse
+                | StrSlice
+                | ListSlice
+                | Select
+                | DqLimit
+                | DqMaxlen
+                | DqPush
+                | DqPop
+                | DqExtend
+                | DqRotate
+                | DqTake
+                | DqContains
+                | DqSuffix
+                | MapCopy
+                | MapFree
+                | JsonParse
+                | JsonDump
+                | JsonErrorShow
+                | JsonParseValue
+                | JsonDumpValue
+                | CsvParse
+                | CsvDump
+                | CsvErrorShow
+                | Alloc
+                | StrFree
+                | ListFree
+                | EnvFree
+        )
+    }
+
     /// Whether the call makes one `alloc` (R925): a fresh `Str` or `List`, or a `List` grown.
     pub fn allocates(self) -> bool {
         matches!(

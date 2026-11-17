@@ -33,6 +33,7 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
 pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
+    crate::pool::arm_failed(format!("panic({kind}): {}", panic_message(kind)), 101);
     let _ = std::io::stdout().flush();
     eprintln!("panic({kind}): {}", panic_message(kind));
     std::process::exit(101)

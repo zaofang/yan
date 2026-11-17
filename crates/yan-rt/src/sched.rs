@@ -81,6 +81,11 @@ fn block(st: &mut State, h: u64) -> &mut Block {
     st.blocks[h as usize].as_mut().expect("a live par block")
 }
 
+/// A `pct` scheduler is bound: plain `par` stays inline so its order is the handler's.
+pub(crate) fn pct_bound() -> bool {
+    with(|st| st.pct.is_some())
+}
+
 pub(crate) fn progressed() {
     with(|st| st.progress += 1);
 }

@@ -123,12 +123,12 @@ struct Cx {
     patches: Vec<(usize, BlockId, usize, usize)>,
 }
 
-fn new_local(f: &mut Func, t: Ty) -> Local {
+pub(crate) fn new_local(f: &mut Func, t: Ty) -> Local {
     f.locals.push(t);
     f.locals.len() as Local - 1
 }
 
-fn new_block(f: &mut Func, insts: Vec<Inst>, term: Term) -> BlockId {
+pub(crate) fn new_block(f: &mut Func, insts: Vec<Inst>, term: Term) -> BlockId {
     let lines = vec![0; insts.len()];
     f.blocks.push(Block { insts, lines, term });
     f.blocks.len() as BlockId - 1
@@ -475,7 +475,7 @@ impl Cx {
     }
 }
 
-fn succs(t: &Term) -> Vec<BlockId> {
+pub(crate) fn succs(t: &Term) -> Vec<BlockId> {
     match t {
         Term::Jump(b) | Term::Suspend { resume: b } | Term::Unwind { drops: b } => vec![*b],
         Term::Branch { then, els, .. } => vec![*then, *els],
@@ -523,7 +523,7 @@ fn map_op(o: &mut Operand, m: &mut impl FnMut(Local) -> Local) {
 }
 
 /// Renames every local of `i`, including the one whose address `AddrOf` takes.
-fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
+pub(crate) fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
     let ops: Vec<&mut Operand> = match i {
         Inst::Copy { dst, src } => {
             *dst = m(*dst);
@@ -566,7 +566,7 @@ fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
     ops.into_iter().for_each(|o| map_op(o, m));
 }
 
-fn map_term(t: &mut Term, m: &mut impl FnMut(Local) -> Local) {
+pub(crate) fn map_term(t: &mut Term, m: &mut impl FnMut(Local) -> Local) {
     match t {
         Term::Branch { cond, .. } => map_op(cond, m),
         Term::Switch { on, .. } => *on = m(*on),
@@ -586,7 +586,7 @@ fn map_term(t: &mut Term, m: &mut impl FnMut(Local) -> Local) {
     }
 }
 
-fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
+pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
     let l = |o: &Operand| match o {
         Operand::Local(l) => Some(*l),
         _ => None,
@@ -617,7 +617,7 @@ fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
     }
 }
 
-fn term_uses(t: &Term) -> Vec<Local> {
+pub(crate) fn term_uses(t: &Term) -> Vec<Local> {
     let l = |o: &Operand| match o {
         Operand::Local(l) => Some(*l),
         _ => None,
@@ -642,6 +642,13 @@ fn term_uses(t: &Term) -> Vec<Local> {
 
 /// The locals live on entry to each block, sorted, without the frame (local 0).
 fn live_in(f: &Func) -> Vec<Vec<Local>> {
+    let mut live = live_sets(f);
+    live.iter_mut().for_each(|l| l.retain(|x| *x != 0));
+    live
+}
+
+/// The locals live on entry to each block, sorted.
+pub(crate) fn live_sets(f: &Func) -> Vec<Vec<Local>> {
     let n = f.blocks.len();
     let mut gen_kill: Vec<(HashSet<Local>, HashSet<Local>)> = Vec::with_capacity(n);
     for b in &f.blocks {
@@ -676,7 +683,7 @@ fn live_in(f: &Func) -> Vec<Vec<Local>> {
     }
     live.into_iter()
         .map(|s| {
-            let mut v: Vec<Local> = s.into_iter().filter(|l| *l != 0).collect();
+            let mut v: Vec<Local> = s.into_iter().collect();
             v.sort_unstable();
             v
         })

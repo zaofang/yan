@@ -24,7 +24,7 @@ mod debug;
 use yan_mir::{AtomicOp, Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
     abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
-    loghandler, map, pathabi, pq, regexabi, sched, select, slice, timeabi,
+    loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -236,6 +236,11 @@ impl Lazy {
 extern "C" fn yan_jit_resolve(lazy: *const Lazy, i: i64) -> usize {
     // SAFETY: stubs pass the address of the boxed `Lazy` that the running `Compiled` owns.
     let lazy = unsafe { &*lazy };
+    // Pool workers (`yan_rt::pool`) can resolve at once; `Lazy` is not `Sync`, so they take turns.
+    static TURN: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let _turn = TURN
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     match lazy.resolve(i as usize) {
         Ok(code) => code,
         Err(e) => {
@@ -869,6 +874,8 @@ const RT: &[RtFn] = &[
     RtFn::ParExitKind,
     RtFn::ParCancel,
     RtFn::ParEnd,
+    RtFn::PoolBegin,
+    RtFn::PoolRun,
     RtFn::CostBegin,
     RtFn::CostEnd,
     RtFn::CostCount,
@@ -2213,6 +2220,18 @@ fn rt_fn(
             "yan_rt_par_end",
             sched::yan_rt_par_end as *const u8,
             &[I64],
+            None,
+        ),
+        RtFn::PoolBegin => (
+            "yan_rt_pool_begin",
+            pool::yan_rt_pool_begin as *const u8,
+            &[I64],
+            Some(I64),
+        ),
+        RtFn::PoolRun => (
+            "yan_rt_pool_run",
+            pool::yan_rt_pool_run as *const u8,
+            &[I64, I64],
             None,
         ),
         RtFn::ActorSpawn => (
