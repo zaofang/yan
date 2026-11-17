@@ -1,6 +1,6 @@
 """Mutex: mutual exclusion over one value, no poisoning (6.3). `lock` returns a guard that unlocks
 when its scope ends; a guard is second-class (E414) and held across a blocking operation is E323
-(R395)."""
+(R395). `try_lock` needs `uses nondet` (E709) and its option is only a `match` scrutinee (R1038)."""
 
 @intrinsic
 @since("1.0")
@@ -9,3 +9,7 @@ pub def Mutex[T](take v: T) -> Mutex[T]: ...
 @intrinsic
 @since("1.0")
 pub def lock[T](self: Mutex[T]) -> MutexGuard[T] from self: ...
+
+@intrinsic
+@since("1.0")
+pub def try_lock[T](self: Mutex[T]) -> MutexGuard[T] | None from self: ...
