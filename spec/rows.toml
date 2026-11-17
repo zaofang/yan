@@ -1980,3 +1980,8 @@ sections = "14.4, 25"
 rows = "R1057"
 topic = "N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201"
 sections = "14.4"
+
+[[entry]]
+rows = "R1060"
+topic = "Python names as real functions: bool(x), tuple(t), dict(), set(), sum(xs, start), str.center, str.index (#1543, #1527 decision 5)"
+sections = "14.4"
