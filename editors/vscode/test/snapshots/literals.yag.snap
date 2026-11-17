@@ -1,0 +1,377 @@
+"\"\"\"Lexical tour of Yan Agent (spec 13.1).\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Lexical tour of Yan Agent (spec 13.1)." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+""
+"@@prove"
+  "@@" punctuation.definition.annotation.yag
+  "prove" entity.other.attribute-name.yag
+"# line comment"
+  "# line comment" comment.line.number-sign.yag
+"#: doc of the next field"
+  "#: doc of the next field" comment.block.documentation.yag
+"#> total + 1"
+  "#> total + 1" comment.line.watch.yag
+"type Money = newtype[int] where self >= 0"
+  "type" storage.type.yag
+  "Money" entity.name.type.yag
+  "=" keyword.operator.assignment.yag
+  "newtype" storage.type.yag
+  "[" -
+  "int" support.type.builtin.yag
+  "] " -
+  "where" keyword.other.yag
+  "self" variable.language.self.yag
+  ">=" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+"type Shape = Circle(r: float) | Square(side: float)"
+  "type" storage.type.yag
+  "Shape" entity.name.type.yag
+  "=" keyword.operator.assignment.yag
+  "Circle" entity.name.type.yag
+  "(r: " -
+  "float" support.type.builtin.yag
+  ") " -
+  "|" keyword.operator.arithmetic.yag
+  "Square" entity.name.type.yag
+  "(side: " -
+  "float" support.type.builtin.yag
+  ")" -
+"type Fs = uses io, net as http"
+  "type" storage.type.yag
+  "Fs" entity.name.type.yag
+  "=" keyword.operator.assignment.yag
+  "uses" keyword.other.contract.yag
+  "io" variable.other.capability.yag
+  "," punctuation.separator.yag
+  "net" variable.other.capability.yag
+  "as" keyword.operator.word.yag
+  "http" variable.other.capability.yag
+""
+"@wire(name=\"slug\")"
+  "@" punctuation.definition.annotation.yag
+  "wire" entity.other.attribute-name.yag
+  "(name" -
+  "=" keyword.operator.assignment.yag
+  "\"slug" -
+  "\"" string.quoted.double.yag
+  ")" string.quoted.double.yag
+"class Row:"
+  "class" storage.type.yag
+  "Row" entity.name.type.yag
+  ":" -
+"    id: int"
+  "    id: " -
+  "int" support.type.builtin.yag
+"    #: display label"
+  "#: display label" comment.block.documentation.yag
+"    label: str = \"x\""
+  "    label: " -
+  "str" support.type.builtin.yag
+  "=" keyword.operator.assignment.yag
+  " \"x" -
+  "\"" string.quoted.double.yag
+""
+"trait Show:"
+  "trait" storage.type.yag
+  "Show" entity.name.type.yag
+  ":" -
+"    def show(self: Self) -> str: ..."
+  "def" storage.type.function.yag
+  "show" entity.name.function.yag
+  "(" -
+  "self" variable.language.self.yag
+  ": " -
+  "Self" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "str" support.type.builtin.yag
+  ": " -
+  "..." constant.language.ellipsis.yag
+""
+"impl Show for Row:"
+  "impl" storage.type.yag
+  "Show" entity.name.type.interface.yag
+  "for" keyword.control.yag
+  "Row" entity.name.type.yag
+  ":" -
+"    def show(self: Self) -> str:"
+  "def" storage.type.function.yag
+  "show" entity.name.function.yag
+  "(" -
+  "self" variable.language.self.yag
+  ": " -
+  "Self" entity.name.type.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "str" support.type.builtin.yag
+  ":" -
+"        return f\"{self.id}: {self.label!r:>5}\""
+  "return" keyword.control.yag
+  "f\"" string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "self" string.quoted.double.format.yag meta.interpolation.yag variable.language.self.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "id" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  ": " string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "self" string.quoted.double.format.yag meta.interpolation.yag variable.language.self.yag
+  "." string.quoted.double.format.yag meta.interpolation.yag punctuation.accessor.yag
+  "label!r" string.quoted.double.format.yag meta.interpolation.yag
+  ":>5" string.quoted.double.format.yag meta.interpolation.yag constant.other.format-spec.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "\"" string.quoted.double.format.yag
+""
+"pub def demo(xs: list[int], var acc: list[int], take buf: bytes, who: str = 'w') -> int fail Err uses io, net as http:"
+  "pub" storage.modifier.yag
+  "def" storage.type.function.yag
+  "demo" entity.name.function.yag
+  "(xs: " -
+  "list" support.type.builtin.yag
+  "[" -
+  "int" support.type.builtin.yag
+  "], " -
+  "var" storage.modifier.yag
+  " acc: " -
+  "list" support.type.builtin.yag
+  "[" -
+  "int" support.type.builtin.yag
+  "], " -
+  "take" storage.modifier.yag
+  " buf: " -
+  "bytes" support.type.builtin.yag
+  ", who: " -
+  "str" support.type.builtin.yag
+  "=" keyword.operator.assignment.yag
+  "'" string.quoted.single.yag
+  "w" string.quoted.single.yag
+  "'" string.quoted.single.yag
+  ") " -
+  "->" keyword.operator.arrow.yag
+  "int" support.type.builtin.yag
+  "fail" keyword.control.yag
+  "Err" entity.name.type.yag
+  "uses" keyword.other.contract.yag
+  "io" variable.other.capability.yag
+  "," punctuation.separator.yag
+  "net" variable.other.capability.yag
+  "as" keyword.operator.word.yag
+  "http" variable.other.capability.yag
+  ":" -
+"    \"\"\"Docstring with \\\"escape\\\".\"\"\""
+  "\"\"\"" string.quoted.docstring.yag
+  "Docstring with " string.quoted.docstring.yag
+  "\\\"" string.quoted.docstring.yag constant.character.escape.yag
+  "escape" string.quoted.docstring.yag
+  "\\\"" string.quoted.docstring.yag constant.character.escape.yag
+  "." string.quoted.docstring.yag
+  "\"\"\"" string.quoted.docstring.yag
+"    pre len(xs) > 0"
+  "pre" keyword.other.contract.yag
+  "len" entity.name.function.call.yag
+  "(xs) " -
+  ">" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+"    post out >= 0 and old(len(acc)) <= 9"
+  "post" keyword.other.contract.yag
+  "out" variable.language.out.yag
+  ">=" keyword.operator.comparison.yag
+  "0" constant.numeric.integer.yag
+  "and" keyword.operator.word.yag
+  "old" keyword.other.contract.yag
+  "(" -
+  "len" entity.name.function.call.yag
+  "(acc)) " -
+  "<=" keyword.operator.comparison.yag
+  "9" constant.numeric.integer.yag
+"    ex demo([1], [], b\"\", \"a\") == 3"
+  "ex" keyword.other.contract.yag
+  "demo" entity.name.function.call.yag
+  "([" -
+  "1" constant.numeric.integer.yag
+  "], [], " -
+  "b\"" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+  ", \"a" -
+  "\"" string.quoted.double.yag
+  ") == 3" string.quoted.double.yag
+"    cost steps <= 10, alloc <= 2"
+  "cost" keyword.other.contract.yag
+  "steps" keyword.other.contract.yag
+  "<=" keyword.operator.comparison.yag
+  "10" constant.numeric.integer.yag
+  ", " -
+  "alloc" keyword.other.contract.yag
+  "<=" keyword.operator.comparison.yag
+  "2" constant.numeric.integer.yag
+"    n = 0xFF_FF + 0o17 + 0b1010 + 1_000"
+  "    n " -
+  "=" keyword.operator.assignment.yag
+  "0xFF_FF" constant.numeric.hex.yag
+  "+" keyword.operator.arithmetic.yag
+  "0o17" constant.numeric.octal.yag
+  "+" keyword.operator.arithmetic.yag
+  "0b1010" constant.numeric.binary.yag
+  "+" keyword.operator.arithmetic.yag
+  "1_000" constant.numeric.integer.yag
+"    f = 2.5e-3 * 150 * ms"
+  "    f " -
+  "=" keyword.operator.assignment.yag
+  "2.5e-3" constant.numeric.float.yag
+  "*" keyword.operator.arithmetic.yag
+  "150" constant.numeric.integer.yag
+  "*" keyword.operator.arithmetic.yag
+  " ms" -
+"    raw = r\"C:\\no\\escape\""
+  "    raw " -
+  "=" keyword.operator.assignment.yag
+  "r\"" string.quoted.raw.yag
+  "C:\\no\\escape" string.quoted.raw.yag
+  "\"" string.quoted.raw.yag
+"    data = b\"\\x00\\x01\""
+  "    data " -
+  "=" keyword.operator.assignment.yag
+  "b\"" string.quoted.double.yag
+  "\\x00" string.quoted.double.yag constant.character.escape.yag
+  "\\x01" string.quoted.double.yag constant.character.escape.yag
+  "\"" string.quoted.double.yag
+"    ch = c'a'"
+  "    ch " -
+  "=" keyword.operator.assignment.yag
+  "c'a'" string.quoted.single.char.yag
+"    cs = c\"text\""
+  "    cs " -
+  "=" keyword.operator.assignment.yag
+  "c\"" string.quoted.double.yag
+  "text" string.quoted.double.yag
+  "\"" string.quoted.double.yag
+"    msg = f\"hi {who} total {len(xs):>5} {{literal}} {xs[1:2]} {'a'}\""
+  "    msg " -
+  "=" keyword.operator.assignment.yag
+  "f\"" string.quoted.double.format.yag
+  "hi " string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "who" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  " total " string.quoted.double.format.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "len" string.quoted.double.format.yag meta.interpolation.yag entity.name.function.call.yag
+  "(" string.quoted.double.format.yag meta.interpolation.yag
+  "xs" string.quoted.double.format.yag meta.interpolation.yag
+  ")" string.quoted.double.format.yag meta.interpolation.yag
+  ":>5" string.quoted.double.format.yag meta.interpolation.yag constant.other.format-spec.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "{{" string.quoted.double.format.yag constant.character.escape.brace.yag
+  "literal" string.quoted.double.format.yag
+  "}}" string.quoted.double.format.yag constant.character.escape.brace.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "xs" string.quoted.double.format.yag meta.interpolation.yag
+  "[" string.quoted.double.format.yag meta.interpolation.yag
+  "1" string.quoted.double.format.yag meta.interpolation.yag constant.numeric.integer.yag
+  ":" string.quoted.double.format.yag meta.interpolation.yag
+  "2" string.quoted.double.format.yag meta.interpolation.yag constant.numeric.integer.yag
+  "]" string.quoted.double.format.yag meta.interpolation.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "{" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "'" string.quoted.double.format.yag meta.interpolation.yag string.quoted.single.yag
+  "a" string.quoted.double.format.yag meta.interpolation.yag string.quoted.single.yag
+  "'" string.quoted.double.format.yag meta.interpolation.yag string.quoted.single.yag
+  "}" string.quoted.double.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+  "\"" string.quoted.double.format.yag
+"    tpl = t\"\"\""
+  "    tpl " -
+  "=" keyword.operator.assignment.yag
+  "t\"\"\"" string.quoted.triple.format.yag
+"    select {who}"
+  "    select " string.quoted.triple.format.yag
+  "{" string.quoted.triple.format.yag meta.interpolation.yag punctuation.section.interpolation.begin.yag
+  "who" string.quoted.triple.format.yag meta.interpolation.yag
+  "}" string.quoted.triple.format.yag meta.interpolation.yag punctuation.section.interpolation.end.yag
+"    \"\"\""
+  "\"\"\"" string.quoted.triple.format.yag
+"    out = []"
+  "    out " -
+  "=" keyword.operator.assignment.yag
+  " []" -
+"    match = re.match(who, msg)"
+  "    match " -
+  "=" keyword.operator.assignment.yag
+  " re" -
+  "." punctuation.accessor.yag
+  "match" entity.name.function.call.yag
+  "(who, msg)" -
+"    for x in xs:"
+  "for" keyword.control.yag
+  " x " -
+  "in" keyword.control.yag
+  " xs:" -
+"        acc.append(x ** 2 // 3)"
+  "        acc" -
+  "." punctuation.accessor.yag
+  "append" entity.name.function.call.yag
+  "(x " -
+  "**" keyword.operator.arithmetic.yag
+  "2" constant.numeric.integer.yag
+  "//" keyword.operator.arithmetic.yag
+  "3" constant.numeric.integer.yag
+  ")" -
+"    q = qs.get(who) else fail Missing(sym=who)"
+  "    q " -
+  "=" keyword.operator.assignment.yag
+  " qs" -
+  "." punctuation.accessor.yag
+  "get" entity.name.function.call.yag
+  "(who) " -
+  "else" keyword.control.yag
+  "fail" keyword.control.yag
+  "Missing" entity.name.type.yag
+  "(sym" -
+  "=" keyword.operator.assignment.yag
+  "who)" -
+"    r = http.get_text(who)?"
+  "    r " -
+  "=" keyword.operator.assignment.yag
+  " http" -
+  "." punctuation.accessor.yag
+  "get_text" entity.name.function.call.yag
+  "(who)" -
+  "?" keyword.operator.try.yag
+"    vals = par [g(x)? for x in xs]"
+  "    vals " -
+  "=" keyword.operator.assignment.yag
+  "par" keyword.control.yag
+  " [" -
+  "g" entity.name.function.call.yag
+  "(x)" -
+  "?" keyword.operator.try.yag
+  "for" keyword.control.yag
+  " x " -
+  "in" keyword.control.yag
+  " xs]" -
+"    with net = fake_net():"
+  "with" keyword.control.yag
+  " net " -
+  "=" keyword.operator.assignment.yag
+  "fake_net" entity.name.function.call.yag
+  "():" -
+"        pass"
+  "pass" keyword.control.yag
+"    try:"
+  "try" invalid.illegal.keyword.rejected.yag
+  ":" -
+"        pass"
+  "pass" keyword.control.yag
+"    return n if n >= 1 and not False else None"
+  "return" keyword.control.yag
+  " n " -
+  "if" keyword.control.yag
+  " n " -
+  ">=" keyword.operator.comparison.yag
+  "1" constant.numeric.integer.yag
+  "and" keyword.operator.word.yag
+  "not" keyword.operator.word.yag
+  "False" constant.language.yag
+  "else" keyword.control.yag
+  "None" constant.language.yag
+""

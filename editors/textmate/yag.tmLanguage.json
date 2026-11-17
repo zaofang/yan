@@ -1,0 +1,279 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Yan Agent",
+  "scopeName": "source.yag",
+  "fileTypes": ["yag"],
+  "patterns": [{ "include": "#code" }],
+  "repository": {
+    "code": {
+      "patterns": [
+        { "include": "#comment" },
+        { "include": "#docstring" },
+        { "include": "#string" },
+        { "include": "#module-attribute" },
+        { "include": "#decorator" },
+        { "include": "#number" },
+        { "include": "#declaration" },
+        { "include": "#contract-line" },
+        { "include": "#capability-list" },
+        { "include": "#rejected" },
+        { "include": "#keyword" },
+        { "include": "#constant" },
+        { "include": "#builtin-type" },
+        { "include": "#type" },
+        { "include": "#function-call" },
+        { "include": "#operator" }
+      ]
+    },
+    "comment": {
+      "patterns": [
+        {
+          "name": "comment.line.watch.yag",
+          "match": "#>(?:\\s.*|$)"
+        },
+        {
+          "name": "comment.block.documentation.yag",
+          "match": "#:(?:\\s.*|$)"
+        },
+        {
+          "name": "comment.line.number-sign.yag",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "docstring": {
+      "name": "string.quoted.docstring.yag",
+      "begin": "^\\s*(?=\"\"\")",
+      "end": "(?<=\"\"\")",
+      "patterns": [
+        {
+          "begin": "\"\"\"",
+          "end": "\"\"\"",
+          "patterns": [{ "include": "#escape" }]
+        }
+      ]
+    },
+    "string": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.format.yag",
+          "begin": "\\b[ft]\"\"\"",
+          "end": "\"\"\"",
+          "patterns": [
+            { "include": "#escape" },
+            { "include": "#brace-escape" },
+            { "include": "#interpolation" }
+          ]
+        },
+        {
+          "name": "string.quoted.triple.yag",
+          "begin": "\\b[bc]?\"\"\"",
+          "end": "\"\"\"",
+          "patterns": [{ "include": "#escape" }]
+        },
+        {
+          "name": "string.quoted.raw.yag",
+          "begin": "\\br\"",
+          "end": "\"|$"
+        },
+        {
+          "name": "string.quoted.double.format.yag",
+          "begin": "\\b[ft]\"",
+          "end": "\"|$",
+          "patterns": [
+            { "include": "#escape" },
+            { "include": "#brace-escape" },
+            { "include": "#interpolation" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.char.yag",
+          "match": "\\bc'(?:\\\\(?:[nrt0\\\\\"']|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]+\\})|[^'\\\\])'",
+          "captures": { "0": { "patterns": [{ "include": "#escape" }] } }
+        },
+        {
+          "name": "string.quoted.double.yag",
+          "begin": "\\b[bc]?\"",
+          "end": "\"|$",
+          "patterns": [{ "include": "#escape" }]
+        },
+        {
+          "name": "string.quoted.single.yag",
+          "begin": "'",
+          "end": "'|$",
+          "patterns": [{ "include": "#escape" }]
+        }
+      ]
+    },
+    "escape": {
+      "name": "constant.character.escape.yag",
+      "match": "\\\\(?:[nrt0\\\\\"']|x[0-9A-Fa-f]{2}|u\\{[0-9A-Fa-f]+\\})"
+    },
+    "brace-escape": {
+      "name": "constant.character.escape.brace.yag",
+      "match": "\\{\\{|\\}\\}"
+    },
+    "interpolation": {
+      "name": "meta.interpolation.yag",
+      "begin": "\\{",
+      "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.yag" } },
+      "end": "\\}",
+      "endCaptures": { "0": { "name": "punctuation.section.interpolation.end.yag" } },
+      "patterns": [
+        { "include": "#nested" },
+        { "include": "#format-spec" },
+        { "include": "#code" }
+      ]
+    },
+    "nested": {
+      "patterns": [
+        { "begin": "\\(", "end": "\\)", "patterns": [{ "include": "#nested" }, { "include": "#code" }] },
+        { "begin": "\\[", "end": "\\]", "patterns": [{ "include": "#nested" }, { "include": "#code" }] },
+        { "begin": "\\{", "end": "\\}", "patterns": [{ "include": "#nested" }, { "include": "#code" }] }
+      ]
+    },
+    "format-spec": {
+      "name": "constant.other.format-spec.yag",
+      "match": ":[^{}\"]*(?=\\})"
+    },
+    "module-attribute": {
+      "match": "^\\s*(@@)([A-Za-z_][A-Za-z0-9_.]*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.annotation.yag" },
+        "2": { "name": "entity.other.attribute-name.yag" }
+      }
+    },
+    "decorator": {
+      "match": "^\\s*(@)([A-Za-z_][A-Za-z0-9_.]*)",
+      "captures": {
+        "1": { "name": "punctuation.definition.annotation.yag" },
+        "2": { "name": "entity.other.attribute-name.yag" }
+      }
+    },
+    "number": {
+      "patterns": [
+        { "name": "constant.numeric.hex.yag", "match": "\\b0x[0-9A-Fa-f_]+\\b" },
+        { "name": "constant.numeric.octal.yag", "match": "\\b0o[0-7_]+\\b" },
+        { "name": "constant.numeric.binary.yag", "match": "\\b0b[01_]+\\b" },
+        {
+          "name": "constant.numeric.float.yag",
+          "match": "\\b\\d[\\d_]*(?:\\.\\d[\\d_]*(?:[eE][+-]?\\d+)?|[eE][+-]?\\d+)\\b"
+        },
+        { "name": "constant.numeric.integer.yag", "match": "\\b\\d[\\d_]*\\b" }
+      ]
+    },
+    "declaration": {
+      "patterns": [
+        {
+          "match": "\\b(def|lemma)\\s+([a-z_][a-z0-9_]*)",
+          "captures": {
+            "1": { "name": "storage.type.function.yag" },
+            "2": { "name": "entity.name.function.yag" }
+          }
+        },
+        {
+          "match": "\\b(class|type|trait)\\s+([A-Z][A-Za-z0-9]*)",
+          "captures": {
+            "1": { "name": "storage.type.yag" },
+            "2": { "name": "entity.name.type.yag" }
+          }
+        },
+        {
+          "match": "\\b(impl)\\b(?:\\s+([A-Za-z_][A-Za-z0-9_.]*))?(?:\\[[^\\]]*\\])?(?:\\s+(for)\\b)?",
+          "captures": {
+            "1": { "name": "storage.type.yag" },
+            "2": { "name": "entity.name.type.interface.yag" },
+            "3": { "name": "keyword.control.yag" }
+          }
+        },
+        {
+          "match": "\\b(newtype)(?=\\s*\\[)|(?<=\\))\\s*(where)\\b|\\b(where)\\b(?=\\s+[a-z_(])",
+          "captures": {
+            "1": { "name": "storage.type.yag" },
+            "2": { "name": "keyword.other.yag" },
+            "3": { "name": "keyword.other.yag" }
+          }
+        }
+      ]
+    },
+    "contract-line": {
+      "begin": "^\\s*(pre|post|ex|invariant|decreases|cost)\\b(?!\\s*(?:[-+*/%@&|^]|//|\\*\\*|<<|>>)?=(?!=)|\\s*[.,:)\\]\\[])",
+      "beginCaptures": { "1": { "name": "keyword.other.contract.yag" } },
+      "end": "$",
+      "patterns": [
+        { "name": "variable.language.out.yag", "match": "\\bout\\b" },
+        { "name": "keyword.other.contract.yag", "match": "\\b(?:old|steps|alloc)\\b(?=\\s*(?:\\(|<=))" },
+        { "name": "keyword.control.yag", "match": "\\bwith\\b" },
+        { "include": "#code" }
+      ]
+    },
+    "capability-list": {
+      "begin": "\\b(uses)\\b(?=\\s+(?:none\\b|[a-z_]))",
+      "beginCaptures": { "1": { "name": "keyword.other.contract.yag" } },
+      "end": "(?=:|\\)|=|$)",
+      "patterns": [
+        { "name": "constant.language.none.yag", "match": "\\bnone\\b" },
+        { "name": "keyword.operator.word.yag", "match": "\\bas\\b" },
+        { "name": "variable.other.capability.yag", "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b" },
+        { "name": "punctuation.separator.yag", "match": "," },
+        { "name": "punctuation.accessor.yag", "match": "\\." }
+      ]
+    },
+    "rejected": {
+      "name": "invalid.illegal.keyword.rejected.yag",
+      "match": "\\b(?:try|except|finally|raise|global|nonlocal|del|yield|async|await)\\b(?=\\s|:|$)"
+    },
+    "keyword": {
+      "patterns": [
+        {
+          "name": "keyword.control.yag",
+          "match": "(?<!\\.)\\b(?:if|elif|else|for|while|in|return|break|continue|pass|match|case|with|par|fail|become|unreachable|assert|lambda)\\b(?!\\s*(?:[-+*/%@&|^]|//|\\*\\*|<<|>>)?=(?!=))"
+        },
+        {
+          "name": "keyword.control.import.yag",
+          "match": "\\b(?:import|from)\\b"
+        },
+        {
+          "name": "keyword.operator.word.yag",
+          "match": "\\b(?:and|or|not|is|as)\\b"
+        },
+        {
+          "name": "storage.modifier.yag",
+          "match": "\\bpub\\b|\\b(?:var|take|ghost)\\b(?=\\s+[a-z_][a-z0-9_]*\\s*:)|\\b(?:concurrent|reveal)\\b(?=\\s)"
+        },
+        {
+          "name": "variable.language.self.yag",
+          "match": "\\bself\\b"
+        }
+      ]
+    },
+    "constant": {
+      "patterns": [
+        { "name": "constant.language.yag", "match": "\\b(?:True|False|None)\\b" },
+        { "name": "constant.language.ellipsis.yag", "match": "\\.\\.\\." }
+      ]
+    },
+    "builtin-type": {
+      "name": "support.type.builtin.yag",
+      "match": "\\b(?:int|int8|int16|int32|int64|int128|uint8|uint16|uint32|uint64|uint128|float|float16|bfloat16|float32|float64|float128|bool|str|bytes|char|bigint|decimal|list|dict|set|tuple|deque|heap|sorted_dict|sorted_set|soa)\\b(?!\\s*\\()"
+    },
+    "type": {
+      "name": "entity.name.type.yag",
+      "match": "\\b[A-Z][A-Za-z0-9]*\\b"
+    },
+    "function-call": {
+      "match": "\\b([a-z_][a-z0-9_]*)(?=\\s*\\()",
+      "captures": { "1": { "name": "entity.name.function.call.yag" } }
+    },
+    "operator": {
+      "patterns": [
+        { "name": "keyword.operator.arrow.yag", "match": "->" },
+        { "name": "keyword.operator.comparison.yag", "match": "==|!=|<=|>=|<|>" },
+        { "name": "keyword.operator.assignment.yag", "match": "(?:\\*\\*|//|<<|>>|[-+*/%@&|^])?=" },
+        { "name": "keyword.operator.arithmetic.yag", "match": "\\*\\*|//|<<|>>|[-+*/%@&|^~]" },
+        { "name": "keyword.operator.try.yag", "match": "\\?" },
+        { "name": "punctuation.accessor.yag", "match": "\\." }
+      ]
+    }
+  }
+}
