@@ -7,12 +7,17 @@ pub mod closure;
 mod docs;
 mod foreign;
 mod graph;
+mod layout;
 #[cfg(test)]
 use foreign::is_ffi_module;
 pub use foreign::{ForeignLib, ForeignSet, foreign_set};
 pub use graph::{
     GraphBuilder, Package, PackageGraph, Role, consented, graph_diagnostics, install_graph_builder,
     owner,
+};
+pub use layout::{
+    Issue as LayoutIssue, Located, Module as PackageModule, Root,
+    diagnostics as layout_diagnostics, locate, scan as scan_layout,
 };
 
 use std::collections::{HashMap, HashSet};

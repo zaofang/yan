@@ -17,6 +17,7 @@ fn package(root: PathBuf, workspace: &Path, role: Role) -> Option<Package> {
         name: manifest.name.clone(),
         role,
         foreign: foreign_set(&root),
+        layout: yan_db::scan_layout(&root).1,
         deps: manifest.dependencies.clone(),
         dev_deps: manifest.dev_dependencies.clone(),
         tools: manifest.tools.clone(),
