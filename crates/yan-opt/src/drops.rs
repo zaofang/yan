@@ -14,7 +14,7 @@
 //! A name bound by a `match` pattern or a non-copy projection views its source: moving it moves
 //! the source (the rest of the source leaks).
 //!
-//! Not covered yet: overwriting a field or an `inout` place, and moving a field out of a local.
+//! Not covered yet: overwriting a field, and moving a field out of a local.
 
 use std::collections::{HashMap, HashSet};
 use std::mem;
@@ -70,6 +70,7 @@ fn settle(
             copy,
             facts: &facts,
             flags: flags.clone(),
+            inouts: inout_params(params),
             need: Vec::new(),
             tmp: 0,
             resumed: HashMap::new(),
@@ -90,6 +91,21 @@ fn settle(
         }
     }
     Err(Error::Unsupported("drop flags that do not settle".into()))
+}
+
+fn inout_params(params: &[Param]) -> HashMap<Name, Type> {
+    params
+        .iter()
+        .filter_map(|p| match p {
+            Param::Value {
+                conv: Conv::Inout,
+                name,
+                ty,
+                ..
+            } if !own::is_copy(ty) => Some((name.clone(), ty.clone())),
+            _ => None,
+        })
+        .collect()
 }
 
 /// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
@@ -233,6 +249,9 @@ struct Elab<'a> {
     facts: &'a Facts,
     /// Local to the name of its drop flag.
     flags: HashMap<Name, Name>,
+    /// Non-copy `inout` parameters: the callee owns the value it was handed, so overwriting the
+    /// parameter drops it.
+    inouts: HashMap<Name, Type>,
     /// Locals found to need a flag this run.
     need: Vec<Name>,
     tmp: usize,
@@ -478,6 +497,15 @@ impl Elab<'_> {
         }
     }
 
+    /// The old value of `x` before it is overwritten: an `inout` parameter always owns one.
+    fn drop_old(&self, x: &Name, at: Span, k: Key, out: &mut Vec<Stmt>) {
+        if self.local(x).is_none() && self.inouts.contains_key(x) {
+            out.push(stmt(StmtKind::Drop(x.clone()), at));
+        } else {
+            self.drop_stmt(x, at, k, out);
+        }
+    }
+
     /// Drops for everything declared at or after `pos`, innermost and latest first, except `skip`.
     fn exit_drops(&self, pos: Pos, skip: &[Name], at: Span, k: Key, out: &mut Vec<Stmt>) {
         for (si, scope) in self.cx.scopes.iter().enumerate().rev() {
@@ -663,11 +691,16 @@ impl Elab<'_> {
             StmtKind::Assign { place: p, rhs, .. } => {
                 let flagged = self.consume(&s.kind);
                 let x = &p.root;
-                match self.local(x).map(|l| l.ty.clone()) {
+                let inout = self.local(x).is_none() && p.projs.is_empty();
+                match self
+                    .local(x)
+                    .map(|l| l.ty.clone())
+                    .or_else(|| inout.then(|| self.inouts.get(x).cloned()).flatten())
+                {
                     Some(ty) if p.projs.is_empty() => {
                         // The old value goes after the right-hand side is evaluated.
                         if matches!(rhs, Rhs::Atom(Atom::Lit(..))) {
-                            self.drop_stmt(x, at, mid, out);
+                            self.drop_old(x, at, mid, out);
                             out.push(new);
                         } else {
                             self.tmp += 1;
@@ -689,7 +722,7 @@ impl Elab<'_> {
                                 },
                                 at,
                             ));
-                            self.drop_stmt(x, at, mid, out);
+                            self.drop_old(x, at, mid, out);
                             out.push(stmt(
                                 StmtKind::Assign {
                                     place: p.clone(),

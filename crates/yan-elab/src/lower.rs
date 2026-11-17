@@ -2225,6 +2225,7 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
+    "std.sync.mutex.try_lock",
     "std.chan.sender.share",
     "std.chan.sender.try_send",
     "std.chan.receiver.try_recv",
