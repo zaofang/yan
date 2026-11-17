@@ -1,0 +1,13 @@
+# spec: 6.3
+# rows: R1022
+# note: a task that locks a mutex it already holds is a deadlock, which panics (R396); the first line is printed before the second lock
+# stdout:
+# locked
+# exit: 101
+
+def main() uses io:
+    m = Mutex[int](0)
+    g = m.lock()
+    print("locked")
+    h = m.lock()
+    print(h.get())

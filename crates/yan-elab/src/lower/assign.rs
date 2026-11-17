@@ -434,6 +434,32 @@ impl Lower<'_, '_, '_> {
                 let n = self.narrowed(n).unwrap_or(n);
                 self.locals.get(n).map(|l| l.ty.clone())
             }
+            j::ExprKind::Attr(b, f, _) => match self.ty_of_local(b)? {
+                Ty::Data(r) => self
+                    .g
+                    .records
+                    .get(&r)?
+                    .iter()
+                    .find(|fd| fd.name == *f)
+                    .map(|fd| fd.ty.clone()),
+                Ty::Inst(r, targs) => {
+                    let map: Vec<_> = self
+                        .g
+                        .type_params
+                        .get(&r)?
+                        .iter()
+                        .cloned()
+                        .zip(targs)
+                        .collect();
+                    self.g
+                        .records
+                        .get(&r)?
+                        .iter()
+                        .find(|fd| fd.name == *f)
+                        .map(|fd| fd.ty.subst(&map))
+                }
+                _ => None,
+            },
             _ => None,
         }
     }

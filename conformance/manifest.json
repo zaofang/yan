@@ -15,6 +15,20 @@
    "expect": []
   },
   {
+   "path": "yag/pass/caps/closure_capability_declared.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/caps/renamed_user_capability.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -37,6 +51,19 @@
     "7.3"
    ],
    "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/concurrency/mutex_guard_scope_no_wait.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1024"
+   ],
    "flags": [],
    "expect": []
   },
@@ -717,6 +744,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_capability_not_declared.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -820,6 +867,25 @@
      "code": "E317",
      "line": 7,
      "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/e323_guard_across_wait.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1024"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E323",
+     "line": 15,
+     "col": 5
     }
    ]
   },
@@ -3286,6 +3352,31 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e414_guard_escapes.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5",
+    "6.3"
+   ],
+   "rows": [
+    "R1023"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 9,
+     "col": 12
+    },
+    {
+     "code": "E414",
+     "line": 13,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e414_view_escapes.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -5521,6 +5612,51 @@
    "expect": [],
    "stdout": "[7]\n",
    "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_guard.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n5\n5\n9\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_par_heap.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200\n2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_relock_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "locked\n",
+   "exit": 101
   },
   {
    "path": "yag/run/concurrency/par_concurrent_channel_progress.yag",
