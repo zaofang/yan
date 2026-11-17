@@ -35,6 +35,8 @@ pub struct Package {
     pub foreign: ForeignSet,
     /// Layout errors of the source roots (RFC 0084 D1, D4), found by the driver with the foreign set.
     pub layout: Vec<crate::layout::Issue>,
+    /// The modules of the source roots, in path order (RFC 0084 D1).
+    pub modules: Vec<crate::layout::Module>,
     /// Requirements as written in `dependencies`, `dev_dependencies` and `tools`.
     pub deps: Vec<String>,
     pub dev_deps: Vec<String>,

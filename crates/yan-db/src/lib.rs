@@ -52,6 +52,13 @@ pub struct SourceFile {
     pub text: String,
 }
 
+/// Every source file the database knows, by path: a module reads its siblings through it.
+#[salsa::input(singleton, debug)]
+pub struct FileIndex {
+    #[returns(ref)]
+    pub by_path: HashMap<PathBuf, SourceFile>,
+}
+
 /// How every file is checked: `--strict` (14.4) and `--level release` (8.5).
 #[salsa::input(singleton, debug)]
 pub struct Settings {
@@ -100,6 +107,7 @@ impl Database {
         let db = Self::default();
         Settings::new(&db, strict, release, false, false);
         PackageGraph::new(&db, Vec::new());
+        FileIndex::new(&db, HashMap::new());
         db
     }
 
@@ -134,6 +142,9 @@ impl Database {
         }
         let f = SourceFile::new(self, path.to_owned(), text.to_owned());
         self.files.insert(path.to_owned(), f);
+        let index = FileIndex::get(self);
+        let all = self.files.clone();
+        index.set_by_path(self).to(all);
         f
     }
 
@@ -154,7 +165,16 @@ impl Database {
             }
         }
         if packages.len() != before {
+            let fresh: Vec<PathBuf> = packages[before..]
+                .iter()
+                .flat_map(|p| p.modules.iter())
+                .filter(|m| m.root == layout::Root::Src)
+                .map(|m| m.file.clone())
+                .collect();
             graph.set_packages(self).to(packages);
+            for f in fresh {
+                let _ = self.open(&f);
+            }
         }
     }
 
@@ -294,12 +314,44 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         tools: settings.tools(db),
     };
     let name = path.display().to_string();
-    match yan_elab::elaborate_in(
+    let modules = pkg.map(source_modules).unwrap_or_default();
+    let index = FileIndex::get(db).by_path(db);
+    let sibling = |dotted: &str| {
+        let (_, f) = modules.iter().find(|(n, _)| n == dotted)?;
+        let sf = *index.get(f)?;
+        match front(db, sf) {
+            Ok(Front::Hir(h, _)) => Some(h.clone()),
+            _ => None,
+        }
+    };
+    let own = layout::locate(packages, path)
+        .filter(|l| l.root == Root::Src)
+        .map(|l| l.module.join("."));
+    let env = own.map(|this| yan_elab::PackageEnv {
+        this,
+        modules: modules.iter().map(|(n, _)| n.clone()).collect(),
+        load: &sibling,
+    });
+    if let Some(env) = &env {
+        // A module that names one the front end stopped on stops with that module's errors.
+        for used in yan_elab::referenced(m, &env.modules) {
+            let Some((_, f)) = modules.iter().find(|(n, _)| *n == used) else {
+                continue;
+            };
+            if let Some(sf) = index.get(f)
+                && let Ok(Front::Stopped(d)) = front(db, *sf)
+            {
+                return Loaded::Stopped(d.clone());
+            }
+        }
+    }
+    match yan_elab::elaborate_pkg(
         &name,
         file.text(db),
         m,
         opts,
         package_manifest(packages, path),
+        env.as_ref(),
     ) {
         Err(u) => Loaded::Stopped(unsupported(&name, file.text(db), &u.what, u.at, diags)),
         Ok((y, table, mut errs)) => {
@@ -321,6 +373,15 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
             }
         }
     }
+}
+
+/// The modules of the package's `src/` root as (dotted path, file).
+fn source_modules(p: &Package) -> Vec<(String, PathBuf)> {
+    p.modules
+        .iter()
+        .filter(|m| m.root == Root::Src)
+        .map(|m| (m.path.join("."), m.file.clone()))
+        .collect()
 }
 
 /// W861 for a script outside any package: the nearest `yan.toml` above it (R848). Kept as a
@@ -355,7 +416,26 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
     Ok(match load(db, file).clone()? {
         Loaded::Ready(m, _, mut d) => {
             let path = file.path(db).display().to_string();
-            d.extend(yan_check::check(&path, file.text(db), &m));
+            d.extend(
+                yan_check::check(&path, file.text(db), &m)
+                    .into_iter()
+                    .map(|mut x| {
+                        // An error in an item copied from a module this one names, which that module's
+                        // own check reports on its file.
+                        if x.span.line >= yan_elab::PULLED {
+                            x.span = Span {
+                                line: 1,
+                                col: 1,
+                                end_line: 1,
+                                end_col: 1,
+                            };
+                            x.message =
+                                format!("in an item of a module this module names: {}", x.message);
+                            x.quote.clear();
+                        }
+                        x
+                    }),
+            );
             // One cause, one diagnostic: an unconsumed `@linear` binding is E412, not also W812.
             let unconsumed: Vec<_> = d
                 .iter()
