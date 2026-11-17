@@ -305,6 +305,8 @@ enum Command {
         #[command(subcommand)]
         command: Option<McpCommand>,
     },
+    /// Serve the language server over LSP on stdio (18.6).
+    Lsp,
     /// Trust a directory, so `yan mcp` runs its tests and stage 0 there (21.4, R676).
     Trust {
         #[arg(default_value = ".")]
@@ -712,6 +714,10 @@ fn main() -> ExitCode {
             Err(msg) => tool_failure(&msg),
         },
         Command::Mcp { command: None } => match mcp::serve(Path::new(".")) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Lsp => match yan_lsp::run() {
             Ok(()) => ExitCode::SUCCESS,
             Err(msg) => tool_failure(&msg),
         },
