@@ -326,6 +326,21 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn sums_generators_and_constructors_normalize() {
+        let src = "type S = A | B\n\nclass P:\n    x: int\n\nclass Q:\n    y: str\n\ntype U = P | Q\n\nclass C:\n    def __init__(self, n: int):\n        self.n = n\n        self.k = 3\n\ndef g(xs: list[int]) -> int:\n    return sum(x for x in xs)\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N30", "N18", "N13", "N24"]);
+        let out = print(&parse("t.yag", src, false).0.unwrap());
+        assert!(out.contains("type S = A() | B()"), "{out}");
+        assert!(out.contains("type U = P(x: int) | Q(y: str)"), "{out}");
+        assert!(
+            out.contains("n: int") && out.contains("k: int = 3"),
+            "{out}"
+        );
+        assert!(!out.contains("__init__"), "{out}");
+    }
+
+    #[test]
     fn a_multi_for_list_comprehension_becomes_loops() {
         let src = "def f(xs: list[int], ys: list[int]) -> list[int]:\n    return [x * y for x in xs if x > 0 for y in ys]\n";
         assert_eq!(codes(src, false), [("N45".into(), 2, 12)]);

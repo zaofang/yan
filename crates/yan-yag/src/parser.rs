@@ -551,7 +551,100 @@ impl Parser {
             }
             m.items.append(&mut self.lifted);
         }
+        if !self.strict {
+            self.sums_from_aliases(&mut m);
+        }
         m
+    }
+
+    /// N13 and N24: `type S = A | B` over undeclared names, or over classes used nowhere else,
+    /// declares the inline variants of a sum (R423).
+    fn sums_from_aliases(&mut self, m: &mut Module) {
+        let mut removed = Vec::new();
+        for i in 0..m.items.len() {
+            let ItemKind::Type(td) = &m.items[i].kind else {
+                continue;
+            };
+            let TypeRhs::Alias(alts) = &td.rhs else {
+                continue;
+            };
+            let mut names = Vec::new();
+            for t in alts {
+                match t {
+                    Type::Named { path, args } if path.len() == 1 && args.is_empty() => {
+                        names.push(path[0].clone());
+                    }
+                    _ => {
+                        names.clear();
+                        break;
+                    }
+                }
+            }
+            if names.len() != alts.len() || !names.iter().all(|n| is_type_name(n)) {
+                continue;
+            }
+            let record_at = |n: &str| {
+                m.items
+                    .iter()
+                    .position(|it| matches!(&it.kind, ItemKind::Record(r) if r.name == n))
+            };
+            let declared = |n: &str| m.items.iter().any(|it| it.kind.name() == n);
+            let mut variants = Vec::new();
+            let mut classes = Vec::new();
+            let mut ok = true;
+            for n in &names {
+                if let Some(at) = record_at(n) {
+                    let ItemKind::Record(r) = &m.items[at].kind else {
+                        unreachable!("record_at found a record")
+                    };
+                    let rest = format!("{:?}", (&m.items[..at], &m.items[at + 1..]));
+                    let used = rest.matches(&format!("path: [{n:?}]")).count();
+                    let in_alts = names.iter().filter(|x| *x == n).count();
+                    if !r.tparams.is_empty() || used != in_alts || in_alts != 1 {
+                        ok = false;
+                        break;
+                    }
+                    classes.push(at);
+                    variants.push(Variant {
+                        decorators: Vec::new(),
+                        name: n.clone(),
+                        fields: r.fields.clone(),
+                    });
+                } else if !declared(n) && type_row(n, Surface::Yag).is_none() {
+                    variants.push(Variant {
+                        decorators: Vec::new(),
+                        name: n.clone(),
+                        fields: Vec::new(),
+                    });
+                } else {
+                    ok = false;
+                    break;
+                }
+            }
+            if !ok {
+                continue;
+            }
+            let span = m.items[i].span;
+            let (code, what) = if classes.is_empty() {
+                ("N13", "undeclared alternatives")
+            } else {
+                ("N24", "classes used only as alternatives")
+            };
+            self.note(
+                code,
+                span,
+                format!("{what} of one sum read as inline variants"),
+            );
+            let ItemKind::Type(td) = &mut m.items[i].kind else {
+                unreachable!("checked above")
+            };
+            td.rhs = TypeRhs::Sum(variants);
+            removed.extend(classes);
+        }
+        removed.sort_unstable();
+        for at in removed.into_iter().rev() {
+            m.items.remove(at);
+        }
     }
 
     /// An `ex` line at the left margin, where an item should start (N32).
@@ -1163,7 +1256,7 @@ impl Parser {
         } else {
             while !matches!(self.tok(), Tok::Dedent | Tok::Eof) {
                 if !self.strict && self.is_kw("def") {
-                    self.method(&name, &tparams, is_pub)?;
+                    self.method(&name, &tparams, is_pub, &mut fields)?;
                     continue;
                 }
                 fields.push(self.field()?);
@@ -1183,7 +1276,13 @@ impl Parser {
     }
 
     /// N09: a method of class `class` becomes a top-level function taking `self: C`.
-    fn method(&mut self, class: &str, tparams: &[TParam], is_pub: bool) -> P<()> {
+    fn method(
+        &mut self,
+        class: &str,
+        tparams: &[TParam],
+        is_pub: bool,
+        fields: &mut Vec<Field>,
+    ) -> P<()> {
         let span = self.span();
         self.bump();
         let args = tparams
@@ -1202,6 +1301,18 @@ impl Parser {
         let f = self.funcdef_rest(false);
         self.self_ty = None;
         let mut f = f?;
+        if f.name == "__init__"
+            && fields.is_empty()
+            && let Some(fs) = init_fields(&f)
+        {
+            self.note(
+                "N30",
+                span,
+                "`__init__` that only assigns fields normalized to the record's fields",
+            );
+            *fields = fs;
+            return Ok(());
+        }
         self.note(
             "N09",
             span,
@@ -2498,6 +2609,13 @@ impl Parser {
                 let e = self.expr()?;
                 if self.is_kw("for") && out.is_empty() {
                     let c = self.comp_rest(e, None, CompKind::List, None, span)?;
+                    if !self.strict {
+                        self.note(
+                            "N18",
+                            span,
+                            "generator argument normalized to a list comprehension",
+                        );
+                    }
                     if !self.is_op(")") {
                         return self.unexpected("`)`");
                     }
@@ -2895,4 +3013,60 @@ fn method(receiver: Expr, name: &str, arg: Expr) -> StmtKind {
         span,
         paren: false,
     })
+}
+
+/// N30: the fields a constructor-only `__init__(self, ...)` declares, or `None` when the body does
+/// more than assign `self.f = e` with `e` a parameter or a literal.
+fn init_fields(f: &FuncDef) -> Option<Vec<Field>> {
+    let body = f.body.as_ref()?;
+    if !body.contracts.is_empty() || body.stmts.is_empty() {
+        return None;
+    }
+    let param_ty = |n: &str| {
+        f.params.iter().find_map(|p| match p {
+            Param::Value { name, ty, .. } if name == n => Some(ty.clone()),
+            _ => None,
+        })
+    };
+    let mut out = Vec::new();
+    for st in &body.stmts {
+        let StmtKind::Assign { target, ty, value } = &st.kind else {
+            return None;
+        };
+        let ExprKind::Attr(base, fname, _) = &target.kind else {
+            return None;
+        };
+        if !matches!(&base.kind, ExprKind::Name(n) if n == "self") {
+            return None;
+        }
+        let (ty, default) = match (&value.kind, ty) {
+            (ExprKind::Name(p), ty) if let Some(pt) = param_ty(p) => {
+                (ty.clone().unwrap_or(pt), None)
+            }
+            (ExprKind::Lit(_), Some(t)) => (t.clone(), Some(value.clone())),
+            (ExprKind::Lit(l), None) => {
+                let n = match l {
+                    Lit::Int(_) => "i64",
+                    Lit::Float(_) => "f64",
+                    Lit::Str { .. } => "Str",
+                    Lit::Bool(_) => "bool",
+                    Lit::Char(_) | Lit::None => return None,
+                };
+                let ty = Type::Named {
+                    path: vec![n.to_owned()],
+                    args: Vec::new(),
+                };
+                (ty, Some(value.clone()))
+            }
+            _ => return None,
+        };
+        out.push(Field {
+            decorators: Vec::new(),
+            name: fname.clone(),
+            ty,
+            ty_span: target.span,
+            default,
+        });
+    }
+    Some(out)
 }
