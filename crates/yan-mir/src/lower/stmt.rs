@@ -175,6 +175,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),
                         };
+                        match rhs {
+                            y::Rhs::Proj(p) if !p.projs.is_empty() => {
+                                self.projected.insert(n.clone(), p.clone())
+                            }
+                            _ => self.projected.remove(n),
+                        };
                         let var = self.var(shape);
                         self.copy_to(&var.locals.clone(), v);
                         self.names.insert(n.clone(), var);
@@ -220,7 +226,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 // A field or element holds a value until it is overwritten (a move out of one
                 // consumes its root), so the old value is dropped after the new one is built.
-                if !place.projs.is_empty() {
+                let writes_back = matches!(rhs, y::Rhs::Proj(p)
+                    if p.projs.is_empty() && self.projected.get(&p.root) == Some(place));
+                if !place.projs.is_empty() && !writes_back {
                     let old = self.read(&at, &shape);
                     self.glue(&shape, &old);
                 }
