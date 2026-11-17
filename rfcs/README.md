@@ -109,3 +109,4 @@ conformance case in the same PR set.
 | [0083](0083-size-of-and-layout.md) | `size_of`, `align_of`, layout classes, niches and the C boundary | accepted | pending (#1519) |
 | [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |
 | [0085](0085-first-milestone-is-0-1-0.md) | The first milestone is 0.1.0 | accepted | none |
+| [0086](0086-native-pool-par.md) | Native pool for plain `par` | accepted | none |
