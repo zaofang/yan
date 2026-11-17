@@ -41,6 +41,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                         At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
                         At::Mem(p, word) => At::Mem(p, word + start as u32),
                     };
+                    // A boxed field is the value in its box, changed there in place.
+                    if let Shape::Boxed(k) = &s {
+                        let p = self.read(&at, &s).remove(0);
+                        at = At::Mem(p, 0);
+                        shape = k.get().clone();
+                        continue;
+                    }
                     shape = s;
                 }
                 y::Proj::Index(i) => {
@@ -77,6 +84,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => false,
+            Shape::Atomic(_) | Shape::Mutex(_) | Shape::Guard(_) => true,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -91,6 +99,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Chan(..)
             | Shape::Arena
             | Shape::Set(_) => true,
+            // A type recurs only behind a block.
+            Shape::Named(_) | Shape::Boxed(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -109,6 +119,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
+            Shape::Atomic(_) => self.free(RtFn::EnvFree, v[0].clone()),
+            Shape::Mutex(inner) => self.mutex_glue(inner, v[0].clone()),
+            Shape::Guard(_) => self.unlock(v[0].clone()),
+            Shape::Named(k) => {
+                self.walk_call(knot::Walk::Drop, k, v);
+            }
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                self.walk_call(knot::Walk::Drop, k, &x);
+                self.free(RtFn::EnvFree, v[0].clone());
+            }
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
@@ -285,6 +306,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.copy_to(&dst.locals, v);
         self.goto(join);
         Ok(())
+    }
+
+    /// The channel of the `Sender` atom `tx`; one `close` ended is a `contract` panic (9.5).
+    pub(super) fn open_sender(&mut self, tx: &y::Atom) -> R<Operand> {
+        let ch = self.scalar1(tx)?;
+        let closed = self.scalar_op(ScalarOp::Eq, I64, vec![ch.clone(), Operand::Int(0)]);
+        let (bad, good) = self.branch(closed);
+        self.cur = bad;
+        self.finish(Term::Panic("contract"));
+        self.cur = good;
+        Ok(ch)
     }
 
     /// `dst` of a `try_send` with status `st`: `Ok`, or the failure its status means: 2
@@ -487,7 +519,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
             },
         };
-        let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
+        let (Some((_, ok_at, okfs)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
             theirs.variant("Err"),
             mine.variant("Err"),
@@ -495,6 +527,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("`?` outside a failing function");
         };
         let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
+        let got = okfs[0].1.clone();
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
@@ -506,6 +539,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
+        // A statement `c?` asks for `Unit` and drops the value it discards.
+        if *want == Shape::Scalar(Ty::Unit) && got != *want {
+            self.glue(&got, &v[ok_at..ok_at + got.width()]);
+        }
         Ok(v[ok_at..ok_at + want.width()].to_vec())
     }
 
@@ -549,6 +586,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                     .map(|(o, e)| result(o, e))
             }
             Some(id::STD_ERROR_CONTEXT) => self.context_shape(c)?,
+            Some(i @ (id::STD_JSON_PARSE_VALUE | id::STD_JSON_PARSE_FLOAT)) => {
+                Some(self.json_parse_result(i == id::STD_JSON_PARSE_FLOAT)?)
+            }
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
@@ -731,7 +771,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let Some((_, x)) = fields.iter().find(|(f, _)| f == n) else {
                         return unsupported(format!("constructor `{name}` without field `{n}`"));
                     };
-                    let xv = self.atom(x, s)?;
+                    let xv = match s {
+                        Shape::Boxed(k) => {
+                            let v = self.atom(x, k.get())?;
+                            vec![self.boxed(v)]
+                        }
+                        s => self.atom(x, s)?,
+                    };
                     let w = xv.len();
                     v.splice(at..at + w, xv);
                     at += w;

@@ -5,13 +5,16 @@ use crate::abi::{leak, panic, str_block};
 use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive, Zero};
 
-fn get(b: *const Vec<u8>) -> BigInt {
-    // SAFETY: callers pass `bigint` blocks.
-    BigInt::from_signed_bytes_le(unsafe { &*b })
+fn get(b: &[u8]) -> BigInt {
+    BigInt::from_signed_bytes_le(b)
 }
 
-fn put(x: &BigInt) -> *mut Vec<u8> {
-    leak(x.to_signed_bytes_le())
+fn put(x: &BigInt) -> Vec<u8> {
+    x.to_signed_bytes_le()
+}
+
+fn out(r: Result<Vec<u8>, &'static str>) -> *mut Vec<u8> {
+    leak(r.unwrap_or_else(|kind| panic(kind)))
 }
 
 /// Operation codes shared with the lowering.
@@ -31,19 +34,12 @@ pub const LE: i64 = 3;
 pub const GT: i64 = 4;
 pub const GE: i64 = 5;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_big_from_int(x: i64) -> *mut Vec<u8> {
+pub fn from_int(x: i64) -> Vec<u8> {
     put(&BigInt::from(x))
 }
 
-/// # Safety
-/// `a`, `b` are `bigint` blocks.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_bin(
-    op: i64,
-    a: *const Vec<u8>,
-    b: *const Vec<u8>,
-) -> *mut Vec<u8> {
+/// `a op b`; the panic kind on failure.
+pub fn bin(op: i64, a: &[u8], b: &[u8]) -> Result<Vec<u8>, &'static str> {
     let (a, b) = (get(a), get(b));
     let r = match op {
         ADD => a + b,
@@ -51,7 +47,7 @@ pub unsafe extern "C" fn yan_rt_big_bin(
         MUL => a * b,
         FLOORDIV | MOD => {
             if b.is_zero() {
-                panic("div_zero")
+                return Err("div_zero");
             }
             let (q, r) = (&a / &b, &a % &b);
             let adjust = !r.is_zero() && (r.is_negative() != b.is_negative());
@@ -67,13 +63,10 @@ pub unsafe extern "C" fn yan_rt_big_bin(
         XOR => a ^ b,
         _ => unreachable!("bigint op {op}"),
     };
-    put(&r)
+    Ok(put(&r))
 }
 
-/// # Safety
-/// `a`, `b` are `bigint` blocks.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_cmp(op: i64, a: *const Vec<u8>, b: *const Vec<u8>) -> bool {
+pub fn cmp(op: i64, a: &[u8], b: &[u8]) -> bool {
     let (a, b) = (get(a), get(b));
     match op {
         EQ => a == b,
@@ -86,42 +79,24 @@ pub unsafe extern "C" fn yan_rt_big_cmp(op: i64, a: *const Vec<u8>, b: *const Ve
     }
 }
 
-/// `a << n` when `left` is 1, else `a >> n`; a negative count panics.
-///
-/// # Safety
-/// `a` is a `bigint` block.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_shift(left: i64, a: *const Vec<u8>, n: i64) -> *mut Vec<u8> {
-    let Ok(n) = usize::try_from(n) else {
-        panic("overflow")
-    };
+/// `a << n` when `left` is 1, else `a >> n`; a negative count fails.
+pub fn shift(left: i64, a: &[u8], n: i64) -> Result<Vec<u8>, &'static str> {
+    let n = usize::try_from(n).map_err(|_| "overflow")?;
     let a = get(a);
-    put(&if left == 1 { a << n } else { a >> n })
+    Ok(put(&if left == 1 { a << n } else { a >> n }))
 }
 
-/// # Safety
-/// `a` is a `bigint` block.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_pow(a: *const Vec<u8>, n: i64) -> *mut Vec<u8> {
-    let Ok(n) = u32::try_from(n) else {
-        panic("overflow")
-    };
-    put(&num_traits::pow::Pow::pow(get(a), n))
+pub fn pow(a: &[u8], n: i64) -> Result<Vec<u8>, &'static str> {
+    let n = u32::try_from(n).map_err(|_| "overflow")?;
+    Ok(put(&num_traits::pow::Pow::pow(get(a), n)))
 }
 
-/// # Safety
-/// `a` is a `bigint` block.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_not(a: *const Vec<u8>) -> *mut Vec<u8> {
+pub fn not(a: &[u8]) -> Vec<u8> {
     put(&!get(a))
 }
 
 /// `count_ones` of the magnitude when `width` is 0, else `bit_width`.
-///
-/// # Safety
-/// `a` is a `bigint` block.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_big_bits(width: i64, a: *const Vec<u8>) -> i64 {
+pub fn bits(width: i64, a: &[u8]) -> i64 {
     let a = get(a);
     if width == 0 {
         a.magnitude().count_ones().to_i64().expect("fits")
@@ -130,9 +105,71 @@ pub unsafe extern "C" fn yan_rt_big_bits(width: i64, a: *const Vec<u8>) -> i64 {
     }
 }
 
+pub fn show(a: &[u8]) -> String {
+    get(a).to_string()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_big_from_int(x: i64) -> *mut Vec<u8> {
+    leak(from_int(x))
+}
+
+/// # Safety
+/// `a`, `b` are `bigint` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_bin(
+    op: i64,
+    a: *const Vec<u8>,
+    b: *const Vec<u8>,
+) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    out(bin(op, unsafe { &*a }, unsafe { &*b }))
+}
+
+/// # Safety
+/// `a`, `b` are `bigint` blocks.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_cmp(op: i64, a: *const Vec<u8>, b: *const Vec<u8>) -> bool {
+    // SAFETY: the caller's contract.
+    cmp(op, unsafe { &*a }, unsafe { &*b })
+}
+
+/// # Safety
+/// `a` is a `bigint` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_shift(left: i64, a: *const Vec<u8>, n: i64) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    out(shift(left, unsafe { &*a }, n))
+}
+
+/// # Safety
+/// `a` is a `bigint` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_pow(a: *const Vec<u8>, n: i64) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    out(pow(unsafe { &*a }, n))
+}
+
+/// # Safety
+/// `a` is a `bigint` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_not(a: *const Vec<u8>) -> *mut Vec<u8> {
+    // SAFETY: the caller's contract.
+    leak(not(unsafe { &*a }))
+}
+
+/// # Safety
+/// `a` is a `bigint` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_big_bits(width: i64, a: *const Vec<u8>) -> i64 {
+    // SAFETY: the caller's contract.
+    bits(width, unsafe { &*a })
+}
+
 /// # Safety
 /// `a` is a `bigint` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_big_str(a: *const Vec<u8>) -> *mut String {
-    str_block(&get(a).to_string())
+    // SAFETY: the caller's contract.
+    str_block(&show(unsafe { &*a }))
 }

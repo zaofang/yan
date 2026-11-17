@@ -23,12 +23,14 @@ mod args;
 mod arith;
 mod array;
 mod assign;
+pub(crate) mod bits;
 mod borrows;
 mod builtin;
 mod call_expr;
 mod calls;
 mod cluster;
 mod consume;
+mod conv;
 mod fallback;
 mod generic_sum;
 mod last_use;
@@ -962,6 +964,13 @@ fn function_body_with(
         match c {
             // A contract on ghost values is a proof obligation only (8.7).
             j::Contract::Pre(e) | j::Contract::Post(e) if ghostly(e) => {}
+            j::Contract::Pre(e) if f.unsafe_at.is_some() => {
+                let k = contracts
+                    .iter()
+                    .filter(|c| matches!(c, y::Contract::Requires(_)))
+                    .count();
+                contracts.push(y::Contract::Requires(l.unsafe_pre(f, k, e)?));
+            }
             j::Contract::Pre(e) => match l.pure(e)? {
                 Some(x) => contracts.push(y::Contract::Requires(x)),
                 None => pre.push(e),
@@ -1100,7 +1109,7 @@ fn function_body_with(
     }
     Ok(y::FnDef {
         is_pub,
-        is_unsafe: false,
+        is_unsafe: f.unsafe_at.is_some(),
         path: vec![f.name.clone()],
         name_span: f.name_span,
         tparams: tparams(sig),
@@ -2096,9 +2105,14 @@ fn expr_callees(e: &j::Expr, out: &mut HashSet<String>) {
         {
             out.insert("fmt_pad".into());
         }
-        if let j::ExprKind::Call(f, _) = &e.kind {
+        if let j::ExprKind::Call(f, args) = &e.kind {
             match &f.kind {
                 j::ExprKind::Name(n) | j::ExprKind::Attr(_, n, _) => {
+                    // N34 reads `xs.pop(i)` as `remove_at` and `d.pop(k)` as `remove`.
+                    if n == "pop" && args.len() == 1 {
+                        out.insert("remove_at".into());
+                        out.insert("remove".into());
+                    }
                     // `max(xs)` lowers to the iterator's `max_nonempty` (R658).
                     if n == "min" || n == "max" {
                         out.insert(format!("{n}_nonempty"));

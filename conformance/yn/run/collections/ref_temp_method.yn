@@ -1,0 +1,16 @@
+-- spec: 4.7, 15.3
+-- rows: R1002
+-- note: a method on a temporary Ref; the prelude `set` does not hide Ref.set (#1273 item 9)
+-- stdout:
+-- 2
+-- 6
+
+main() uses io =
+  let arena = Arena()
+  let r = arena.alloc(1)
+  r.set(2)
+  io.print("\(r.get())")
+  let s = arena.alloc(5)
+  arena.alloc(7).set(8)
+  s.set(6)
+  io.print("\(s.get())")

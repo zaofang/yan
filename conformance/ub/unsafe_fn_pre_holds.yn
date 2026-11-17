@@ -1,0 +1,16 @@
+-- spec: 6.7, 6.8, 6.9
+-- rows: R1014
+-- note: RFC 0076 D5; every call meets the pre (assumption A11)
+-- ub: none
+
+unsafe get(p: Ptr[int], i: int, n: int) -> int =
+  pre 0 <= i and i < n
+  var r = 0
+  unsafe
+    r = p.offset(i).read()
+  r
+
+main() =
+  let xs = [1, 2]
+  unsafe
+    assert get(xs.as_ptr(), i: 1, n: 2) == 2

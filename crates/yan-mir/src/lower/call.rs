@@ -288,6 +288,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             id::STD_LIST_BISECT_RIGHT,
             id::STD_LIST_INSORT,
             id::STD_LIST_INDEX,
+            id::STD_LIST_CONTAINS,
         ]
         .contains(&id)
         {
@@ -303,8 +304,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::mutex::MUTEX_IDS.contains(&id) {
+            return self.mutex_call(id, c, dst);
+        }
+        if super::sync::ATOMIC_IDS.contains(&id) {
+            return self.atomic_call(id, c, dst);
+        }
         if super::arena::ARENA_IDS.contains(&id) {
             return self.arena_call(id, c, dst);
+        }
+        if super::jsonvalue::JSON_VALUE_IDS.contains(&id) {
+            return self.json_value_call(id, c, dst);
         }
         if super::ptr::PTR_IDS.contains(&id) {
             return self.ptr_call(id, c, dst);
@@ -483,7 +493,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
                     return unsupported("`send` without its type or result");
                 };
-                let tx = self.scalar1(tx)?;
+                let tx = self.open_sender(tx)?;
                 let v = self.atom(a, &e)?;
                 let buf = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(v.len() as i128)]);
                 self.write(&At::Mem(buf.clone(), 0), v);
@@ -503,11 +513,11 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             (id::STD_CHAN_RECEIVER_SELECT_KEY | id::STD_CHAN_SENDER_SELECT_KEY, [(_, ch)]) => {
                 // The channel block is 8-aligned, so its address carries the arm kind (`yan_rt::chan`).
-                let ch = self.scalar1(ch)?;
                 let key = if id == id::STD_CHAN_SENDER_SELECT_KEY {
+                    let ch = self.open_sender(ch)?;
                     self.scalar_op(ScalarOp::AddChecked, I64, vec![ch, Operand::Int(1)])
                 } else {
-                    ch
+                    self.scalar1(ch)?
                 };
                 set(self, key);
             }
@@ -523,11 +533,17 @@ impl<'a, 'm> Fn<'a, 'm> {
                 })?;
                 self.free(RtFn::EnvFree, out);
             }
+            (id::STD_CHAN_SENDER_CLOSE, [(_, y::Atom::Name(tx, _))]) => {
+                // A closed `Sender` is the null channel: its drop does nothing (`yan_rt::chan`).
+                let tx = self.name(tx)?.clone();
+                self.free(RtFn::ChanDropSender, Self::ops(&tx)[0].clone());
+                self.copy_to(&tx.locals, vec![Operand::Int(0)]);
+            }
             (id::STD_CHAN_SENDER_TRY_SEND, [(_, tx), (_, a)]) => {
                 let (Some(e), Some(dst)) = (self.targ(c)?, dst) else {
                     return unsupported("`try_send` without its type or result");
                 };
-                let tx = self.scalar1(tx)?;
+                let tx = self.open_sender(tx)?;
                 let v_ops = self.atom(a, &e)?;
                 let buf = self.rt(
                     RtFn::Alloc,
@@ -1010,6 +1026,25 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let at = self.rt(RtFn::ListPush, Ty::Ptr, Self::ops(&list));
                 self.write(&At::Mem(at, 0), v);
             }
+            (id::STD_LIST_POP, [(_, y::Atom::Name(l, _))]) => {
+                let list = self.name(l)?.clone();
+                let Shape::List(e) = &list.shape else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let lp = Self::ops(&list)[0].clone();
+                let n = self.rt(RtFn::ListLen, I64, vec![lp.clone()]);
+                let empty = self.scalar_op(ScalarOp::Eq, I64, vec![n.clone(), Operand::Int(0)]);
+                let (bad, good) = self.branch(empty);
+                self.cur = bad;
+                self.finish(Term::Panic("bounds"));
+                self.cur = good;
+                let last = self.scalar_op(ScalarOp::SubChecked, I64, vec![n, Operand::Int(1)]);
+                let v = self.take_at(&lp, &last, e);
+                match &dst {
+                    Some(d) => self.copy_to(&d.locals.clone(), v),
+                    None => self.glue(e, &v),
+                }
+            }
             (id::STD_LIST_INSERT, [(_, y::Atom::Name(l, _)), (_, i), (_, x)]) => {
                 let list = self.name(l)?.clone();
                 let Shape::List(e) = &list.shape else {
@@ -1098,7 +1133,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 } else if text(&sx) {
                     self.rt(RtFn::StrEq, Ty::Bool, vec![x[0].clone(), y[0].clone()])
                 } else {
-                    self.key_eq(&sx, x, y, &name)?
+                    self.eq_value(&sx, &x, &y)?
                 };
                 if id == id::STD_CMP_NE {
                     r = self.scalar_op(ScalarOp::Not, Ty::Bool, vec![r]);
@@ -1113,15 +1148,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if sx != sy {
                     return unsupported(format!("call of `{name}` on this type"));
                 }
-                let mut schema = String::new();
-                if Self::key_schema(&sx, &mut schema).is_err() {
-                    return unsupported(format!("call of `{name}` on this type"));
-                }
-                let schema = self.lit(&schema);
-                let (x, y) = (self.key_buf(x), self.key_buf(y));
-                let o = self.rt(RtFn::KeyCmp, I64, vec![schema, x.clone(), y.clone()]);
-                self.free(RtFn::EnvFree, x);
-                self.free(RtFn::EnvFree, y);
+                let o = self.cmp_value(&sx, &x, &y)?;
                 let r = match id {
                     id::STD_CMP_LT => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(-1)]),
                     id::STD_CMP_LE => self.scalar_op(ScalarOp::Le, I64, vec![o, Operand::Int(0)]),

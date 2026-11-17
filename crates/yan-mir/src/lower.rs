@@ -1,7 +1,8 @@
 //! Optimized Yan Core (`yan-opt`'s output, R771) to MIR.
 
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 mod actor;
 mod arena;
@@ -11,6 +12,7 @@ mod chars;
 mod civil;
 mod cluster;
 mod collections;
+mod compare;
 mod consts;
 mod contracts;
 mod encoding;
@@ -19,8 +21,11 @@ mod env;
 mod error;
 mod extern_call;
 mod iter;
+mod jsonvalue;
+mod knot;
 mod log;
 mod math;
+mod mutex;
 mod ordering;
 mod path;
 mod pattern;
@@ -33,6 +38,7 @@ mod shape;
 mod show;
 mod sorted;
 mod stmt;
+mod sync;
 mod time;
 mod unwind;
 mod values;
@@ -223,6 +229,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         sigs: Vec::new(),
         todo: Vec::new(),
         thunks: HashMap::new(),
+        walks: HashMap::new(),
         costing,
         consts,
     });
@@ -251,6 +258,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
                 Fn::new(&mono, &types, &mut prog.strings, me).closure(c, caps)?
             }
             Todo::Thunk(k, s) => Fn::new(&mono, &types, &mut prog.strings, me).thunk(k, &s),
+            Todo::Walk(w, s) => Fn::new(&mono, &types, &mut prog.strings, me).walk(w, &s)?,
             Todo::Entry(main) => Fn::new(&mono, &types, &mut prog.strings, me).entry(main)?,
         };
         prog.funcs.push(func);
@@ -288,6 +296,8 @@ struct Mono<'m> {
     todo: Vec<Todo<'m>>,
     /// The actor thunks made, by kind and shape (`actor.rs`).
     thunks: HashMap<(actor::Thunk, Shape), FuncId>,
+    /// The walks over recursive types made, by walk and type name (`knot.rs`).
+    walks: HashMap<(knot::Walk, String), FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
     consts: Vec<&'m y::Const>,
@@ -301,6 +311,8 @@ enum Todo<'m> {
     Closure(&'m y::Closure, Vec<(String, Shape)>),
     /// An actor thunk (`actor.rs`).
     Thunk(actor::Thunk, Shape),
+    /// A walk over a recursive type (`knot.rs`).
+    Walk(knot::Walk, Shape),
     /// The entry that reports a failing `main`.
     Entry(FuncId),
 }
@@ -399,6 +411,17 @@ fn scalar(path: &str) -> Option<(ScalarOp, Option<Ty>)> {
     use ScalarOp::*;
     if path == "exclusive_check" {
         return Some((Exclusive, None));
+    }
+    if let Some((kind, from, to)) = yan_std::intrinsics::conversion(path) {
+        let (Ty::Int(from), Ty::Int(to)) = (scalar_ty(from)?, scalar_ty(to)?) else {
+            return None;
+        };
+        let op = match kind {
+            "wrap_as" => WrapAs(to),
+            "sat_as" => SatAs(to),
+            _ => CheckedAs(to),
+        };
+        return Some((op, Some(Ty::Int(from))));
     }
     let (op, ty) = path.rsplit_once('_')?;
     let op = match op {
@@ -723,7 +746,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 .collect();
         }
         self.flags = yan_check::drop_flags(&f.params, body);
-        self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())
+        let mut out = self.body(&f.path.join("."), &names, &f.contracts, body, Vec::new())?;
+        out.unsafe_fn = f.is_unsafe;
+        Ok(out)
     }
 
     fn closure(mut self, c: &'m y::Closure, caps: Vec<(String, Shape)>) -> R<Func> {
@@ -816,6 +841,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.block(body)?;
         self.finish(Term::Panic("unreachable"));
         Ok(Func {
+            unsafe_fn: false,
             name: name.to_owned(),
             params: n_params,
             ret,
@@ -1025,9 +1051,16 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     fn scalar_op(&mut self, op: ScalarOp, ty: Ty, args: Vec<Operand>) -> Operand {
         let out = match (op, ty) {
-            (ScalarOp::Eq | ScalarOp::Ne | ScalarOp::Not | ScalarOp::Ge | ScalarOp::Le, _) => {
-                Ty::Bool
-            }
+            (
+                ScalarOp::Eq
+                | ScalarOp::Ne
+                | ScalarOp::Not
+                | ScalarOp::Ge
+                | ScalarOp::Le
+                | ScalarOp::Lt
+                | ScalarOp::Gt,
+                _,
+            ) => Ty::Bool,
             (ScalarOp::AddChecked | ScalarOp::SubChecked | ScalarOp::MulChecked, _) => I64,
             (ScalarOp::Add, _) => Ty::F64,
             (ScalarOp::FloorDiv | ScalarOp::Shr, _) => I64,
@@ -1138,6 +1171,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Chan(..)
                 | Shape::Arena
                 | Shape::Ref(_)
+                | Shape::Atomic(_)
+                | Shape::Mutex(_)
+                | Shape::Guard(_)
                 | Shape::Actor(_),
                 1,
             ) => Ok(v.remove(0)),
@@ -1308,11 +1344,8 @@ mod selftest {
             "t.yir",
             "module t\nsum T { Leaf, Node { pub l: T } }\nfn main() -> Unit {\n let t: T = Leaf\n ret ()\n}\n",
         );
-        assert!(
-            lower(&m.unwrap())
-                .unwrap_err()
-                .contains("recursive type `T`")
-        );
+        // A recurrence in the type's own slots is boxed (5.1).
+        lower(&m.unwrap()).expect("a boxed recurrence lowers");
     }
 
     #[test]

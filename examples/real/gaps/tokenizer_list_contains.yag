@@ -1,0 +1,36 @@
+# Tokenizer and recursive-descent evaluator for infix arithmetic.
+
+type Tok = Num(v: int) | Op(c: str)
+type ParseErr = Unexpected(c: str) | Eof()
+
+def tokenize(src: str) -> list[Tok] fail ParseErr:
+    out: list[Tok] = []
+    cur = ""
+    for ch in src.chars():
+        if ch.is_digit():
+            cur += str(ch)
+            continue
+        if cur != "":
+            out.append(Num(cur.parse_int() else 0))
+            cur = ""
+        if ch == c' ':
+            continue
+        s = str(ch)
+        if s in ["+", "-", "*", "(", ")"]:
+            out.append(Op(s))
+        else:
+            fail Unexpected(s)
+    if cur != "":
+        out.append(Num(cur.parse_int() else 0))
+    return out
+
+def main() uses io:
+    toks = tokenize("12 + 3*(4 - 1)") else e -> []
+    for t in toks:
+        match t:
+            case Num(v=v):
+                io.print(f"num {v}")
+            case Op(c=c):
+                io.print(f"op {c}")
+    bad = tokenize("1 + x") else e -> []
+    io.print(f"{bad.len()}")

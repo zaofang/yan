@@ -7,17 +7,22 @@
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
 //! Whatever MIR construct or runtime function it does not model is reported, never approximated.
+//! Tasks, supervisors and clusters are yan-rt's own thread-local state, so the machine makes the
+//! scheduling decisions native code makes; a run owns its thread.
 
+mod ffi;
 mod mem;
 mod ops;
 mod race;
 mod rt;
 
 use mem::{Byte, Memory};
-use race::Race;
+use race::{Kind, Race};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use yan_mir::{ArmEvent, BlockId, Func, FuncId, Inst, Local, Operand, Program, Term, Ty};
+use yan_mir::{
+    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Local, MemOrder, Operand, Program, Term, Ty,
+};
 
 /// Why a run stopped before `main` returned.
 #[derive(Debug)]
@@ -66,7 +71,7 @@ impl Val {
 }
 
 /// Function code addresses are tagged so they never alias a data address.
-const FUNC_TAG: i128 = 1 << 62;
+pub(crate) const FUNC_TAG: i128 = 1 << 62;
 
 struct Frame {
     locals: Vec<Val>,
@@ -82,7 +87,17 @@ pub struct Machine<'p> {
     mem: Memory,
     strs: Vec<Option<u64>>,
     pub(crate) lists: HashMap<u64, rt::List>,
+    pub(crate) maps: HashMap<u64, rt::Map>,
+    /// `bytes` and `bytearray` contents by handle block; handles stay valid as they grow.
+    bytes: HashMap<u64, Vec<u8>>,
     exposed: HashMap<u64, i128>,
+    /// `arena` handle blocks to the slot blocks they own.
+    arenas: HashMap<u64, Vec<u64>>,
+    scratch: Option<u64>,
+    civil_out: Vec<i64>,
+    /// `fake_fs` file systems by handler minus one; handler 0 is the real one.
+    fs_fakes: Vec<HashMap<String, String>>,
+    fs_reason: String,
     race: RefCell<Race>,
 }
 
@@ -95,11 +110,24 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         mem: Memory::new(),
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
+        maps: HashMap::new(),
+        bytes: HashMap::new(),
         exposed: HashMap::new(),
+        arenas: HashMap::new(),
+        scratch: None,
+        civil_out: Vec::new(),
+        fs_fakes: Vec::new(),
+        fs_reason: String::new(),
         race: RefCell::new(Race::new()),
     };
+    yan_rt::actor::defer_disposal();
+    yan_rt::actor::defer_stopped_text();
     m.call(prog.main, vec![])?;
-    Ok(m.mem.live(|a| m.strs.contains(&Some(a))))
+    yan_rt::actor::end_root();
+    m.deliver_stopped();
+    m.dispose()?;
+    Ok(m.mem
+        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
 }
 
 fn encode(v: Val) -> u64 {
@@ -123,6 +151,25 @@ fn decode(t: Ty, w: u64) -> Val {
 }
 
 impl Machine<'_> {
+    /// A failed `requires` of an `unsafe fn` under `--ub`: 6.7 item 16, naming the function and
+    /// the clause by its position among its `requires` and `ensures` (R882).
+    fn precondition_ub(&self, f: &Func, fields: &[(Operand, Operand)]) -> Stop {
+        let clause = fields.iter().find_map(|(k, v)| match (k, v) {
+            (Operand::Str(k), Operand::Int(c)) if self.prog.strings[*k as usize] == "clause" => {
+                Some(*c)
+            }
+            _ => None,
+        });
+        let at = clause.map_or(String::new(), |c| format!(", clause {c}"));
+        Stop::Ub(
+            16,
+            format!(
+                "a call to `unsafe fn {}` breaks its precondition{at}",
+                f.name
+            ),
+        )
+    }
+
     /// The failure of an 8-byte access at `addr` that no allocation serves.
     fn bad_access(&self, what: &str, addr: u64) -> Stop {
         if !self.ub {
@@ -170,12 +217,28 @@ impl Machine<'_> {
         }
     }
 
+    fn atomic_raced(&self, addr: u64, kind: Kind, order: MemOrder) -> Result<(), Stop> {
+        if !self.ub {
+            return Ok(());
+        }
+        match self.race.borrow_mut().atomic(addr, kind, order) {
+            Some(msg) => Err(Stop::Ub(1, msg)),
+            None => Ok(()),
+        }
+    }
+
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
+        self.read_word_with(addr, true)
+    }
+
+    fn read_word_with(&self, addr: u64, race: bool) -> Result<u64, Stop> {
         self.aligned("read", addr)?;
         let Some(bytes) = self.mem.read(addr, 8) else {
             return Err(self.bad_access("read", addr));
         };
-        self.raced(addr, false)?;
+        if race {
+            self.raced(addr, false)?;
+        }
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
             *d = match b {
@@ -187,8 +250,12 @@ impl Machine<'_> {
     }
 
     pub(crate) fn write_word(&mut self, addr: u64, w: u64) -> Result<(), Stop> {
+        self.write_word_with(addr, w, true)
+    }
+
+    fn write_word_with(&mut self, addr: u64, w: u64, race: bool) -> Result<(), Stop> {
         self.aligned("write", addr)?;
-        if self.mem.find(addr).is_some() {
+        if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
@@ -312,7 +379,12 @@ impl Machine<'_> {
                         continue 'call;
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
-                    Term::PanicFields { kind, .. } => return Err(Stop::Panic(kind)),
+                    Term::PanicFields { kind, fields } => {
+                        return Err(match self.ub && f.unsafe_fn && *kind == "contract" {
+                            true => self.precondition_ub(f, fields),
+                            false => Stop::Panic(kind),
+                        });
+                    }
                     Term::Par { .. }
                     | Term::Suspend { .. }
                     | Term::TaskEnd
@@ -359,6 +431,7 @@ impl Machine<'_> {
             Inst::Rt { dst, f: rt, args } => {
                 let a = self.evals(fr, args, f)?;
                 let v = self.rt(*rt, &a)?;
+                self.dispose()?;
                 match dst {
                     Some(d) => self.set(fr, f, *d, v),
                     None => Ok(()),
@@ -374,6 +447,47 @@ impl Machine<'_> {
                 let p = self.eval(fr, ptr, f)?.addr();
                 let v = self.eval(fr, src, f)?;
                 self.write_word(p + 8 * u64::from(*word), encode(v))
+            }
+            Inst::Atomic {
+                dst,
+                op,
+                ty,
+                args,
+                ptr,
+                order,
+                failure,
+            } => {
+                // One step, so no task interleaves. The word is shadowed as one atomic access.
+                let p = self.eval(fr, ptr, f)?.addr();
+                let a = args
+                    .iter()
+                    .map(|o| self.eval(fr, o, f).map(encode))
+                    .collect::<Result<Vec<u64>, Stop>>()?;
+                let old = self.read_word_with(p, false)?;
+                let new = ops::atomic_new(*op, *ty, old, &a);
+                if let Some(w) = new {
+                    self.write_word_with(p, w, false)?;
+                }
+                let (kind, order) = match (op, new) {
+                    (AtomicOp::Load, _) => (Kind::Read, order),
+                    (AtomicOp::Store, _) => (Kind::Write, order),
+                    (AtomicOp::Cas, None) => (Kind::Read, failure),
+                    _ => (Kind::Rmw, order),
+                };
+                self.atomic_raced(p, kind, *order)?;
+                match dst {
+                    Some(d) => {
+                        let v = self.typed(f.locals[*d as usize], old)?;
+                        self.set(fr, f, *d, v)
+                    }
+                    None => Ok(()),
+                }
+            }
+            Inst::Fence { order } => {
+                if self.ub {
+                    self.race.borrow_mut().fence(*order);
+                }
+                Ok(())
             }
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();

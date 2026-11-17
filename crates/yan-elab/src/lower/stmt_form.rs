@@ -86,6 +86,11 @@ impl Lower<'_, '_, '_> {
             }
             K::Assign { target, ty, value } => {
                 let borrowed = self.borrowed_by(value);
+                if matches!(value.kind, j::ExprKind::Name(_))
+                    && let Some(vt) = self.ty_of_local(value)
+                {
+                    self.guard_escape(&vt, value.span);
+                }
                 self.assign(target, ty.as_ref(), value, at)?;
                 if let j::ExprKind::Name(n) = &target.kind {
                     self.note_borrow(n, borrowed);
@@ -112,6 +117,11 @@ impl Lower<'_, '_, '_> {
                     paren: false,
                 };
                 let borrowed = self.borrowed_by(value);
+                if matches!(value.kind, j::ExprKind::Name(_))
+                    && let Some(vt) = self.ty_of_local(value)
+                {
+                    self.guard_escape(&vt, value.span);
+                }
                 self.assign(&t, ty.as_ref(), value, at)?;
                 self.note_borrow(target, borrowed);
             }
@@ -145,6 +155,7 @@ impl Lower<'_, '_, '_> {
                         let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
+                        self.guard_escape(&t, e.span);
                         a
                     }
                 };

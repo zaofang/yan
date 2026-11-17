@@ -31,7 +31,7 @@ type Pos = (usize, usize);
 
 pub fn elaborate(m: &Module) -> Result<Module, Error> {
     let obs = Observable::new(m);
-    let copy = own::copy_fields(m);
+    let copy = own::ctors(&m.items);
     let mut out = m.clone();
     for it in &mut out.items {
         match &mut it.kind {
@@ -57,7 +57,7 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 /// Run the pass over one body until the set of flagged locals stops growing.
 fn settle(
     obs: &Observable,
-    copy: &own::CopyFields,
+    copy: &own::Ctors,
     params: &[Param],
     body: &Block,
 ) -> Result<Block, Error> {
@@ -229,7 +229,7 @@ struct Branch {
 
 struct Elab<'a> {
     obs: &'a Observable,
-    copy: &'a own::CopyFields,
+    copy: &'a own::Ctors,
     facts: &'a Facts,
     /// Local to the name of its drop flag.
     flags: HashMap<Name, Name>,

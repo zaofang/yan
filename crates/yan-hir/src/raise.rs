@@ -1105,6 +1105,7 @@ fn func(f: &y::FnDef, std: &dyn Std, marks: &Marks) -> R<FuncDef> {
         }
     };
     Ok(FuncDef {
+        unsafe_at: f.is_unsafe.then_some(f.name_span),
         name: last(&f.path),
         name_span: f.name_span,
         tparams: tparams(&f.tparams),

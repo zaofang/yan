@@ -209,7 +209,13 @@ impl Lower<'_, '_, '_> {
                 self.expect(&lt, ty, e.span);
                 (y::Pat::Lit(l), Vec::new())
             }
-            j::Pat::Path { path, args } if path.len() == 1 => {
+            j::Pat::Path { path, args }
+                if path.len() == 1
+                    || (path.len() == 2
+                        && self.g.qualified_variant(&path[0], &path[1]).is_some()) =>
+            {
+                let qualified = (path.len() == 2).then(|| path[0].clone());
+                let path = &path[path.len() - 1..];
                 // A choice's result sum names its variants by label (R634).
                 let labelled = match ty {
                     Ty::Data(s) if args.is_some() => {
@@ -241,7 +247,7 @@ impl Lower<'_, '_, '_> {
                                 .collect(),
                         )
                     }
-                    (Ty::Inst(s, targs), _) if self.g.variant_of.get(n) == Some(s) => {
+                    (Ty::Inst(s, targs), _) if self.g.qualified_variant(s, n).is_some() => {
                         let map: Vec<_> = self.g.type_params[s]
                             .iter()
                             .cloned()
@@ -253,11 +259,11 @@ impl Lower<'_, '_, '_> {
                                 .collect()
                         })
                     }
-                    (Ty::Data(s), _) if self.g.variant_of.get(n) == Some(s) => self.g.sums[s]
+                    (Ty::Data(s), _) if self.g.qualified_variant(s, n).is_some() => self.g.sums[s]
                         .iter()
                         .find(|(v, _)| v == n)
                         .map(|(_, fs)| fs.iter().map(|f| (f.name.clone(), f.ty.clone())).collect()),
-                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains(r) => {
+                    (Ty::Data(r), _) if r == n && self.g.layout_bits.contains_key(r) => {
                         return unsupported(format!(
                             "a pattern on `@layout(bits)` record `{r}`; read its fields instead"
                         ));
@@ -270,7 +276,31 @@ impl Lower<'_, '_, '_> {
                     ),
                     _ => None,
                 };
+                let fields = match (&qualified, ty) {
+                    (Some(q), Ty::Data(s) | Ty::Inst(s, _)) if q != s => None,
+                    (Some(_), _) if fields.is_none() => None,
+                    _ => fields,
+                };
+                // Core names a shared variant by its sum, since a bare name is ambiguous.
+                let shared = self.g.shared_variants.contains(n.as_str());
+                let (sum_path, n_path) = match ty {
+                    Ty::Data(s) | Ty::Inst(s, _) if shared => (vec![s.clone(), n.clone()], true),
+                    _ => (vec![n.clone()], false),
+                };
                 match (args, fields) {
+                    (_, Some(fs))
+                        if fs.is_empty()
+                            && n_path
+                            && args.as_ref().is_none_or(|a| a.is_empty()) =>
+                    {
+                        (
+                            y::Pat::Ctor {
+                                path: sum_path,
+                                fields: Some((Vec::new(), false)),
+                            },
+                            Vec::new(),
+                        )
+                    }
                     (None, Some(fs)) if fs.is_empty() => (y::Pat::Bind(n.clone()), Vec::new()),
                     (None, _) => (y::Pat::Bind(n.clone()), vec![(n.clone(), ty.clone())]),
                     (Some(_), None) if matches!(ty, Ty::Err) => (y::Pat::Wild, Vec::new()),
@@ -308,7 +338,7 @@ impl Lower<'_, '_, '_> {
                         let rest = pairs.len() < fs.len();
                         (
                             y::Pat::Ctor {
-                                path: vec![n.clone()],
+                                path: sum_path,
                                 fields: Some((pairs, rest)),
                             },
                             binds,

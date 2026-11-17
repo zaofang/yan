@@ -1,0 +1,43 @@
+# LRU cache: recency list plus value dict, passed as separate mutable parameters.
+
+def touched(order: list[str], key: str) -> list[str]:
+    kept: list[str] = []
+    for k in order:
+        if k != key:
+            kept.append(k.copy())
+    kept.append(key.copy())
+    return kept
+
+def put(order: list[str], vals: dict[str, int], cap: int, key: str, v: int) -> tuple[list[str], dict[str, int]]:
+    ord2 = order.copy()
+    vals2 = vals.copy()
+    if key not in vals2 and vals2.len() >= cap:
+        old = ord2[0].copy()
+        ord2 = ord2[1:]
+        nv: dict[str, int] = {}
+        for k, x in vals2.items():
+            if k != old:
+                nv[k.copy()] = x
+        vals2 = nv
+    vals2[key.copy()] = v
+    return (touched(ord2, key), vals2)
+
+def lookup(order: list[str], vals: dict[str, int], key: str) -> tuple[int | None, list[str]]:
+    v = vals.get(key)
+    if v is None:
+        return (None, order.copy())
+    return (v, touched(order, key))
+
+def main() uses io:
+    order: list[str] = []
+    vals: dict[str, int] = {}
+    order, vals = put(order, vals, 2, "a", 1)
+    order, vals = put(order, vals, 2, "b", 2)
+    r, order = lookup(order, vals, "a")
+    io.print(f"{r}")
+    order, vals = put(order, vals, 2, "c", 3)
+    r, order = lookup(order, vals, "b")
+    io.print(f"{r}")
+    r, order = lookup(order, vals, "c")
+    io.print(f"{r}")
+    io.print(f"{order}")

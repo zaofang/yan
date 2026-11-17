@@ -35,7 +35,7 @@ struct Cut {
 /// The faults of the last `sim` built (RFC 0063 D3, D5), drawn per ordered node pair from its
 /// seed, and the calls and sends through `Remote` they fault, by task path.
 #[derive(Default)]
-pub(crate) struct Faults {
+pub struct Faults {
     /// Whether the last reply arrived; set by every `arrive`.
     replied: bool,
     seed: i128,
@@ -223,49 +223,83 @@ fn ns(hi: u64, lo: u64) -> i64 {
     n.clamp(i128::from(i64::MIN), i128::from(i64::MAX)) as i64
 }
 
+/// A built `sim` cluster: its nodes' ids and its faults.
+pub struct Sim {
+    pub ids: Vec<String>,
+    pub faults: Faults,
+}
+
+/// `sim(nodes, seed, faults)`, shared by native code and the machine. `plan` holds a
+/// `FaultPlan`'s `drop`, `delay`, `partition` and `heal` slots (two words each but `drop`, which
+/// is one) as laid out in memory, `cuts` each `Cut`'s `at` and `heal` words and its side's
+/// node indices. `None` when `nodes < 1`.
+pub fn sim_new(
+    nodes: i64,
+    seed: i64,
+    plan: &[u64; 7],
+    cuts: &[([u64; 4], Vec<u64>)],
+    epoch: i128,
+) -> Option<Sim> {
+    (nodes >= 1).then(|| Sim {
+        ids: (0..nodes).map(|i| node_id(seed, i)).collect(),
+        faults: Faults {
+            seed: seed.into(),
+            nodes: nodes as usize,
+            epoch,
+            drop: f64::from_bits(plan[0]),
+            delay: ns(plan[1], plan[2]),
+            partition: ns(plan[3], plan[4]),
+            heal: ns(plan[5], plan[6]),
+            cuts: cuts
+                .iter()
+                .map(|(t, side)| Cut {
+                    at: ns(t[0], t[1]),
+                    heal: ns(t[2], t[3]),
+                    side: side.iter().map(|n| *n as usize).collect(),
+                })
+                .collect(),
+            ..Faults::default()
+        },
+    })
+}
+
 /// `sim(nodes, seed, faults)`: the cluster's index. `plan` holds a `FaultPlan`'s slots: `drop`,
 /// `delay`, `partition`, `heal` (two words each), `cuts`.
 /// # Safety
 /// `plan` holds those eight slots, `cuts` a `List` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_sim_new(nodes: i64, seed: i64, plan: *const u64) -> u64 {
-    if nodes < 1 {
-        panic_with(
-            "precondition `nodes >= 1` of `sim` failed",
-            crate::abi::panic_message(""),
-        );
-    }
     // SAFETY: the caller's contract.
     let p = unsafe { std::slice::from_raw_parts(plan, 8) };
     // SAFETY: as above.
     let cuts = unsafe { &*(p[7] as *const List) };
-    let cuts = cuts
+    let cuts: Vec<_> = cuts
         .data
         .chunks(5)
-        .map(|c| Cut {
-            at: ns(c[0], c[1]),
-            heal: ns(c[2], c[3]),
+        .map(|c| {
             // SAFETY: a `Cut`'s `side` is a `set[int]` block.
-            side: unsafe { &*(c[4] as *const crate::map::Map) }
+            let side = unsafe { &*(c[4] as *const crate::map::Map) }
                 .slots()
-                .iter()
-                .map(|n| *n as usize)
-                .collect(),
+                .to_vec();
+            ([c[0], c[1], c[2], c[3]], side)
         })
         .collect();
+    let plan: [u64; 7] = p[..7].try_into().expect("7 slots");
+    let Some(sim) = sim_new(nodes, seed, &plan, &cuts, crate::civil::mono_now()) else {
+        panic_with(
+            "precondition `nodes >= 1` of `sim` failed",
+            crate::abi::panic_message(""),
+        );
+    };
+    register(sim)
+}
+
+/// Makes `sim` the running program's cluster: its index for `yan_rt_sim_begin`. The machine
+/// shares this state with native code's entry points, one run per thread.
+pub fn register(sim: Sim) -> u64 {
     with(|st| {
-        st.faults = Faults {
-            seed: seed.into(),
-            nodes: nodes as usize,
-            epoch: crate::civil::mono_now(),
-            drop: f64::from_bits(p[0]),
-            delay: ns(p[1], p[2]),
-            partition: ns(p[3], p[4]),
-            heal: ns(p[5], p[6]),
-            cuts,
-            ..Faults::default()
-        };
-        st.sims.push((0..nodes).map(|i| node_id(seed, i)).collect());
+        st.faults = sim.faults;
+        st.sims.push(sim.ids);
         (st.sims.len() - 1) as u64
     })
 }
@@ -296,10 +330,21 @@ fn bound(st: &crate::actor::State) -> &[String] {
         .map_or(&[], |n| &st.sims[n.0])
 }
 
+/// The bound cluster's node names in view order.
+pub fn node_names() -> Vec<String> {
+    with(|st| bound(st).to_vec())
+}
+
+/// The name of the node the calling task runs on, if a cluster is bound.
+pub fn self_node_name() -> Option<String> {
+    let me = sched::path();
+    with(|st| bound(st).get(current(st, &me)).cloned())
+}
+
 /// `cluster.nodes()`: a `List[Node]` in view order.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_cluster_nodes() -> *mut List {
-    let ids: Vec<u64> = with(|st| bound(st).iter().map(|n| str_block(n) as u64).collect());
+    let ids: Vec<u64> = node_names().iter().map(|n| str_block(n) as u64).collect();
     crate::abi::leak(List {
         words: 1,
         data: ids,
@@ -310,11 +355,10 @@ pub extern "C" fn yan_rt_cluster_nodes() -> *mut List {
 /// `cluster.self_node()`: the node the calling task runs on (D1).
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_cluster_self_node() -> *mut String {
-    let me = sched::path();
-    with(|st| match bound(st).get(current(st, &me)) {
-        Some(n) => str_block(n),
+    match self_node_name() {
+        Some(n) => str_block(&n),
         None => unsupported("`cluster.self_node()` outside `with cluster`"),
-    })
+    }
 }
 
 /// The calling task runs on node `node` until [`yan_rt_cluster_leave`]; a start there is
@@ -324,21 +368,28 @@ pub extern "C" fn yan_rt_cluster_self_node() -> *mut String {
 /// `node` is a `Str` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_cluster_place(node: *const String) {
-    let me = sched::path();
     // SAFETY: the caller's contract.
-    let node = unsafe { &*node };
+    if !place(unsafe { &*node }) {
+        panic_with(
+            "`On(node)` names a node outside this cluster",
+            crate::abi::panic_message(""),
+        )
+    }
+}
+
+/// `place` for the node named `node`; false when the bound cluster has no such node.
+pub fn place(node: &str) -> bool {
+    let me = sched::path();
     with(|st| {
         let Some(k) = bound(st).iter().position(|n| n == node) else {
-            panic_with(
-                "`On(node)` names a node outside this cluster",
-                crate::abi::panic_message(""),
-            )
+            return false;
         };
         if current(st, &me) != k {
             st.placed = Some(k);
         }
         st.nodes.push((me, k));
-    });
+        true
+    })
 }
 
 #[unsafe(no_mangle)]
@@ -370,11 +421,15 @@ pub extern "C" fn yan_rt_cluster_monitor(id: u64, ch: u64) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_cluster_group(name: *const String) -> u64 {
     // SAFETY: the caller's contract.
-    let name = unsafe { &*name };
+    group(unsafe { &*name })
+}
+
+/// The handle of the group `name` names, which the first use creates.
+pub fn group(name: &str) -> u64 {
     with(|st| {
         let k = st.groups.iter().position(|(n, _)| n == name);
         k.unwrap_or_else(|| {
-            st.groups.push((name.clone(), Vec::new()));
+            st.groups.push((name.to_string(), Vec::new()));
             st.groups.len() - 1
         }) as u64
     })
@@ -396,13 +451,17 @@ pub extern "C" fn yan_rt_group_leave(g: u64, member: u64) {
     with(|st| st.groups[g as usize].1.retain(|m| *m != member));
 }
 
+/// The members of group `g` in join order.
+pub fn group_members(g: u64) -> Vec<u64> {
+    with(|st| st.groups[g as usize].1.clone())
+}
+
 /// `group.members()`: a `list` of the members in join order.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_group_members(g: u64) -> *mut List {
-    let data = with(|st| st.groups[g as usize].1.clone());
     crate::abi::leak(List {
         words: 1,
-        data,
+        data: group_members(g),
         limit: -1,
     })
 }
@@ -417,9 +476,39 @@ pub fn sweep() {
     });
 }
 
+/// A machine of `check_trace`: its actor, initial state and edges (event, from, to) as
+/// `(from state, event, to state)`.
+pub type TraceMachine<'a> = (&'a str, &'a str, Vec<[&'a str; 3]>);
+
+/// The verdict of `trace`, `(actor, event)` steps, against `machines`, as a `TraceVerdict`'s
+/// slots: the tag (0 `Accepted`, 1 `Rejected`), then `index`, `actor`, `event` and `state`, the
+/// last three as text.
+pub fn check_trace<'a>(
+    trace: &[[&'a str; 2]],
+    machines: &[TraceMachine<'a>],
+) -> (u64, u64, [&'a str; 3]) {
+    let mut states: HashMap<&str, &str> = HashMap::new();
+    let mut edges: HashMap<(&str, &str, &str), &str> = HashMap::new();
+    for (actor, state, es) in machines {
+        states.insert(actor, state);
+        for [from, event, to] in es {
+            edges.insert((actor, from, event), to);
+        }
+    }
+    for (i, [actor, event]) in trace.iter().enumerate() {
+        let state = states.get(actor).copied();
+        match state.and_then(|s| edges.get(&(*actor, s, *event))) {
+            Some(next) => {
+                states.insert(actor, next);
+            }
+            None => return (1, i as u64, [actor, event, state.unwrap_or("")]),
+        }
+    }
+    (0, 0, ["", "", ""])
+}
+
 /// `std.sim.check_trace`: the verdict of `trace`, a `list[Step]`, against `machines`, a
-/// `list[Machine]`, into `out` as a `TraceVerdict`'s slots: the tag (0 `Accepted`, 1
-/// `Rejected`), then `index`, `actor`, `event` and `state`.
+/// `list[Machine]`, into `out` as a `TraceVerdict`'s slots.
 ///
 /// # Safety
 /// The lists have those element types and `out` has five slots.
@@ -435,36 +524,37 @@ pub unsafe extern "C" fn yan_rt_sim_check(
     }
     // SAFETY: the caller's contract.
     let (trace, machines) = unsafe { (&*trace, &*machines) };
-    let mut states: HashMap<&str, &str> = HashMap::new();
-    let mut edges: HashMap<(&str, &str, &str), &str> = HashMap::new();
-    for m in machines.data.chunks(3) {
-        let actor = text(m[0]);
-        states.insert(actor, text(m[1]));
-        // SAFETY: a `Machine`'s `edges` is a `list[Edge]` block.
-        for e in unsafe { &*(m[2] as *const List) }.data.chunks(3) {
-            edges.insert((actor, text(e[0]), text(e[1])), text(e[2]));
-        }
-    }
-    let mut verdict = [0u64; 5];
-    for (i, step) in trace.data.chunks(2).enumerate() {
-        let (actor, event) = (text(step[0]), text(step[1]));
-        let state = states.get(actor).copied();
-        match state.and_then(|s| edges.get(&(actor, s, event))) {
-            Some(next) => {
-                states.insert(actor, next);
-            }
-            None => {
-                verdict = [
-                    1,
-                    i as u64,
-                    str_block(actor) as u64,
-                    str_block(event) as u64,
-                    str_block(state.unwrap_or("")) as u64,
-                ];
-                break;
-            }
-        }
-    }
+    let trace: Vec<[&str; 2]> = trace
+        .data
+        .chunks(2)
+        .map(|s| [text(s[0]), text(s[1])])
+        .collect();
+    let machines: Vec<TraceMachine> = machines
+        .data
+        .chunks(3)
+        .map(|m| {
+            // SAFETY: a `Machine`'s `edges` is a `list[Edge]` block.
+            let es = unsafe { &*(m[2] as *const List) };
+            let es = es
+                .data
+                .chunks(3)
+                .map(|e| [text(e[0]), text(e[1]), text(e[2])])
+                .collect();
+            (text(m[0]), text(m[1]), es)
+        })
+        .collect();
+    let (tag, at, [actor, event, state]) = check_trace(&trace, &machines);
+    let verdict = if tag == 0 {
+        [0; 5]
+    } else {
+        [
+            1,
+            at,
+            str_block(actor) as u64,
+            str_block(event) as u64,
+            str_block(state) as u64,
+        ]
+    };
     // SAFETY: the caller's contract.
     unsafe { std::slice::from_raw_parts_mut(out, 5) }.copy_from_slice(&verdict);
 }

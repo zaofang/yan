@@ -14,6 +14,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         };
         match (p, s) {
             (y::Pat::Wild, _) => {}
+            (_, Shape::Boxed(k)) => {
+                let x = self.unbox(k, &v[0]);
+                self.pat(p, &x, k.get(), fail)?;
+            }
             (y::Pat::Bind(n), _) => {
                 let var = self.var(s.clone());
                 self.copy_to(&var.locals.clone(), v.to_vec());
@@ -148,7 +152,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let h = r.pats.remove(col);
                     r.pats.extend(sub_pats(h, &names)?);
                 }
-                self.tree(v, cols, rows, leaves)
+                let (v, cols) = self.unbox_cols(v, cols);
+                self.tree(&v, cols, rows, leaves)
             }
             Shape::Sum(_, vs) => {
                 cols.remove(col);
@@ -216,7 +221,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.finish(Term::Switch { on, targets });
                 for (b, c, sub) in subs {
                     self.cur = b;
-                    self.tree(v, c, sub, leaves)?;
+                    let (v, c) = self.unbox_cols(v, c);
+                    self.tree(&v, c, sub, leaves)?;
                 }
                 Ok(())
             }
@@ -249,6 +255,28 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.tree(v, cols, no_rows, leaves)
             }
         }
+    }
+
+    /// `v` and `cols` with each boxed column's value loaded into new slots after `v`, in the
+    /// block that tests it: a variant's boxes are only valid once its tag is known.
+    fn unbox_cols(&mut self, v: &[Operand], cols: Vec<Occ>) -> (Vec<Operand>, Vec<Occ>) {
+        let mut v = v.to_vec();
+        let cols = cols
+            .into_iter()
+            .map(|c| match &c.shape {
+                Shape::Boxed(k) => {
+                    let x = self.unbox(k, &v[c.at]);
+                    let at = v.len();
+                    v.extend(x);
+                    Occ {
+                        at,
+                        shape: k.get().clone(),
+                    }
+                }
+                _ => c,
+            })
+            .collect();
+        (v, cols)
     }
 
     /// Leave the current block open for `row`'s arm, with the slots each name binds.

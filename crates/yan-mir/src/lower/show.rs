@@ -31,10 +31,19 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Scalar(Ty::Unit) => self.lit("None"),
             Shape::Scalar(Ty::Ptr) => unreachable!("not a Yan Core type"),
             Shape::Fn(..) => self.lit("<function>"),
+            Shape::Named(k) => self.walk_call(knot::Walk::Show(nested), k, v)[0].clone(),
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                self.walk_call(knot::Walk::Show(nested), k, &x)[0].clone()
+            }
             Shape::Chan(..) => return unsupported("`show` of a channel end"),
             Shape::Ptr => return unsupported("`show` of a `Ptr`"),
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Arena | Shape::Ref(_) => return unsupported("`show` of an arena or a `Ref`"),
+            Shape::Atomic(_) => return unsupported("`show` of an `Atomic`"),
+            Shape::Mutex(_) | Shape::Guard(_) => {
+                return unsupported("`show` of a `Mutex` or a `MutexGuard`");
+            }
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
             Shape::Rec(n, _) if n == "SortedMap" || n == "SortedSet" => self.show_sorted(v, s)?,
             Shape::Rec(name, _)
@@ -436,6 +445,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Self::ops(&out)
             }
             Shape::Fn(..) => return unsupported("a copy of a closure"),
+            Shape::Named(k) => self.walk_call(knot::Walk::Copy, k, &v),
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                let x = self.walk_call(knot::Walk::Copy, k, &x);
+                vec![self.boxed(x)]
+            }
             Shape::Chan(_, sender) => {
                 self.emit(Inst::Rt {
                     dst: None,
@@ -450,6 +465,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             Shape::Actor(_) => return unsupported("a copy of an actor handle"),
             Shape::Arena => return unsupported("a copy of an arena"),
+            Shape::Atomic(_) => return unsupported("a copy of an `Atomic`"),
+            Shape::Mutex(_) | Shape::Guard(_) => {
+                return unsupported("a copy of a `Mutex` or a `MutexGuard`");
+            }
         })
     }
 
