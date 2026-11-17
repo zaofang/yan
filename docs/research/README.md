@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-17 | [Plan: editor and language-server support](2026-11-17-editor-and-lsp-plan.md) | #1591 (under #449); D1 to D10 await lead; builds on #381, #383, #870; no rows |
 | 2026-11-17 | [Design: `size_of`, layout classes and the C boundary](../../rfcs/0083-size-of-and-layout.md) | #449; RFC 0083: D1 to D10 accepted as recommended by the lead 2026-11-17; code survey at `7c57127` finds three disagreeing layouts (reflection, native slots, map keys); rows in the writing PRs (#1519) |
 | 2026-11-17 | [Design: self-hosted compiler, subset, boundaries, trust and gates](../../rfcs/0082-self-hosted-compiler-design.md) | #851; RFC 0082: D1 to D14 refine RFC 0057, all decided as recommended 2026-11-17; R1043 to R1054 |
 | 2026-11-14 | [Uncased spec row audit](2026-11-14-uncased-row-audit.md) | Audit only; at `2d72926` 634 of 879 rows uncased; 47 exempt (unobservable), 30 merge, 54 deferred (post-1.0) candidates; exempt + merge alone do not reach the 60 percent gate (#1025, #1136); awaiting lead card; no rows |
