@@ -1,0 +1,13 @@
+# spec: 6.2, 6.3
+# rows: R1039
+# note: get_mut is an attribute place on an owned mutex, read and used as a method receiver with no lock and no capability; into_inner moves the value out and frees the lock block
+# stdout:
+# 1
+# [1, 2]
+
+def main() uses io:
+    m = Mutex[int](1)
+    print(m.get_mut)
+    n = Mutex[list[int]]([1])
+    n.get_mut.append(2)
+    print(n.into_inner())
