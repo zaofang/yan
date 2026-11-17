@@ -161,9 +161,7 @@ impl Lower<'_, '_, '_> {
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
                         self.guard_escape(&t, e.span);
-                        if !t.is_copy() && !matches!(t, Ty::Param(_)) {
-                            self.sink_of_element(&a, e.span);
-                        }
+                        self.implicit_copy(&a, &t, e.span);
                         a
                     }
                 };
