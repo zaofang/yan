@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1034"
+note = "under --locked, an archive whose own manifest names another package than its lock record is E020"
+command = ["check", "--locked", "src/main.yag"]
+code = "E020"
+at = "yan.lock:0:0"

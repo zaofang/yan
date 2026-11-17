@@ -1,0 +1,9 @@
+package: Package = Package(
+    name="@conf/e023_resolve_libs_unlisted",
+    version="0.1.0",
+    edition="next",
+    yan="1.x",
+    platform="cli",
+    capabilities=["io"],
+    dependencies=["@r/lib 1.0.0"],
+)

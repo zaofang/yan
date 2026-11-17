@@ -1148,6 +1148,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e709_record_of_mutex_shared_par.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.5"
+   ],
+   "rows": [
+    "R1041"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 15,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e709_share_sender.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3724,6 +3743,58 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_arc_of_cell_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 6,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_closure_capturing_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 11,
+     "col": 13
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_generic_forwarder_of_rc.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_mutex_of_rc.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3760,6 +3831,24 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e415_rc_to_actor.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.6"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e415_rc_try_send.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3774,6 +3863,23 @@
      "code": "E415",
      "line": 6,
      "col": 17
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e415_record_of_rc_over_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E415",
+     "line": 9,
+     "col": 13
     }
    ]
   },
@@ -3828,6 +3934,26 @@
     {
      "code": "E417",
      "line": 14,
+     "col": 18
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e417_record_of_mutex_of_rc_in_two_branches.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.4",
+    "9.2"
+   ],
+   "rows": [
+    "R1040"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E417",
+     "line": 17,
      "col": 18
     }
    ]
@@ -14890,6 +15016,31 @@
    }
   },
   {
+   "path": "pkg/e020_locked_archive_names_another_package",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an archive whose own manifest names another package than its lock record is E020",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e020_locked_ffi_removed",
    "kind": "pkg",
    "milestone": "M1",
@@ -14986,6 +15137,31 @@
    }
   },
   {
+   "path": "pkg/e020_locked_store_tree_differs_from_archive",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1034"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1034",
+    "note": "under --locked, an unpacked store tree that differs from its archive is E020, never trusted in its place",
+    "command": [
+     "check",
+     "--locked",
+     "src/main.yag"
+    ],
+    "code": "E020",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e023_ffi_unlisted",
    "kind": "pkg",
    "milestone": "M1",
@@ -15006,6 +15182,30 @@
     ],
     "code": "E023",
     "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e023_lock_ffi_emptied_member",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1019"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "consent is read from the foreign set recomputed from source, so a lock record whose ffi and libs were emptied by hand grants a workspace member nothing: E023",
+    "command": [
+     "check",
+     "src/main.yag"
+    ],
+    "code": "E023",
+    "at": "a/package.yag:1:1"
    }
   },
   {
@@ -15050,6 +15250,29 @@
     "spec": "19.2",
     "rows": "R1019",
     "note": "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023",
+    "command": [
+     "lock"
+    ],
+    "code": "E023",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
+   "path": "pkg/e023_resolve_libs_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1019"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "resolving a dependency whose .info lists an extern library and no ffi module when the root's allow_ffi omits it is E023",
     "command": [
      "lock"
     ],
@@ -15774,11 +15997,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
@@ -15795,11 +16014,7 @@
     "14.4"
    ],
    "rows": [
-    "R",
-    "1",
-    "0",
-    "5",
-    "6"
+    "R1056"
    ],
    "flags": [],
    "expect": [],
