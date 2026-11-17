@@ -2037,6 +2037,6 @@ topic = "a binder of a pattern on a list element, a slice pattern's element bind
 sections = "4.2"
 
 [[entry]]
-rows = "R1069"
+rows = "R1070"
 topic = "a non-copy owned local that is used again later and leaves into a tuple or list element, an `Ok`, `Err` or `Some` argument, a conditional-expression arm or an `else` fallback value is E413 with the `.copy()` fix, as at a bind or a `sink` argument (#1573 item 4)"
 sections = "4.2"
