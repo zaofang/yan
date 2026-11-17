@@ -318,7 +318,8 @@ impl Lower<'_, '_, '_> {
         }
     }
 
-    /// E413 when `a`, passed by `sink`, names an element of a list: the list still owns it.
+    /// E413 when `a`, passed by `sink` or returned, names an element of a list: the list still
+    /// owns it, so moving it out would need an implicit copy.
     pub(super) fn sink_of_element(&mut self, a: &Atom, sp: Span) -> bool {
         let Atom::Name(n, _) = a else {
             return false;
@@ -329,7 +330,8 @@ impl Lower<'_, '_, '_> {
         self.err(
             "E413",
             sp,
-            "an element of a list cannot be moved out; pass `.copy()`".into(),
+            "an element of a list cannot be moved out; use `.copy()`, or take it out with `pop`"
+                .into(),
         );
         let copied = format!("{}.copy()", self.cx.text(sp));
         self.cx.fix(Applicability::Auto, "copy", sp, &copied);
