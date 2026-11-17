@@ -698,6 +698,7 @@ const RT: &[RtFn] = &[
     RtFn::CharCount,
     RtFn::ByteLen,
     RtFn::IntOf,
+    RtFn::FloatOf,
     RtFn::TruncF64,
     RtFn::RoundF64,
     RtFn::IntToF64,
@@ -1187,6 +1188,12 @@ fn rt_fn(
             abi::yan_rt_int_of as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::FloatOf => (
+            "yan_rt_float_of",
+            abi::yan_rt_float_of as *const u8,
+            &[I64],
+            Some(F64),
         ),
         RtFn::TruncF64 => (
             "yan_rt_trunc_f64",

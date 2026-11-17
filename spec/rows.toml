@@ -1975,3 +1975,8 @@ sections = "6.6, 25"
 rows = "R1056"
 topic = "section 25 lists N01 to N54; N02 and N11 are silent lexical normalizations, every other N-code reports its note (#1527 decision 6)"
 sections = "14.4, 25"
+
+[[entry]]
+rows = "R1057"
+topic = "N51 also reads `float(s)` on a `str` as `std.text.float_of(s)`: `s.strip().parse_float()`, panicking with kind `conversion` when it is `None` (#1543); `--strict` keeps E201"
+sections = "14.4"

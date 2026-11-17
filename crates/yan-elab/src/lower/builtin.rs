@@ -65,6 +65,10 @@ impl Lower<'_, '_, '_> {
                         self.lenient("N51", at, "`int(s)` normalized to `std.text.int_of(s)`");
                         ("std.text.int_of", vec![], Ty::Int)
                     }
+                    ("float", Ty::Str) if !self.cx.strict => {
+                        self.lenient("N51", at, "`float(s)` normalized to `std.text.float_of(s)`");
+                        ("std.text.float_of", vec![], Ty::Float)
+                    }
                     ("float", Ty::Int) => ("std.prelude.float", vec![], Ty::Float),
                     ("round", Ty::Float) => ("std.prelude.round", vec![], Ty::Int),
                     ("abs", Ty::Int | Ty::Float) => ("std.prelude.abs", vec![t.targ()], t.clone()),
