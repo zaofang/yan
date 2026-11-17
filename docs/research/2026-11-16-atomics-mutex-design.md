@@ -101,6 +101,8 @@ S4 (2026-11-16): `race.rs` shadows atomics per D5 items 1 to 4 (atomic and plain
 
 S1b (#1376) landed in the interpreter: the guard is not a new mechanism. `lock()` returns an owned `MutexGuard[T]` local, and drop elaboration (R770) already drops owned locals at the end of their block and before every early exit, so `Op::DropGuard` unlocks there. E323 is a Core pass (`yan-elab/src/guard.rs`): a guard is live from its binding to its block's end, and a std wait, a call to a function that may reach one, or a `par` in that range is reported. A guard is second-class (E414 on passing, returning or rebinding it). Access is `get`, `set` and `replace`; `MutView[T]` access is not built (open: 4.5 defines views over contiguous parts, not over a whole value). Early unlock needs a smaller scope, a function, until a `with` form exists. Native refuses `Mutex` until S2.
 
+S2 for `Mutex` (this slice's mutex half): `Shape::Mutex(T)` is one heap block, word 0 the lock flag and words from 1 the value, so any `T` works; `Shape::Guard(T)` is the block's address. `lock` is an acquire swap of the flag and a `deadlock` panic when it was set; guard drop glue is a release store of 0 (`lower/mutex.rs`). The flag accesses are `Inst::Atomic`, so the machine's race detector sees the release/acquire edge and reports no race between critical sections. Mutex drop glue drops the value, then frees the block. Interpreter, machine and Cranelift agree, including a heap-valued mutex under `par`, with `live: 0`. S7 replaces this with `Mutex` in std over `RawCell` and `Atomic[u32]`.
+
 ## Slices
 
 Each is one PR and its own issue under #1369, in order; S1 to S4 close #1319.
