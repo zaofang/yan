@@ -1,6 +1,6 @@
 # 0084: Files, modules, directories and packages
 
-- Status: accepted for D1 to D12; D13 open
+- Status: accepted
 - Research: [module, file and package structure, 2026-11-17](../docs/research/2026-11-17-module-package-structure.md)
 - Rows: pending (numbered with the spec PR and its conformance cases)
 
@@ -48,7 +48,7 @@ Each decision below is checked against these. They come from the project's laws 
   is not part of the module path (17, `std.list`).
 - Spec text: `use` is `"use" ["."] NAME {"." NAME} ["as" NAME]`, aliases only (15.2); a dependency is
   public when its types appear in a `pub` signature (19.1); the archive holds exactly the files the
-  module graph reads (19.3); the manifest is `package.yag` (19.1).
+  module graph reads (19.3); the manifest is `package.yag` today (19.1).
 
 ## Decisions
 
@@ -92,7 +92,7 @@ Recommendation: (c) with the directory-and-file sibling form. The module path is
 ### D2: the layout of a package is fixed
 
 ```
-package.yag                manifest, the marker of a package root
+package.yd                 manifest, the marker of a package root
 src/
   lib.yn | lib.yag         root module, the package's API facade (optional for a binary-only package)
   main.yn | main.yag       default binary (optional)
@@ -122,7 +122,7 @@ Options: (a) fixed layout (recommended); (b) Cargo-style defaults plus `[lib] pa
 reintroduce a list of files (principle 1), and, as in Cargo, are used mostly by projects that later regret
 it. Packages that need an unusual tree are two packages in a workspace.
 
-Existing templates (`src/lib.yag`, `src/main.yag`, `package.yag`) already conform.
+Existing templates (`src/lib.yag`, `src/main.yag`, `package.yd`) already conform.
 
 - Decision: as recommended (lead, 2026-11-17: "the most correct long term option")
 - Row: pending, numbered with the spec PR
@@ -248,9 +248,9 @@ be a rule with a cost and no defect to prevent.
 
 ### D7: manifest, workspaces and sibling packages
 
-The manifest stays `package.yag` (RFC 0044 D1) and gains no layout fields (D2). A workspace root lists
+The manifest stays `package.yd` (RFC 0044 D1) and gains no layout fields (D2). A workspace root lists
 `members` as directory paths or a single trailing glob (`"crates/*"`); every member has its own
-`package.yag`, and the workspace has one `yan.lock`, one store and one cache. A member refers to a
+`package.yd`, and the workspace has one `yan.lock`, one store and one cache. A member refers to a
 sibling by ordinary requirement, `"core": "@acme/core 1.2"`. While a member with that name and major
 exists in the workspace, resolution binds the requirement to the member; the manifest never contains a
 path. At publish the requirement is already the registry requirement, so there is no `path` plus
@@ -413,7 +413,7 @@ and the toolchain reads it without running the script. `yan metadata --json` pri
 each package's manifest fields and its module tree for editors and dependency bots, so outsiders never need
 to parse `package.yd`.
 
-Where this document says `package.yag` (D2, D7), `package.yd` is meant if this decision is accepted.
+Where D2 and D7 say `package.yag`, `package.yd` is meant.
 Pre-1.0 there is no alias: a directory with `package.yag` and no `package.yd` is an error that names the new
 file, and a `yan fix` step renames it; the old spelling is never read (fail loud).
 
@@ -434,8 +434,8 @@ Recommendation: (a). It meets the criterion that the manifest is visibly not cod
 the lossless editor, and removes a class of "does this run?" questions. It does amend RFC 0033 D1 and the
 extension list, which is why it is a card.
 
-- Decision:
-- Row:
+- Decision: (a), `.yd` data files and `package.yd` (lead, card, 2026-11-17). The spelling `.yd` is still to be checked against registered extensions before it is frozen.
+- Row: pending, numbered with the spec PR
 
 ## Rejected as a whole
 
