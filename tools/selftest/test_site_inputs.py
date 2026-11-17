@@ -16,6 +16,8 @@ def test_archive_carries_meta_brand_playground_and_the_compiler(tmp_path: Path) 
     site_inputs.pack(out, bins, wasm, None)
     with tarfile.open(out) as t:
         names = set(t.getnames())
-        meta = json.load(t.extractfile("meta.json"))
+        member = t.extractfile("meta.json")
+        assert member is not None
+        meta = json.load(member)
     assert {"yan", "libyan_rt.a", "brand/lockup.svg", "playground/yan.wasm"} <= names
     assert len(meta["commit"]) == 40 and meta["rfcs"] > 0 and meta["cases"]
