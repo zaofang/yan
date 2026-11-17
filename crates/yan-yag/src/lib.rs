@@ -341,6 +341,23 @@ def opt(x: int | None, f: Callable[[int], int, fail(E), uses(io)]) -> int | None
     }
 
     #[test]
+    fn a_clause_form_body_becomes_a_match() {
+        let src = "def f(n: int) -> int:\n    case 0:\n        return 1\n    case k:\n        return k\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N29"]);
+        let out = print(&parse("t.yag", src, false).0.unwrap());
+        assert!(out.contains("match n:"), "{out}");
+        assert!(codes(src, true).iter().any(|c| !c.0.starts_with('N')));
+    }
+
+    #[test]
+    fn a_string_after_a_field_is_its_doc() {
+        let src = "class P:\n    x: int\n    \"the x\"\n";
+        let got: Vec<_> = codes(src, false).into_iter().map(|c| c.0).collect();
+        assert_eq!(got, ["N41"]);
+    }
+
+    #[test]
     fn a_multi_for_list_comprehension_becomes_loops() {
         let src = "def f(xs: list[int], ys: list[int]) -> list[int]:\n    return [x * y for x in xs if x > 0 for y in ys]\n";
         assert_eq!(codes(src, false), [("N45".into(), 2, 12)]);

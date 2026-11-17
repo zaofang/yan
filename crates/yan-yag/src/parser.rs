@@ -79,6 +79,8 @@ struct Parser {
     hoisted: Vec<Stmt>,
     /// Reading a simple statement, where a multi-`for` comprehension can be hoisted.
     in_simple: bool,
+    /// N29: the parameter names a clause-form body (`case` arms) matches on.
+    clause_params: Vec<String>,
     comps: usize,
 }
 
@@ -101,6 +103,7 @@ pub fn parse_with_syntax(src: &str, strict: bool) -> (Option<Module>, Vec<Issue>
         nodes: Vec::new(),
         hoisted: Vec::new(),
         in_simple: false,
+        clause_params: Vec::new(),
         comps: 0,
     };
     let m = (!lexed.fatal).then(|| {
@@ -819,7 +822,19 @@ impl Parser {
             None
         } else {
             let fails = ret.as_ref().is_some_and(|r| !r.fail.is_empty());
-            let mut b = self.fbody()?;
+            let outer = std::mem::replace(
+                &mut self.clause_params,
+                params
+                    .iter()
+                    .filter_map(|p| match p {
+                        Param::Value { name, .. } => Some(name.clone()),
+                        _ => None,
+                    })
+                    .collect(),
+            );
+            let b = self.fbody();
+            self.clause_params = outer;
+            let mut b = b?;
             if fails && !self.strict {
                 self.normalize_returns(&mut b.stmts);
             }
@@ -1111,6 +1126,31 @@ impl Parser {
         Ok(out)
     }
 
+    /// `case` arms up to and including the closing dedent.
+    fn case_arms(&mut self) -> P<Vec<Case>> {
+        let mut cases = Vec::new();
+        while self.eat_kw("case") {
+            let span = self.span();
+            let pat = self.pattern()?;
+            let guard = if self.eat_kw("if") {
+                Some(self.expr()?)
+            } else {
+                None
+            };
+            cases.push(Case {
+                pat,
+                span,
+                guard,
+                body: self.colon_block()?,
+            });
+        }
+        if !matches!(self.tok(), Tok::Dedent) {
+            return self.unexpected("`case`");
+        }
+        self.bump();
+        Ok(cases)
+    }
+
     fn fbody(&mut self) -> P<Body> {
         self.node(Kind::Body, Self::fbody_)
     }
@@ -1125,7 +1165,39 @@ impl Parser {
         {
             contracts.push(self.contract()?);
         }
-        let stmts = self.stmts_until_dedent()?;
+        let stmts = if !self.strict && self.is_kw("case") && !self.clause_params.is_empty() {
+            let span = self.span();
+            let cases = self.case_arms()?;
+            self.note(
+                "N29",
+                span,
+                "clause-form body normalized to a `match` on the parameters",
+            );
+            let mut names: Vec<Expr> = self
+                .clause_params
+                .iter()
+                .map(|n| Expr {
+                    kind: ExprKind::Name(n.clone()),
+                    span,
+                    paren: false,
+                })
+                .collect();
+            let scrutinee = if names.len() == 1 {
+                names.remove(0)
+            } else {
+                Expr {
+                    kind: ExprKind::Tuple(names),
+                    span,
+                    paren: false,
+                }
+            };
+            vec![Stmt {
+                kind: StmtKind::Match { scrutinee, cases },
+                span,
+            }]
+        } else {
+            self.stmts_until_dedent()?
+        };
         Ok(Body {
             doc,
             contracts,
@@ -1257,6 +1329,17 @@ impl Parser {
             while !matches!(self.tok(), Tok::Dedent | Tok::Eof) {
                 if !self.strict && self.is_kw("def") {
                     self.method(&name, &tparams, is_pub, &mut fields)?;
+                    continue;
+                }
+                if !self.strict
+                    && !fields.is_empty()
+                    && matches!(self.tok(), Tok::Str { .. })
+                    && matches!(self.tok_at(1), Tok::Newline)
+                {
+                    let at = self.span();
+                    self.note("N41", at, "a string after a field read as that field's doc");
+                    self.bump();
+                    self.bump();
                     continue;
                 }
                 fields.push(self.field()?);
@@ -1846,26 +1929,7 @@ impl Parser {
                 let scrutinee = self.expr()?;
                 self.expect_op(":")?;
                 self.expect_newline_then_indent()?;
-                let mut cases = Vec::new();
-                while self.eat_kw("case") {
-                    let span = self.span();
-                    let pat = self.pattern()?;
-                    let guard = if self.eat_kw("if") {
-                        Some(self.expr()?)
-                    } else {
-                        None
-                    };
-                    cases.push(Case {
-                        pat,
-                        span,
-                        guard,
-                        body: self.colon_block()?,
-                    });
-                }
-                if !matches!(self.tok(), Tok::Dedent) {
-                    return self.unexpected("`case`");
-                }
-                self.bump();
+                let cases = self.case_arms()?;
                 StmtKind::Match { scrutinee, cases }
             }
             "with" => {
@@ -2972,6 +3036,7 @@ impl Parser {
             nodes: Vec::new(),
             hoisted: Vec::new(),
             in_simple: false,
+            clause_params: Vec::new(),
             comps: 0,
         };
         let r = sub.expr();
