@@ -2037,7 +2037,7 @@ topic = "a binder of a pattern on a list element, a slice pattern's element bind
 sections = "4.2"
 
 [[entry]]
-rows = "R1070, R1071"
+rows = "R1072, R1073"
 topic = "native plain `par` runs pool-safe arms on `YAN_THREADS` workers (off by default until #1583), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584)"
 sections = "6.7, 9.1"
 
