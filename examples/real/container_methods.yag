@@ -1,0 +1,9 @@
+# list.clear, list.remove, list.pop(i), dict.pop (gap #1402, fixed).
+def main() uses io:
+    xs = [1, 2, 3]
+    d = {"a": 1}
+    xs.remove(2)
+    first = xs.pop(0)
+    _ = d.pop("a")
+    xs.clear()
+    io.print(f"{first}")

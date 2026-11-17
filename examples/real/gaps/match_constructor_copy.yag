@@ -1,0 +1,13 @@
+# Gap #1398: I001 on machine and cranelift.
+type Tree = Leaf() | Node(left: Tree, right: Tree)
+
+def grow(t: Tree) -> Tree:
+    match t:
+        case Leaf():
+            return Node(Leaf(), Leaf())
+        case Node():
+            return Leaf()
+
+def main() uses io:
+    t = grow(Leaf())
+    io.print("ok")

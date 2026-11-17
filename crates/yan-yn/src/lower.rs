@@ -265,13 +265,14 @@ impl Lower<'_> {
         self.doc = self.doc_above(it.span.line);
         let (kind, name_span) = match &it.kind {
             ItemKind::Fn(f) => {
-                let def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
+                let mut def = self.fn_def(&f.sig, Some(&f.body), !it.public)?;
+                def.unsafe_at = f.unsafe_;
                 let span = f.sig.name_span;
                 match f.kind {
                     FnKind::Plain => (h::ItemKind::Func(def), span),
                     FnKind::Lemma => (h::ItemKind::Lemma(def), span),
                     FnKind::Gen => return unsupported("generators"),
-                    FnKind::Sub => return unsupported("subscript definitions"),
+                    FnKind::Sub => (h::ItemKind::Sub(def), span),
                 }
             }
             ItemKind::Type(t) => (self.type_def(t)?, t.name_span),
@@ -587,16 +588,13 @@ impl Lower<'_> {
             .collect()
     }
 
-    fn fail_paths(&mut self, t: &Type) -> R<Vec<h::Path>> {
+    fn fail_types(&mut self, t: &Type) -> R<Vec<h::Type>> {
         match &t.kind {
-            TypeKind::Path { path, args } if args.is_empty() => Ok(vec![match path.as_slice() {
-                [n] if yan_type(n, 0).is_some() => vec![yan_type(n, 0).expect("checked").into()],
-                _ => path.clone(),
-            }]),
+            TypeKind::Path { .. } => Ok(vec![self.ty(t)?]),
             TypeKind::Union(ts) => {
                 let mut out = Vec::new();
                 for t in ts {
-                    out.extend(self.fail_paths(t)?);
+                    out.extend(self.fail_types(t)?);
                 }
                 Ok(out)
             }
@@ -644,7 +642,7 @@ impl Lower<'_> {
                 params: params.iter().map(|t| self.ty(t)).collect::<R<_>>()?,
                 ret: Box::new(self.ty(ret)?),
                 fail: match fail {
-                    Some(f) => self.fail_paths(f)?,
+                    Some(f) => self.fail_types(f)?,
                     None => Vec::new(),
                 },
                 uses: uses
@@ -717,11 +715,11 @@ impl Lower<'_> {
                 }
             });
         }
-        let inferred_fail: Vec<h::Path> = match &s.fail {
+        let inferred_fail: Vec<h::Type> = match &s.fail {
             None if infer => self
                 .inferred_fail
                 .get(&s.name)
-                .map(|ns| ns.iter().map(|n| vec![n.clone()]).collect())
+                .map(|ns| ns.iter().map(|n| h::Type::bare(n)).collect())
                 .unwrap_or_default(),
             _ => Vec::new(),
         };
@@ -732,7 +730,7 @@ impl Lower<'_> {
                     _ => None,
                 },
                 fail: match &s.fail {
-                    Some(t) => self.fail_paths(t)?,
+                    Some(t) => self.fail_types(t)?,
                     None => inferred_fail,
                 },
                 from: s.from.clone(),
@@ -761,6 +759,7 @@ impl Lower<'_> {
         };
         let body = body.map(|b| self.body(s, b)).transpose()?;
         Ok(h::FuncDef {
+            unsafe_at: None,
             name: s.name.clone(),
             name_span: s.name_span,
             tparams: self.tparams(&s.tparams)?,

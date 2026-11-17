@@ -976,9 +976,10 @@ fn item_level_wire_errors() {
 fn sibling_channel_waits_are_e713_only_in_plain_par() {
     let codes = |kw: &str| {
         let src = format!(
-            "pub def main() uses io:\n    tx, rx = Channel[int](0)\n    {kw}:\n        \
-             tx.send(1) else e -> io.print(\"x\")\n        \
-             v = rx.recv() else e -> -1\n        io.print(f\"{{v}}\")\n"
+            "pub def main() uses io:\n    with sched = sequential():\n        \
+             tx, rx = Channel[int](0)\n        {kw}:\n            \
+             tx.send(1) else e -> io.print(\"x\")\n            \
+             v = rx.recv() else e -> -1\n            io.print(f\"{{v}}\")\n"
         );
         let (_, d) = lower(&src);
         d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
@@ -999,6 +1000,40 @@ fn par_concurrent_under_bound_pool_is_e708() {
     };
     assert_eq!(codes("pool()"), ["E708"]);
     assert!(codes("pct()").is_empty());
+}
+
+#[test]
+fn par_concurrent_in_main_without_a_bound_sched_is_e708() {
+    let body = "par concurrent:\n        io.print(\"a\")\n        io.print(\"b\")\n";
+    let codes = |name: &str| {
+        let (_, d) = lower(&format!("def {name}() uses io:\n    {body}"));
+        d.iter().map(|d| d.code.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(codes("main"), ["E708"]);
+    // Any other function takes the handler from its caller.
+    assert!(codes("f").is_empty());
+}
+
+#[test]
+fn par_concurrent_under_handler_without_concurrent_is_e708() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\npub def main() uses io:\n    with sched = H(n=1):\n        \
+               par concurrent:\n            io.print(\"a\")\n            io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert_eq!(
+        d.iter().map(|d| d.code.as_str()).collect::<Vec<_>>(),
+        ["E708"]
+    );
+}
+
+#[test]
+fn par_concurrent_under_handler_with_concurrent_is_clean() {
+    let src = "class H:\n    n: int\n\nimpl Sched for H:\n    def width(self: Self) -> int:\n        \
+               return 1\n\nimpl Concurrent for H: ...\n\npub def main() uses io:\n    \
+               with sched = H(n=1):\n        par concurrent:\n            io.print(\"a\")\n            \
+               io.print(\"b\")\n";
+    let (_, d) = lower(src);
+    assert!(d.is_empty(), "{d:?}");
 }
 
 fn edition_codes(value: &str) -> Vec<String> {
@@ -1657,4 +1692,11 @@ pub def main() uses io:
     assert_eq!(codes(&bad), ["E282"]);
     let plain = bad.replace("@derive(Wire)\n", "");
     assert_eq!(codes(&plain), Vec::<String>::new());
+}
+
+#[test]
+fn binding_a_list_element_view_to_another_name_is_e413() {
+    let src = "def f(xs: list[str]) -> str:\n    t = xs[0]\n    u = t\n    return u\n";
+    let (_, d) = lower(src);
+    assert_eq!(d.iter().filter(|d| d.code == "E413").count(), 1, "{d:?}");
 }

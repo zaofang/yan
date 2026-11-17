@@ -1,0 +1,10 @@
+-- spec: 6.7
+-- note: Ptr.read copies the list handle; both owners are dropped (assumption A11)
+-- ub: 8
+
+main() =
+  let xs = [[1]]
+  let p = xs.as_ptr()
+  unsafe
+    let a = p.read()
+    assert a[0] == 1

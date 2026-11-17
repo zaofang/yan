@@ -130,6 +130,7 @@ E421 = { section = "5.4", status = "active", meaning = "drop body that can fail,
 E422 = { section = "4.4", status = "active", meaning = "subscript body does not yield exactly once on every path (R457)" }
 E423 = { section = "4.4", status = "active", meaning = "subscript body fails under the let or inout mode it is used in (R457)" }
 E424 = { section = "17.4", status = "active", meaning = "branch, index, division or early exit depends on a secret-derived value in a @constant_time function (R611)" }
+E425 = { section = "6.3", status = "active", meaning = "`MutexGuard.get` of a non-`Copy` type (R1030)" }
 E501 = { section = "14.1", status = "active", meaning = "index, key or other goal refuted, with the counterexample (R211)" }
 E502 = { section = "14.1", status = "active", meaning = "wildcard on a sum (Yan Agent)" }
 E503 = { section = "14.1, 12.3", status = "active", meaning = "non-exhaustive match, including open C enums and @non_exhaustive types without _" }
@@ -226,6 +227,7 @@ E908 = { section = "5.2", status = "active", meaning = "@layout(bits(uN)) field 
 E909 = { section = "12.8", status = "active", meaning = "duplicate export name at link time" }
 E910 = { section = "12.9", status = "active", meaning = "asm operand type not supported" }
 E911 = { section = "12.9", status = "active", meaning = "asm register or register class invalid for the target" }
+E912 = { section = "3", status = "active", meaning = "unsafe fn named other than as the callee of a call" }
 P001 = { section = "18.3", status = "active", meaning = "base hash mismatch (current text returned)" }
 P002 = { section = "18.3", status = "active", meaning = "edit search text matched zero or many times" }
 P003 = { section = "18.3", status = "active", meaning = "patch introduces errors (under --check)" }

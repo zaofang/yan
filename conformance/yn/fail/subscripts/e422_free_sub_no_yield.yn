@@ -1,0 +1,9 @@
+-- spec: 4.4
+-- rows: R1006, R457
+-- note: a free sub body must yield exactly once on every path
+-- expect: E422 at 8:5
+
+type Box = { v: int }
+
+sub val(self: Box) -> int =
+  let x = 1

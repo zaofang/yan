@@ -7,6 +7,8 @@ impl<'a, 'm> Fn<'a, 'm> {
         v: &[Operand],
         fs: &[(String, Shape)],
     ) -> R<Operand> {
+        // An instance `Box[i64]` shows as `Box`, as in the interpreter.
+        let name = name.split('[').next().unwrap_or(name);
         let mut parts = vec![self.lit(&format!("{name}("))];
         let mut at = 0;
         for (i, (n, s)) in fs.iter().enumerate() {
@@ -26,6 +28,14 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mut shape = root.shape;
         for proj in &p.projs {
             match proj {
+                y::Proj::Field(f, _) if f == "value" && matches!(shape, Shape::Guard(_)) => {
+                    let Shape::Guard(inner) = shape else {
+                        unreachable!("matched")
+                    };
+                    let p = self.read(&at, &Shape::Guard(inner.clone())).remove(0);
+                    at = At::Mem(p, super::mutex::VALUE);
+                    shape = *inner;
+                }
                 y::Proj::Field(f, _) => {
                     let Some((_, start, s)) = shape
                         .fields()
@@ -39,6 +49,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                         At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
                         At::Mem(p, word) => At::Mem(p, word + start as u32),
                     };
+                    // A boxed field is the value in its box, changed there in place.
+                    if let Shape::Boxed(k) = &s {
+                        let p = self.read(&at, &s).remove(0);
+                        at = At::Mem(p, 0);
+                        shape = k.get().clone();
+                        continue;
+                    }
                     shape = s;
                 }
                 y::Proj::Index(i) => {
@@ -75,6 +92,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn has_heap(s: &Shape) -> bool {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => false,
+            Shape::Atomic(_) | Shape::Mutex(_) | Shape::Guard(_) => true,
             Shape::Str
             | Shape::Bytes
             | Shape::ByteArray
@@ -89,6 +107,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             | Shape::Chan(..)
             | Shape::Arena
             | Shape::Set(_) => true,
+            // A type recurs only behind a block.
+            Shape::Named(_) | Shape::Boxed(_) => true,
             Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::has_heap(s)),
             Shape::Tuple(ss) => ss.iter().any(Self::has_heap),
             Shape::Sum(_, vs) => vs
@@ -107,6 +127,17 @@ impl<'a, 'm> Fn<'a, 'm> {
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
+            Shape::Atomic(_) => self.free(RtFn::EnvFree, v[0].clone()),
+            Shape::Mutex(inner) => self.mutex_glue(inner, v[0].clone()),
+            Shape::Guard(_) => self.unlock(v[0].clone()),
+            Shape::Named(k) => {
+                self.walk_call(knot::Walk::Drop, k, v);
+            }
+            Shape::Boxed(k) => {
+                let x = self.unbox(k, &v[0]);
+                self.walk_call(knot::Walk::Drop, k, &x);
+                self.free(RtFn::EnvFree, v[0].clone());
+            }
             Shape::Fn(..) => self.free(RtFn::EnvFree, v[1].clone()),
             Shape::Str | Shape::Path | Shape::WinPath => self.free(RtFn::StrFree, v[0].clone()),
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
@@ -285,22 +316,40 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(())
     }
 
-    /// `dst` of a `try_` operation with status `st`: `Ok` of what `ok` reads, or the failure
-    /// its status means: 2 `Cancelled`, 3 `Closed`, 4 `not_ready` (`Empty` or `Full`).
-    pub(super) fn try_result(
+    /// The channel of the `Sender` atom `tx`; one `close` ended is a `contract` panic (9.5).
+    pub(super) fn open_sender(&mut self, tx: &y::Atom) -> R<Operand> {
+        let ch = self.scalar1(tx)?;
+        let closed = self.scalar_op(ScalarOp::Eq, I64, vec![ch.clone(), Operand::Int(0)]);
+        let (bad, good) = self.branch(closed);
+        self.cur = bad;
+        self.finish(Term::Panic("contract"));
+        self.cur = good;
+        Ok(ch)
+    }
+
+    /// `dst` of a `try_send` with status `st`: `Ok`, or the failure its status means: 2
+    /// `Cancelled`, 4 `Full[T]` carrying back the unsent `payload`, which the channel did not take.
+    pub(super) fn try_send_result(
         &mut self,
         dst: &Var,
         st: Operand,
-        not_ready: &str,
-        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+        payload: Vec<Operand>,
     ) -> R<()> {
         let Some((_, _, efs)) = dst.shape.variant("Err") else {
             return unsupported("a channel operation without its failure");
         };
         let e = efs[0].1.clone();
         let join = self.block_new();
-        for (k, name) in [(2, "Cancelled"), (3, "Closed"), (4, not_ready)] {
-            let Some(v) = Self::failure(&e, name, Vec::new()) else {
+        let full = match &e {
+            Shape::Sum(_, vs) => vs.iter().map(|(n, _)| n).find(|n| n.starts_with("Full[")),
+            _ => None,
+        }
+        .cloned();
+        for (k, name, payload) in [
+            (2, "Cancelled".to_owned(), Vec::new()),
+            (4, full.unwrap_or_default(), payload),
+        ] {
+            let Some(v) = Self::failure(&e, &name, payload) else {
                 continue;
             };
             let (this, next) = self.branch_eq(st.clone(), k);
@@ -310,7 +359,56 @@ impl<'a, 'm> Fn<'a, 'm> {
             self.goto(join);
             self.cur = next;
         }
-        let v = ok(self);
+        let v = Self::variant_value(&dst.shape, "Ok", Vec::new());
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        self.cur = join;
+        Ok(())
+    }
+
+    /// `TryRecv[t]`, declared in `std.chan`.
+    pub(super) fn try_recv_shape(&self, t: &y::Type) -> R<Shape> {
+        self.shape(&y::Type::Named(y::Named {
+            path: vec!["TryRecv".into()],
+            args: vec![y::TArg::Type(t.clone())],
+        }))
+    }
+
+    /// The `Result[TryRecv[T], Cancelled]` of a `try_recv` that returned status `st`: 2 cancelled,
+    /// 3 closed, 4 empty, else `ok` yields the received value.
+    pub(super) fn try_recv_result(
+        &mut self,
+        dst: &Var,
+        st: Operand,
+        ok: impl FnOnce(&mut Self) -> Vec<Operand>,
+    ) -> R<()> {
+        let (Some((_, _, efs)), Some((_, _, ofs))) =
+            (dst.shape.variant("Err"), dst.shape.variant("Ok"))
+        else {
+            return unsupported("`try_recv` without its result");
+        };
+        let (e, t) = (efs[0].1.clone(), ofs[0].1.clone());
+        let Some(cancelled) = Self::failure(&e, "Cancelled", Vec::new()) else {
+            return unsupported("a channel failure without `Cancelled`");
+        };
+        let join = self.block_new();
+        let (this, next) = self.branch_eq(st.clone(), 2);
+        self.cur = this;
+        let v = Self::variant_value(&dst.shape, "Err", cancelled);
+        self.copy_to(&dst.locals, v);
+        self.goto(join);
+        self.cur = next;
+        for (k, name) in [(3, "Closed"), (4, "Empty")] {
+            let (this, next) = self.branch_eq(st.clone(), k);
+            self.cur = this;
+            let v = Self::variant_value(&t, name, Vec::new());
+            let v = Self::variant_value(&dst.shape, "Ok", v);
+            self.copy_to(&dst.locals, v);
+            self.goto(join);
+            self.cur = next;
+        }
+        let got = ok(self);
+        let v = Self::variant_value(&t, "Got", got);
         let v = Self::variant_value(&dst.shape, "Ok", v);
         self.copy_to(&dst.locals, v);
         self.goto(join);
@@ -429,7 +527,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 None => return unsupported(format!("`?` on `{}`", c.path.join("."))),
             },
         };
-        let (Some((_, ok_at, _)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
+        let (Some((_, ok_at, okfs)), Some((_, err_at, efs)), Some((_, _, mine_e))) = (
             theirs.variant("Ok"),
             theirs.variant("Err"),
             mine.variant("Err"),
@@ -437,6 +535,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("`?` outside a failing function");
         };
         let (e, mine_e) = (efs[0].1.clone(), mine_e[0].1.clone());
+        let got = okfs[0].1.clone();
         let r = self.var(theirs);
         let v = Self::ops(&r);
         self.call(c, Some(r))?;
@@ -448,6 +547,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
+        // A statement `c?` asks for `Unit` and drops the value it discards.
+        if *want == Shape::Scalar(Ty::Unit) && got != *want {
+            self.glue(&got, &v[ok_at..ok_at + got.width()]);
+        }
         Ok(v[ok_at..ok_at + want.width()].to_vec())
     }
 
@@ -491,6 +594,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                     .map(|(o, e)| result(o, e))
             }
             Some(id::STD_ERROR_CONTEXT) => self.context_shape(c)?,
+            Some(i @ (id::STD_JSON_PARSE_VALUE | id::STD_JSON_PARSE_FLOAT)) => {
+                Some(self.json_parse_result(i == id::STD_JSON_PARSE_FLOAT)?)
+            }
             Some(id::STD_PRELUDE_CHR) => Some(self.encoding_shape(Shape::Char)?),
             Some(id::STD_ENCODING_BASE64_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
             Some(id::STD_ENCODING_HEX_DECODE) => Some(self.encoding_shape(Shape::Bytes)?),
@@ -508,13 +614,26 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Shape::Scalar(I64),
                 failure_union(&["Cancelled", "Timeout"]),
             )),
-            Some(id::STD_CHAN_RECEIVER_TRY_RECV) => self
-                .targ(c)?
-                .map(|e| result(e, failure_union(&["Empty", "Closed", "Cancelled"]))),
-            Some(id::STD_CHAN_SENDER_TRY_SEND) => Some(result(
-                Shape::Scalar(Ty::Unit),
-                failure_union(&["Full", "Cancelled"]),
-            )),
+            Some(id::STD_CHAN_RECEIVER_TRY_RECV) => match c.targs.as_slice() {
+                [y::TArg::Type(t)] => Some(result(self.try_recv_shape(t)?, cancelled())),
+                _ => None,
+            },
+            Some(id::STD_CHAN_SENDER_TRY_SEND) => match c.targs.as_slice() {
+                [y::TArg::Type(t)] => {
+                    let named = |n: &str, args| {
+                        y::Type::Named(y::Named {
+                            path: vec![n.into()],
+                            args,
+                        })
+                    };
+                    let fail = y::Type::Union(vec![
+                        named("Full", vec![y::TArg::Type(t.clone())]),
+                        named("Cancelled", Vec::new()),
+                    ]);
+                    Some(result(Shape::Scalar(Ty::Unit), self.shape(&fail)?))
+                }
+                _ => None,
+            },
             Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
                 Some(result(Shape::Scalar(Ty::Unit), cancelled()))
             }
@@ -660,7 +779,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let Some((_, x)) = fields.iter().find(|(f, _)| f == n) else {
                         return unsupported(format!("constructor `{name}` without field `{n}`"));
                     };
-                    let xv = self.atom(x, s)?;
+                    let xv = match s {
+                        Shape::Boxed(k) => {
+                            let v = self.atom(x, k.get())?;
+                            vec![self.boxed(v)]
+                        }
+                        s => self.atom(x, s)?,
+                    };
                     let w = xv.len();
                     v.splice(at..at + w, xv);
                     at += w;

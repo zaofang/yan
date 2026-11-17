@@ -1,0 +1,30 @@
+# spec: 6.3
+# rows: R1022
+# note: the guard unlocks at the end of its block on every path out, including a return from inside a loop; get, set and replace are its access (#1376)
+# stdout:
+# 2
+# 5
+# 5
+# 9
+
+def bump(m: Mutex[int]) -> None:
+    g = m.lock()
+    g.set(g.get() + 1)
+
+def first_big(m: Mutex[int], xs: list[int]) -> int:
+    for x in xs:
+        g = m.lock()
+        if x > 1:
+            g.set(x)
+            return x
+    return 0
+
+def main() uses io:
+    m = Mutex[int](0)
+    bump(m)
+    bump(m)
+    print(first_big(m, [1, 2, 3]))
+    print(first_big(m, [5]))
+    g = m.lock()
+    print(g.replace(9))
+    print(g.get())

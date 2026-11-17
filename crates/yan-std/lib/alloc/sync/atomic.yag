@@ -1,9 +1,76 @@
-"""Atomic: lock-free shared values of at most 16 bytes (6.2, E418)."""
+"""Atomic: lock-free shared values of at most 16 bytes (6.2, E418). Every ordering is explicit;
+a load, a store and a read-modify-write each take the enum that holds only the orderings valid
+for it."""
+
+@since("1.0")
+pub type LoadOrdering = Relaxed() | Acquire() | SeqCst()
+
+@since("1.0")
+pub type StoreOrdering = Relaxed() | Release() | SeqCst()
+
+@since("1.0")
+pub type Ordering = Relaxed() | Acquire() | Release() | AcqRel() | SeqCst()
 
 @intrinsic
 @since("1.0")
-pub def load[T](self: Atomic[T]) -> T: ...
+pub def Atomic[T](take v: T) -> Atomic[T]: ...
 
 @intrinsic
 @since("1.0")
-pub def store[T](self: Atomic[T], take v: T) -> None: ...
+pub def load[T](self: Atomic[T], o: LoadOrdering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def store[T](self: Atomic[T], take v: T, o: StoreOrdering) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def swap[T](self: Atomic[T], take v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def compare_exchange[T](self: Atomic[T], current: T, take new: T, success: Ordering, failure: LoadOrdering) -> Result[T, T]: ...
+
+@intrinsic
+@since("1.0")
+pub def compare_exchange_weak[T](self: Atomic[T], current: T, take new: T, success: Ordering, failure: LoadOrdering) -> Result[T, T]: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_add[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_sub[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_and[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_or[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_xor[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_max[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fetch_min[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def into_inner[T](take self: Atomic[T]) -> T: ...
+
+@intrinsic
+@since("1.0")
+pub def fence(o: Ordering) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def compiler_fence(o: Ordering) -> None: ...

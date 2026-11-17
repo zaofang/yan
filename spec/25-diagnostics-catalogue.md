@@ -41,9 +41,10 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E014 | approved test changed since tests.lock was signed new | 18.4 |
 | E015 | approved test in tests.lock is missing new | 18.4 |
 | E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
+| E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
-| E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, or an offline archive is absent *new* | 19.1 |
+| E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, an offline archive is absent, or a recorded foreign set differs from the archive (R1034) *new* | 19.1, 19.2 |
 | E021 | a namespace has no index mapping in `registries` *new* | 19.3 |
 | E022 | an archive holds a symbolic link, an absolute path, a `..` component or a duplicate path *new* | 19.3 |
 | E017 | construct this toolchain does not support yet, reported at the construct; checking continues (R649) new | 18.2 |
@@ -136,7 +137,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E313 | both injection and `From` apply | 8.1 |
 | E315 | fallible call without `?` or `else` where no `Result` is expected; fix inserts `?` (R424) new | 14.1 |
 | E316 | replay(trace, live=\[...\]) names a capability whose operations return values the program reads (R305, R379) new | 7.6 |
-| E314 | capability outside the package ceiling, directly or through a dependency *new* | 7.4, 19.2 |
+| E314 | capability outside the package ceiling, directly or through a dependency, including a library in the package's dependency closure (R1031, R1033) *new* | 7.4, 19.2 |
 | E317 | release build binds a `fault` handler other than `never` *new* | 7.3 |
 | E318 | release build binds the `toolchain` capability *new* | 21.4 |
 | E319 | differentiating an impure function *new* | 11.5 |
@@ -179,6 +180,7 @@ This is the complete registry of diagnostic codes for 1.0. Codes keep their mean
 | E422 | subscript body does not yield exactly once on every path (R457) new | 4.4 |
 | E423 | subscript body fails under the let or inout mode it is used in (R457) new | 4.4 |
 | E424 | branch, index, division or early exit depends on a secret-derived value in a `@constant_time` function (R611) new | 17.4 |
+| E425 | `MutexGuard.get` of a non-`Copy` type (R1030) new | 6.3 |
 
 ### 25.7 Exhaustiveness, bounds, shapes, units and literals
 
@@ -316,6 +318,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | E909 | duplicate export name at link time *new* | 12.8 |
 | E910 | `asm` operand type not supported *new* | 12.9 |
 | E911 | `asm` register or register class invalid for the target *new* | 12.9 |
+| E912 | `unsafe fn` named other than as the callee of a call (R1016) *new* | 3 |
 
 ### 25.12 Patches, notes, internal errors and panics
 

@@ -1,6 +1,21 @@
 use super::*;
 
 impl Lower<'_, '_, '_> {
+    /// Whether handler expression `h` of type `ht` implements `Concurrent` (R1003): a std handler
+    /// constructor marked `@concurrent`, or a type with `impl Concurrent`. The opaque `Sched`
+    /// type of any other expression does not.
+    fn handler_concurrent(&self, h: &j::Expr, ht: &Ty) -> bool {
+        if let j::ExprKind::Call(f, _) = &h.kind
+            && let j::ExprKind::Name(n) = &f.kind
+            && let Some(d) = ["sched", "sim", "evented"]
+                .iter()
+                .find_map(|m| crate::stdlib::decl(&format!("std.{m}.{n}")))
+        {
+            return d.concurrent;
+        }
+        self.implements(ht, "Concurrent")
+    }
+
     pub(super) fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
@@ -69,7 +84,14 @@ impl Lower<'_, '_, '_> {
                     self.emit(StmtKind::Rhs(rhs), at);
                 }
             }
-            K::Assign { target, ty, value } => self.assign(target, ty.as_ref(), value, at)?,
+            K::Assign { target, ty, value } => {
+                let borrowed = self.borrowed_by(value);
+                self.guard_escape_expr(value);
+                self.assign(target, ty.as_ref(), value, at)?;
+                if let j::ExprKind::Name(n) = &target.kind {
+                    self.note_borrow(n, borrowed);
+                }
+            }
             K::Bind {
                 target,
                 target_span,
@@ -90,7 +112,10 @@ impl Lower<'_, '_, '_> {
                     span: *target_span,
                     paren: false,
                 };
+                let borrowed = self.borrowed_by(value);
+                self.guard_escape_expr(value);
                 self.assign(&t, ty.as_ref(), value, at)?;
+                self.note_borrow(target, borrowed);
             }
             K::AugAssign { target, op, value } => {
                 let op: &'static str = op.trim_end_matches('=');
@@ -122,6 +147,7 @@ impl Lower<'_, '_, '_> {
                         let e = &self.become_in_ctor(e, true);
                         let (a, t) = self.atom(e, Some(&want))?;
                         self.expect(&t, &want, e.span);
+                        self.guard_escape(&t, e.span);
                         a
                     }
                 };
@@ -229,11 +255,11 @@ impl Lower<'_, '_, '_> {
                 body: j::ParBody::Block(b),
             } => {
                 self.par_waits(b, *concurrent);
-                if *concurrent && self.pool_sched {
+                if *concurrent && self.sched_not_concurrent {
                     self.err(
                         "E708",
                         at,
-                        "needs concurrent forward progress, which `pool` does not give".into(),
+                        "needs concurrent forward progress, which the `sched` handler in effect does not give (the hosted default `pool` when none is bound); bind one that implements `Concurrent`, such as `sequential()`".into(),
                     );
                 }
                 let mut blocks = Vec::new();
@@ -325,6 +351,28 @@ impl Lower<'_, '_, '_> {
                     }
                 }
             }
+            // `with g = m.lock()` binds a guard for the block and no longer (R1036): the block
+            // starts at the binding, so drop elaboration unlocks at its end.
+            K::With {
+                kind: j::WithKind::Bind(name, h),
+                body,
+            } if j::is_lock_call(h) => {
+                let bind = j::Stmt {
+                    kind: K::Bind {
+                        mutable: false,
+                        target: name.clone(),
+                        target_span: h.span,
+                        ty: None,
+                        value: h.clone(),
+                    },
+                    span: at,
+                };
+                let stmts: Vec<_> = std::iter::once(bind)
+                    .chain(body.stmts.iter().cloned())
+                    .collect();
+                let b = self.block(&stmts)?;
+                self.emit(StmtKind::Unsafe(b), at);
+            }
             K::With {
                 kind: j::WithKind::Bind(name, h),
                 body,
@@ -369,13 +417,12 @@ impl Lower<'_, '_, '_> {
                     self.expect(&ht, &want, h.span);
                 }
                 self.handlers.push(name.clone());
-                let outer_pool = self.pool_sched;
+                let outer = self.sched_not_concurrent;
                 if name == "sched" {
-                    self.pool_sched = matches!(&h.kind, j::ExprKind::Call(f, _)
-                        if matches!(&f.kind, j::ExprKind::Name(n) if n == "pool"));
+                    self.sched_not_concurrent = !self.handler_concurrent(h, &ht);
                 }
                 let b = self.block(&body.stmts);
-                self.pool_sched = outer_pool;
+                self.sched_not_concurrent = outer;
                 self.handlers.pop();
                 self.emit(
                     StmtKind::With {

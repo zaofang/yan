@@ -15,6 +15,20 @@
    "expect": []
   },
   {
+   "path": "yag/pass/caps/closure_capability_declared.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/caps/renamed_user_capability.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -37,6 +51,32 @@
     "7.3"
    ],
    "rows": [],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/concurrency/mutex_guard_scope_no_wait.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1024"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yag/pass/concurrency/mutex_with_guard_ends.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1036"
+   ],
    "flags": [],
    "expect": []
   },
@@ -717,6 +757,26 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_closure_capability_not_declared.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4",
+    "7.2"
+   ],
+   "rows": [
+    "R1025"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 8,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e301_missing_capability.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -824,6 +884,69 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e323_guard_across_wait.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1024"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E323",
+     "line": 15,
+     "col": 5
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/e323_with_guard_across_wait.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E323",
+     "line": 9,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/e415_guard_on_channel.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3",
+    "6.4"
+   ],
+   "rows": [
+    "R1037"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E323",
+     "line": 8,
+     "col": 5
+    },
+    {
+     "code": "E415",
+     "line": 8,
+     "col": 13
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e705_branch_reads_sibling.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -860,6 +983,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e708_par_concurrent_unbound_default.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.1"
+   ],
+   "rows": [
+    "R1003"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E708",
+     "line": 7,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e708_par_concurrent_under_pool.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -874,6 +1016,25 @@
     {
      "code": "E708",
      "line": 8,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/e708_user_handler_without_concurrent.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.1"
+   ],
+   "rows": [
+    "R1003"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E708",
+     "line": 15,
      "col": 9
     }
    ]
@@ -2072,6 +2233,31 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/n34_pop_index.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4",
+    "17.3"
+   ],
+   "rows": [
+    "R1027"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N34",
+     "line": 8,
+     "col": 13
+    },
+    {
+     "code": "N34",
+     "line": 10,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lenient/n35_re_module.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -2369,6 +2555,51 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/n52_strict_bare_sqrt.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1007"
+   ],
+   "flags": [
+    "--strict"
+   ],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 7,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/n54_collections_counter.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1009"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "N01",
+     "line": 6,
+     "col": 1
+    },
+    {
+     "code": "E200",
+     "line": 9,
+     "col": 21
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lex/e105_bidi_in_comment.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -2547,6 +2778,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/fstring_unsupported_spec.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E017",
+     "line": 6,
+     "col": 14
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w803_secret_into_log.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -2667,6 +2917,25 @@
     {
      "code": "W815",
      "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lints/w819_field_receiver.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R348"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W819",
+     "line": 12,
      "col": 12
     }
    ]
@@ -2816,6 +3085,26 @@
      "code": "E502",
      "line": 10,
      "col": 14
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/match/e503_generic_instance.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "14.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E503",
+     "line": 8,
+     "col": 5
     }
    ]
   },
@@ -3049,6 +3338,26 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e406_guard_in_escaping_closure.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.6",
+    "6.3"
+   ],
+   "rows": [
+    "R1037"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E406",
+     "line": 8,
+     "col": 20
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_bind_in_loop.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3107,6 +3416,25 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e413_rebind_list_element.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 8,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e413_sink_list_element.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3160,6 +3488,56 @@
      "code": "E413",
      "line": 10,
      "col": 19
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e414_guard_escapes.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5",
+    "6.3"
+   ],
+   "rows": [
+    "R1023"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 9,
+     "col": 12
+    },
+    {
+     "code": "E414",
+     "line": 13,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e414_guard_in_record.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.5",
+    "6.3"
+   ],
+   "rows": [
+    "R1037"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E414",
+     "line": 12,
+     "col": 18
+    },
+    {
+     "code": "E414",
+     "line": 16,
+     "col": 11
     }
    ]
   },
@@ -3284,6 +3662,26 @@
    "expect": [
     {
      "code": "E421",
+     "line": 9,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e425_guard_get_non_copy.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3",
+    "25"
+   ],
+   "rows": [
+    "R1030"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E425",
      "line": 9,
      "col": 9
     }
@@ -4148,6 +4546,25 @@
      "code": "W817",
      "line": 5,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/types/e200_shared_variant_bare.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 9,
+     "col": 9
     }
    ]
   },
@@ -5118,6 +5535,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/bindings/const_hides_std_module.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 X 2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/bindings/r832_if_else.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5147,6 +5577,21 @@
    "expect": [],
    "stdout": "2\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/collections/dict_field_store.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R808"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 3\n",
+   "exit": 0
   },
   {
    "path": "yag/run/collections/dict_insertion_order.yag",
@@ -5193,6 +5638,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/collections/list_compare_nested.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "True False\nTrue True True\nTrue False True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/collections/list_show.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5224,6 +5682,66 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/atomic_ops.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "5\n7\n9\n12\n10\n100\n4\n4\n5\nErr(error=6)\nOk(value=6)\n60\nFalse\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_par_counter.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "200\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_send_after_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5",
+    "8.6"
+   ],
+   "rows": [
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "closed\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/chan_sender_close.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.6",
+    "9.5"
+   ],
+   "rows": [
+    "R391",
+    "R1021"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "10\nTrue\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/chan_try_ops.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5235,7 +5753,53 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "Empty()\nsent\nFull()\n1\nEmpty()\n0\nClosed()\n",
+   "stdout": "Empty()\nsent\nFull(value=2)\nGot(value=1)\nEmpty()\nGot(value=0)\nClosed()\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_try_recv_match.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5\n-5\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/chan_try_send_full.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "sent\nFull(value=2)\nGot(value=1)\nsent\nFull(value='bb')\nFull(value='cc')\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/concurrent_marker_user_handler.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.1",
+    "13"
+   ],
+   "rows": [
+    "R1003"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\nb\n",
    "exit": 0
   },
   {
@@ -5251,6 +5815,81 @@
    "flags": [],
    "expect": [],
    "stdout": "[7]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_guard.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n5\n5\n9\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_guard_value_place.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1035"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "4\n[1, 2, 3]\n[2, 3]\n7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_par_heap.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200\n2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/mutex_relock_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1022"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "locked\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/mutex_with_early_unlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n2\n3\n",
    "exit": 0
   },
   {
@@ -5614,6 +6253,38 @@
    "exit": 1
   },
   {
+   "path": "yag/run/generics/generic_fail_types.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3",
+    "10.1"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-3\n-8\n5\ns\n100\n200\n2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/generics/generic_records.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "13"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n['x', 'y']\nPair(a=7, b='k')\nBox(value='ab')\nTrue\nFalse\n2\nBox(value=Box(value=2))\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/generics/generic_sums.yag",
    "kind": "run",
    "milestone": "M1",
@@ -5642,7 +6313,7 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "hi!\nnone\nTrue\nJust(value=['x', 'y'])\nJust(value=Just(value=3))\nP(a='k', b=Just(value='v'))\nkv\n",
+   "stdout": "hi!\nnone\nTrue\nJust(value=['x', 'y'])\nJust(value=Just(value=3))\nP(a='k', b=Just(value='v'))\nkv\n7:seven\n0:none\nseven!\n",
    "exit": 0
   },
   {
@@ -5772,6 +6443,51 @@
    "expect": [],
    "stdout": "bc xyz cba ab\n42 -3\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/lenient/n52_bare_math.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1007"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.0 0.0 1.0 0.0 1.0 0.0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n53_free_calls.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1008"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 3 12 7 7 [2, 3] 98\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n54_std_modules.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1009"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 2\n",
+   "exit": 0
   },
   {
    "path": "yag/run/lenient/r933_empty_literal_argument.yag",
@@ -6139,6 +6855,21 @@
    "flags": [],
    "expect": [],
    "stdout": "-1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/unit_variant_match_ctor.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.3"
+   ],
+   "rows": [
+    "R769"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ok\na\n",
    "exit": 0
   },
   {
@@ -6664,6 +7395,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/fstring_numeric_specs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1029"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3.14|0007|2.67|-0|1,234,567.89|+7|   3.142|-00003.1|1,234,567|    7|3.1      |\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/heap_empty_pop.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6882,6 +7628,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/list_pop_contains_join.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R218"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 bb\n1 a\nTrue False 1 False c a-b []\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/std/list_removal.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1026"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 [1, 3, 4]\n4 [1, 3]\n[1]\n0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/list_slice_exact.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7067,6 +7843,21 @@
    "flags": [],
    "expect": [],
    "stdout": "1.0 0.9999999999999999\n1.0 1e+308\n2.0000000000000004 2.0\nnan inf -0.0\n2.0 nan\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/method_receiver_first.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.2"
+   ],
+   "rows": [
+    "R1028"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n7\n",
    "exit": 0
   },
   {
@@ -7283,6 +8074,23 @@
    "flags": [],
    "expect": [],
    "stdout": "4\n-1\n2\n[hi]\n[hi]\nx\nx\nx\nab   |\n***ab\nab\n-00042\n+007\n00042\n3\n0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/qualified_std_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.5"
+   ],
+   "rows": [
+    "R600",
+    "R601",
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "America/New_York +05:30 UTC\n2024-03-10T03:30:00-04:00[America/New_York] -14400\n2024-03-10T04:30:00-04:00[America/New_York]\n2024-03-11T03:30:00-04:00[America/New_York]\nNone\n2024-11-03T01:30:00-04:00[America/New_York] 2024-11-03T01:30:00-05:00[America/New_York]\n1969-12-31T19:00:00-05:00[America/New_York]\n",
    "exit": 0
   },
   {
@@ -7986,6 +8794,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/types/bits_layout_evolve.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2 1 9\n255 0 7 0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/types/bits_layout_fields.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7996,6 +8817,19 @@
    "flags": [],
    "expect": [],
    "stdout": "5 17\n2 17\n9 1000\n9 255\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/bits_layout_packed.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.2"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "255 65535 1\n0 3 200\n78\n4294967295 2147483647 1\n1 9\n",
    "exit": 0
   },
   {
@@ -8044,6 +8878,47 @@
    "flags": [],
    "expect": [],
    "stdout": "3 None\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/qualified_variants.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R799"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ls\nss\nrel3\nlr\nsr\nSeqCst()\nSeqCst()\nTrue\nJust(v=5)\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/recursive_boxed_fields.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "6 Node(left=Node(left=Leaf(value=1), right=Leaf(value=2)), right=Leaf(value=3))\nTrue False True\n2 Push(top='a', rest=Push(top='b', rest=Empty()))\nB(s='x', a=A(n=7, b=None)) 7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/types/recursive_through_list.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "5.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "8\nSum(terms=[Num(n=2), Neg(e=Num(n=5)), Sum(terms=[Num(n=10), Num(n=1)])])\nTrue False True\n",
    "exit": 0
   },
   {
@@ -9203,6 +10078,47 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e903_unsafe_fn_body_not_unsafe.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3",
+    "15.2"
+   ],
+   "rows": [
+    "R1013"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E903",
+     "line": 6,
+     "col": 36
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/ffi/e903_unsafe_fn_call_outside_block.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3",
+    "12.1",
+    "15.2"
+   ],
+   "rows": [
+    "R1012"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E903",
+     "line": 12,
+     "col": 27
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/e904_non_c_type.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -9305,6 +10221,25 @@
    ]
   },
   {
+   "path": "yn/fail/ffi/e912_unsafe_fn_as_value.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3"
+   ],
+   "rows": [
+    "R1016"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E912",
+     "line": 13,
+     "col": 11
+    }
+   ]
+  },
+  {
    "path": "yn/fail/ffi/extern_halo_accepted.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -9328,6 +10263,23 @@
      "col": 43
     }
    ]
+  },
+  {
+   "path": "yn/fail/ffi/unsafe_fn_ptr_params_accepted.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "3",
+    "12.1",
+    "15.2"
+   ],
+   "rows": [
+    "R1010",
+    "R1012",
+    "R1015"
+   ],
+   "flags": [],
+   "expect": []
   },
   {
    "path": "yn/fail/holes/h701_typed_hole.yn",
@@ -10379,21 +11331,81 @@
    ]
   },
   {
-   "path": "yn/fail/subscripts/e017_free_sub.yn",
+   "path": "yn/fail/subscripts/e202_free_sub_arity.yn",
    "kind": "fail",
    "milestone": "M3",
    "spec": [
     "4.4"
    ],
    "rows": [
+    "R1006"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E202",
+     "line": 13,
+     "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/subscripts/e250_free_sub_and_fn.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4",
+    "17.2"
+   ],
+   "rows": [
+    "R1006",
+    "R469"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E250",
+     "line": 11,
+     "col": 1
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/subscripts/e405_free_sub_ref_arg.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R1006"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E405",
+     "line": 14,
+     "col": 9
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/subscripts/e422_free_sub_no_yield.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R1006",
     "R457"
    ],
    "flags": [],
    "expect": [
     {
-     "code": "E017",
+     "code": "E422",
      "line": 8,
-     "col": 1
+     "col": 5
     }
    ]
   },
@@ -10819,6 +11831,26 @@
    ]
   },
   {
+   "path": "yn/fail/unsafe/e901_unsafe_fn_outside_ffi.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "12",
+    "15.2"
+   ],
+   "rows": [
+    "R1011"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E901",
+     "line": 6,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/unsafe/e901_unsafe_outside_ffi.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -10875,14 +11907,50 @@
    "kind": "run",
    "milestone": "M3",
    "spec": [
-    "15.3"
+    "15.3",
+    "4.7"
    ],
    "rows": [
-    "R438"
+    "R438",
+    "R441",
+    "R1002"
    ],
    "flags": [],
    "expect": [],
-   "stdout": "a=2\nb=1\n",
+   "stdout": "a=2\nb=1\n11 10 4 False\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/collections/ref_temp_method.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "4.7",
+    "15.3"
+   ],
+   "rows": [
+    "R1002"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n6\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/mutex_with_guard_value.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "15"
+   ],
+   "rows": [
+    "R1035",
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\n4\n",
    "exit": 0
   },
   {
@@ -10958,6 +12026,20 @@
    "expect": [],
    "stdout": "start\n",
    "exit": 1
+  },
+  {
+   "path": "yn/run/ffi/ptr_of_across_suspend.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "12.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "65\n",
+   "exit": 0
   },
   {
    "path": "yn/run/hello.yn",
@@ -11141,6 +12223,38 @@
    "flags": [],
    "expect": [],
    "stdout": "3628800\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/subscripts/free_sub_keyword_ref_args.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R1006",
+    "R457"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7 5 9 1\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/subscripts/free_sub_place.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "4.4"
+   ],
+   "rows": [
+    "R1006",
+    "R457"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n17\n26\n",
    "exit": 0
   },
   {
@@ -12501,6 +13615,18 @@
    "ub": "2"
   },
   {
+   "path": "ub/double_drop.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "8"
+  },
+  {
    "path": "ub/invalid_bool.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -12512,6 +13638,35 @@
    "flags": [],
    "expect": [],
    "ub": "6"
+  },
+  {
+   "path": "ub/misaligned_access.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "4"
+  },
+  {
+   "path": "ub/mutex_with_guard_value_no_race.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.3",
+    "6.7"
+   ],
+   "rows": [
+    "R1035",
+    "R1036"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
   },
   {
    "path": "ub/offset_outside_allocation.yn",
@@ -12538,6 +13693,77 @@
    "flags": [],
    "expect": [],
    "ub": "none"
+  },
+  {
+   "path": "ub/select_orders_tasks.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "15.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "ub/unbuffered_send_orders_tasks.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "9.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "ub/unbuffered_unordered_race.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "9.5"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "1"
+  },
+  {
+   "path": "ub/unsafe_fn_pre_holds.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.8",
+    "6.9"
+   ],
+   "rows": [
+    "R1014"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "ub/unsafe_fn_pre_violated.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.8",
+    "6.9"
+   ],
+   "rows": [
+    "R1014"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "16"
   },
   {
    "path": "semver/add_capability",
@@ -13366,6 +14592,60 @@
    }
   },
   {
+   "path": "pkg/e023_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "a package with an ffi module that its own root does not name in allow_ffi is E023",
+    "command": [
+     "check"
+    ],
+    "code": "E023",
+    "at": "ffi/ext.yn:1:1"
+   }
+  },
+  {
+   "path": "pkg/e023_resolve_ffi_unlisted",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "resolving a dependency whose .info lists an ffi module when the root's allow_ffi omits it is E023",
+    "command": [
+     "lock"
+    ],
+    "code": "E023",
+    "at": "yan.lock:0:0"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -13677,6 +14957,56 @@
     "note": "edition is next or a four-digit year of 2026 or later",
     "command": [
      "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "12"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "8"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "12",
+    "rows": "R1018",
+    "note": "the same package named in allow_ffi, with its library in the ceiling, checks clean",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/ffi_resolve_listed",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R",
+    "1",
+    "0",
+    "1",
+    "9"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1019",
+    "note": "the same dependency resolves when the root's allow_ffi names it",
+    "command": [
+     "lock"
     ]
    }
   },

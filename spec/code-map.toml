@@ -26,6 +26,7 @@ E019 = "crates/yan-cli/src/lock.rs"
 E020 = "crates/yan-cli/src/deps.rs"
 E021 = "crates/yan-cli/src/deps.rs"
 E022 = "crates/yan-cli/src/store.rs"
+E023 = "crates/yan-elab/src/lib.rs"
 E100 = "crates/yan-core/src/lexer.rs"
 E101 = "crates/yan-diag/src/lib.rs"
 E102 = "crates/yan-core/src/lexer.rs"
@@ -103,7 +104,7 @@ E319 = { unimplemented = "#825" }
 E320 = { unimplemented = "#825" }
 E321 = { unimplemented = "#825" }
 E322 = { unimplemented = "#825" }
-E323 = { unimplemented = "#825" }
+E323 = "crates/yan-elab/src/guard.rs"
 E325 = { unimplemented = "#825" }
 E326 = "crates/yan-cli/src/mcp.rs"
 E327 = { unimplemented = "#825" }
@@ -132,6 +133,7 @@ E421 = "crates/yan-check/src/lib.rs"
 E422 = "crates/yan-elab/src/lower/subscript.rs"
 E423 = "crates/yan-elab/src/lower/subscript.rs"
 E424 = "crates/yan-elab/src/consttime.rs"
+E425 = "crates/yan-elab/src/lower/method.rs"
 E501 = "crates/yan-diag/src/lib.rs"
 E502 = "crates/yan-elab/src/lower/matching.rs"
 E503 = "crates/yan-check/src/lib.rs"
@@ -192,6 +194,7 @@ E908 = "crates/yan-elab/src/decorators.rs"
 E909 = { unimplemented = "#825" }
 E910 = "crates/yan-elab/src/lower/calls.rs"
 E911 = "crates/yan-elab/src/lower/calls.rs"
+E912 = "crates/yan-elab/src/lower/rhs.rs"
 H701 = "crates/yan-cli/src/mcp.rs"
 P001 = "crates/yan-cli/src/patch.rs"
 P002 = "crates/yan-cli/src/patch.rs"

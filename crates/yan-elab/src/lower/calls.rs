@@ -304,6 +304,13 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if self.g.unsafe_fns.contains(path) && !self.in_unsafe {
+            self.err(
+                "E903",
+                at,
+                format!("`{path}` is an `unsafe fn`; call it inside `unsafe`"),
+            );
+        }
         let mut out: Vec<Arg> = sig
             .caps
             .iter()
@@ -484,6 +491,7 @@ impl Lower<'_, '_, '_> {
 
     pub(super) fn ctor(
         &mut self,
+        sum: Option<&str>,
         name: &str,
         ps: &[crate::P],
         args: &[j::Arg],
@@ -520,7 +528,7 @@ impl Lower<'_, '_, '_> {
                 });
             }
         }
-        let fields = ps
+        let fields: Vec<(String, Atom)> = ps
             .iter()
             .zip(vals)
             .map(|(p, a)| match a {
@@ -528,8 +536,15 @@ impl Lower<'_, '_, '_> {
                 Arg::Cap(..) => unreachable!("constructors take no capabilities"),
             })
             .collect();
+        if self.g.layout_bits.contains_key(name) {
+            return self.bits_ctor(name, fields.into_iter().map(|(_, a)| a).collect(), at);
+        }
+        let path = match sum {
+            Some(s) if self.g.shared_variants.contains(name) => vec![s.to_owned(), name.to_owned()],
+            _ => vec![name.to_owned()],
+        };
         Ok(Rhs::Ctor(y::Ctor::Named {
-            path: vec![name.to_owned()],
+            path,
             targs: Vec::new(),
             fields,
         }))
@@ -543,7 +558,8 @@ impl Lower<'_, '_, '_> {
             walk(body, &mut |x| {
                 if let j::ExprKind::Name(n) = &x.kind
                     && hit.is_none()
-                    && self.views.contains(n)
+                    && (self.views.contains(n)
+                        || matches!(self.ty_of_local(x), Some(Ty::Coll("MutexGuard", _))))
                     && !ps.contains(n)
                 {
                     hit = Some((n.clone(), x.span));
@@ -553,12 +569,23 @@ impl Lower<'_, '_, '_> {
                 self.err(
                     "E406",
                     sp,
-                    format!("this closure escapes but captures the view `{n}`"),
+                    format!("this closure escapes but captures the view or guard `{n}`"),
                 );
             }
             return;
         }
         if !self.returns_view {
+            return;
+        }
+        if let j::ExprKind::Name(x) = &e.kind
+            && self.borrows.contains_key(x)
+            && let Some(root) = self.local_root(x)
+        {
+            self.err(
+                "E414",
+                e.span,
+                format!("this value borrows from the local `{root}`, which ends with the function"),
+            );
             return;
         }
         let j::ExprKind::Call(f, args) = &e.kind else {
@@ -603,9 +630,9 @@ impl Lower<'_, '_, '_> {
         let j::ExprKind::Name(x) = &recv.kind else {
             return;
         };
-        if self.sig.params.iter().any(|q| q.name == *x) {
+        let Some(root) = self.local_root(x) else {
             return;
-        }
+        };
         let Some(module) = self.ty_of_local(recv).as_ref().and_then(Ty::module) else {
             return;
         };
@@ -620,7 +647,7 @@ impl Lower<'_, '_, '_> {
             self.err(
                 "E414",
                 e.span,
-                format!("this value borrows from the local `{x}`, which ends with the function"),
+                format!("this value borrows from the local `{root}`, which ends with the function"),
             );
         }
     }

@@ -69,7 +69,8 @@ fn canonical(id: &str) -> Option<String> {
     Some(tz.iana_name().unwrap_or(id).to_owned())
 }
 
-pub(crate) fn intern(id: &str) -> Option<i64> {
+/// The interned zone word of `id`, or `None` when it names no zone.
+pub fn intern(id: &str) -> Option<i64> {
     let id = canonical(id)?;
     let mut z = ZONES.lock().expect("zone table");
     let z = z.get_or_insert_with(HashMap::new);
@@ -90,7 +91,7 @@ pub unsafe extern "C" fn yan_rt_zone_lookup(id: *const String) -> i64 {
 }
 
 /// The ID text of an interned zone.
-pub(crate) fn zone_id(z: i64) -> String {
+pub fn zone_id(z: i64) -> String {
     // SAFETY: zones are leaked `String`s made by `intern`.
     unsafe { &*(z as *const String) }.clone()
 }
@@ -109,15 +110,23 @@ fn strings(l: *const List) -> Vec<String> {
         .collect()
 }
 
+/// A `fake_env` handler with `vars` sorted by name.
+pub fn fake(args: Vec<String>, mut vars: Vec<(String, String)>, zone: i64) -> u64 {
+    vars.sort();
+    with_envs(|e| {
+        e.push(Env::Fake { args, vars, zone });
+        e.len() as u64 - 1
+    })
+}
+
 /// `fake_env(args, vars, zone)`, whose arguments the caller still owns.
 ///
 /// # Safety
 /// `args` is a `list[str]` block and `vars` a `dict[str, str]` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_env_fake(args: *const List, vars: *const Map, zone: i64) -> u64 {
-    let args = strings(args);
     // SAFETY: the caller's contract; entries are two `Str` blocks.
-    let mut vars: Vec<(String, String)> = unsafe { &*vars }
+    let vars = unsafe { &*vars }
         .slots()
         .chunks(2)
         .map(|e| unsafe {
@@ -127,9 +136,13 @@ pub unsafe extern "C" fn yan_rt_env_fake(args: *const List, vars: *const Map, zo
             )
         })
         .collect();
-    vars.sort();
+    fake(strings(args), vars, zone)
+}
+
+/// `env.only(vars)` over handler `h`.
+pub fn only(h: u64, vars: Vec<String>) -> u64 {
     with_envs(|e| {
-        e.push(Env::Fake { args, vars, zone });
+        e.push(Env::Only { inner: h, vars });
         e.len() as u64 - 1
     })
 }
@@ -140,11 +153,7 @@ pub unsafe extern "C" fn yan_rt_env_fake(args: *const List, vars: *const Map, zo
 /// `vars` is a `list[str]` block the caller still owns.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_env_only(h: u64, vars: *const List) -> u64 {
-    let vars = strings(vars);
-    with_envs(|e| {
-        e.push(Env::Only { inner: h, vars });
-        e.len() as u64 - 1
-    })
+    only(h, strings(vars))
 }
 
 fn granted(e: &[Env], h: u64, name: &str) -> bool {
@@ -170,13 +179,30 @@ fn str_list(xs: impl Iterator<Item = String>) -> *mut List {
     l
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_env_args(h: u64) -> *mut List {
-    let args = with_envs(|e| match base(e, h) {
+/// The arguments of handler `h`.
+pub fn args(h: u64) -> Vec<String> {
+    with_envs(|e| match base(e, h) {
         Env::Fake { args, .. } => args.clone(),
         _ => std::env::args().skip(1).collect(),
-    });
-    str_list(args.into_iter())
+    })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_env_args(h: u64) -> *mut List {
+    str_list(args(h).into_iter())
+}
+
+/// The variable `name`, or `None` when it is unset or not granted.
+pub fn var(h: u64, name: &str) -> Option<String> {
+    with_envs(|e| {
+        if !granted(e, h, name) {
+            return None;
+        }
+        match base(e, h) {
+            Env::Fake { vars, .. } => vars.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone()),
+            _ => std::env::var(name).ok(),
+        }
+    })
 }
 
 /// The variable `name`, or null when it is unset or not granted.
@@ -186,22 +212,12 @@ pub extern "C" fn yan_rt_env_args(h: u64) -> *mut List {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_env_var(h: u64, name: *const String) -> *mut String {
     // SAFETY: the caller's contract.
-    let name = unsafe { &*name };
-    let v = with_envs(|e| {
-        if !granted(e, h, name) {
-            return None;
-        }
-        match base(e, h) {
-            Env::Fake { vars, .. } => vars.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone()),
-            _ => std::env::var(name).ok(),
-        }
-    });
-    v.map_or(std::ptr::null_mut(), |v| str_block(&v))
+    var(h, unsafe { &*name }).map_or(std::ptr::null_mut(), |v| str_block(&v))
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_env_vars(h: u64) -> *mut Map {
-    let all = with_envs(|e| {
+/// The granted variables of handler `h`, sorted by name.
+pub fn vars(h: u64) -> Vec<(String, String)> {
+    with_envs(|e| {
         let mut vs: Vec<(String, String)> = match base(e, h) {
             Env::Fake { vars, .. } => vars.clone(),
             _ => {
@@ -214,9 +230,13 @@ pub extern "C" fn yan_rt_env_vars(h: u64) -> *mut Map {
         };
         vs.retain(|(k, _)| granted(e, h, k));
         vs
-    });
+    })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_env_vars(h: u64) -> *mut Map {
     let m = Map::new("s", 1, 1);
-    for (k, v) in all {
+    for (k, v) in vars(h) {
         let key = [str_block(&k) as u64];
         // SAFETY: `m` is fresh and keys are distinct; the value slot is valid until the next push.
         unsafe { *yan_rt_map_push(m, key.as_ptr()) = str_block(&v) as u64 };
@@ -240,8 +260,8 @@ fn host_zone() -> i64 {
         .expect("UTC")
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_env_zone(h: u64) -> i64 {
+/// The local zone of handler `h`.
+pub fn zone(h: u64) -> i64 {
     match with_envs(|e| match base(e, h) {
         Env::Fake { zone, .. } => Some(*zone),
         _ => None,
@@ -249,6 +269,11 @@ pub extern "C" fn yan_rt_env_zone(h: u64) -> i64 {
         Some(z) => z,
         None => host_zone(),
     }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_env_zone(h: u64) -> i64 {
+    zone(h)
 }
 
 /// `proc.run` with no `fake_proc` handler would spawn on the host, which native code does not

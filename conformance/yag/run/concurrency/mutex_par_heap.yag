@@ -1,0 +1,37 @@
+# spec: 6.3
+# rows: R1022
+# note: critical sections of two par arms never overlap, so the counter is exact; a Mutex of a list owns its value and frees it
+# stdout:
+# 200
+# 2
+
+def add(m: Mutex[int], n: int) -> None uses nondet:
+    for _ in range(n):
+        g = m.lock()
+        g.set(g.get() + 1)
+
+def push(m: Mutex[list[int]], x: int) -> None uses nondet:
+    g = m.lock()
+    xs = g.replace([])
+    xs.append(x)
+    g.set(xs)
+
+def total(m: Mutex[int]) -> int:
+    g = m.lock()
+    return g.get()
+
+def count(m: Mutex[list[int]]) -> int:
+    g = m.lock()
+    return len(g.replace([]))
+
+def main() uses io, nondet:
+    m = Mutex[int](0)
+    par:
+        add(m, 100)
+        add(m, 100)
+    print(total(m))
+    l = Mutex[list[int]]([])
+    par:
+        push(l, 1)
+        push(l, 2)
+    print(count(l))

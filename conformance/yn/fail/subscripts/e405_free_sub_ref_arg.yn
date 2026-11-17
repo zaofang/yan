@@ -1,0 +1,14 @@
+-- spec: 4.4
+-- rows: R1006
+-- note: & on a free sub argument whose parameter is not var
+-- expect: E405 at 14:9
+
+type Grid = { a: int }
+
+sub at(self: Grid, k: int) -> int =
+  yield self.a
+
+main() =
+  var g = Grid(a: 1)
+  var n = 0
+  g.at(&n) = 2

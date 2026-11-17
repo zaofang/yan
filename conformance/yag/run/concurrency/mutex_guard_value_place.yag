@@ -1,0 +1,31 @@
+# spec: 6.3
+# rows: R1035
+# note: g.value is the protected value as a place: a record field is assigned, a list is appended to and sliced, an int takes an augmented assignment and passes inout
+# stdout:
+# 4
+# [1, 2, 3]
+# [2, 3]
+# 8
+
+class Point:
+    x: int
+    y: int
+
+def bump(var n: int) -> None:
+    n += 1
+
+pub def main() uses io:
+    p = Mutex[Point](Point(x=1, y=2))
+    g = p.lock()
+    g.value.x = 4
+    io.print(f"{g.value.x}")
+    xs = Mutex[list[int]]([1, 2])
+    h = xs.lock()
+    h.value.append(3)
+    io.print(f"{h.value}")
+    io.print(f"{h.value[1:]}")
+    n = Mutex[int](5)
+    k = n.lock()
+    k.value += 2
+    bump(&k.value)
+    io.print(f"{k.value}")

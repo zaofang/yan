@@ -49,3 +49,11 @@ pub fn float_repr(f: f64) -> String {
     let s = format!("{f}");
     if s.contains('.') { s } else { format!("{s}.0") }
 }
+
+/// CPython `format(f, ".{prec}f")`: the exact value rounded half to even at `prec` digits.
+pub fn float_fixed(f: f64, prec: usize) -> String {
+    if f.is_nan() {
+        return "nan".into();
+    }
+    format!("{f:.prec$}")
+}

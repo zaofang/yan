@@ -45,17 +45,63 @@ enum Reason {
 }
 
 /// A queued message: its thunk, closure code, captures block and arguments block.
-type Message = [u64; 4];
+pub type Message = [u64; 4];
+
+/// What an actor leaves to be disposed of: a dropped message, or a start closure's captures.
+pub enum Disposal {
+    /// The message's thunk, called with a null code, then its captures and arguments blocks.
+    Message(Message),
+    Env(u64),
+}
+
+thread_local! {
+    /// `Some` while the machine disposes, which runs thunks as MIR: disposals queue here.
+    static DEFERRED: RefCell<Option<Vec<Disposal>>> = const { RefCell::new(None) };
+}
+
+/// The machine disposes of what actors drop: [`take_disposals`] hands it out.
+pub fn defer_disposal() {
+    DEFERRED.with(|d| *d.borrow_mut() = Some(Vec::new()));
+}
+
+pub fn take_disposals() -> Vec<Disposal> {
+    DEFERRED.with(|d| {
+        d.borrow_mut()
+            .as_mut()
+            .map(std::mem::take)
+            .unwrap_or_default()
+    })
+}
+
+fn dispose(d: Disposal) {
+    let queued = DEFERRED.with(|q| match q.borrow_mut().as_mut() {
+        Some(q) => {
+            q.push(d);
+            None
+        }
+        None => Some(d),
+    });
+    match queued {
+        None => {}
+        Some(Disposal::Env(env)) => {
+            // SAFETY: the captures block of a start closure, owned by the actor.
+            unsafe { crate::abi::yan_rt_free_env(env as *mut u64) }
+        }
+        Some(Disposal::Message(m)) => {
+            // SAFETY: a message's captures and arguments blocks, from `yan_rt_alloc`, owned by
+            // the mailbox; its thunk, called with a null code, drops the arguments it holds.
+            unsafe {
+                let drop: extern "C" fn(u64, u64, u64) = std::mem::transmute(m[0] as usize);
+                drop(0, m[2], m[3]);
+                crate::abi::yan_rt_free_env(m[2] as *mut u64);
+                crate::abi::yan_rt_free_env(m[3] as *mut u64);
+            }
+        }
+    }
+}
 
 fn free(m: Message) {
-    // SAFETY: a message's captures and arguments blocks, from `yan_rt_alloc`, owned by the
-    // mailbox; its thunk, called with a null code, drops the arguments it holds.
-    unsafe {
-        let drop: extern "C" fn(u64, u64, u64) = std::mem::transmute(m[0] as usize);
-        drop(0, m[2], m[3]);
-        crate::abi::yan_rt_free_env(m[2] as *mut u64);
-        crate::abi::yan_rt_free_env(m[3] as *mut u64);
-    }
+    dispose(Disposal::Message(m));
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -116,9 +162,7 @@ impl Actor {
     }
 
     fn release_start(&mut self) {
-        let env = std::mem::take(&mut self.start[2]);
-        // SAFETY: the captures block of the start closure, which only a restart reads.
-        unsafe { crate::abi::yan_rt_free_env(env as *mut u64) };
+        dispose(Disposal::Env(std::mem::take(&mut self.start[2])));
     }
 }
 
@@ -172,9 +216,15 @@ pub(crate) struct State {
     restarts: VecDeque<usize>,
     /// The closure the last [`WORK`] asks for.
     work: [u64; 5],
+    /// The work slots hold a message, not a restart.
+    work_message: bool,
     start: Instant,
     /// `(actor, channel, node of the watcher)` of each monitor not yet delivered.
     pub(crate) monitors: Vec<(usize, usize, usize)>,
+    /// Set by a host whose `Str` blocks are not native strings: [`settle`] then queues a
+    /// `Crashed` delivery in `stopped` for the host to build the text and [`deliver_stopped`].
+    defer_text: bool,
+    stopped: Vec<(usize, String)>,
     /// The members of each named group, in join order (R414).
     pub(crate) groups: Vec<(String, Vec<u64>)>,
 }
@@ -194,7 +244,10 @@ impl Default for State {
             doomed: Vec::new(),
             restarts: VecDeque::new(),
             work: [0; 5],
+            work_message: false,
             monitors: Vec::new(),
+            defer_text: false,
+            stopped: Vec::new(),
             groups: Vec::new(),
             start: Instant::now(),
         }
@@ -239,6 +292,7 @@ fn queued(st: &mut State, id: usize) -> bool {
     };
     a.running = true;
     st.work = [thunk, code, env, args, id as u64];
+    st.work_message = true;
     true
 }
 
@@ -263,6 +317,17 @@ pub extern "C" fn yan_rt_actor_idle() -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_arg(i: u64) -> u64 {
     with(|st| st.work[i as usize])
+}
+
+/// The actor of the work slots and, for a message, its arguments block.
+pub fn work_target() -> (u64, Option<u64>) {
+    with(|st| {
+        if st.work_message {
+            (st.work[4], Some(st.work[3]))
+        } else {
+            (st.work[3], None)
+        }
+    })
 }
 
 /// The message in the work slots ran.
@@ -292,16 +357,27 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
     code: u64,
     env: u64,
 ) -> u64 {
-    if cap < 1 {
-        panic_with(
-            "precondition `capacity >= 1` of `spawn` failed",
-            crate::abi::panic_message(""),
-        );
-    }
     // SAFETY: the caller's contract.
-    let v = unsafe { std::slice::from_raw_parts(state, words as usize) }.to_vec();
+    let v = unsafe { std::slice::from_raw_parts(state, words as usize) };
+    spawn(v, cap, policy, restart, [thunk, code, env]).unwrap_or_else(|kind| {
+        panic_with(kind, crate::abi::panic_message(""));
+    })
+}
+
+/// [`yan_rt_actor_spawn`] over the state's slots; `Err` is the panic kind of a bad capacity.
+pub fn spawn(
+    state: &[u64],
+    cap: i64,
+    policy: u64,
+    restart: u64,
+    start: [u64; 3],
+) -> Result<u64, &'static str> {
+    if cap < 1 {
+        return Err("precondition `capacity >= 1` of `spawn` failed");
+    }
+    let (v, words) = (state.to_vec(), state.len() as u64);
     let me = sched::path();
-    with(|st| {
+    Ok(with(|st| {
         let id = st.actors.len();
         let sup = adopter(st);
         let home = current(st, &me);
@@ -330,10 +406,10 @@ pub unsafe extern "C" fn yan_rt_actor_spawn(
                 1 => Restart::Transient,
                 _ => Restart::Temporary,
             },
-            start: [thunk, code, env],
+            start,
         });
         id as u64
-    })
+    }))
 }
 
 fn unwait(st: &mut State, me: &[usize]) {
@@ -397,49 +473,52 @@ fn cycle(st: &State, me: &[usize], id: usize) -> Option<Vec<usize>> {
 /// `out` has room for the state's slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_take(id: u64, out: *mut u64, in_task: u64) -> u64 {
-    let me = sched::path();
-    if with(|st| st.faults.refused(&me)) {
-        return UNREACHABLE;
-    }
+    let (r, state) = take(id, in_task != 0);
     // SAFETY: the caller's contract.
-    let r = unsafe { take_state(id as usize, out, in_task != 0, true) };
-    if ![0, WORK, crate::chan::BLOCKED].contains(&r) {
-        with(|st| st.faults.forget(&me));
-    }
+    unsafe { std::ptr::copy_nonoverlapping(state.as_ptr(), out, state.len()) };
     r
 }
 
-/// # Safety
-/// `out` has room for the state's slots.
-unsafe fn take_state(id: usize, out: *mut u64, in_task: bool, barrier: bool) -> u64 {
+/// [`yan_rt_actor_take`]: the status, and the state's slots when it is 0.
+pub fn take(id: u64, in_task: bool) -> (u64, Vec<u64>) {
+    let me = sched::path();
+    if with(|st| st.faults.refused(&me)) {
+        return (UNREACHABLE, Vec::new());
+    }
+    let (r, state) = take_state(id as usize, in_task, true);
+    if ![0, WORK, crate::chan::BLOCKED].contains(&r) {
+        with(|st| st.faults.forget(&me));
+    }
+    (r, state)
+}
+
+fn take_state(id: usize, in_task: bool, barrier: bool) -> (u64, Vec<u64>) {
     let me = sched::path();
     let r = with(|st| {
         if let Some(k) = st.doomed.iter().position(|p| *p == me) {
             st.doomed.swap_remove(k);
             unwait(st, &me);
-            return Some(DEADLOCK);
+            return Some((DEADLOCK, Vec::new()));
         }
         if barrier && queued(st, id) {
-            return Some(WORK);
+            return Some((WORK, Vec::new()));
         }
         if st.actors[id].stopped.is_some() {
             unwait(st, &me);
-            return Some(STOPPED);
+            return Some((STOPPED, Vec::new()));
         }
         if let Some(s) = st.actors[id].state.take() {
-            // SAFETY: the caller's contract.
-            unsafe { std::ptr::copy_nonoverlapping(s.as_ptr(), out, s.len()) };
             st.actors[id].holder = Some(me.clone());
             unwait(st, &me);
             // The handler runs on its actor's node (D1.3).
             let home = st.actors[id].home;
             st.nodes.push((me.clone(), home));
-            return Some(0);
+            return Some((0, s));
         }
         match cycle(st, &me, id) {
             Some(y) if y == me => {
                 unwait(st, &me);
-                return Some(DEADLOCK);
+                return Some((DEADLOCK, Vec::new()));
             }
             Some(y) if !st.doomed.contains(&y) => {
                 st.doomed.push(y);
@@ -460,7 +539,7 @@ unsafe fn take_state(id: usize, out: *mut u64, in_task: bool, barrier: bool) -> 
             }
         });
     }
-    st
+    (st, Vec::new())
 }
 
 /// A `@reentrant` handler lends the state slots at `state` back to actor `id` at a suspension
@@ -471,7 +550,27 @@ unsafe fn take_state(id: usize, out: *mut u64, in_task: bool, barrier: bool) -> 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_lend(id: u64, state: *const u64) -> u64 {
     // SAFETY: the caller's contract.
-    unsafe { yan_rt_actor_put(id, state) };
+    lend(id, unsafe { slots(id, state) })
+}
+
+/// The state's slots at `state`, as actor `id` has them.
+///
+/// # Safety
+/// `state` holds the actor's state slots.
+unsafe fn slots<'a>(id: u64, state: *const u64) -> &'a [u64] {
+    let n = with(|st| st.actors[id as usize].words);
+    // SAFETY: the caller's contract.
+    unsafe { std::slice::from_raw_parts(state, n) }
+}
+
+/// The slot count of actor `id`'s state.
+pub fn words(id: u64) -> usize {
+    with(|st| st.actors[id as usize].words)
+}
+
+/// [`yan_rt_actor_lend`] over the state's slots.
+pub fn lend(id: u64, state: &[u64]) -> u64 {
+    put(id, state);
     with(|st| {
         let a = &mut st.actors[id as usize];
         a.lent.push((sched::path(), false));
@@ -492,13 +591,20 @@ pub unsafe extern "C" fn yan_rt_actor_retake(
     out: *mut u64,
     in_task: u64,
 ) -> u64 {
+    let (r, state) = retake(id, since, in_task != 0);
+    // SAFETY: the caller's contract.
+    unsafe { std::ptr::copy_nonoverlapping(state.as_ptr(), out, state.len()) };
+    r
+}
+
+/// [`yan_rt_actor_retake`]: the status, and the state's slots when it is 0.
+pub fn retake(id: u64, since: u64, in_task: bool) -> (u64, Vec<u64>) {
     let id = id as usize;
     let restarted = with(|st| st.actors[id].starts != since && st.actors[id].stopped.is_none());
-    let r = if restarted {
-        STOPPED
+    let (r, state) = if restarted {
+        (STOPPED, Vec::new())
     } else {
-        // SAFETY: the caller's contract.
-        unsafe { take_state(id, out, in_task != 0, false) }
+        take_state(id, in_task, false)
     };
     if matches!(r, 0 | STOPPED | DEADLOCK | TIMEOUT) {
         let me = sched::path();
@@ -515,7 +621,7 @@ pub unsafe extern "C" fn yan_rt_actor_retake(
             }
         });
     }
-    r
+    (r, state)
 }
 
 /// A handler call ends: the state slots at `state` go back to actor `id` if this task holds it.
@@ -526,11 +632,16 @@ pub unsafe extern "C" fn yan_rt_actor_retake(
 /// `state` holds the actor's state slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_give(id: u64, state: *const u64) -> u64 {
+    // SAFETY: the caller's contract.
+    give(id, unsafe { slots(id, state) })
+}
+
+/// [`yan_rt_actor_give`] over the state's slots.
+pub fn give(id: u64, state: &[u64]) -> u64 {
     let me = sched::path();
     let held = with(|st| st.actors[id as usize].holder.as_ref() == Some(&me));
     if held {
-        // SAFETY: the caller's contract.
-        unsafe { yan_rt_actor_put(id, state) };
+        put(id, state);
         return 1;
     }
     with(|st| {
@@ -549,13 +660,17 @@ pub unsafe extern "C" fn yan_rt_actor_give(id: u64, state: *const u64) -> u64 {
 /// `state` holds the actor's state slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_put(id: u64, state: *const u64) {
+    // SAFETY: the caller's contract.
+    put(id, unsafe { slots(id, state) });
+}
+
+/// [`yan_rt_actor_put`] over the state's slots.
+pub fn put(id: u64, state: &[u64]) {
     let me = sched::path();
     with(|st| {
         leave(st, &me);
         let a = &mut st.actors[id as usize];
-        // SAFETY: the caller's contract.
-        let v = unsafe { std::slice::from_raw_parts(state, a.words) }.to_vec();
-        a.state = Some(v);
+        a.state = Some(state.to_vec());
         a.holder = None;
     });
     sched::progressed();
@@ -633,19 +748,25 @@ fn now(st: &State) -> i128 {
 /// `error` is a `Str` block.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_crash(id: u64, error: *const String) {
-    let id = id as usize;
     // SAFETY: the caller's contract.
-    let error = unsafe { &*error }.clone();
+    if let Err(msg) = crashed(id, unsafe { &*error }.clone()) {
+        panic_with("supervisor", &msg);
+    }
+}
+
+/// [`yan_rt_actor_crash`] with the shown failure; `Err` is the message of the `supervisor` panic.
+pub fn crashed(id: u64, error: String) -> Result<(), String> {
+    let id = id as usize;
     let over = with(|st| {
         let over = crash(st, id, error);
         settle(st);
         over
     });
-    if let Some((n, p)) = over {
-        panic_with(
-            "supervisor",
-            &format!("a supervisor exceeded its restart intensity of {n} per {p} ns"),
-        );
+    match over {
+        Some((n, p)) => Err(format!(
+            "a supervisor exceeded its restart intensity of {n} per {p} ns"
+        )),
+        None => Ok(()),
     }
 }
 
@@ -699,6 +820,7 @@ pub extern "C" fn yan_rt_actor_restart_next() -> u64 {
         Some(c) => {
             let [thunk, code, env] = st.actors[c].start;
             st.work = [thunk, code, env, c as u64, 0];
+            st.work_message = false;
             1
         }
         None => 0,
@@ -711,13 +833,17 @@ pub extern "C" fn yan_rt_actor_restart_next() -> u64 {
 /// `state` holds the actor's state slots.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_actor_restarted(id: u64, state: *const u64) {
+    // SAFETY: the caller's contract.
+    restarted(id, unsafe { slots(id, state) });
+}
+
+/// [`yan_rt_actor_restarted`] over the state's slots.
+pub fn restarted(id: u64, state: &[u64]) {
     with(|st| {
         let a = &mut st.actors[id as usize];
-        // SAFETY: the caller's contract.
-        let v = unsafe { std::slice::from_raw_parts(state, a.words) }.to_vec();
         a.ended = a.stopped.take();
         a.starts += 1;
-        a.state = Some(v);
+        a.state = Some(state.to_vec());
     });
 }
 
@@ -736,6 +862,10 @@ pub(crate) fn settle(st: &mut State) {
         let a = &st.actors[id];
         let word = match &a.stopped {
             Some(Reason::Shutdown) => Some([1, 0]),
+            Some(Reason::Crashed(e)) if st.defer_text => {
+                st.stopped.push((ch, e.clone()));
+                continue;
+            }
             Some(Reason::Crashed(e)) => Some([2, crate::abi::str_block(e) as u64]),
             None if owner != a.home && st.faults.cut(owner, a.home, t) => Some([3, 0]),
             None => None,
@@ -766,11 +896,15 @@ pub extern "C" fn yan_rt_actor_reason(id: u64) -> u64 {
 /// The shown failure that crashed actor `id`, as a new string.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_actor_reason_text(id: u64) -> *mut String {
-    let s = with(|st| match why(&st.actors[id as usize]) {
+    crate::abi::leak(reason_text(id))
+}
+
+/// The shown failure that crashed actor `id`.
+pub fn reason_text(id: u64) -> String {
+    with(|st| match why(&st.actors[id as usize]) {
         Some(Reason::Crashed(s)) => s.clone(),
         _ => String::new(),
-    });
-    crate::abi::leak(s)
+    })
 }
 
 /// `with supervisor(spec):` opens a scope with strategy `strategy` (0 one for one, 1 one for
@@ -813,6 +947,27 @@ pub extern "C" fn yan_rt_sup_end_to(depth: u64) {
         }
         settle(st);
     });
+}
+
+/// From now on a `Crashed` delivery waits for [`take_stopped`] and [`deliver_stopped`], so the
+/// host builds the error `Str`.
+pub fn defer_stopped_text() {
+    with(|st| st.defer_text = true);
+}
+
+/// The `(channel, error)` of each deferred `Crashed` delivery, in order.
+pub fn take_stopped() -> Vec<(usize, String)> {
+    with(|st| std::mem::take(&mut st.stopped))
+}
+
+/// Completes a delivery from [`take_stopped`]: `text` is the host's `Str` of the error.
+pub fn deliver_stopped(ch: usize, text: u64) {
+    // SAFETY: `ch` is the live channel of a `Stopped`'s two slots, whose sender end is ours.
+    unsafe {
+        crate::chan::push(ch, &[2, text]);
+        crate::chan::yan_rt_chan_drop(ch as *mut crate::chan::Chan);
+    }
+    sched::progressed();
 }
 
 /// The program ends: the root supervisor's children stop, the last started first (R957).

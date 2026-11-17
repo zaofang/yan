@@ -1,0 +1,4 @@
+spec = "12"
+rows = "R1018"
+note = "the same package named in allow_ffi, with its library in the ceiling, checks clean"
+command = ["check"]

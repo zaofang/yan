@@ -50,7 +50,7 @@ A `@capability` trait is exclusive unless marked `@splittable` or `@shared`. `no
 
 ### 7.2 Elaboration and signatures
 
-`uses a, b` on a function becomes parameters `cap a: A, cap b: B` in Yan. Each call passes the capabilities its callee needs from the caller's scope. A capability MUST NOT be stored in data, returned, or captured by an escaping closure (E306). Calling a function whose capabilities are not in scope is E301, and its fix inserts the missing `uses` entry.
+`uses a, b` on a function becomes parameters `cap a: A, cap b: B` in Yan. Each call passes the capabilities its callee needs from the caller's scope. A capability MUST NOT be stored in data, returned, or captured by an escaping closure (E306). Calling a function whose capabilities are not in scope is E301, and its fix inserts the missing `uses` entry. A closure argument that captures a capability its callee does not declare is E301 too, so `uses none` holds for every call (R1025).
 
 In Yan Agent every function lists its capabilities. In Yan only `pub` functions must; others are inferred within their strongly connected component and shown as inlay hints. main is exempt in Yan (R430): it need not be pub, its uses is inferred, and the inferred set must fit the package ceiling (7.4, E314). `alloc` is never written in `uses`. `uses none` forbids every capability, including `alloc`; on an extern item it is a trusted purity claim (12.2).
 
@@ -68,7 +68,7 @@ In Yan Agent every function lists its capabilities. In Yan only `pub` functions 
 
 ### 7.4 Platforms and ceilings
 
-`platform` in `package.yag` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability.
+`platform` in `package.yag` names a capability bundle with default handlers (`cli`, `service`, `job`, `wasm`, `freestanding`). A package's `capabilities` list is a ceiling enforced transitively (section 19.2): using a capability the package did not declare is E314, including through dependencies. Ceilings may carry `net.only` patterns and must list every foreign-library capability, including every library declared anywhere in the package's normal-dependency closure, whether or not its code calls into it (R1031); confined capabilities stay transitive by use, through `uses` in signatures.
 
 **Child processes (RFC 0065 D5, R998).** `proc.run` and `proc.spawn` confine each child to the caller's `fs` and `net` grants before exec: a Landlock ruleset on Linux 5.13 and later, Capsicum on FreeBSD. On Linux a child is held as a pidfd. Where the OS cannot enforce a ceiling narrower than the process's own, the call fails with `ProcReason.Unconfined()` unless the `Command` carries `.unconfined()`; `yan audit` lists every `.unconfined()` site, and the capability manifest records it as `proc.unconfined`.
 

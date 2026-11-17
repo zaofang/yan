@@ -1,0 +1,15 @@
+-- spec: 6.3, 15
+-- rows: R1035, R1036
+-- note: a Yan with binds the guard for the block, g.value is the protected value as a place, and the mutex locks again after the block
+-- stdout:
+-- 3
+-- 4
+
+main() uses io =
+  let m = Mutex[int](1)
+  with g = m.lock()
+    g.value += 2
+    io.print("\(g.value)")
+  with h = m.lock()
+    h.value += 1
+    io.print("\(h.value)")

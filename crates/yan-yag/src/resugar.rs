@@ -62,7 +62,7 @@ struct Walk<'a>(&'a mut dyn FnMut(&mut Name));
 impl Walk<'_> {
     fn item(&mut self, it: &mut Item) -> R {
         match &mut it.kind {
-            ItemKind::Func(f) | ItemKind::Lemma(f) => self.func(f),
+            ItemKind::Func(f) | ItemKind::Lemma(f) | ItemKind::Sub(f) => self.func(f),
             ItemKind::Verbatim(_) => Ok(()),
             ItemKind::Record(r) => r.fields.iter_mut().try_for_each(|f| self.field(f)),
             ItemKind::Type(t) => {
