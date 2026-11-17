@@ -1,5 +1,5 @@
 # spec: 6.4
-# rows: R1060
+# rows: R1066
 # note: an Rc declared outside the par is checked by type in each branch, even when no branch names the same binding twice
 # expect: E417 at 12:18
 # expect: E417 at 13:18

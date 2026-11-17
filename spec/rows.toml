@@ -1992,6 +1992,6 @@ topic = "under `--locked` a `[[package]]` record needs a `digest`, a `path` or a
 sections = "19.1"
 
 [[entry]]
-rows = "R1060"
+rows = "R1066"
 topic = "a binding declared outside a `par` must be Sync in every branch that borrows it with `let` and Send in every branch that moves or `inout`-borrows it, by type and even in a single branch, E417 or E415 (#1502 item 20, owner decision 2026-11-17)"
 sections = "6.4"
