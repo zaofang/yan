@@ -15942,6 +15942,29 @@
    }
   },
   {
+   "path": "pkg/e200_use_unknown_module",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1066"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1066",
+    "note": "a use of a module the package does not have leaves the module unresolved",
+    "command": [
+     "check"
+    ],
+    "code": "E200",
+    "at": "src/report.yn:1:1"
+   }
+  },
+  {
    "path": "pkg/e314_dep_lib_missing_from_intermediate_ceiling",
    "kind": "pkg",
    "milestone": "M1",
@@ -16473,6 +16496,81 @@
    }
   },
   {
+   "path": "pkg/yan_new_agent_tool",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_cli",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yan_new_library",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1",
+    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
+    "command": [
+     "test"
+    ]
+   }
+  },
+  {
+   "path": "pkg/yn_use_module_aliases",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "15.2"
+   ],
+   "rows": [
+    "R1066"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.2",
+    "rows": "R1066",
+    "note": "a Yan module binds module aliases with use, absolute, renamed and sibling; qualified expressions, types and patterns reach another module in either surface",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
    "path": "fmt/blank_lines",
    "kind": "fmt",
    "milestone": "M1",
@@ -16802,60 +16900,6 @@
      "--list"
     ],
     "code": "E201"
-   }
-  },
-  {
-   "path": "pkg/yan_new_agent_tool",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template agent-tool @conf/new_agent_tool` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_cli",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template cli @conf/new_cli` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
-   }
-  },
-  {
-   "path": "pkg/yan_new_library",
-   "kind": "pkg",
-   "milestone": "M1",
-   "spec": [
-    "18.1"
-   ],
-   "rows": [],
-   "flags": [],
-   "expect": [],
-   "expect_toml": {
-    "spec": "18.1",
-    "note": "`yan new --template library @conf/new_library` output checks and passes its tests (#899)",
-    "command": [
-     "test"
-    ]
    }
   }
  ]

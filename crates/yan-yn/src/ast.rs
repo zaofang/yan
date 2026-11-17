@@ -703,7 +703,8 @@ pub enum PatKind {
     },
     Bind(Name),
     Ctor {
-        name: Name,
+        /// Module names, then the constructor: `schema.Grocery` is `["schema", "Grocery"]`.
+        path: Vec<Name>,
         /// None for a bare name like `None` or `Red`.
         args: Option<Vec<PPat>>,
     },

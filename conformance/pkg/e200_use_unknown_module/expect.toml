@@ -1,0 +1,6 @@
+spec = "15.2"
+rows = "R1066"
+note = "a use of a module the package does not have leaves the module unresolved"
+command = ["check"]
+code = "E200"
+at = "src/report.yn:1:1"
