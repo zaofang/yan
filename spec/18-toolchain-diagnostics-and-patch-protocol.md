@@ -6,7 +6,8 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 
 | Command | Purpose | Milestone |
 | --- | --- | --- |
-| `yan new <name>` | create a package with `package.yag`, `src/`, `tests/` | M1 |
+| `yan new <name>` | create a package with `package.yag`, `src/`, `tests/`; `--member` creates it as a member of the workspace in the current directory (R1080) | M1 |
+| `yan mv <from> <to>` | move a module and rewrite every `use` and qualified name that reaches it (R1081) | M1 |
 | `yan check [--strict] [--level check\|release\|prove] [--stage0-profile]` | parse, elaborate, check and lint; no code generation | M1 |
 | `yan run [file] [--record f.trace]` | run on the interpreter (M1) or native code (M1b+; Cranelift in stage 0, LLVM in the shipped compiler, R968); a single `.yag` file with a `package` constant runs as a script | M1 |
 | `yan test [--filter p] [--no-cache] [--update] [--fuzz name] [--mutate] [--ub] [--explore[=N]] [--math] [--coverage] [--bench]` | examples, `test_` functions, property tests, snapshots, fuzzing, mutation testing, UB and schedule checking; `--coverage` gives line, branch and contract-clause coverage as LCOV, and `--bench` runs `bench_` functions (R449) | M1 |

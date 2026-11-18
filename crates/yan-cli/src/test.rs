@@ -140,17 +140,39 @@ fn repro(id: &str) -> String {
 }
 
 /// The modules of the package at `root`: every `.yag` and `.yn` file under `src/`, or under
-/// `root` when it has no `src/`, keyed by module path.
+/// `root` when it has no `src/`, keyed by module path, then the black-box roots `tests/` and
+/// `examples/` keyed with the root's name leading (RFC 0084 D8).
 pub fn modules(root: &Path) -> Result<BTreeMap<String, PathBuf>, String> {
-    let base = if root.join("src").is_dir() {
+    let has_src = root.join("src").is_dir();
+    let base = if has_src {
         root.join("src")
     } else {
         root.to_path_buf()
     };
     let mut out = BTreeMap::new();
-    let mut dirs = vec![base.clone()];
+    collect(root, &base, "", &mut out)?;
+    if has_src {
+        for black_box in ["tests", "examples"] {
+            collect(root, &root.join(black_box), black_box, &mut out)?;
+        }
+    }
+    Ok(out)
+}
+
+fn collect(
+    root: &Path,
+    base: &Path,
+    lead: &str,
+    out: &mut BTreeMap<String, PathBuf>,
+) -> Result<(), String> {
+    let mut dirs = vec![base.to_path_buf()];
     while let Some(d) = dirs.pop() {
-        let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
+        let Ok(entries) = std::fs::read_dir(&d) else {
+            if d == base && !lead.is_empty() {
+                return Ok(());
+            }
+            return Err(format!("{}: cannot read", d.display()));
+        };
         for e in entries {
             let p = e.map_err(|e| e.to_string())?.path();
             if p.is_dir() {
@@ -166,17 +188,21 @@ pub fn modules(root: &Path) -> Result<BTreeMap<String, PathBuf>, String> {
                 continue;
             }
             let rel = p
-                .strip_prefix(&base)
+                .strip_prefix(base)
                 .expect("under the base")
                 .with_extension("");
-            let name: Vec<String> = rel
-                .components()
-                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            let name: Vec<String> = (!lead.is_empty())
+                .then(|| lead.to_owned())
+                .into_iter()
+                .chain(
+                    rel.components()
+                        .map(|c| c.as_os_str().to_string_lossy().into_owned()),
+                )
                 .collect();
             out.insert(name.join("."), p);
         }
     }
-    Ok(out)
+    Ok(())
 }
 
 /// A locked test: its path, hash and the line of `tests.lock` that names it.

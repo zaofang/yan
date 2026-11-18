@@ -2080,3 +2080,18 @@ sections = "19.1, 25"
 rows = "R1078"
 topic = "`yan publish --check` at a workspace root checks every member in dependency order and reports a member's refusal on its `package.yag` (RFC 0084 D7, slice 4)"
 sections = "19.1"
+
+[[entry]]
+rows = "R1079"
+topic = "a `tests/`, `examples/` or `benches/` module sees its package only through its local name and `pub` items; `tests/` runs under `yan test`, `examples/` is built, and `examples/` reaches no `dev_dependencies` (RFC 0084 D8, slice 5)"
+sections = "19.1"
+
+[[entry]]
+rows = "R1080"
+topic = "`yan new --member <name>` writes a member's `package.yag` and `src/lib.yag` and lists it in the root's `members` (RFC 0084 D7, D11, slice 5)"
+sections = "18.1, 19.1"
+
+[[entry]]
+rows = "R1081"
+topic = "`yan mv <from> <to>` moves a `src/` module and rewrites every `use` and qualified name that reaches it, refusing an invalid or taken target (RFC 0084 D11, slice 5)"
+sections = "18.1, 19.1"
