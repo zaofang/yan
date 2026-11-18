@@ -15,10 +15,11 @@ mod mem;
 mod ops;
 mod race;
 mod rt;
+mod tb;
 
 use mem::{Byte, Memory};
 use race::{Kind, Race};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use yan_mir::{
     ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Loc, Local, MemOrder, Operand, Program, Term,
@@ -84,6 +85,8 @@ struct Frame {
     moved: HashMap<Local, (BlockId, usize)>,
     /// The block and instruction being run.
     at: (BlockId, usize),
+    /// Protected tags this frame retagged, released when it leaves (6.6).
+    protected: Vec<(usize, tb::Tag)>,
 }
 
 pub struct Machine<'p> {
@@ -106,6 +109,13 @@ pub struct Machine<'p> {
     race: RefCell<Race>,
     /// Where each moved-from word of memory was moved, by address (under `--ub`).
     move_sites: HashMap<u64, String>,
+    /// Tree Borrows trees by allocation, made at the first retag or tagged access (item 5).
+    trees: RefCell<HashMap<usize, tb::Tree>>,
+    /// Words the next loads or stores perform through an `Inst::Access` tag, not the root.
+    via: Cell<u32>,
+    /// Per calling frame, the tags in its locals and arguments; roots of the tag GC.
+    held: Vec<Vec<u64>>,
+    gc_at: usize,
 }
 
 /// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
@@ -127,6 +137,10 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         fs_reason: String::new(),
         race: RefCell::new(Race::new()),
         move_sites: HashMap::new(),
+        trees: RefCell::new(HashMap::new()),
+        via: Cell::new(0),
+        held: Vec::new(),
+        gc_at: 256,
     };
     yan_rt::actor::defer_disposal();
     yan_rt::actor::defer_stopped_text();
@@ -247,6 +261,7 @@ impl Machine<'_> {
         if race {
             self.raced(addr, false)?;
         }
+        self.tb_root(addr, false)?;
         if self.ub && bytes.contains(&Byte::Moved) {
             let site = self.move_sites.get(&addr).map_or("", String::as_str);
             return Err(Stop::Ub(
@@ -279,6 +294,7 @@ impl Machine<'_> {
         if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
+        self.tb_root(addr, true)?;
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
         self.mem
             .write(addr, &bytes)
@@ -353,6 +369,7 @@ impl Machine<'_> {
             regions: self.race.borrow().depth(),
             moved: HashMap::new(),
             at: (0, 0),
+            protected: Vec::new(),
         };
         for group in &f.pinned {
             let base = self.mem.alloc(8 * group.len());
@@ -366,11 +383,104 @@ impl Machine<'_> {
         Ok(fr)
     }
 
+    /// A word access through no tag is an access through the allocation's root: foreign to every
+    /// retagged tag. The accesses of an `Inst::Access` were judged through its tag instead.
+    fn tb_root(&self, addr: u64, write: bool) -> Result<(), Stop> {
+        if !self.ub {
+            return Ok(());
+        }
+        let left = self.via.get();
+        if left > 0 {
+            self.via.set(left - 1);
+            return Ok(());
+        }
+        let mut trees = self.trees.borrow_mut();
+        let Some(id) = self.mem.find(addr) else {
+            return Ok(());
+        };
+        match trees.get_mut(&id) {
+            Some(t) => {
+                let w = ((addr - self.mem.base(id)) / 8) as usize;
+                t.access(tb::ROOT, w, w + 1, write)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))
+            }
+            None => Ok(()),
+        }
+    }
+
+    /// The allocation and tag a pointer at `addr` with provenance word `prov` derives from.
+    fn tb_of(&self, addr: u64, prov: u64) -> Result<(usize, tb::Tag), Stop> {
+        if let Some(t) = tb::unpack(prov) {
+            return Ok(t);
+        }
+        match self.mem.find(addr) {
+            Some(id) => Ok((id, tb::ROOT)),
+            None => Err(self.bad_access("retag", addr)),
+        }
+    }
+
+    fn tb_tree(&self, id: usize) -> std::cell::RefMut<'_, tb::Tree> {
+        std::cell::RefMut::map(self.trees.borrow_mut(), |m| {
+            m.entry(id)
+                .or_insert_with(|| tb::Tree::new(self.mem.size(id).div_ceil(8)))
+        })
+    }
+
+    fn tb_words(&self, id: usize, addr: u64, bytes: u32) -> (usize, usize) {
+        let lo = ((addr - self.mem.base(id)) / 8) as usize;
+        (lo, lo + (bytes as usize).div_ceil(8))
+    }
+
+    /// Words of `vals` that name a live tag.
+    fn tags_in(&self, vals: &[Val]) -> Vec<u64> {
+        let trees = self.trees.borrow();
+        vals.iter()
+            .map(|v| v.int() as u64)
+            .filter(|w| {
+                tb::unpack(*w).is_some_and(|(a, t)| trees.get(&a).is_some_and(|tr| tr.has(t)))
+            })
+            .collect()
+    }
+
+    fn tb_collect(&mut self, out: &[u64]) {
+        let size: usize = self.trees.borrow().values().map(tb::Tree::len).sum();
+        if size < self.gc_at {
+            return;
+        }
+        let mut live: std::collections::HashSet<u64> =
+            self.held.iter().flatten().copied().collect();
+        live.extend(out);
+        live.extend(self.mem.words());
+        for (id, t) in self.trees.borrow_mut().iter_mut() {
+            t.collect(|tag| live.contains(&tb::pack(*id, tag)));
+        }
+        let left: usize = self.trees.borrow().values().map(tb::Tree::len).sum();
+        self.gc_at = self.gc_at.max(2 * left);
+    }
+
     fn release(&mut self, fr: &Frame) {
+        for (id, tag) in &fr.protected {
+            if let Some(t) = self.trees.borrow_mut().get_mut(id) {
+                t.unprotect(*tag);
+            }
+        }
         self.race.borrow_mut().unwind(fr.regions);
         for (base, _) in fr.pinned.values() {
             self.mem.free(*base);
         }
+    }
+
+    /// A call from `fr`, whose tags stay live for the tag GC while the callee runs.
+    fn call_holding(&mut self, fr: &Frame, func: FuncId, args: Vec<Val>) -> Result<Vec<Val>, Stop> {
+        if !self.ub || self.trees.borrow().is_empty() {
+            return self.call(func, args);
+        }
+        let mut h = self.tags_in(&fr.locals);
+        h.extend(self.tags_in(&args));
+        self.held.push(h);
+        let out = self.call(func, args);
+        self.held.pop();
+        out
     }
 
     pub fn call(&mut self, func: FuncId, args: Vec<Val>) -> Result<Vec<Val>, Stop> {
@@ -405,6 +515,10 @@ impl Machine<'_> {
                     Term::Return(os) => {
                         let out = self.evals(&fr, os, f)?;
                         self.release(&fr);
+                        if self.ub {
+                            let o = self.tags_in(&out);
+                            self.tb_collect(&o);
+                        }
                         return Ok(out);
                     }
                     Term::TailCall { func: g, args: a } => {
@@ -453,7 +567,7 @@ impl Machine<'_> {
             }
             Inst::Call { dst, func, args } => {
                 let a = self.evals(fr, args, f)?;
-                let out = self.call(*func, a)?;
+                let out = self.call_holding(fr, *func, a)?;
                 self.bind(fr, f, dst, out)
             }
             Inst::CallIndirect {
@@ -466,7 +580,7 @@ impl Machine<'_> {
                         "call of {c:#x}, which is not a function"
                     )));
                 };
-                let out = self.call(id, a)?;
+                let out = self.call_holding(fr, id, a)?;
                 self.bind(fr, f, dst, out)
             }
             Inst::Rt { dst, f: rt, args } => {
@@ -554,6 +668,49 @@ impl Machine<'_> {
                 Ok(())
             }
             Inst::Move { .. } => Ok(()),
+            Inst::Retag {
+                ptr,
+                prov,
+                bytes,
+                kind,
+                protected,
+            } if self.ub => {
+                let addr = self.eval(fr, ptr, f)?.addr();
+                let word = fr.locals[*prov as usize].int() as u64;
+                let here = self.tags_in(&fr.locals);
+                self.tb_collect(&here);
+                let (id, parent) = self.tb_of(addr, word)?;
+                let (lo, hi) = self.tb_words(id, addr, *bytes);
+                let (b, i) = fr.at;
+                let site = format!("`{}` block {b}, instruction {i}", f.name);
+                let tag = self
+                    .tb_tree(id)
+                    .retag(parent, lo, hi, *kind, *protected, site)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))?;
+                if *protected {
+                    fr.protected.push((id, tag));
+                }
+                let w = tb::pack(id, tag);
+                fr.locals[*prov as usize] = Val::I(i128::from(w));
+                Ok(())
+            }
+            Inst::Access {
+                ptr,
+                prov,
+                bytes,
+                write,
+            } if self.ub => {
+                let addr = self.eval(fr, ptr, f)?.addr();
+                let word = self.eval(fr, prov, f)?.int() as u64;
+                let (id, tag) = self.tb_of(addr, word)?;
+                let (lo, hi) = self.tb_words(id, addr, *bytes);
+                self.tb_tree(id)
+                    .access(tag, lo, hi, *write)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))?;
+                self.via.set((hi - lo) as u32);
+                Ok(())
+            }
+            Inst::Retag { .. } | Inst::Access { .. } => Ok(()),
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();
                 match e {

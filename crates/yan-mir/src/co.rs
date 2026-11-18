@@ -562,6 +562,11 @@ pub(crate) fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
             Vec::new()
         }
         Inst::Arm(_) | Inst::Fence { .. } => Vec::new(),
+        Inst::Retag { ptr, prov, .. } => {
+            *prov = m(*prov);
+            vec![ptr]
+        }
+        Inst::Access { ptr, prov, .. } => vec![ptr, prov],
         Inst::Move { places } => places
             .iter_mut()
             .filter_map(|p| match p {
@@ -623,6 +628,10 @@ pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             dst.iter().copied().collect(),
         ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
+        Inst::Retag { ptr, prov, .. } => (l(ptr).into_iter().chain([*prov]).collect(), vec![*prov]),
+        Inst::Access { ptr, prov, .. } => {
+            ([ptr, prov].into_iter().filter_map(l).collect(), Vec::new())
+        }
         Inst::Arm(_) | Inst::Fence { .. } | Inst::Move { .. } => (Vec::new(), Vec::new()),
     }
 }
