@@ -1,0 +1,221 @@
+{
+ "final": "def expected_accepted(cap: int, n: int) -> int:\n    \"\"\"Number of sends a channel of capacity cap accepts when n elements are offered without blocking.\"\"\"\n    pre cap >= 0\n    pre n >= 0\n    post out >= 0 and out <= n\n    post out <= cap\n    ex expected_accepted(2, 3) == 2\n    ex expected_accepted(5, 2) == 2\n    ex expected_accepted(0, 1) == 0\n    ex expected_accepted(3, 0) == 0\n    if cap < n:\n        return cap\n    return n\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel of ints with capacity cap, try to send each element of xs without blocking, and return how many sends were accepted before the channel was full.\"\"\"\n    pre cap >= 0\n    post out >= 0 and out <= xs.len()\n    post out <= cap\n    ch = Chan.new(cap)\n    count = 0\n    for x in xs:\n        if ch.try_send(x):\n            count += 1\n        else:\n            break\n    return count\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpphqr09a5/work/task.yag:6:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpphqr09a5/work/task.yag:7:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpphqr09a5/work/task.yag:8:8 accepted: `assert accepted(0, [1])` capability `nondet` is not in scope | in `ex` of `accepted`\n#4 E301 /tmp/tmpphqr09a5/work/task.yag:9:8 accepted: `assert accepted(3, [])` capability `nondet` is not in scope | in `ex` of `accepted`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 515,
+    "reasoning": 316
+   },
+   "out_bytes": 447
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2583,
+    "out": 920,
+    "reasoning": 620
+   },
+   "out_bytes": 713
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:5 `ch:` cannot find type `chan`\n#3 E200 /tmp/tmpphqr09a5/work/task.yag:20:21 accepted: `chan.` cannot find `chan`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2981,
+    "out": 749,
+    "reasoning": 378
+   },
+   "out_bytes": 909
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `channel.` cannot find `channel`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3527,
+    "out": 759,
+    "reasoning": 394
+   },
+   "out_bytes": 901
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `sync` cannot find `sync`",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4020,
+    "out": 787,
+    "reasoning": 421
+   },
+   "out_bytes": 902
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `Chan` cannot find `Chan`",
+   "round": 3,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4513,
+    "out": 1209,
+    "reasoning": 843
+   },
+   "out_bytes": 898
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "body_failed",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 15041,
+   "out": 3504,
+   "reasoning": 2036,
+   "out_bytes": 3610
+  },
+  "spec": {
+   "in": 4632,
+   "out": 1435,
+   "reasoning": 936,
+   "out_bytes": 1160
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpphqr09a5/work/task.yag:6:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpphqr09a5/work/task.yag:7:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpphqr09a5/work/task.yag:8:8 accepted: `assert accepted(0, [1])` capability `nondet` is not in scop"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:5 `ch:` cannot find type `chan`\n#3 E200 /tmp/tmpphqr09a5/work/task.yag:20:21 accepted: `chan.` cannot find `chan`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `channel.` cannot find `channel`"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `sync` cannot find `sync`"
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpphqr09a5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpphqr09a5/work/task.yag:20:10 accepted: `Chan` cannot find `Chan`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yag:20:5 `ch` cannot find type `chan`\nE200 ./task.yag:20:21 accepted: `chan` cannot find `chan` | maybe: chan -> cap\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yag:20:10 accepted: `Chan` cannot find `Chan`\n0 of 0 tests passed"
+ }
+}

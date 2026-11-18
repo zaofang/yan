@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 954,
+   "reasoning": 581,
+   "out_bytes": 975
+  },
+  "body": {
+   "in": 1506,
+   "out": 1231,
+   "reasoning": 771,
+   "out_bytes": 1158
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first <title> and </title> tags in html.\n\n    The page is passed in already fetched; this function performs no I/O.\n    Tag matching is case-insensitive. Returns an empty string when there\n    is no <title> element or it is not closed.\n    \"\"\"\n    pattern = re.compile(r\"<title\\b[^>]*>(.*?)</title\\s*>\", re.IGNORECASE | re.DOTALL)\n    m = pattern.search(html)\n    if m is None:\n        return \"\"\n    return str(m.group(1))\n\n\ndef test_title_of_simple() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_title_of_missing() -> None:\n    assert title_of(\"<html><body>no title here</body></html>\") == \"\"\n\n\ndef test_title_of_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_title_of_uppercase_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Shout</TITLE></HTML>\") == \"Shout\"\n\n\ndef test_title_of_unclosed() -> None:\n    assert title_of(\"<title>Never closed\") == \"\"\n\n\ndef test_title_of_uses_first_title() -> None:\n    html = \"<title>First</title><title>Second</title>\"\n    assert title_of(html) == \"First\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 954,
+    "reasoning": 581
+   },
+   "out_bytes": 975,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1506,
+    "out": 1231,
+    "reasoning": 771
+   },
+   "out_bytes": 1158,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

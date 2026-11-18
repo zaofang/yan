@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1449,
+   "out": 280,
+   "reasoning": 190,
+   "out_bytes": 178
+  },
+  "body": {
+   "in": 1612,
+   "out": 89,
+   "reasoning": 0,
+   "out_bytes": 177
+  }
+ },
+ "final": "age_at(born: int, now: int) -> int =\n  pre now >= born\n  post out >= 0\n  post out == now - born\n  ex age_at(1990, 2024) == 34\n  ex age_at(2000, 2000) == 0\n  now - born\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1449,
+    "out": 280,
+    "reasoning": 190
+   },
+   "out_bytes": 178,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1612,
+    "out": 89,
+    "reasoning": 0
+   },
+   "out_bytes": 177,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

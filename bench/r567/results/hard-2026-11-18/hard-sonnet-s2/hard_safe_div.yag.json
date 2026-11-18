@@ -1,0 +1,125 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer division of a by b; fails with DivZero carrying a when b is 0.\"\"\"\n    ex safe_div(7, 2) == Ok(3)\n    ex safe_div(-6, 3) == Ok(-2)\n    ex safe_div(7, 0) == Err(DivZero(a=7))\n    if b != 0:\n        return a // b\n    fail DivZero(a=a)\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2046,
+    "out": 591,
+    "reasoning": 443
+   },
+   "out_bytes": 283
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpuopsazz2/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpuopsazz2/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2292,
+    "out": 417,
+    "reasoning": 246
+   },
+   "out_bytes": 334
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2596,
+    "out": 1277,
+    "reasoning": 1106
+   },
+   "out_bytes": 334
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 4888,
+   "out": 1694,
+   "reasoning": 1352,
+   "out_bytes": 668
+  },
+  "spec": {
+   "in": 2046,
+   "out": 591,
+   "reasoning": 443,
+   "out_bytes": 283
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpuopsazz2/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpuopsazz2/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
