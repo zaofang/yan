@@ -80,6 +80,7 @@ fn blocking(i: &Inst) -> bool {
         Inst::Rt {
             f: RtFn::ChanSend
                 | RtFn::ChanRecv
+                | RtFn::FutexWait
                 | RtFn::SelectWait
                 | RtFn::ActorTake
                 | RtFn::ActorRetake
@@ -269,6 +270,19 @@ impl Cx {
                     lines.push(line);
                     continue;
                 }
+                // A pinned local lives in its frame word now, so its marker names that word.
+                if let Inst::Move { places } = &mut i {
+                    for p in places.iter_mut() {
+                        if let Loc::Local(l) = *p
+                            && pinned.contains(&l)
+                        {
+                            *p = Loc::Word {
+                                ptr: Operand::Local(0),
+                                word: slot(l),
+                            };
+                        }
+                    }
+                }
                 let (uses, defs) = uses_defs(&i);
                 let mut tmps: Vec<(Local, Local)> = Vec::new();
                 for l in uses.iter().chain(&defs) {
@@ -355,6 +369,7 @@ impl Cx {
                         f:
                             RtFn::ChanSend
                             | RtFn::ChanRecv
+                            | RtFn::FutexWait
                             | RtFn::SelectWait
                             | RtFn::ChanTrySend
                             | RtFn::ChanTryRecv
@@ -623,7 +638,19 @@ pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             dst.iter().copied().collect(),
         ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
-        Inst::Arm(_) | Inst::Fence { .. } | Inst::Move { .. } => (Vec::new(), Vec::new()),
+        // A marker reads its pointer where it stands, so the pointer is live up to it; a
+        // `Loc::Local` is a name, not a read, and does not keep its local live.
+        Inst::Move { places } => (
+            places
+                .iter()
+                .filter_map(|p| match p {
+                    Loc::Word { ptr, .. } => l(ptr),
+                    Loc::Local(_) => None,
+                })
+                .collect(),
+            Vec::new(),
+        ),
+        Inst::Arm(_) | Inst::Fence { .. } => (Vec::new(), Vec::new()),
     }
 }
 
@@ -698,4 +725,27 @@ pub(crate) fn live_sets(f: &Func) -> Vec<Vec<Local>> {
             v
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn move_marker_uses_only_its_word_pointers() {
+        let i = Inst::Move {
+            places: vec![
+                Loc::Local(3),
+                Loc::Word {
+                    ptr: Operand::Local(5),
+                    word: 1,
+                },
+                Loc::Word {
+                    ptr: Operand::Int(0),
+                    word: 0,
+                },
+            ],
+        };
+        assert_eq!(uses_defs(&i), (vec![5], Vec::new()));
+    }
 }

@@ -614,6 +614,35 @@
    ]
   },
   {
+   "path": "yag/fail/atomic_wait_needs_nondet.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 9,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 10,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 11,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/bindings/r832_if_without_else.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6491,6 +6520,84 @@
    "flags": [],
    "expect": [],
    "stdout": "200\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_cancelled.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "9.4"
+   ],
+   "rows": [
+    "R1103"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Bad(n=7)\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R396",
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "waiting\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101",
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify_all.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "111\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_value_differs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "done\n",
    "exit": 0
   },
   {

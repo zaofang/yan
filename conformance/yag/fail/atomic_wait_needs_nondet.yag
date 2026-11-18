@@ -1,0 +1,11 @@
+# spec: 6.2
+# rows: R1101
+# note: wait and both notifies depend on other tasks, so a function that calls them declares `uses nondet`
+# expect: E709 at 9:5
+# expect: E709 at 10:5
+# expect: E709 at 11:5
+
+def f(a: Atomic[uint32]) -> None fail Cancelled | Timeout:
+    a.wait(0, LoadOrdering.Acquire())?
+    a.notify_one()
+    a.notify_all()

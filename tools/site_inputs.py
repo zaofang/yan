@@ -17,6 +17,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from tools import status
+
 ROOT = Path(__file__).resolve().parent.parent
 PLAYGROUND = ("index.html", "worker.js", "examples.js")
 CASE_LIMIT = 4096  # bytes; larger cases are not shown as examples
@@ -49,6 +51,10 @@ def add_docs(t: tarfile.TarFile) -> None:
         t.add(path, f"docs/rfcs/{path.name}")
     t.add(ROOT / "conformance/catalogue.toml", "docs/conformance/catalogue.toml")
     t.add(ROOT / "conformance/manifest.json", "docs/conformance/manifest.json")
+    coverage = json.dumps(status.row_coverage(), indent=0, sort_keys=True).encode()
+    info = tarfile.TarInfo("docs/spec/coverage.json")
+    info.size = len(coverage)
+    t.addfile(info, io.BytesIO(coverage))
     for case in json.loads((ROOT / "conformance/manifest.json").read_text())["cases"]:
         path = ROOT / "conformance" / case["path"]
         if case["expect"] and path.stat().st_size <= CASE_LIMIT:

@@ -23,7 +23,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{AtomicOp, Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler, futex,
     loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
 };
 
@@ -863,6 +863,8 @@ const RT: &[RtFn] = &[
     RtFn::ChanRecv,
     RtFn::ChanTrySend,
     RtFn::ChanTryRecv,
+    RtFn::FutexWait,
+    RtFn::FutexNotify,
     RtFn::SelectWait,
     RtFn::ChanDrop,
     RtFn::ChanDropSender,
@@ -2155,6 +2157,18 @@ fn rt_fn(
             chan::yan_rt_chan_try_recv as *const u8,
             &[I64, I64, I64],
             Some(I64),
+        ),
+        RtFn::FutexWait => (
+            "yan_rt_futex_wait",
+            futex::yan_rt_futex_wait as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::FutexNotify => (
+            "yan_rt_futex_notify",
+            futex::yan_rt_futex_notify as *const u8,
+            &[I64, I64],
+            None,
         ),
         RtFn::SelectWait => (
             "yan_rt_select_wait",
