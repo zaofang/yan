@@ -6766,6 +6766,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_pool_discard_leak.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1089"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_pool_exit_lowest.yag",
    "kind": "run",
    "milestone": "M1",
