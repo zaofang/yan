@@ -110,9 +110,16 @@ pub struct Machine<'p> {
     atomic_words: std::collections::HashSet<u64>,
 }
 
-/// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
-/// (the leak report of 6.9; leaks are not UB).
-pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
+/// An allocation still live when `main` returned (the leak report of 6.9; leaks are not UB).
+pub struct Leak {
+    pub size: usize,
+    /// The function that was running when it was allocated.
+    pub site: String,
+}
+
+/// Runs `main`; on return, the allocations still live, string literals and runtime-owned blocks
+/// aside.
+pub fn run(prog: &Program, ub: bool) -> Result<Vec<Leak>, Stop> {
     let mut m = Machine {
         prog,
         ub,
@@ -138,7 +145,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
     m.deliver_stopped();
     m.dispose()?;
     Ok(m.mem
-        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
+        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a))
+        .into_iter()
+        .map(|(size, site)| Leak {
+            size,
+            site: prog.funcs[site as usize].name.clone(),
+        })
+        .collect())
 }
 
 fn encode(v: Val) -> u64 {
@@ -411,6 +424,7 @@ impl Machine<'_> {
                 let b = &f.blocks[block as usize];
                 for (i, inst) in b.insts.iter().enumerate() {
                     fr.at = (block, i);
+                    self.mem.site = func;
                     self.inst(&mut fr, f, inst)?;
                 }
                 match &b.term {

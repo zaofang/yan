@@ -57,6 +57,13 @@ struct Cli {
     command: Command,
 }
 
+/// What `run --ub` does with a leak: report it (W862) or also fail the run.
+#[derive(Clone, Copy, PartialEq, ValueEnum)]
+enum UbMode {
+    Check,
+    DenyLeaks,
+}
+
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
 enum GrammarFormat {
     Gbnf,
@@ -436,9 +443,10 @@ enum Command {
         /// Interpret optimized Yan Core (R771).
         #[arg(long)]
         opt: bool,
-        /// Execute on the abstract-byte machine with the 6.7 undefined-behavior checks.
-        #[arg(long)]
-        ub: bool,
+        /// Execute on the abstract-byte machine with the 6.7 undefined-behavior checks; `--ub=deny-leaks`
+        /// also exits non-zero when a leak is reported (W862).
+        #[arg(long, num_args = 0..=1, default_missing_value = "check", require_equals = true)]
+        ub: Option<UbMode>,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -1071,7 +1079,7 @@ fn run_program(
     jit: Jit,
     args: Vec<String>,
     opt: bool,
-    ub: bool,
+    ub: Option<UbMode>,
 ) -> ExitCode {
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -1081,7 +1089,7 @@ fn run_program(
         return native(&file.display().to_string(), module, jit);
     }
     let name = file.display().to_string();
-    if backend == Backend::Machine || ub {
+    if backend == Backend::Machine || ub.is_some() {
         return match lower_native(&name, module) {
             Ok(p) => machine(&p, ub),
             Err(code) => code,
@@ -1092,7 +1100,7 @@ fn run_program(
         && let Ok(p) = yan_mir::lower(&m)
         && touches_raw_memory(&p)
     {
-        return machine(&p, false);
+        return machine(&p, None);
     }
     let optimized;
     let module = if opt {
@@ -1335,27 +1343,36 @@ fn touches_raw_memory(p: &yan_mir::Program) -> bool {
         })
 }
 
+/// The leak report of 6.9 (R1098).
+const LEAK_CODE: &str = "W862";
+
 /// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
-fn machine(p: &yan_mir::Program, ub: bool) -> ExitCode {
+fn machine(p: &yan_mir::Program, ub: Option<UbMode>) -> ExitCode {
     let result = std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(256 << 20)
-            .spawn_scoped(s, || yan_machine::run(p, ub))
+            .spawn_scoped(s, || yan_machine::run(p, ub.is_some()))
             .expect("a thread starts")
             .join()
             .expect("the machine does not panic")
     });
     let _ = std::io::Write::flush(&mut std::io::stdout());
     match result {
-        Ok(live) => {
-            if ub && !live.is_empty() {
-                let bytes: usize = live.iter().map(|(_, n)| n).sum();
+        Ok(leaks) => {
+            if ub.is_none() || leaks.is_empty() {
+                return ExitCode::SUCCESS;
+            }
+            for l in &leaks {
                 eprintln!(
-                    "leak: {} allocations, {bytes} bytes, live when main returned",
-                    live.len()
+                    "warning[{LEAK_CODE}]: leak: {} bytes allocated in `{}` live when main returned",
+                    l.size, l.site
                 );
             }
-            ExitCode::SUCCESS
+            if ub == Some(UbMode::DenyLeaks) {
+                ExitCode::from(EXIT_PANIC as u8)
+            } else {
+                ExitCode::SUCCESS
+            }
         }
         Err(yan_machine::Stop::Panic(kind)) => {
             eprintln!("panic({kind}): {}", yan_rt::abi::panic_message(kind));
