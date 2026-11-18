@@ -1,0 +1,29 @@
+--- S0 readiness 4: Bytes, char classification, string building, directory walk with Path and fs.
+
+classify(c: char) -> str uses none =
+  if c.is_alpha()
+    return "alpha"
+  if c.is_digit()
+    return "digit"
+  if c == " "
+    return "space"
+  "punct"
+
+hex(b: int) -> str uses none =
+  let digits = "0123456789abcdef"
+  let cs: List[char] = digits.chars().collect()
+  "\(cs[b // 16])\(cs[b % 16])"
+
+main() uses io, fs =
+  let text = "ab 12,"
+  var kinds: List[str] = []
+  for c in text.chars()
+    kinds.append(classify(c))
+  io.print(kinds.join(" "))
+  let bs = text.bytes()
+  var out = ""
+  for i in range(len(bs))
+    out = out + hex(int(bs[i]))
+  io.print(out)
+  let names = fs.list_dir("conformance/yn/run/hello.yn/..")
+  io.print("\(len(names) > 0)")
