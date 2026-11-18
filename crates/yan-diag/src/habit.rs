@@ -116,6 +116,47 @@ const TABLE: &[Habit] = &[
     },
     Habit {
         ext: "yn",
+        lang: "python",
+        codes: &["E100"],
+        on: |l| l.trim_end().ends_with(':'),
+        text: "Python block colon: Yan opens a block by indentation alone, so `if c`, `for x in \
+               xs` and `with fs = fs.sub(d)` take no trailing `:`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "javascript",
+        codes: &["E203"],
+        on: |l| l.contains(".push("),
+        text: "JavaScript `xs.push(v)`: the list method is `xs.append(v)` on a `var xs`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "javascript",
+        codes: &["E203"],
+        on: |l| l.contains(".push("),
+        text: "JavaScript `xs.push(v)`: the list method is `xs.append(v)`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "go",
+        codes: &["E200", "E017"],
+        on: |l| l.contains("Chan[") || l.contains("Chan("),
+        text: "`Chan` is not a Yan name: a bounded channel is `let (tx, rx) = Channel[T](capacity)`, \
+               a `Sender` and a `Receiver`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "rust",
+        codes: &["E017"],
+        on: |l| {
+            let l = l.trim();
+            l.ends_with('?') && !l.contains('(')
+        },
+        text: "`?` applies to a call: write it where the failure arises (`check(x)?`, inside the \
+               `par for` body for the lowest-index failure), not on a bound value",
+    },
+    Habit {
+        ext: "yn",
         lang: "typescript",
         codes: &["E100"],
         on: |l| l.contains("=>"),
@@ -210,6 +251,23 @@ mod selftest {
         assert!(t(2).contains("var x: T"));
         assert!(t(3).contains("f(x)?"));
         assert!(t(4).contains("xs: list[int]"));
+    }
+
+    #[test]
+    fn benchmark_gap_hints() {
+        let src = "  with fs = fs.sub(\"n\"):\n  o.push(x)\n  let (a, b) = Chan[int](c)\n  ys?\n";
+        let mut ds = vec![
+            diag("E100", "a.yn", 1),
+            diag("E203", "a.yn", 2),
+            diag("E017", "a.yn", 3),
+            diag("E017", "a.yn", 4),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("no trailing `:`"));
+        assert!(t(1).contains("append"));
+        assert!(t(2).contains("Channel[T](capacity)"));
+        assert!(t(3).contains("check(x)?"));
     }
 
     #[test]
