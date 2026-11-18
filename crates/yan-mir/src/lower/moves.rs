@@ -51,6 +51,15 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
+    /// Marks the whole local `n` moved, after its drop glue ran.
+    pub(super) fn mark_name(&mut self, n: &str) {
+        let mut places = Vec::new();
+        self.locs(&place(n), &mut places);
+        if !places.is_empty() {
+            self.emit(Inst::Move { places });
+        }
+    }
+
     fn locs(&mut self, p: &y::Place, out: &mut Vec<Loc>) {
         let Ok((at, shape)) = self.place(p) else {
             return;
