@@ -9772,6 +9772,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/set_for_insertion_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "b c d\n3\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/sorted_dict_basic.yag",
    "kind": "run",
    "milestone": "M1",
