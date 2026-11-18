@@ -1,0 +1,10 @@
+-- spec: 6.7
+-- note: a Str literal's bytes are immutable; with_addr keeps provenance (assumption A11)
+-- ub: 7
+
+main() =
+  var s = "abcdefgh"
+  let ps = Ptr.of(&s).cast[u64]()
+  unsafe
+    let q = ptr.with_addr(ps, ps.read())
+    q.write(1)

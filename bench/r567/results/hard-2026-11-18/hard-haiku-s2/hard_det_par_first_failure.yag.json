@@ -1,0 +1,217 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even, otherwise fail with Bad carrying x.\"\"\"\n    post out % 2 == 0\n    ex check(4) == 4\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element in parallel. On failure, return the failure of the lowest-index bad element, whichever thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4]) == [2, 4]\n    ex all_even([]) == []\n    rs = par [check(x) else 1 for x in xs]\n    res: list[int] = []\n    for i in range(xs.len()):\n        v = rs[i]\n        if v % 2 == 1:\n            fail Bad(n=xs[i])\n        res.append(v)\n    return res\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmprguhzlrk/work/task.yag:8:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmprguhzlrk/work/task.yag:16:8 all_even: `([4, 5, 7]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1409,
+    "reasoning": 1166
+   },
+   "out_bytes": 549
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2516,
+    "out": 781,
+    "reasoning": 526
+   },
+   "out_bytes": 559
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "the frozen ex lines use `Err(Bad(n=3))` and `Err(Bad(n=5))`, which is not Yan failure syntax (the earlier E200 errors came from this). Failure examples must be written `ex f(x) == fail E`, so the spec needs to be re-frozen with `ex check(3) == fail Bad` and `ex all_even([4, 5, 7]) == fail Bad`.",
+   "tools": [],
+   "usage": {
+    "in": 2869,
+    "out": 853,
+    "reasoning": 711
+   },
+   "out_bytes": 301
+  },
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmprguhzlrk/work/task.yag:8:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmprguhzlrk/work/task.yag:16:8 all_even: `([4, 5, 7]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3371,
+    "out": 367,
+    "reasoning": 124
+   },
+   "out_bytes": 549
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3790,
+    "out": 875,
+    "reasoning": 669
+   },
+   "out_bytes": 482
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmprguhzlrk/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmprguhzlrk/work/task.yag:17:29 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmprguhzlrk/work/task.yag:20:13 all_even: `rs[i]` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4094,
+    "out": 1601,
+    "reasoning": 1298
+   },
+   "out_bytes": 698
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4588,
+    "out": 1628,
+    "reasoning": 1310
+   },
+   "out_bytes": 725
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 11551,
+   "out": 4082,
+   "reasoning": 3319,
+   "out_bytes": 1724
+  },
+  "spec": {
+   "in": 11774,
+   "out": 3432,
+   "reasoning": 2485,
+   "out_bytes": 2139
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmprguhzlrk/work/task.yag:8:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmprguhzlrk/work/task.yag:16:8 all_even: `([4, 5, 7]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmprguhzlrk/work/task.yag:8:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmprguhzlrk/work/task.yag:16:8 all_even: `([4, 5, 7]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmprguhzlrk/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmprguhzlrk/work/task.yag:17:29 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmprguhzlrk/work/task.yag:20:13 all_even: `rs[i]` `else` needs an optional or a fallible call, found `int`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:31 unexpected character ```\nE100 ./task.yag:1:45 unexpected character ```\nE100 ./task.yag:1:51 unexpected character ```\nE100 ./task.yag:1:65 unexpected character ```\nE100 ./task.yag:1:175 unexpected character ```\nE100 "
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

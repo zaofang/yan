@@ -187,6 +187,23 @@ impl Diagnostic {
 pub mod habit;
 pub mod wrap;
 
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/messages.rs"));
+}
+
+/// The message for `key` in `messages.toml` with each `{name}` replaced by its argument.
+/// A key or placeholder with no entry is a bug in the caller, so it panics.
+pub fn message(key: &str, args: &[(&str, &str)]) -> String {
+    let mut text = generated::template(key)
+        .unwrap_or_else(|| panic!("no message template {key}"))
+        .to_owned();
+    for (name, value) in args {
+        text = text.replace(&format!("{{{name}}}"), value);
+    }
+    assert!(!text.contains('{'), "unfilled placeholder in {key}: {text}");
+    text
+}
+
 const CATALOGUE: &str = include_str!("../../../spec/25-diagnostics-catalogue.md");
 
 /// The section 25 entry for `code`: its meaning and the spec sections it cites.
@@ -452,6 +469,20 @@ mod selftest {
             end_line: line,
             end_col: col + 1,
         }
+    }
+
+    #[test]
+    fn message_fills_named_placeholders() {
+        assert_eq!(
+            message("E024.reserved", &[("name", "std")]),
+            "`std` is a reserved root name and cannot be a top-level module"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "unfilled placeholder")]
+    fn message_rejects_a_missing_argument() {
+        message("E024.reserved", &[]);
     }
 
     #[test]

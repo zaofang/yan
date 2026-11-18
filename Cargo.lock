@@ -2461,6 +2461,8 @@ name = "yan-core"
 version = "0.0.0"
 dependencies = [
  "blake3",
+ "serde",
+ "toml",
  "yan-diag",
  "yan-std",
 ]
@@ -2497,6 +2499,7 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
+ "toml",
 ]
 
 [[package]]

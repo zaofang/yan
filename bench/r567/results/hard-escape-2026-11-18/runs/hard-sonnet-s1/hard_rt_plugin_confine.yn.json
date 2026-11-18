@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 123,
+   "reasoning": 0,
+   "out_bytes": 249
+  },
+  "body": {
+   "in": 6140,
+   "out": 864,
+   "reasoning": 431,
+   "out_bytes": 868
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  ex run_plugin(\"../secret.txt\") == \"|\"\n  var res = \"\"\n  with fs = fs.sub(\"notes\")\n    res = plugin(path)\n  res\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 123,
+    "reasoning": 0
+   },
+   "out_bytes": 249,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1838,
+    "out": 141,
+    "reasoning": 0
+   },
+   "out_bytes": 281,
+   "ok": false,
+   "report": "E100 task.yn:8:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2045,
+    "out": 339,
+    "reasoning": 199
+   },
+   "out_bytes": 280,
+   "ok": false,
+   "report": "E312 task.yn:9:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2257,
+    "out": 384,
+    "reasoning": 232
+   },
+   "out_bytes": 307,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:8:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

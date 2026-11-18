@@ -1,0 +1,102 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 1845,
+   "reasoning": 1522,
+   "out_bytes": 803
+  },
+  "body": {
+   "in": 7381,
+   "out": 4595,
+   "reasoning": 3315,
+   "out_bytes": 3175
+  }
+ },
+ "final": "-- Names are untrusted. Only a plain file name, with no directory part,\n-- is ever opened, and only inside the capability confined to `notes`.\n\nis_plain_name(name: str) -> bool =\n  post out == False or name.split(\"/\").len() == 1\n  ex is_plain_name(\"notes.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  name != \"\" and name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- True only if `name` is a plain name and `notes/name` can be read.\n-- A missing or unreadable file gives False.\ncan_read(name: str) -> bool uses fs =\n  post is_plain_name(name) or out == False\n  ex can_read(\"../secret\") == False\n  if is_plain_name(name) == False\n    return False\n  let text = fs.read(name) else \"\"\n  text != \"\"\n\n-- Counts the names that can be read from `notes`.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0 and out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret\"]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if can_read(name)\n        n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 1845,
+    "reasoning": 1522
+   },
+   "out_bytes": 803,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1944,
+    "out": 2193,
+    "reasoning": 1769
+   },
+   "out_bytes": 1051,
+   "ok": false,
+   "report": "E100 task.yn:25:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2434,
+    "out": 1087,
+    "reasoning": 664
+   },
+   "out_bytes": 1050,
+   "ok": false,
+   "report": "E201 task.yn:13:38 can_read: `out == False` cannot compare `str` with `bool`\nE315 task.yn:17:3 can_read: `fs.read(name)` the failure of this call is not handled; add `?` or `else`\nE201 task.yn:17:20 can_read: `None` cannot compare `str` with `()`",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3003,
+    "out": 1315,
+    "reasoning": 882
+   },
+   "out_bytes": 1074,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:25:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

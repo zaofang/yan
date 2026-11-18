@@ -231,7 +231,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// that cannot park runs the actor message yan-rt hands back, then runs again (RFC 0056 D4).
     /// Its status: 0, or 2 when the task is cancelled (9.4), or an actor operation's own.
     pub(super) fn blocking(&mut self, f: RtFn, mut args: Vec<Operand>) -> Operand {
-        args.push(Operand::Int(i128::from(!self.task_starts.is_empty())));
+        args.push(Operand::Int(i128::from(self.in_task())));
         let op = self.block_new();
         self.goto(op);
         let st = self.rt(f, I64, args);

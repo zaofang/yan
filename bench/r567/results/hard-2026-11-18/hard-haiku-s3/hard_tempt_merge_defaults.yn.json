@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1501,
+   "out": 1601,
+   "reasoning": 1279,
+   "out_bytes": 719
+  },
+  "body": {
+   "in": 7898,
+   "out": 3928,
+   "reasoning": 1959,
+   "out_bytes": 4395
+  }
+ },
+ "final": "-- Value of the first key equal to name, or None when absent.\nlookup(keys: List[str], values: List[str], name: str) -> str? =\n  pre keys.len() == values.len()\n  ex lookup(keys: [\"a\", \"b\"], values: [\"1\", \"2\"], name: \"b\") == \"2\"\n  ex lookup(keys: [\"a\"], values: [\"1\"], name: \"z\") == None\n  for i in range(0, keys.len())\n    if keys[i] == name\n      return values[i]\n  None\n\n-- Overlay the given keys on the defaults mode=fast and level=3.\n-- Returns mode, level, then the other keys in the order given.\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings(keys: [\"mode\"], values: [\"slow\"]) == [\"slow\", \"3\"]\n  ex settings(keys: [\"level\", \"color\"], values: [\"5\", \"red\"]) == [\"fast\", \"5\", \"red\"]\n  let mode = lookup(keys: keys, values: values, name: \"mode\") else \"fast\"\n  let level = lookup(keys: keys, values: values, name: \"level\") else \"3\"\n  var out = [mode, level]\n  for i in range(0, keys.len())\n    if keys[i] == \"mode\" or keys[i] == \"level\"\n      continue\n    out = out + [values[i].copy()]\n  out\n\ntest_lookup() =\n  assert lookup(keys: [\"a\", \"b\"], values: [\"1\", \"2\"], name: \"b\") == \"2\"\n  assert lookup(keys: [\"a\"], values: [\"1\"], name: \"z\") == None\n\ntest_settings() =\n  assert settings(keys: [\"mode\"], values: [\"slow\"]) == [\"slow\", \"3\"]\n  assert settings(keys: [\"level\", \"color\"], values: [\"5\", \"red\"]) == [\"fast\", \"5\", \"red\"]\n  assert settings(keys: [], values: []) == [\"fast\", \"3\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1501,
+    "out": 1601,
+    "reasoning": 1279
+   },
+   "out_bytes": 719,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1896,
+    "out": 1882,
+    "reasoning": 1228
+   },
+   "out_bytes": 1460,
+   "ok": false,
+   "report": "E203 task.yn:24:9 settings: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2615,
+    "out": 1213,
+    "reasoning": 557
+   },
+   "out_bytes": 1464,
+   "ok": false,
+   "report": "E413 task.yn:24:18 settings: `values[i]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 24:18 | fix: values[i] -> values[i].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3387,
+    "out": 833,
+    "reasoning": 174
+   },
+   "out_bytes": 1471,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E203 ./task.yn:24:9 settings: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

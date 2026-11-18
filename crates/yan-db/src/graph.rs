@@ -126,7 +126,7 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
                 &at(p),
                 top,
                 "",
-                "this package holds foreign code and the root's `allow_ffi` does not name it",
+                yan_diag::message("E023.local", &[]),
             ));
         } else {
             out.push(Diagnostic::error(
@@ -134,9 +134,9 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
                 &p.workspace.join("package.yag").display().to_string(),
                 top,
                 "",
-                format!(
-                    "`{}` holds foreign code and the root's `allow_ffi` does not name it",
-                    p.name.as_deref().unwrap_or(".")
+                yan_diag::message(
+                    "E023.locked",
+                    &[("package", p.name.as_deref().unwrap_or("."))],
                 ),
             ));
         }
@@ -169,9 +169,13 @@ pub fn graph_diagnostics(db: &dyn Db, graph: PackageGraph) -> Vec<Diagnostic> {
                     &at(p),
                     top,
                     "",
-                    format!(
-                        "`{}` requires `{}` but the workspace member has version {have}; raise the member's version or lower the requirement",
-                        d.local, d.requirement
+                    yan_diag::message(
+                        "E335",
+                        &[
+                            ("local", &d.local),
+                            ("requirement", &d.requirement),
+                            ("have", have),
+                        ],
                     ),
                 ));
             }

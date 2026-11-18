@@ -2232,7 +2232,7 @@ fn rt_fn(
             "yan_rt_pool_run",
             pool::yan_rt_pool_run as *const u8,
             &[I64, I64],
-            None,
+            Some(I64),
         ),
         RtFn::ActorSpawn => (
             "yan_rt_actor_spawn",
@@ -2829,7 +2829,7 @@ impl Gen<'_, '_> {
             Inst::Fence { .. } => {
                 self.b.ins().fence();
             }
-            Inst::Arm(_) => {}
+            Inst::Arm(_) | Inst::Move { .. } => {}
             Inst::Scalar {
                 dst, op, ty, args, ..
             } => {

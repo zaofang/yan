@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 899,
+   "reasoning": 173,
+   "out_bytes": 1438
+  },
+  "body": {
+   "in": 4989,
+   "out": 2216,
+   "reasoning": 414,
+   "out_bytes": 3727
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Precondition: n >= 0 (asserted; violating it raises AssertionError).\n    Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1).\n    \"\"\"\n    assert n >= 0, \"n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Newton's method starting from a power of two >= sqrt(n).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_isqrt_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n\n\n@pytest.mark.parametrize(\"r\", [0, 1, 2, 10, 99, 1000, 123456789])\ndef test_isqrt_perfect_squares_and_neighbors(r: int) -> None:\n    assert isqrt(r * r) == r\n    if r > 0:\n        # For r == 0, r * r + 1 == 1 whose root is 1, so only check for r > 0.\n        assert isqrt(r * r + 1) == r\n        assert isqrt(r * r - 1) == r - 1\n\n\ndef test_isqrt_large_values() -> None:\n    n = 10**60\n    assert isqrt(n) == 10**30\n    assert isqrt(n - 1) == 10**30 - 1\n    m = 2**200 + 12345\n    r = isqrt(m)\n    assert r * r <= m < (r + 1) * (r + 1)\n\n\ndef test_isqrt_matches_math_isqrt() -> None:\n    for n in range(2000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_isqrt_postcondition_holds() -> None:\n    for n in [0, 5, 16, 17, 10**12, 10**12 + 1, 2**64 - 1]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\n@pytest.mark.parametrize(\"n\", [-1, -2, -100, -(10**30)])\ndef test_isqrt_negative_violates_precondition(n: int) -> None:\n    with pytest.raises(AssertionError):\n        isqrt(n)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 899,
+    "reasoning": 173
+   },
+   "out_bytes": 1438,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1863,
+    "out": 883,
+    "reasoning": 0
+   },
+   "out_bytes": 1822,
+   "ok": false,
+   "report": ".F\n=================================== FAILURES ===================================\n_________________ test_isqrt_perfect_squares_and_neighbors[0] __________________\n\nr = 0\n\n    @pytest.mark.parametrize(\"r\", [0, 1, 2, 10, 99, 1000, 123456789])\n    def test_isqrt_perfect_squares_and_neighbors(r: int) -> None:\n        assert isqrt(r * r) == r\n>       assert isqrt(r * r + 1) == r\nE       assert 1 == 0\nE        +  where 1 = isqrt(((0 * 0) + 1))\n\ntest_task.py:41: AssertionError\n=========================== short test summary info ============================\nFAILED test_task.py::test_isqrt_perfect_squares_and_neighbors[0] - assert 1 == 0\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 1 passed in 0.02s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3126,
+    "out": 1333,
+    "reasoning": 414
+   },
+   "out_bytes": 1905,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": ".F.................                                                      [100%]\n=================================== FAILURES ===================================\nE   assert 1 == 0\n     +  where 1 = isqrt(((0 * 0) + 1))\n/tmp/tmphbn5cdg4/test_hidden.py:41: assert 1 == 0\n=========================== shor"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

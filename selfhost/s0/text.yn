@@ -1,0 +1,21 @@
+--- S0 readiness 4 (char and string part): char classification and string building.
+
+classify(c: char) -> str uses none =
+  if c.is_alpha()
+    return "alpha"
+  if c.is_digit()
+    return "digit"
+  if c == " "
+    return "space"
+  "punct"
+
+hex(b: int) -> str uses none =
+  let cs: List[char] = "0123456789abcdef".chars().collect()
+  "\(cs[b // 16])\(cs[b % 16])"
+
+main() uses io =
+  var kinds = ""
+  for c in "ab 12,".chars()
+    kinds = kinds + classify(c) + " "
+  io.print(kinds)
+  io.print(hex(171) + hex(5))

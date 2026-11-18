@@ -2,7 +2,7 @@
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
 //! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
 //! dead allocation is `ub(2)`, one outside every allocation is `ub(3)`, a word access at an address that is not a multiple of 8 is `ub(4)` and a `bool` read from a
-//! word other than 0 or 1 is `ub(6)`, a block freed twice is `ub(8)` (6.7 items; D3 of the design). Without it an access outside
+//! word other than 0 or 1 is `ub(6)`, a capability read from memory is `ub(9)`, a block freed twice is `ub(8)`, a write to a `Str` literal is `ub(7)` (6.7 items; D3 of the design). Without it an access outside
 //! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
@@ -21,7 +21,8 @@ use race::{Kind, Race};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use yan_mir::{
-    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Local, MemOrder, Operand, Program, Term, Ty,
+    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Loc, Local, MemOrder, Operand, Program, Term,
+    Ty,
 };
 
 /// Why a run stopped before `main` returned.
@@ -79,6 +80,10 @@ struct Frame {
     pinned: HashMap<Local, (u64, u64)>,
     /// `par` regions open when the frame began; any still open when it leaves are joined.
     regions: usize,
+    /// Locals whose value moved out, with the move's block and instruction (under `--ub`).
+    moved: HashMap<Local, (BlockId, usize)>,
+    /// The block and instruction being run.
+    at: (BlockId, usize),
 }
 
 pub struct Machine<'p> {
@@ -99,6 +104,8 @@ pub struct Machine<'p> {
     fs_fakes: Vec<HashMap<String, String>>,
     fs_reason: String,
     race: RefCell<Race>,
+    /// Where each moved-from word of memory was moved, by address (under `--ub`).
+    move_sites: HashMap<u64, String>,
 }
 
 /// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
@@ -119,6 +126,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         fs_fakes: Vec::new(),
         fs_reason: String::new(),
         race: RefCell::new(Race::new()),
+        move_sites: HashMap::new(),
     };
     yan_rt::actor::defer_disposal();
     yan_rt::actor::defer_stopped_text();
@@ -239,11 +247,18 @@ impl Machine<'_> {
         if race {
             self.raced(addr, false)?;
         }
+        if self.ub && bytes.contains(&Byte::Moved) {
+            let site = self.move_sites.get(&addr).map_or("", String::as_str);
+            return Err(Stop::Ub(
+                8,
+                format!("read of the moved-from word at {addr:#x}{site}"),
+            ));
+        }
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
             *d = match b {
                 Byte::Init(x) => x,
-                Byte::Uninit => 0,
+                Byte::Uninit | Byte::Moved => 0,
             };
         }
         Ok(u64::from_le_bytes(w))
@@ -255,6 +270,12 @@ impl Machine<'_> {
 
     fn write_word_with(&mut self, addr: u64, w: u64, race: bool) -> Result<(), Stop> {
         self.aligned("write", addr)?;
+        if self.ub && self.mem.is_immutable(addr) {
+            return Err(Stop::Ub(
+                7,
+                format!("write at {addr:#x} to immutable memory"),
+            ));
+        }
         if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
@@ -270,6 +291,7 @@ impl Machine<'_> {
         }
         let prog = self.prog;
         let a = self.new_str(&prog.strings[i as usize]);
+        self.mem.freeze(a);
         self.strs[i as usize] = Some(a);
         a
     }
@@ -291,6 +313,15 @@ impl Machine<'_> {
     }
 
     fn get(&self, fr: &Frame, f: &Func, l: Local) -> Result<Val, Stop> {
+        if let Some((b, i)) = fr.moved.get(&l) {
+            return Err(Stop::Ub(
+                8,
+                format!(
+                    "use of a moved-from local in `{}`, moved at block {b}, instruction {i}",
+                    f.name
+                ),
+            ));
+        }
         match fr.pinned.get(&l) {
             Some((base, word)) => {
                 self.typed(f.locals[l as usize], self.read_word(base + 8 * word)?)
@@ -305,6 +336,7 @@ impl Machine<'_> {
             (Ty::Bool, Val::I(i)) => Val::B(i != 0),
             (_, v) => v,
         };
+        fr.moved.remove(&l);
         match fr.pinned.get(&l) {
             Some((base, word)) => self.write_word(base + 8 * word, encode(v)),
             None => {
@@ -319,6 +351,8 @@ impl Machine<'_> {
             locals: f.locals.iter().map(|t| decode(*t, 0)).collect(),
             pinned: HashMap::new(),
             regions: self.race.borrow().depth(),
+            moved: HashMap::new(),
+            at: (0, 0),
         };
         for group in &f.pinned {
             let base = self.mem.alloc(8 * group.len());
@@ -348,7 +382,8 @@ impl Machine<'_> {
             let mut block: BlockId = 0;
             loop {
                 let b = &f.blocks[block as usize];
-                for inst in &b.insts {
+                for (i, inst) in b.insts.iter().enumerate() {
+                    fr.at = (block, i);
                     self.inst(&mut fr, f, inst)?;
                 }
                 match &b.term {
@@ -377,6 +412,12 @@ impl Machine<'_> {
                         self.release(&fr);
                         func = *g;
                         continue 'call;
+                    }
+                    Term::Panic("forged") if self.ub => {
+                        return Err(Stop::Ub(
+                            9,
+                            "a capability read from memory is forged".into(),
+                        ));
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
                     Term::PanicFields { kind, fields } => {
@@ -489,6 +530,30 @@ impl Machine<'_> {
                 }
                 Ok(())
             }
+            Inst::Move { places } if self.ub => {
+                for place in places {
+                    match place {
+                        Loc::Local(l) => {
+                            fr.moved.insert(*l, fr.at);
+                        }
+                        Loc::Word { ptr, word } => {
+                            let addr = self.eval(fr, ptr, f)?.addr() + 8 * u64::from(*word);
+                            if self.mem.mark_moved(addr, 8).is_some() {
+                                let (b, i) = fr.at;
+                                self.move_sites.insert(
+                                    addr,
+                                    format!(
+                                        ", moved in `{}` at block {b}, instruction {i}",
+                                        f.name
+                                    ),
+                                );
+                            }
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Inst::Move { .. } => Ok(()),
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();
                 match e {
@@ -496,6 +561,7 @@ impl Machine<'_> {
                     ArmEvent::Enter(k) => r.enter(*k),
                     ArmEvent::Exit => r.exit(),
                     ArmEvent::Join => r.join(),
+                    ArmEvent::Leave => {}
                 }
                 Ok(())
             }

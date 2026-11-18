@@ -151,6 +151,27 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     pub(super) fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
+        self.lower_stmt(s)?;
+        // A terminator leaves the block; nothing after it reads what it moved. A drop marks
+        // where its glue runs, which a branch may defer to the exit (`drop_owned`).
+        if self.flagged_drop(&s.kind).is_none()
+            && !matches!(
+                s.kind,
+                y::StmtKind::Drop(_)
+                    | y::StmtKind::Ret(_)
+                    | y::StmtKind::Fail(_)
+                    | y::StmtKind::Yield(_)
+                    | y::StmtKind::Break { .. }
+                    | y::StmtKind::Jump { .. }
+                    | y::StmtKind::Become(_)
+            )
+        {
+            self.mark_moves(&s.kind);
+        }
+        Ok(())
+    }
+
+    fn lower_stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         self.line = s.span.line;
         if let Some(n) = self.flagged_drop(&s.kind) {
@@ -171,6 +192,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
+                        self.bind_view(n, rhs, &shape);
                         match comparison(rhs) {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),
@@ -377,12 +399,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 });
                 for (k, (b, t)) in blocks.iter().zip(tasks).enumerate() {
                     self.cur = t;
-                    self.task_starts.push(self.locals.len() as Local);
+                    self.enter_frame(false);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
                     self.flush_deferred();
-                    self.task_starts.pop();
+                    self.leave_frame();
                     self.finish(Term::TaskEnd);
                 }
                 self.cur = join;
@@ -398,9 +420,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 for (k, b) in blocks.iter().enumerate() {
                     self.cur = entries[k];
                     self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
+                    self.enter_frame(true);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
+                    self.flush_deferred();
+                    self.leave_frame();
                     self.emit(Inst::Arm(ArmEvent::Exit));
                     self.finish(Term::Jump(entries.get(k + 1).copied().unwrap_or(join)));
                 }

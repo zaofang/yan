@@ -25,6 +25,7 @@ mod jsonvalue;
 mod knot;
 mod log;
 mod math;
+mod moves;
 mod mutex;
 mod ordering;
 mod path;
@@ -34,6 +35,7 @@ mod proc;
 mod ptr;
 mod rand;
 mod regex;
+mod sets;
 mod shape;
 mod show;
 mod sorted;
@@ -618,6 +620,8 @@ struct Fn<'a, 'm> {
     /// Temps bound by a projection (`&place` arguments): they alias the place, so storing one
     /// back must not drop the place's old value.
     projected: HashMap<String, y::Place>,
+    /// What names bound by a projection stand for (`yan_check::own`), for `Inst::Move`.
+    views: yan_check::own::Views,
     /// The hex identity hash of the function's item, for `contract` panics.
     item: Option<String>,
     /// `ensures` predicates with their clause position, checked at every normal return (R882).
@@ -634,6 +638,8 @@ struct Fn<'a, 'm> {
     /// outermost first: a name whose locals start below `task_starts[d]` was bound outside the
     /// branch at depth `d + 1`.
     task_starts: Vec<Local>,
+    /// Per entry of `task_starts`: whether it is an arm of a plain `par` (no scheduler).
+    frame_plain: Vec<bool>,
     /// Lazy `iter` pipelines by the name they are bound to (`pipe.rs`).
     pipes: HashMap<String, pipe::Lazy>,
     /// A remainder made by `rest`, to every path of its type that was moved out of it.
@@ -673,6 +679,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             names: HashMap::new(),
             cmps: HashMap::new(),
             projected: HashMap::new(),
+            views: HashMap::new(),
             item: None,
             ensures: Vec::new(),
             inout: Vec::new(),
@@ -682,6 +689,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             scopes: Vec::new(),
             line: 0,
             task_starts: Vec::new(),
+            frame_plain: Vec::new(),
             pipes: HashMap::new(),
             rests: HashMap::new(),
             deferred: Vec::new(),
@@ -992,7 +1000,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// In a task, tell the scheduler that the exit that follows fails with `ev` of shape `e`,
     /// and whether that is `Cancelled` (R394).
     fn exit_kind(&mut self, e: &Shape, ev: &[Operand]) {
-        if self.task_starts.is_empty() {
+        if !self.in_task() {
             return;
         }
         let kind = match e {
@@ -1354,6 +1362,35 @@ mod selftest {
         );
         // A recurrence in the type's own slots is boxed (5.1).
         lower(&m.unwrap()).expect("a boxed recurrence lowers");
+    }
+
+    fn moves(src: &str) -> Vec<Vec<Loc>> {
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = lower(&m.unwrap()).expect("lowers");
+        p.funcs[p.main as usize]
+            .blocks
+            .iter()
+            .flat_map(|b| &b.insts)
+            .filter_map(|i| match i {
+                Inst::Move { places } => Some(places.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_move_of_an_owned_local_is_marked_after_its_read() {
+        let src = "module t\nfn main() -> Unit {\n let s: Str = \"a\"\n let t: Str = move s\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1);
+        assert!(m[0].iter().all(|l| matches!(l, Loc::Local(_))));
+    }
+
+    #[test]
+    fn a_copy_value_is_never_marked() {
+        let src = "module t\nfn main() -> Unit {\n let n: i64 = 1\n let m: i64 = n\n ret ()\n}\n";
+        assert!(moves(src).is_empty());
     }
 
     #[test]

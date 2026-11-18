@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1424,
+   "out": 822,
+   "reasoning": 640,
+   "out_bytes": 373
+  },
+  "body": {
+   "in": 1679,
+   "out": 857,
+   "reasoning": 623,
+   "out_bytes": 457
+  }
+ },
+ "final": "-- Spec: the number of set bits in a byte.\nbit_count(x: u8) -> int =\n  post out >= 0\n  post out <= 8\n  ex bit_count(0) == 0\n  ex bit_count(255) == 8\n  var n = x\n  var c = 0\n  while n > 0\n    if n % 2 == 1\n      c += 1\n    n = n // 2\n  c\n\n-- True when the byte has an odd number of set bits.\nparity(x: u8) -> bool =\n  post out == (bit_count(x) % 2 == 1)\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  bit_count(x) % 2 == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1424,
+    "out": 822,
+    "reasoning": 640
+   },
+   "out_bytes": 373,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1679,
+    "out": 857,
+    "reasoning": 623
+   },
+   "out_bytes": 457,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}
