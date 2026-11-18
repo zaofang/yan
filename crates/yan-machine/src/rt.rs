@@ -1869,6 +1869,13 @@ impl Machine<'_> {
                 }
                 Val::I(i128::from(status))
             }
+            RtFn::ChanDrain => match yan_rt::chan::drain(a[0].addr() as usize) {
+                Some(v) => {
+                    self.write_words(a[1].addr(), &v)?;
+                    Val::I(1)
+                }
+                None => Val::I(0),
+            },
             RtFn::ChanDrop | RtFn::ChanDropSender | RtFn::ChanClone | RtFn::ChanCloneSender => {
                 use yan_rt::chan::End;
                 let op = match f {

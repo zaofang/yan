@@ -659,6 +659,9 @@ pub enum RtFn {
     /// `(Ptr keys, Ptr at, Ptr out, in_task) -> i64`: `select_wait`'s ready arm into `out`; 1, 2
     /// and the actor status as for `ChanRecv`.
     SelectWait,
+    /// `(Ptr chan, Ptr out) -> i64`: on the channel's last end, move the oldest queued element
+    /// into `out` and return 1; else 0.
+    ChanDrain,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
     /// `ChanDrop` of a `Sender`: the last one closes the channel.

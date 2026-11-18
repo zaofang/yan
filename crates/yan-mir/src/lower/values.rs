@@ -125,6 +125,21 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
+    /// Run drop glue on each element still queued on channel `ch` when this is its last end.
+    fn chan_drain(&mut self, ch: &Operand, e: &Shape) {
+        let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
+        let head = self.block_new();
+        self.goto(head);
+        let got = self.rt(RtFn::ChanDrain, I64, vec![ch.clone(), out.clone()]);
+        let (body, exit) = self.branch(got);
+        self.cur = body;
+        let ev = self.read(&At::Mem(out.clone(), 0), e);
+        self.glue(e, &ev);
+        self.finish(Term::Jump(head));
+        self.cur = exit;
+        self.free(RtFn::EnvFree, out);
+    }
+
     /// Drop glue (5.4): free the blocks of the value `v` of shape `s`, fields in declaration
     /// order. A closure's captures block is freed, not the values it captured.
     pub(super) fn glue(&mut self, s: &Shape, v: &[Operand]) {
@@ -150,7 +165,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
                 self.free(RtFn::BytesFree, v[0].clone())
             }
-            Shape::Chan(_, sender) => {
+            Shape::Chan(e, sender) => {
+                if Self::has_heap(e) {
+                    self.chan_drain(&v[0], e);
+                }
                 let f = if *sender {
                     RtFn::ChanDropSender
                 } else {

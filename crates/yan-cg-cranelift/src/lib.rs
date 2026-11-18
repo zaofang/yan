@@ -866,6 +866,7 @@ const RT: &[RtFn] = &[
     RtFn::FutexWait,
     RtFn::FutexNotify,
     RtFn::SelectWait,
+    RtFn::ChanDrain,
     RtFn::ChanDrop,
     RtFn::ChanDropSender,
     RtFn::ChanClone,
@@ -2174,6 +2175,12 @@ fn rt_fn(
             "yan_rt_select_wait",
             chan::yan_rt_select_wait as *const u8,
             &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ChanDrain => (
+            "yan_rt_chan_drain",
+            chan::yan_rt_chan_drain as *const u8,
+            &[I64, I64],
             Some(I64),
         ),
         RtFn::ChanDrop => (
