@@ -1,0 +1,115 @@
+{
+ "status": "green",
+ "rounds_to_green": 4,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 1636,
+   "reasoning": 1365,
+   "out_bytes": 620
+  },
+  "body": {
+   "in": 10603,
+   "out": 4787,
+   "reasoning": 3217,
+   "out_bytes": 3540
+  }
+ },
+ "final": "-- Phase 2: bodies. Signatures and contract lines are unchanged from Phase 1.\n\n-- Reads `path` under the caller's fs, then reads a path outside `notes`.\n-- Both reads fall back to \"\", so the result always contains the separator.\nplugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs `plugin` with fs confined to `notes`, so `path` is relative to `notes`.\n-- Anything outside `notes` reads as \"\".\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  let dir = \"notes\"\n  var result = \"\"\n  with fs = fs.sub(dir)\n    result = plugin(path)\n  result\n\ntest_run_plugin_confined() uses fs =\n  assert run_plugin(\"missing.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 1636,
+    "reasoning": 1365
+   },
+   "out_bytes": 620,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1986,
+    "out": 1149,
+    "reasoning": 777
+   },
+   "out_bytes": 829,
+   "ok": false,
+   "report": "E100 task.yn:18:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2424,
+    "out": 1827,
+    "reasoning": 1446
+   },
+   "out_bytes": 845,
+   "ok": false,
+   "report": "E100 task.yn:19:24 `(dir):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2870,
+    "out": 727,
+    "reasoning": 346
+   },
+   "out_bytes": 844,
+   "ok": false,
+   "report": "E312 task.yn:20:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 3323,
+    "out": 1084,
+    "reasoning": 648
+   },
+   "out_bytes": 1022,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:18:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

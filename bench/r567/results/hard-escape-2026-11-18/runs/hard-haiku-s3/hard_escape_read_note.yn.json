@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1539,
+   "out": 1314,
+   "reasoning": 1025,
+   "out_bytes": 686
+  },
+  "body": {
+   "in": 4267,
+   "out": 2307,
+   "reasoning": 1510,
+   "out_bytes": 1921
+  }
+ },
+ "final": "-- A name is safe only if it is a plain file name: non-empty,\n-- no path separators, and not a relative step such as \"..\".\nsafe_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex safe_name(\"notes.txt\") == True\n  ex safe_name(\"../secret.txt\") == False\n  ex safe_name(\"sub/a.txt\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\n-- Returns the text of notes/name. Any unsafe, missing, or unreadable\n-- name yields \"\". No name can reach a file outside notes.\nread_note(name: str) -> str uses fs =\n  pre name.char_count() >= 0\n  post safe_name(name) or out == \"\"\n  post out.char_count() >= 0\n  ex read_note(\"missing.txt\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  if safe_name(name) == False\n    return \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 1314,
+    "reasoning": 1025
+   },
+   "out_bytes": 686,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1901,
+    "out": 1510,
+    "reasoning": 1111
+   },
+   "out_bytes": 961,
+   "ok": false,
+   "report": "E100 task.yn:28:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2366,
+    "out": 797,
+    "reasoning": 399
+   },
+   "out_bytes": 960,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:28:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2962,
+   "reasoning": 1302,
+   "out_bytes": 3495
+  },
+  "body": {
+   "in": 2833,
+   "out": 2663,
+   "reasoning": 882,
+   "out_bytes": 3854
+  }
+ },
+ "final": "import os\nimport sys\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of `name` inside NOTES_DIR (relative to the cwd).\n\n    Returns \"\" when the file is missing, unreadable, or not a regular file.\n    Any name that would resolve outside NOTES_DIR (absolute paths, \"..\",\n    symlinks pointing out, NUL bytes, and so on) also returns \"\".\n    \"\"\"\n    if \"\\x00\" in name:\n        return \"\"\n    try:\n        base = NOTES_DIR.resolve()\n        target = (base / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError):\n        return \"\"\n\n\ndef _make_layout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Create tmp_path/notes and a secret file outside it; chdir to tmp_path.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    return notes\n\n\ndef test_reads_existing_note(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    (notes / \"todo.txt\").write_text(\"buy milk\", encoding=\"utf-8\")\n    assert read_note(\"todo.txt\") == \"buy milk\"\n\n\ndef test_reads_nested_note(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"a.txt\").write_text(\"inner\", encoding=\"utf-8\")\n    assert read_note(\"sub/a.txt\") == \"inner\"\n\n\ndef test_missing_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_layout(tmp_path, monkeypatch)\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_layout(tmp_path, monkeypatch)\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_name_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n\n\ndef test_parent_traversal_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_layout(tmp_path, monkeypatch)\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_nested_traversal_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_layout(tmp_path, monkeypatch)\n    assert read_note(str(tmp_path / \"secret.txt\")) == \"\"\n\n\ndef test_nul_byte_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_layout(tmp_path, monkeypatch)\n    assert read_note(\"a\\x00b.txt\") == \"\"\n\n\n@pytest.mark.skipif(sys.platform == \"win32\", reason=\"symlinks need extra privileges on Windows\")\ndef test_symlink_escaping_notes_is_blocked(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    os.symlink(tmp_path / \"secret.txt\", notes / \"link.txt\")\n    assert read_note(\"link.txt\") == \"\"\n\n\n@pytest.mark.skipif(\n    sys.platform == \"win32\" or (hasattr(os, \"geteuid\") and os.geteuid() == 0),\n    reason=\"permission bits are not enforced on Windows or for root\",\n)\ndef test_unreadable_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_layout(tmp_path, monkeypatch)\n    locked = notes / \"locked.txt\"\n    locked.write_text(\"hidden\", encoding=\"utf-8\")\n    locked.chmod(0o000)\n    try:\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        locked.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2962,
+    "reasoning": 1302
+   },
+   "out_bytes": 3495,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2833,
+    "out": 2663,
+    "reasoning": 882
+   },
+   "out_bytes": 3854,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

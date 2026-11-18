@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2456,
+   "reasoning": 866,
+   "out_bytes": 3722
+  },
+  "body": {
+   "in": 2839,
+   "out": 2367,
+   "reasoning": 588,
+   "out_bytes": 4260
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file at request path `path` inside the\n    directory `notes` (relative to the working directory), or \"\".\n\n    `path` is untrusted. Paths that wander but stay inside `notes`\n    (e.g. \"sub/../a.txt\") are allowed. Any path that leaves `notes`\n    (e.g. \"..\", an absolute path, \"sub/../../x\", or a symlink pointing\n    outside `notes`) yields \"\". Missing, unreadable, non-file, or\n    otherwise invalid names (empty, containing NUL, etc.) also yield \"\".\n    Never raises for bad input.\n    \"\"\"\n    if not path or \"\\x00\" in path:\n        return \"\"\n    if os.path.isabs(path) or path.startswith((\"/\", \"\\\\\")):\n        return \"\"\n    if Path(path).is_absolute() or Path(path).drive:\n        return \"\"\n    try:\n        base = Path(\"notes\").resolve()\n        target = (base / path).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Working dir with notes/ plus files outside notes/ that must stay hidden.\"\"\"\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"beta\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    (tmp_path / \"x\").write_text(\"SECRET-X\", encoding=\"utf-8\")\n    evil = tmp_path / \"notes_evil\"\n    evil.mkdir()\n    (evil / \"x.txt\").write_text(\"SECRET-EVIL\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_plain_file(site: Path) -> None:\n    assert read_public(\"a.txt\") == \"alpha\"\n\n\ndef test_reads_nested_file(site: Path) -> None:\n    assert read_public(\"sub/b.txt\") == \"beta\"\n\n\ndef test_wander_and_return_is_allowed(site: Path) -> None:\n    assert read_public(\"sub/../a.txt\") == \"alpha\"\n    assert read_public(\"./sub/./b.txt\") == \"beta\"\n\n\ndef test_parent_traversal_blocked(site: Path) -> None:\n    assert read_public(\"../secret.txt\") == \"\"\n    assert read_public(\"..\") == \"\"\n    assert read_public(\"../\") == \"\"\n\n\ndef test_deep_traversal_blocked(site: Path) -> None:\n    assert read_public(\"sub/../../x\") == \"\"\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n    assert read_public(\"../../../../../../etc/passwd\") == \"\"\n\n\ndef test_sibling_with_shared_prefix_blocked(site: Path) -> None:\n    assert read_public(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_absolute_path_blocked(site: Path) -> None:\n    assert read_public(str(site / \"secret.txt\")) == \"\"\n    assert read_public(\"/etc/passwd\") == \"\"\n    assert read_public(\"//etc/passwd\") == \"\"\n\n\ndef test_symlink_escape_blocked(site: Path) -> None:\n    link = site / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(site / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escape_blocked(site: Path) -> None:\n    link = site / \"notes\" / \"outdir\"\n    try:\n        link.symlink_to(site, target_is_directory=True)\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert read_public(\"outdir/secret.txt\") == \"\"\n\n\ndef test_missing_file_gives_empty(site: Path) -> None:\n    assert read_public(\"nope.txt\") == \"\"\n    assert read_public(\"sub/nope.txt\") == \"\"\n\n\ndef test_directory_gives_empty(site: Path) -> None:\n    assert read_public(\"sub\") == \"\"\n    assert read_public(\"\") == \"\"\n    assert read_public(\".\") == \"\"\n\n\ndef test_nul_byte_gives_empty(site: Path) -> None:\n    assert read_public(\"a.txt\\x00\") == \"\"\n    assert read_public(\"\\x00\") == \"\"\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"permission bits are not enforced for root\",\n)\ndef test_unreadable_file_gives_empty(site: Path) -> None:\n    target = site / \"notes\" / \"locked.txt\"\n    target.write_text(\"hidden\", encoding=\"utf-8\")\n    target.chmod(0)\n    try:\n        assert read_public(\"locked.txt\") == \"\"\n    finally:\n        target.chmod(0o644)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2456,
+    "reasoning": 866
+   },
+   "out_bytes": 3722,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2839,
+    "out": 2367,
+    "reasoning": 588
+   },
+   "out_bytes": 4260,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}
