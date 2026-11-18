@@ -58,18 +58,35 @@ def differential(report: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def spec_debt() -> dict[str, int]:
+def row_coverage() -> dict[str, dict[str, Any]]:
+    """Every allocated row: the conformance cases that cite it and its exemption kind, if any.
+    The one computation behind spec debt here and the website's row pages."""
     owner, _ = rows.allocations(rows.load())
-    allocated = {r for r in owner if r.startswith("R")}
-    cased = {
-        r for c in conform.discover(CONFORMANCE) for label in c.rows for r in rows.expand(label)
+    out: dict[str, dict[str, Any]] = {
+        r: {"cases": [], "exempt": None} for r in owner if r.startswith("R")
     }
-    exempt = rows.exempt_rows() & allocated - cased
+    for c in conform.discover(CONFORMANCE):
+        path = c.path.relative_to(CONFORMANCE).as_posix()
+        for label in c.rows:
+            for r in rows.expand(label):
+                if r in out:
+                    out[r]["cases"].append(path)
+    for e in rows.exemptions():
+        for r in rows.expand(e["rows"]):
+            if r in out and not out[r]["cases"]:
+                out[r]["exempt"] = e.get("kind", "exempt")
+    return out
+
+
+def spec_debt() -> dict[str, int]:
+    coverage = row_coverage()
     codes = tomllib.loads(CODE_MAP.read_text())["codes"]
     return {
-        "rows": len(allocated),
-        "rows_without_case": len(allocated - cased - exempt),
-        "rows_exempt": len(exempt),
+        "rows": len(coverage),
+        "rows_without_case": sum(
+            1 for v in coverage.values() if not v["cases"] and not v["exempt"]
+        ),
+        "rows_exempt": sum(1 for v in coverage.values() if v["exempt"]),
         "codes": len(codes),
         "codes_unimplemented": sum(isinstance(e, dict) for e in codes.values()),
     }
