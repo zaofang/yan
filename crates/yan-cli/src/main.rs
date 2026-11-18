@@ -31,6 +31,7 @@ mod term;
 mod test;
 mod trust;
 mod vendor;
+mod w806;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
@@ -1197,7 +1198,8 @@ fn check(
     for file in files {
         let d = db.open(file).and_then(|f| {
             texts.insert(file.display().to_string(), f.text(&db).clone());
-            yan_ide::diagnostics(&db, f)
+            let d = yan_ide::diagnostics(&db, f)?;
+            Ok(w806::confirm(&file.display().to_string(), f.text(&db), d))
         });
         match d {
             Ok(mut d) => diags.append(&mut d),

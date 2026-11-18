@@ -439,6 +439,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1092 | moved-from place: from the move until a store or assignment, siblings of a moved field stay defined, a move of a `Copy` place is not a move; a read, borrow, second move, copy or drop of it is `ub(8)` (RFC 0087 D3) | 6.7 |
 | R1093 | `--ub` reports `ub(8)` at the first access after a move and names the move site; moves are codeless MIR markers read from the ownership facts (RFC 0087 D1, D2) | 6.9 |
 | R1094 | `Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4) | 6.6 |
+| R1095 | W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690) | 21.1 |
 
 <!-- /rows -->
 

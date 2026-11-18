@@ -3055,6 +3055,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/w806_branch_is_the_only_source.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W806",
+     "line": 8,
+     "col": 8
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w806_special_cases_ex.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6918,6 +6937,21 @@
    "expect": [],
    "stdout": "2\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/contracts/w806_guard_not_flagged.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "False True\n",
+   "exit": 0
   },
   {
    "path": "yag/run/dist/cluster_group.yag",
