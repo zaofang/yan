@@ -747,6 +747,21 @@ pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode
     crate::math::dot_exact(&floats(xs), ys.as_deref(), mode).unwrap_or_else(|| panic("value"))
 }
 
+/// The float `sum` of a list of floats, in the reduction order of 9.3 (R382).
+///
+/// # Safety
+/// `xs` is a `List` block of floats.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_sum_f64(xs: *const List) -> f64 {
+    // SAFETY: the caller's contract.
+    let fs: Vec<f64> = unsafe { &*xs }
+        .data
+        .iter()
+        .map(|w| f64::from_bits(*w))
+        .collect();
+    crate::num::sum_f64(&fs)
+}
+
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_rounded(op: i64, mode: i64, x: f64, y: f64, z: f64) -> f64 {
     crate::math::rounded(op, mode, x, y, z)

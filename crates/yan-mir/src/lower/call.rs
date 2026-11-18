@@ -1089,6 +1089,33 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 set(self, l);
             }
+            (id::STD_LIST_CONCAT, [(_, a), (_, b)]) => {
+                let (av, s) = self.atom_any(a)?;
+                let (bv, _) = self.atom_any(b)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                );
+                for src in [av[0].clone(), bv[0].clone()] {
+                    let n = self.rt(RtFn::ListLen, I64, vec![src.clone()]);
+                    self.each(n, |me, i| {
+                        let x = me.element(&src, i, e)?;
+                        let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                        me.write(&At::Mem(slot, 0), x);
+                        Ok(())
+                    })?;
+                }
+                set(self, out);
+            }
+            (id::STD_PRELUDE_SUM_FLOAT, [(_, a)]) => {
+                let l = self.scalar1(a)?;
+                let r = self.rt(RtFn::SumF64, Ty::F64, vec![l]);
+                set(self, r);
+            }
             // An `iter` is its list, its cursor in the `limit` slot.
             (id::STD_LIST_ITER, [(conv, a)]) => {
                 let (_, s) = self.atom_any(a)?;
