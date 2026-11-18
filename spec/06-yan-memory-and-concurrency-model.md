@@ -82,6 +82,8 @@ The compiler derives three auto traits:
 
 **Provenance is strict.** `Ptr[T]` is never null; nullable is `Option[Ptr[T]]`. `addr() -> Addr` drops provenance; `with_addr` and `map_addr` keep it; `without_provenance` and `dangling` never dereference. `expose_provenance` and `with_exposed_provenance` follow PNVI-ae-udi (ISO/IEC TS 6010:2025) and are legal only in `ffi` modules (E419); a pointer constructor that takes no `Ptr` argument (`dangling`, `without_provenance`, `with_exposed_provenance`) takes its pointee type from `[T]` or the expected type, else E205 (R1055); pointers received from C are exposed. Pointer `==` compares addresses. Byte copies preserve provenance; transmuting a pointer to an integer yields the address unexposed, and an integer to a pointer yields no provenance.
 
+**`Ptr.take` (R1094).** `unsafe` `Ptr.take[T](p)` reads the pointee like `read` and leaves it moved-from (6.7); `read` stays a copy and does not move, so a peek at a non-`Copy` value that is then forgotten is defined. The pointee MUST be live and initialised; `write` re-initialises a moved-from pointee. Taking a `Copy` value is not a move. Native code and the interpreter run `take` as `read`: only the checked machine (6.9) tracks the move.
+
 **CHERI readiness.** `Addr` is the address width; `size_of[Ptr[T]]` may exceed it, and no code may assume a pointer fits in `Addr`. Lengths and indices are never `Addr`. `Atomic[Ptr]` is pointer width. On CHERI targets (M4) views lower to bounded capabilities.
 
 ### 6.7 Undefined behavior
@@ -95,7 +97,7 @@ The list is closed; anything else is defined. Only unsafe code, foreign code or 
 5. a Tree Borrows aliasing violation (6.6);
 6. an invalid value: `bool`, `char` or discriminant out of range, null `Ptr`, a false refinement, a dead view, `Uninit` outside `Uninit[T]` and padding;
 7. mutating immutable memory;
-8. a double drop or use of a moved-from place;
+8. a double drop or use of a moved-from place (R1092);
 9. a forged capability, handler, `Secret` or second-class value;
 10. a call through a mismatched signature or ABI;
 11. use of an unsupported target feature;
@@ -104,6 +106,8 @@ The list is closed; anything else is defined. Only unsafe code, foreign code or 
 14. a foreign callee violating a `safe` extern declaration (12.1);
 15. `Atomic.wait` on non-atomic or misaligned storage;
 16. violating an `unsafe fn` precondition.
+
+**Moved-from places (R1092).** A place is moved-from from the move that takes its value until a store or assignment to that same place. A field moved out of a record is moved-from and its siblings stay defined (a drop of the remainder reads only them); a move out of a `Copy` place is not a move. A read, a `View` or `MutView` borrow, a second move, a `Copy` or a drop of a moved-from place is item 8. In safe code the static check (4.2) rejects every program the checker would flag, so item 8 arises only through unsafe code, foreign code or a compiler bug.
 
 Not UB: leaks; deadlock (a global deadlock panics and a partial one may hang until a deadline, R396); overflow and division by zero (they panic), races between atomics, infinite loops, reading padding as `Uninit`, comparing pointers across allocations.
 
@@ -119,5 +123,5 @@ It may not assume: that drops run (leaks are safe); that owned values keep their
 
 ### 6.9 Checkers
 
-- **UB checker.** `yan test --ub` runs tests in the checked interpreter: abstract bytes, allocations, Tree Borrows with tag GC, vector-clock race detection, store-buffer weak memory, `pre` contracts of every `unsafe fn` call (R1014), capability forgery and a leak report. Reports name the 6.7 item and print a `yan replay` trace. Every unsafe block in std needs tests passing under `--ub`. The Rust implementation adds `--sanitize=address,thread` in M2; a native Tree Borrows sanitizer is an M4 candidate.
+- **UB checker.** `yan test --ub` runs tests in the checked interpreter: abstract bytes, allocations, Tree Borrows with tag GC, vector-clock race detection, store-buffer weak memory, `pre` contracts of every `unsafe fn` call (R1014), capability forgery and a leak report. Reports name the 6.7 item and print a `yan replay` trace. Item 8 is reported at the first access after a move and names the move site (R1093); moves reach the checker as codeless MIR markers that no backend turns into code. Every unsafe block in std needs tests passing under `--ub`. The Rust implementation adds `--sanitize=address,thread` in M2; a native Tree Borrows sanitizer is an M4 candidate.
 - **Concurrency checker.** The `explore(bound)` sched handler does exhaustive stateless model checking with optimal DPOR (TruSt) over RC11 in the reference interpreter, intercepting atomics, `Mutex`, channels, `Arc` and `Once`, with loops bounded by `bound`. `yan test --explore[=N]` runs `@explore` tests; `--estimate` reports the execution count; failures print a shrunk schedule as a `yan replay` trace. `seeded(seed)` stays the randomized tester.

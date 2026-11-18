@@ -15313,6 +15313,23 @@
    "ub": "8"
   },
   {
+   "path": "ub/drop_after_take.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7",
+    "6.9"
+   ],
+   "rows": [
+    "R1092",
+    "R1093"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "8"
+  },
+  {
    "path": "ub/forged_capability.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15434,6 +15451,22 @@
    "ub": "none"
   },
   {
+   "path": "ub/take_then_write_is_defined.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7"
+   ],
+   "rows": [
+    "R1092",
+    "R1094"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
    "path": "ub/unbuffered_send_orders_tasks.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15490,6 +15523,24 @@
    "flags": [],
    "expect": [],
    "ub": "16"
+  },
+  {
+   "path": "ub/use_after_take.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7",
+    "6.9"
+   ],
+   "rows": [
+    "R1092",
+    "R1093",
+    "R1094"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "8"
   },
   {
    "path": "semver/add_capability",

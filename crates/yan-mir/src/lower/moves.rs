@@ -51,6 +51,20 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
+    /// Marks `width` words at `ptr` moved: `Ptr.take` leaves its pointee moved-from.
+    pub(super) fn mark_moved_at(&mut self, ptr: &Operand, shape: &Shape) {
+        if is_copy(shape) {
+            return;
+        }
+        let places = (0..shape.width() as u32)
+            .map(|word| Loc::Word {
+                ptr: ptr.clone(),
+                word,
+            })
+            .collect();
+        self.emit(Inst::Move { places });
+    }
+
     /// Marks the whole local `n` moved, after its drop glue ran.
     pub(super) fn mark_name(&mut self, n: &str) {
         let mut places = Vec::new();

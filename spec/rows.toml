@@ -2145,3 +2145,18 @@ sections = "4.2, 6.7"
 rows = "R1091"
 topic = "`RecordInfo.layout` and `SumInfo.layout` are `Layout | None`: `None` for a type of default layout, whose size and alignment a program may not observe (RFC 0083 D3, L0)"
 sections = "17.3"
+
+[[entry]]
+rows = "R1092"
+topic = "moved-from place: from the move until a store or assignment, siblings of a moved field stay defined, a move of a `Copy` place is not a move; a read, borrow, second move, copy or drop of it is `ub(8)` (RFC 0087 D3)"
+sections = "6.7"
+
+[[entry]]
+rows = "R1093"
+topic = "`--ub` reports `ub(8)` at the first access after a move and names the move site; moves are codeless MIR markers read from the ownership facts (RFC 0087 D1, D2)"
+sections = "6.9"
+
+[[entry]]
+rows = "R1094"
+topic = "`Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4)"
+sections = "6.6"
