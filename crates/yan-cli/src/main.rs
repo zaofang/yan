@@ -1341,6 +1341,9 @@ fn touches_raw_memory(p: &yan_mir::Program) -> bool {
         })
 }
 
+/// The leak report of 6.9 (R1095).
+const LEAK_CODE: &str = "W862";
+
 /// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
 fn machine(p: &yan_mir::Program, ub: Option<UbMode>) -> ExitCode {
     let result = std::thread::scope(|s| {
@@ -1359,7 +1362,7 @@ fn machine(p: &yan_mir::Program, ub: Option<UbMode>) -> ExitCode {
             }
             for l in &leaks {
                 eprintln!(
-                    "warning[W862]: leak: {} bytes allocated in `{}` live when main returned",
+                    "warning[{LEAK_CODE}]: leak: {} bytes allocated in `{}` live when main returned",
                     l.size, l.site
                 );
             }
