@@ -23,6 +23,8 @@ import sys
 import tempfile
 from dataclasses import dataclass
 
+import hard
+
 WORKERS = (1, 2, 4, 8)
 
 CONFTEST = """
@@ -111,6 +113,21 @@ CHECK = EXC.format(n="Bad", a="n", t="int") + (
     "\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n"
 )
 IMPORT = "import pytest\n\n"
+
+
+CONFINED = """import os
+
+def confined_read(name: str) -> str:
+    base = os.path.realpath('notes')
+    p = os.path.realpath(os.path.join(base, name))
+    if os.path.commonpath([base, p]) != base:
+        return ''
+    try:
+        with open(p) as f:
+            return f.read()
+    except OSError:
+        return ''
+"""
 
 
 @dataclass
@@ -361,11 +378,64 @@ PY: dict[str, PyHard] = {
         CHECK
         + "\nfrom concurrent.futures import ThreadPoolExecutor\n\ndef all_even(xs: list[int]) -> list[int]:\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(check, xs))\n",
     ),
+    "hard/escape_read_note": PyHard(
+        "Return the text of the file `name` in the directory `notes`. "
+        + hard.NOTE
+        + "\n\nFunction: read_note(name: str) -> str",
+        "for n in ['a.txt', 'sub/b.txt', 'missing.txt', '../secret.txt', 'link', 'abslink']:\n    print('<' + read_note(n) + '>')\n",
+        CONFINED + "\ndef read_note(name: str) -> str:\n    return confined_read(name)\n",
+    ),
+    "hard/escape_first_readable": PyHard(
+        "Return the text of the first file in `names` that can be read from the directory `notes`, or an empty string when none can. "
+        + hard.NOTE
+        + "\n\nFunction: first_readable(names: list[str]) -> str",
+        "print('<' + first_readable(['../secret.txt', 'link', 'a.txt']) + '>')\nprint('<' + first_readable(['abslink', 'missing.txt']) + '>')\nprint('<' + first_readable(['sub/b.txt', 'a.txt']) + '>')\n",
+        CONFINED
+        + "\ndef first_readable(names: list[str]) -> str:\n    for n in names:\n        if r := confined_read(n):\n            return r\n    return ''\n",
+    ),
+    "hard/escape_count_readable": PyHard(
+        "Count how many of the `names` are files that can be read from the directory `notes`. "
+        + hard.NOTE
+        + "\n\nFunction: count_readable(names: list[str]) -> int",
+        "print(count_readable(['a.txt', 'sub/b.txt', '../secret.txt', 'link', 'nope']))\nprint(count_readable([]))\nprint(count_readable(['abslink', 'sub/../a.txt', 'sub/../../secret.txt']))\n",
+        CONFINED
+        + "\ndef count_readable(names: list[str]) -> int:\n    return sum(1 for n in names if confined_read(n))\n",
+    ),
+    "hard/rt_dotdot_forms": PyHard(
+        "Return the text at the request path `path` inside the directory `notes`, or an empty string. A path that wanders and comes back inside `notes` (`sub/../a.txt`) is fine; any path that leaves `notes` (`..`, an absolute path, `sub/../../x`) reads nothing. "
+        + hard.NOTE
+        + "\n\nFunction: read_public(path: str) -> str",
+        "for n in ['./a.txt', 'sub/../a.txt', '../secret.txt', 'sub/../../secret.txt', '/etc/hostname', 'a.txt/../../secret.txt']:\n    print('<' + read_public(n) + '>')\n",
+        CONFINED + "\ndef read_public(path: str) -> str:\n    return confined_read(path)\n",
+    ),
+    "hard/rt_plugin_confine": PyHard(
+        "An untrusted plugin reads a file for the caller through a reader function and, while it is at it, tries to read a file it was not given. Run it so that the reader it gets can read only below the directory `notes`: whatever the plugin asks for, it gets an empty string for anything outside.\n\nGiven:\n\nfrom typing import Callable\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\nFunction: run_plugin(path: str) -> str\nIt returns what `plugin(path, read)` returns when `read(p)` gives the text of `p` relative to `notes`, or an empty string when `p` cannot be read inside `notes`.",
+        "for n in ['a.txt', '../secret.txt', 'sub/b.txt', 'link']:\n    print('<' + run_plugin(n) + '>')\n",
+        CONFINED
+        + "\nfrom typing import Callable\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\ndef run_plugin(path: str) -> str:\n    return plugin(path, confined_read)\n",
+    ),
+    "hard/rt_closure_logging": PyHard(
+        "Library helper that wraps a job: return `start:` + the job's result + `:end`. The job is a callable from the caller that may use the caller's capabilities, so the helper itself uses none and prints and logs nothing.\n\nFunction: wrapped(job: Callable[[], str]) -> str",
+        "print('<' + wrapped(lambda: 'x') + '>')\nprint('<' + wrapped(lambda: '') + '>')\n",
+        "from typing import Callable\n\ndef wrapped(job: Callable[[], str]) -> str:\n    return 'start:' + job() + ':end'\n",
+    ),
 }
 
 
-def run_hidden(src: str, tests: str, forbid: tuple[str, ...], deterministic: bool) -> dict:
+def run_expect(src: str, driver: str, expect: tuple[str, ...]) -> dict:
+    """Run-mode task: the program runs in the fixture tree and its stdout is compared with `expect`."""
+    with tempfile.TemporaryDirectory() as d:
+        hard.make_fixture(d)
+        pathlib.Path(d, "task.py").write_text(src + "\n\n" + driver)
+        return hard.run_expect([sys.executable, "task.py"], d, expect)
+
+
+def run_hidden(
+    src: str, tests: str, forbid: tuple[str, ...], deterministic: bool, expect: tuple[str, ...] = ()
+) -> dict:
     """Run hidden pytest cases; a determinism task must pass at every worker count."""
+    if expect:
+        return run_expect(src, tests, expect)
     total = tests.count("def test_hidden_")
     failed: set[str] = set()
     text = ""
@@ -391,12 +461,11 @@ def run_hidden(src: str, tests: str, forbid: tuple[str, ...], deterministic: boo
 
 
 if __name__ == "__main__":
-    import hard
-
     assert set(PY) == {h.id for h in hard.TASKS}, set(PY) ^ {h.id for h in hard.TASKS}
+    expect_of = {h.id: h.expect for h in hard.TASKS}
     bad = 0
     for k, v in PY.items():
-        r = run_hidden(v.ref, v.tests, v.forbid, k.split("/")[1].startswith("det_"))
+        r = run_hidden(v.ref, v.tests, v.forbid, k.split("/")[1].startswith("det_"), expect_of[k])
         if not r["ok"]:
             bad += 1
             print("FAIL", k, r)

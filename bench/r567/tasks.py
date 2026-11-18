@@ -46,9 +46,12 @@ class Task:
     py_tests: str | None = None
     forbid: tuple[str, ...] = ()
     yn_prompt: str | None = None  # hard suite: the plain Yan arm's task text
+    expect: tuple[str, ...] = ()  # run-mode hard task: expected stdout lines in the fixture tree
 
     @property
     def n_tests(self) -> int:
+        if self.expect:
+            return len(self.expect)
         return self.hidden.count("def test_hidden_") if self.hidden else len(self.cases)
 
     @property
@@ -336,7 +339,7 @@ def load_hard() -> list[Task]:
         Task(h.id, "hard", h.id.split("/")[1], "", [], [], "", [], hidden=h.tests,
              raw_prompt=h.prompt, category=h.category, py_prompt=hard_py.PY[h.id].prompt,
              py_tests=hard_py.PY[h.id].tests, forbid=hard_py.PY[h.id].forbid,
-             yn_prompt=hard_yn.YN[h.id].prompt)
+             yn_prompt=hard_yn.YN[h.id].prompt, expect=h.expect)
         for h in hard.TASKS
     ]  # fmt: skip
 
