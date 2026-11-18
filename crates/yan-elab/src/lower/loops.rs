@@ -159,6 +159,10 @@ impl Lower<'_, '_, '_> {
                     xs = self.tmp(&Ty::List(Box::new(ts[0].clone())), Rhs::Call(keys), at);
                     ts[0].clone()
                 }
+                Ty::Coll("bytes" | "bytearray", _) => {
+                    len_path = format!("std.{}.len", t.module().expect("a collection"));
+                    Ty::Fixed("u8")
+                }
                 Ty::Coll(_, ts) => {
                     len_path = format!("std.{}.len", t.module().expect("a collection"));
                     ts[0].clone()
@@ -233,7 +237,12 @@ impl Lower<'_, '_, '_> {
             };
             let zero = Atom::Lit(Literal::Int("0".into()), at);
             self.bind(&i, true, &Ty::Int, Rhs::Atom(zero), at, at);
-            let len = call(&len_path, vec![e.targ()], vec![let_arg(xs.clone())], at);
+            let len_targs = if matches!(t, Ty::Coll("bytes" | "bytearray", _)) {
+                Vec::new()
+            } else {
+                vec![e.targ()]
+            };
+            let len = call(&len_path, len_targs, vec![let_arg(xs.clone())], at);
             let n = self.tmp(&Ty::Int, Rhs::Call(len), at);
             (Some((xs, e)), n, one)
         };
