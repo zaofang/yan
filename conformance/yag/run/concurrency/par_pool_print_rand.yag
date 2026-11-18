@@ -1,0 +1,38 @@
+# spec: 6.7, 7.1
+# rows: R1088
+# note: pool arms print and draw seeded rand; output is written at the join in arm order and draws follow the task-path split, at every thread count
+# stdout:
+# a0
+# a1
+# a2
+# b0
+# b1
+# 42 89
+# c0
+# c1
+# d0
+# d1
+# d2
+# end
+
+def draw() -> int uses rand:
+    return rand.below(1000)
+
+def say(tag: str, n: int) uses io:
+    i = 0
+    while i < n:
+        io.print(f"{tag}{i}")
+        i += 1
+
+pub def main() uses io, rand:
+    with rand = seeded(7):
+        par:
+            say("a", 3)
+            say("b", 2)
+            x = draw()
+            y = draw()
+        io.print(f"{x} {y}")
+        par:
+            say("c", 2)
+            say("d", 3)
+        io.print("end")

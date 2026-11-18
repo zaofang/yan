@@ -744,6 +744,12 @@ impl RtFn {
         matches!(
             self,
             Concat
+                | Print
+                | RandSeeded
+                | RandSplit
+                | RandNext
+                | RandF64
+                | RandBelow
                 | ShowI64
                 | ShowU64
                 | ShowF64
