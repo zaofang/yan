@@ -37,6 +37,8 @@ pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;
 #[allow(unsafe_code)]
+pub mod futex;
+#[allow(unsafe_code)]
 pub mod heap;
 pub mod json;
 #[allow(unsafe_code)]

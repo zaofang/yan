@@ -62,7 +62,7 @@ pub const NOT_READY: u64 = 4;
 
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
-fn idle_or_deadlock() -> u64 {
+pub(crate) fn idle_or_deadlock() -> u64 {
     if crate::actor::yan_rt_actor_idle() == 0 {
         deadlock();
     }

@@ -106,6 +106,8 @@ pub struct Machine<'p> {
     race: RefCell<Race>,
     /// Where each moved-from word of memory was moved, by address (under `--ub`).
     move_sites: HashMap<u64, String>,
+    /// The words an atomic instruction accessed (under `--ub`), for `ub(15)`.
+    atomic_words: std::collections::HashSet<u64>,
 }
 
 /// An allocation still live when `main` returned (the leak report of 6.9; leaks are not UB).
@@ -134,6 +136,7 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<Leak>, Stop> {
         fs_reason: String::new(),
         race: RefCell::new(Race::new()),
         move_sites: HashMap::new(),
+        atomic_words: std::collections::HashSet::new(),
     };
     yan_rt::actor::defer_disposal();
     yan_rt::actor::defer_stopped_text();
@@ -219,6 +222,30 @@ impl Machine<'_> {
             ));
         }
         Ok(())
+    }
+
+    /// `Atomic.wait` on `addr` is `ub(15)` unless it is 4-aligned, inside a live allocation and a
+    /// word an atomic instruction accessed. Returns whether the word equals `expected`.
+    fn wait_word(&self, addr: u64, expected: u64) -> Result<bool, Stop> {
+        if self.ub {
+            let why = if !addr.is_multiple_of(4) {
+                Some("is not 4-aligned")
+            } else if self.mem.read(addr, 4).is_none() {
+                Some("is not inside a live allocation")
+            } else if !self.atomic_words.contains(&addr) {
+                Some("is not a word accessed atomically")
+            } else {
+                None
+            };
+            if let Some(why) = why {
+                return Err(Stop::Ub(
+                    15,
+                    format!("`Atomic.wait` on {addr:#x}, which {why}"),
+                ));
+            }
+        }
+        let w = self.read_word_with(addr, false)?;
+        Ok(w as u32 == expected as u32)
     }
 
     fn typed(&self, t: Ty, w: u64) -> Result<Val, Stop> {
@@ -519,6 +546,9 @@ impl Machine<'_> {
                     .map(|o| self.eval(fr, o, f).map(encode))
                     .collect::<Result<Vec<u64>, Stop>>()?;
                 let old = self.read_word_with(p, false)?;
+                if self.ub {
+                    self.atomic_words.insert(p);
+                }
                 let new = ops::atomic_new(*op, *ty, old, &a);
                 if let Some(w) = new {
                     self.write_word_with(p, w, false)?;

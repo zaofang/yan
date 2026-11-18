@@ -3,9 +3,9 @@
 //! `words` 8-byte slots each in a data allocation that is replaced when the list grows.
 
 use crate::mem::Byte;
-use crate::{Machine, Stop, Val, unsupported};
+use crate::{Kind, Machine, Stop, Val, unsupported};
 use std::io::Write;
-use yan_mir::RtFn;
+use yan_mir::{MemOrder, RtFn};
 use yan_rt::jsonslots::Slot;
 use yan_rt::sched;
 
@@ -1826,6 +1826,16 @@ impl Machine<'_> {
                     self.race.borrow_mut().chan_recv_park(ch as u64);
                 }
                 Val::I(i128::from(status))
+            }
+            RtFn::FutexWait => {
+                let (p, in_task) = (a[0].addr(), a[3].int() != 0);
+                let equal = self.wait_word(p, a[1].int() as u64)?;
+                self.atomic_raced(p, Kind::Read, MemOrder::from_code(a[2].int()))?;
+                Val::I(i128::from(yan_rt::futex::wait(p as usize, equal, in_task)))
+            }
+            RtFn::FutexNotify => {
+                yan_rt::futex::notify(a[0].addr() as usize, a[1].int() as u64 as usize);
+                Val::U
             }
             RtFn::SelectWait => {
                 let (keys, at) = (self.list_words(a[0])?, self.list_words(a[1])?);

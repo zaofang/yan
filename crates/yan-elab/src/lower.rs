@@ -2235,6 +2235,9 @@ const NONDET_OPS: &[&str] = &[
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
+    "std.sync.atomic.wait",
+    "std.sync.atomic.notify_one",
+    "std.sync.atomic.notify_all",
 ];
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).
