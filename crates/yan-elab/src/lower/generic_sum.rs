@@ -41,7 +41,13 @@ impl Lower<'_, '_, '_> {
         let r = r?;
         let mut map = Vec::new();
         for (w, t, _) in &got {
-            w.unify(t, &mut map);
+            let mut found = Vec::new();
+            w.unify(t, &mut found);
+            // A parameter of a callee still being inferred is no type: the fields decide it.
+            let scope = self.g.scope.borrow();
+            let known = |t: &Ty| !matches!(t, Ty::Param(q) if !scope.contains(q));
+            found.retain(|(p, t)| known(t) && !map.iter().any(|(m, _)| m == p));
+            map.extend(found);
         }
         let Some(targs) = params
             .iter()
