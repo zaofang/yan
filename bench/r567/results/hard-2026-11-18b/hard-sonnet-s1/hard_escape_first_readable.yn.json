@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 717,
+   "reasoning": 494,
+   "out_bytes": 532
+  },
+  "body": {
+   "in": 6850,
+   "out": 2999,
+   "reasoning": 1922,
+   "out_bytes": 2708
+  }
+ },
+ "final": "-- Reads one name confined to the directory `notes`.\n-- Returns None when the file is missing, unreadable, or the name escapes `notes`.\ntry_read(name: str) -> str? uses fs =\n  ex try_read(\"../secret.txt\") == None\n  ex try_read(\"/etc/passwd\") == None\n  if name.char_count() == 0\n    return None\n  for part in name.split(\"/\")\n    if part == \"\" or part == \"..\"\n      return None\n  for part in name.split(\"\\\\\")\n    if part == \"\" or part == \"..\"\n      return None\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    return text\n\n-- Returns the text of the first name in `names` that can be read from `notes`,\n-- or \"\" when none can.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret.txt\", \"/etc/passwd\"]) == \"\"\n  for n in names\n    let t = try_read(n)\n    if t != None\n      return t else \"\"\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 717,
+    "reasoning": 494
+   },
+   "out_bytes": 532,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1854,
+    "out": 1046,
+    "reasoning": 683
+   },
+   "out_bytes": 910,
+   "ok": false,
+   "report": "E100 task.yn:16:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2283,
+    "out": 808,
+    "reasoning": 446
+   },
+   "out_bytes": 909,
+   "ok": false,
+   "report": "E203 task.yn:8:19 try_read: `get` `Iter[char]` has no method `get`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2713,
+    "out": 1145,
+    "reasoning": 793
+   },
+   "out_bytes": 889,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:16:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

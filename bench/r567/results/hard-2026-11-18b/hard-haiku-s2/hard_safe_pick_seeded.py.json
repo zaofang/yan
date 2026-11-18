@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 748,
+   "reasoning": 379,
+   "out_bytes": 842
+  },
+  "body": {
+   "in": 1497,
+   "out": 767,
+   "reasoning": 303,
+   "out_bytes": 1067
+  }
+ },
+ "final": "import hashlib\n\nimport pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs chosen by seed.\n\n    The same xs and seed always produce the same element. No randomness\n    is used. Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"pick() requires a non-empty list\")\n    digest = hashlib.sha256(str(seed).encode(\"ascii\")).digest()\n    index = int.from_bytes(digest[:8], \"big\") % len(xs)\n    return xs[index]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, 0) in xs\n    assert pick(xs, 7) in xs\n\n\ndef test_pick_single_element() -> None:\n    assert pick([42], 0) == 42\n    assert pick([42], 123456) == 42\n\n\ndef test_pick_is_deterministic() -> None:\n    xs = [5, 8, 13, 21]\n    for seed in range(50):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_accepts_negative_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, -1) in xs\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 748,
+    "reasoning": 379
+   },
+   "out_bytes": 842,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1497,
+    "out": 767,
+    "reasoning": 303
+   },
+   "out_bytes": 1067,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

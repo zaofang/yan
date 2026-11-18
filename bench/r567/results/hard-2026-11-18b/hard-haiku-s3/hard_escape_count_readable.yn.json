@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 1790,
+   "reasoning": 1481,
+   "out_bytes": 740
+  },
+  "body": {
+   "in": 4342,
+   "out": 2647,
+   "reasoning": 1816,
+   "out_bytes": 1973
+  }
+ },
+ "final": "-- Accepts only a bare file name: no separators, no \"..\", not empty.\nis_plain_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  name.char_count() > 0 and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1 and name.split(\"..\").len() == 1\n\n-- Reads one note from the confined fs. A missing or unreadable file gives \"\".\nread_note(name: str) -> str uses fs =\n  pre is_plain_name(name)\n  ex read_note(\"no-such-file.txt\") == \"\"\n  fs.read(name) else \"\"\n\n-- Counts the names whose note reads as non-empty. Each name is checked\n-- first, and every read happens under fs.sub(\"notes\").\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0 and out <= names.len()\n  ex count_readable([\"no-such-file.txt\", \"../secret\"]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if is_plain_name(name)\n        if read_note(name) != \"\"\n          n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 1790,
+    "reasoning": 1481
+   },
+   "out_bytes": 740,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1930,
+    "out": 1468,
+    "reasoning": 1052
+   },
+   "out_bytes": 987,
+   "ok": false,
+   "report": "E100 task.yn:20:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2412,
+    "out": 1179,
+    "reasoning": 764
+   },
+   "out_bytes": 986,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:20:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

@@ -1,0 +1,126 @@
+{
+ "final": "def format_log_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as the level in square brackets, a space, then the message.\"\"\"\n    post out.startswith(\"[\")\n    ex format_log_line(\"INFO\", \"started\") == \"[INFO] started\"\n    ex format_log_line(\"WARN\", \"\") == \"[WARN] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print the formatted log line to standard output using only io; no file is written.\"\"\"\n    io.print(format_log_line(level, message))\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 W831 /tmp/tmpg5g57wn2/work/task.yag:2:31 format_log_line: `as `[level] message`` `[level]` links to nothing\n#2 E203 /tmp/tmpg5g57wn2/work/task.yag:5:14 format_log_line: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#3 W831 /tmp/tmpg5g57wn2/work/task.yag:9:16 log_line: `Print `[level] message`` `[level]` links to nothing",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "E203",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2038,
+    "out": 599,
+    "reasoning": 439
+   },
+   "out_bytes": 415
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2418,
+    "out": 281,
+    "reasoning": 114
+   },
+   "out_bytes": 457
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2683,
+    "out": 362,
+    "reasoning": 173
+   },
+   "out_bytes": 527
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 2683,
+   "out": 362,
+   "reasoning": 173,
+   "out_bytes": 527
+  },
+  "spec": {
+   "in": 4456,
+   "out": 880,
+   "reasoning": 553,
+   "out_bytes": 872
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E203",
+    "W831"
+   ],
+   "report": "#1 W831 /tmp/tmpg5g57wn2/work/task.yag:2:31 format_log_line: `as `[level] message`` `[level]` links to nothing\n#2 E203 /tmp/tmpg5g57wn2/work/task.yag:5:14 format_log_line: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#3 W831 /tmp/tmpg5g57wn2/work/task.yag:9:16 log_line: `Print `[level] message`` `[level]` links to nothing"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

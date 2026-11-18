@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 420,
+   "reasoning": 304,
+   "out_bytes": 239
+  },
+  "body": {
+   "in": 6163,
+   "out": 2460,
+   "reasoning": 1733,
+   "out_bytes": 1786
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret.txt\"]) == \"\"\n  ex first_readable([\"/etc/passwd\", \"..\", \"a/../../b\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      var blocked = name.char_count() == 0\n      if name.split(\"\\\\\").len() > 1\n        blocked = True\n      for part in name.split(\"/\")\n        if part == \"..\"\n          blocked = True\n        if part == \"\"\n          blocked = True\n      if blocked\n        continue\n      let text = fs.read(name) else continue\n      return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 420,
+    "reasoning": 304
+   },
+   "out_bytes": 239,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1747,
+    "out": 1086,
+    "reasoning": 848
+   },
+   "out_bytes": 573,
+   "ok": false,
+   "report": "E100 task.yn:6:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2051,
+    "out": 850,
+    "reasoning": 603
+   },
+   "out_bytes": 604,
+   "ok": false,
+   "report": "E100 task.yn:8:11 `var unsafe =` unexpected token; expected a pattern",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2365,
+    "out": 524,
+    "reasoning": 282
+   },
+   "out_bytes": 609,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:6:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

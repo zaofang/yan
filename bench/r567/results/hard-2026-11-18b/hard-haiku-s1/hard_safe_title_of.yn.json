@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 447,
+   "reasoning": 346,
+   "out_bytes": 208
+  },
+  "body": {
+   "in": 1632,
+   "out": 918,
+   "reasoning": 710,
+   "out_bytes": 465
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  pre html.char_count() >= 0\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<title>Hi</title>\") == \"Hi\"\n  ex title_of(\"<p>no title</p>\") == \"\"\n  let open = html.split(\"<title>\")\n  let rest = open.get(1) else return \"\"\n  let close = rest.split(\"</title>\")\n  let title = close.get(0) else return \"\"\n  title\n\ntest_title_of() =\n  assert title_of(\"<title>Hi</title>\") == \"Hi\"\n  assert title_of(\"<p>no title</p>\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 447,
+    "reasoning": 346
+   },
+   "out_bytes": 208,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1632,
+    "out": 918,
+    "reasoning": 710
+   },
+   "out_bytes": 465,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

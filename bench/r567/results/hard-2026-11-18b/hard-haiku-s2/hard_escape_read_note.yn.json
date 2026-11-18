@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1539,
+   "out": 1137,
+   "reasoning": 950,
+   "out_bytes": 441
+  },
+  "body": {
+   "in": 3942,
+   "out": 2653,
+   "reasoning": 2098,
+   "out_bytes": 1297
+  }
+ },
+ "final": "-- Spec only: bodies are placeholders until Phase 2.\n\n-- True only for a bare file name: no separators, no \"..\", not empty.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"notes.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  name != \"\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1 and name.split(\"..\").len() == 1\n\n-- Returns the text of notes/name, or \"\" for an unsafe, missing, or unreadable name.\nread_note(name: str) -> str uses fs =\n  post is_plain_name(name) or out == \"\"\n  if not is_plain_name(name)\n    return \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 1137,
+    "reasoning": 950
+   },
+   "out_bytes": 441,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1799,
+    "out": 1303,
+    "reasoning": 1025
+   },
+   "out_bytes": 649,
+   "ok": false,
+   "report": "E100 task.yn:15:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2143,
+    "out": 1350,
+    "reasoning": 1073
+   },
+   "out_bytes": 648,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:15:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

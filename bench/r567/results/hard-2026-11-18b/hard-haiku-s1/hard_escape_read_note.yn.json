@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 3369,
+   "out": 1889,
+   "reasoning": 1453,
+   "out_bytes": 1097
+  },
+  "body": {
+   "in": 4637,
+   "out": 2386,
+   "reasoning": 1705,
+   "out_bytes": 1717
+  }
+ },
+ "final": "-- Names come from untrusted requests. Only plain file names\n-- (no separators, no \"..\", not empty) may reach the notes directory.\nis_plain_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  if name.split(\"..\").len() > 1\n    return False\n  True\n\n-- Returns the note text, or \"\" when the file is missing or unreadable.\n-- A non-empty result only comes from a plain name inside notes.\nread_note(name: str) -> str uses fs =\n  post out == \"\" or is_plain_name(name)\n  if not is_plain_name(name)\n    return \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 1215,
+    "reasoning": 991
+   },
+   "out_bytes": 561,
+   "ok": false,
+   "report": "E100 task.yn:3:15 `notes_dir = \"` unexpected token; expected `:`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1830,
+    "out": 674,
+    "reasoning": 462
+   },
+   "out_bytes": 536,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2115,
+    "out": 1530,
+    "reasoning": 1189
+   },
+   "out_bytes": 859,
+   "ok": false,
+   "report": "E100 task.yn:25:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2522,
+    "out": 856,
+    "reasoning": 516
+   },
+   "out_bytes": 858,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:25:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

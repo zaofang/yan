@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2613,
+   "out": 1241,
+   "reasoning": 522,
+   "out_bytes": 1594
+  },
+  "body": {
+   "in": 1938,
+   "out": 342,
+   "reasoning": 0,
+   "out_bytes": 753
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place. Returns nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\"]\n\n\ndef test_add_name_appends_to_end_of_existing_list() -> None:\n    dst: list[str] = [\"ada\", \"grace\"]\n    add_name(dst, \"linus\")\n    assert dst == [\"ada\", \"grace\", \"linus\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"ada\"]\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\", \"ada\"]\n\n\ndef test_add_name_mutates_the_same_list_object() -> None:\n    dst: list[str] = []\n    alias = dst\n    add_name(dst, \"ada\")\n    assert alias is dst\n    assert alias == [\"ada\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 643,
+    "reasoning": 261
+   },
+   "out_bytes": 851,
+   "ok": false,
+   "report": "test_task.py:26: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1544,
+    "out": 598,
+    "reasoning": 261
+   },
+   "out_bytes": 743,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1938,
+    "out": 342,
+    "reasoning": 0
+   },
+   "out_bytes": 753,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

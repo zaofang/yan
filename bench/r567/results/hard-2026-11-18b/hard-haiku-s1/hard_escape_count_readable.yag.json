@@ -1,0 +1,160 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single non-empty path component that cannot leave a directory.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../x\") == False\n    ex is_plain_name(\"\") == False\n    ex is_plain_name(\"a/b\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \"\\0\":\n            return False\n    return True\n\ndef note_readable(name: str) -> bool uses fs:\n    \"\"\"True when the file named name inside notes exists and can be read. Names that are not plain names are never opened.\"\"\"\n    post not (out and not is_plain_name(name))\n    if not is_plain_name(name):\n        return False\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Contents of the file named name inside notes. Returns \"\" when name is not a plain name, the file is missing, or it cannot be read.\"\"\"\n    post is_plain_name(name) or out == \"\"\n    if not is_plain_name(name):\n        return \"\"\n    text = \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else \"\"\n    return text\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Number of names whose file inside notes can be read. Names that escape notes are never opened and do not count.\"\"\"\n    post out >= 0 and out <= names.len()\n    count = 0\n    for name in names:\n        if note_readable(name):\n            count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpr_zrktd6/work/task.yag:10:8 note_readable: `assert note_readable(\"../x\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#2 E301 /tmp/tmpr_zrktd6/work/task.yag:11:8 note_readable: `assert note_readable(\"\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#3 E301 /tmp/tmpr_zrktd6/work/task.yag:16:8 read_note: `assert read_note(\"../secret\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmpr_zrktd6/work/task.yag:17:8 read_note: `assert read_note(\"a/b\")` capability `fs` is not in scope | in `ex` of `read_note`\n#5 E301 /tmp/tmpr_zrktd6/work/task.yag:23:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#6 E301 /tmp/tmpr_zrktd6/work/task.yag:24:8 count_readable: `assert count_readable([\"../secret\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 2448,
+    "reasoning": 2066
+   },
+   "out_bytes": 1018
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2987,
+    "out": 1281,
+    "reasoning": 924
+   },
+   "out_bytes": 982
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpr_zrktd6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E315 /tmp/tmpr_zrktd6/work/task.yag:21:16 note_readable: `data = fs.read_text` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err -> v` to handle it",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E315"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3442,
+    "out": 2223,
+    "reasoning": 1664
+   },
+   "out_bytes": 1574
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4229,
+    "out": 992,
+    "reasoning": 442
+   },
+   "out_bytes": 1552
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 7671,
+   "out": 3215,
+   "reasoning": 2106,
+   "out_bytes": 3126
+  },
+  "spec": {
+   "in": 5116,
+   "out": 3729,
+   "reasoning": 2990,
+   "out_bytes": 2000
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpr_zrktd6/work/task.yag:10:8 note_readable: `assert note_readable(\"../x\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#2 E301 /tmp/tmpr_zrktd6/work/task.yag:11:8 note_readable: `assert note_readable(\"\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#3 E301 /tmp/tmpr_zrktd6/work/task.yag:16:8 read_note: `assert read_note(\"../secret\")` capability `fs`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E315",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpr_zrktd6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E315 /tmp/tmpr_zrktd6/work/task.yag:21:16 note_readable: `data = fs.read_text` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) el"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E315 task.yag:21:16 note_readable: `fs` the failure of this call is not handled; add `?` or `else`\nN57 task.yag:21:16 note_readable: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nN57 task.yag:31:16 read_note: `fs` `fs.read_text(path)` normalized to `fs.read(path)`"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

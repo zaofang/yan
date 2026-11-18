@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2405,
+   "out": 1451,
+   "reasoning": 1026,
+   "out_bytes": 1030
+  },
+  "body": {
+   "in": 1618,
+   "out": 456,
+   "reasoning": 241,
+   "out_bytes": 529
+  }
+ },
+ "final": "def first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element of xs, or default if xs is empty.\"\"\"\n    return xs[0] if xs else default\n\n\ndef test_first_or_empty_returns_default() -> None:\n    assert first_or([], 7) == 7\n\n\ndef test_first_or_returns_first_element() -> None:\n    assert first_or([3, 1, 2], 7) == 3\n\n\ndef test_first_or_ignores_default_when_nonempty() -> None:\n    assert first_or([0], 9) == 0\n\n\ndef test_first_or_single_negative_element() -> None:\n    assert first_or([-4], 0) == -4\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1050,
+    "out": 1123,
+    "reasoning": 904
+   },
+   "out_bytes": 529,
+   "ok": false,
+   "report": "test_task.py:1: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1355,
+    "out": 328,
+    "reasoning": 122
+   },
+   "out_bytes": 501,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1618,
+    "out": 456,
+    "reasoning": 241
+   },
+   "out_bytes": 529,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

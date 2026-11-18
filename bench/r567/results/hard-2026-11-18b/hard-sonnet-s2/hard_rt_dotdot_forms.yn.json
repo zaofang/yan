@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1615,
+   "out": 913,
+   "reasoning": 480,
+   "out_bytes": 987
+  },
+  "body": {
+   "in": 8395,
+   "out": 3336,
+   "reasoning": 1528,
+   "out_bytes": 4283
+  }
+ },
+ "final": "-- True when the path never climbs above its starting directory\n-- and is not absolute. Names such as \"sub/../a.txt\" stay inside.\nstays_inside(path: str) -> bool =\n  ex stays_inside(\"a.txt\") == True\n  ex stays_inside(\"sub/../a.txt\") == True\n  ex stays_inside(\"sub/x.txt\") == True\n  ex stays_inside(\"..\") == False\n  ex stays_inside(\"/etc/passwd\") == False\n  ex stays_inside(\"sub/../../x\") == False\n  if path.split(\"\\\\\").len() > 1\n    return False\n  let parts = path.split(\"/\")\n  let first = parts.get(0) else \"\"\n  if first == \"\"\n    return False\n  var depth = 0\n  for part in parts\n    if part == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    else if part == \"\" or part == \".\"\n      continue\n    else\n      depth += 1\n  True\n\n-- Reads the file at `path` inside `notes`, or \"\" when the path leaves\n-- `notes` or the file is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  ex read_public(\"..\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"missing.txt\") == \"\"\n  var result = \"\"\n  if stays_inside(path)\n    with fs = fs.sub(\"notes\")\n      result = fs.read(path) else \"\"\n  result\n\ntest_stays_inside() =\n  assert stays_inside(\"sub/../a.txt\")\n  assert not stays_inside(\"../a.txt\")\n  assert not stays_inside(\"/a.txt\")\n\ntest_read_public_escape() uses fs =\n  assert read_public(\"../x\") == \"\"\n  assert read_public(\"sub/../../x\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 913,
+    "reasoning": 480
+   },
+   "out_bytes": 987,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2121,
+    "out": 1433,
+    "reasoning": 829
+   },
+   "out_bytes": 1430,
+   "ok": false,
+   "report": "E100 task.yn:37:30 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2791,
+    "out": 1021,
+    "reasoning": 418
+   },
+   "out_bytes": 1429,
+   "ok": false,
+   "report": "E017 task.yn:38:16 read_public: `fs.read_text(path) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3483,
+    "out": 882,
+    "reasoning": 281
+   },
+   "out_bytes": 1424,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:37:30 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

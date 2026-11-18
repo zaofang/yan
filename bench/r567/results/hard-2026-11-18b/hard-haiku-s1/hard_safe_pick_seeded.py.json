@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1872,
+   "reasoning": 1322,
+   "out_bytes": 1278
+  },
+  "body": {
+   "in": 1678,
+   "out": 1307,
+   "reasoning": 572,
+   "out_bytes": 1591
+  }
+ },
+ "final": "import random\n\nimport pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return one element of the non-empty list xs, chosen by seed.\n\n    Deterministic: the same xs and seed always give the same element.\n    Does not use the random module or any other source of randomness.\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"pick() requires a non-empty list\")\n    mask = 0xFFFF_FFFF_FFFF_FFFF\n    x = seed & mask\n    x = (x + 0x9E3779B97F4A7C15) & mask\n    x = ((x ^ (x >> 30)) * 0xBF58476D1CE4E5B9) & mask\n    x = ((x ^ (x >> 27)) * 0x94D049BB133111EB) & mask\n    x ^= x >> 31\n    return xs[x % len(xs)]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_same_seed_same_result() -> None:\n    xs = [1, 2, 3, 4, 5]\n    for seed in range(20):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_ignores_global_random_state() -> None:\n    xs = list(range(100))\n    random.seed(1)\n    a = [pick(xs, s) for s in range(30)]\n    random.seed(999)\n    b = [pick(xs, s) for s in range(30)]\n    assert a == b\n\n\ndef test_pick_single_element() -> None:\n    assert pick([7], 0) == 7\n    assert pick([7], -5) == 7\n\n\ndef test_pick_varies_over_seeds() -> None:\n    xs = list(range(10))\n    seen = {pick(xs, s) for s in range(200)}\n    assert len(seen) > 1\n\n\ndef test_pick_negative_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, -1) in xs\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1872,
+    "reasoning": 1322
+   },
+   "out_bytes": 1278,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1678,
+    "out": 1307,
+    "reasoning": 572
+   },
+   "out_bytes": 1591,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

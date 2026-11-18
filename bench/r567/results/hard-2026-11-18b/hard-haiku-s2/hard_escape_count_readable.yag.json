@@ -1,0 +1,160 @@
+{
+ "final": "def safe_name(name: str) -> str | None:\n    \"\"\"Return name if it is a plain file name inside a directory, else None.\n\n    Rejects empty names, absolute paths, path separators, and \"..\".\n    \"\"\"\n    post out is None or out == name\n    ex safe_name(\"a.txt\") == \"a.txt\"\n    ex safe_name(\"../a\") is None\n    ex safe_name(\"sub/a.txt\") is None\n    if name == \"\" or name == \".\" or name == \"..\":\n        return None\n    if \"/\" in name or \"\\\\\" in name or \"..\" in name:\n        return None\n    return name.copy()\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of the note called name in notes, or \"\" if it is missing or unreadable.\n\n    Reads only through the fs capability narrowed to the notes directory.\n    \"\"\"\n    pre safe_name(name) is not None\n    post out == \"\" or out.byte_len() >= 0\n    text = fs.read_text(name) else \"\"\n    return text\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the notes directory.\n\n    Each name is checked with safe_name, then read from notes through\n    fs.sub(\"notes\"); a name that is unsafe, missing, or unreadable does not count.\n    \"\"\"\n    post 0 <= out and out <= names.len()\n    count = 0\n    with fs = fs.sub(\"notes\"):\n        for n in names:\n            ok = safe_name(n) else \"\"\n            if ok == \"\":\n                continue\n            if read_note(ok) != \"\":\n                count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp1d9gs3s5/work/task.yag:19:8 read_note: `assert read_note(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp1d9gs3s5/work/task.yag:20:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 N22 /tmp/tmp1d9gs3s5/work/task.yag:30:10 `0 <` chained comparison rewritten with `and`\n#4 E301 /tmp/tmp1d9gs3s5/work/task.yag:31:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#5 E301 /tmp/tmp1d9gs3s5/work/task.yag:32:8 count_readable: `assert count_readable([\"../secret.txt\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "N22",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 1294,
+    "reasoning": 863
+   },
+   "out_bytes": 1124
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2962,
+    "out": 1131,
+    "reasoning": 759
+   },
+   "out_bytes": 1004
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp1d9gs3s5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp1d9gs3s5/work/task.yag:39:26 count_readable: `(ok)` expected `str`, found `str | None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3432,
+    "out": 2136,
+    "reasoning": 1624
+   },
+   "out_bytes": 1430
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4082,
+    "out": 1108,
+    "reasoning": 593
+   },
+   "out_bytes": 1436
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 7514,
+   "out": 3244,
+   "reasoning": 2217,
+   "out_bytes": 2866
+  },
+  "spec": {
+   "in": 5091,
+   "out": 2425,
+   "reasoning": 1622,
+   "out_bytes": 2128
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301",
+    "N22"
+   ],
+   "report": "#1 E301 /tmp/tmp1d9gs3s5/work/task.yag:19:8 read_note: `assert read_note(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp1d9gs3s5/work/task.yag:20:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 N22 /tmp/tmp1d9gs3s5/work/task.yag:30:10 `0 <` chained comparison rewritten with `and`\n#4 E301 /tmp/tmp"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp1d9gs3s5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp1d9gs3s5/work/task.yag:39:26 count_readable: `(ok)` expected `str`, found `str | None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "N57 task.yag:24:12 read_note: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nE201 task.yag:41:26 count_readable: `ok` expected `str`, found `str | None`"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 427,
+   "reasoning": 323,
+   "out_bytes": 183
+  },
+  "body": {
+   "in": 1635,
+   "out": 112,
+   "reasoning": 0,
+   "out_bytes": 191
+  }
+ },
+ "final": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post out == xs[seed % xs.len()]\n  ex pick([10, 20, 30], 4) == 20\n  ex pick([10, 20, 30], -1) == 30\n  xs[seed % xs.len()]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 427,
+    "reasoning": 323
+   },
+   "out_bytes": 183,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1635,
+    "out": 112,
+    "reasoning": 0
+   },
+   "out_bytes": 191,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

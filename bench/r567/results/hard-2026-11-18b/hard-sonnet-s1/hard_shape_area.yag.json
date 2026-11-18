@@ -1,0 +1,123 @@
+{
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down; a triangle's area is b*h/2.\"\"\"\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    ex area(Tri(b=0, h=9)) == 0\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E100 /tmp/tmpf9mqdv85/work/task.yag:5:15 `match s:` unexpected `s`; expected end of line",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E100"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2057,
+    "out": 252,
+    "reasoning": 0
+   },
+   "out_bytes": 480
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2392,
+    "out": 356,
+    "reasoning": 188
+   },
+   "out_bytes": 310
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2658,
+    "out": 433,
+    "reasoning": 201
+   },
+   "out_bytes": 492
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shape_area",
+ "tokens": {
+  "body": {
+   "in": 2658,
+   "out": 433,
+   "reasoning": 201,
+   "out_bytes": 492
+  },
+  "spec": {
+   "in": 4449,
+   "out": 608,
+   "reasoning": 188,
+   "out_bytes": 790
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E100"
+   ],
+   "report": "#1 E100 /tmp/tmpf9mqdv85/work/task.yag:5:15 `match s:` unexpected `s`; expected end of line"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

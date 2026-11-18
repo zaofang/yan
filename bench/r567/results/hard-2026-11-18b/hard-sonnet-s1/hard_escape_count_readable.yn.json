@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 631,
+   "reasoning": 421,
+   "out_bytes": 476
+  },
+  "body": {
+   "in": 4000,
+   "out": 1439,
+   "reasoning": 896,
+   "out_bytes": 1221
+  }
+ },
+ "final": "-- Reads one name from inside `notes`; a missing, unreadable or escaping name gives \"\".\nread_note(name: str) -> str uses fs =\n  ex read_note(\"../secret.txt\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n\n-- Counts the names that can be read from inside `notes`.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret.txt\", \"/etc/passwd\"]) == 0\n  var n = 0\n  for name in names\n    if read_note(name) != \"\"\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 631,
+    "reasoning": 421
+   },
+   "out_bytes": 476,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1831,
+    "out": 967,
+    "reasoning": 695
+   },
+   "out_bytes": 611,
+   "ok": false,
+   "report": "E100 task.yn:6:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2169,
+    "out": 472,
+    "reasoning": 201
+   },
+   "out_bytes": 610,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:6:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}
