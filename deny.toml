@@ -4,7 +4,16 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-ignore = []
+# Unmaintained, no upgrade available; tracked in #1637.
+ignore = [
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0090",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2025-0100",
+    "RUSTSEC-2026-0543",
+]
 
 [licenses]
 version = 2
