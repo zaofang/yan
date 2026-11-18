@@ -17259,6 +17259,54 @@
    }
   },
   {
+   "path": "pkg/sim_binding_is_simulated",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1082"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1082"
+    ],
+    "note": "a test that binds only the sim fault handler is a simulated test and runs under the gate",
+    "command": [
+     "test",
+     "--gate"
+    ]
+   }
+  },
+  {
+   "path": "pkg/sim_sweep_passes",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1083"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1083"
+    ],
+    "note": "a simulated test that holds under all swept seeds passes and the sweep exits 0",
+    "command": [
+     "test",
+     "--sim=8"
+    ]
+   }
+  },
+  {
    "path": "pkg/tests_see_package_by_local_name",
    "kind": "pkg",
    "milestone": "M1",
