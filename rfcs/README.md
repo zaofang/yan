@@ -112,3 +112,4 @@ conformance case in the same PR set.
 | [0086](0086-native-pool-par.md) | Native pool for plain `par` | accepted | none |
 | [0087](0087-moved-from-place-detection.md) | Detecting a use of a moved-from place under `--ub` | accepted | |
 | [0089](0089-atomic-wait-notify.md) | `Atomic.wait` and `notify`, and the check for UB item 15 | draft | |
+| [0090](0090-ub-leak-report-and-store-buffers.md) | Leak report and store-buffer weak memory under `--ub` | draft | |
