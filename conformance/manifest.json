@@ -6782,6 +6782,22 @@
    "exit": 101
   },
   {
+   "path": "yag/run/concurrency/par_pool_print_rand.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "7.1"
+   ],
+   "rows": [
+    "R1088"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a0\na1\na2\nb0\nb1\n42 89\nc0\nc1\nd0\nd1\nd2\nend\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_pool_results.yag",
    "kind": "run",
    "milestone": "M1",

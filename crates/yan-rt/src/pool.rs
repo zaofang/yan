@@ -17,6 +17,17 @@ const STACK: usize = 256 << 20;
 thread_local! {
     /// The arm this thread is running, when it is a pool worker.
     static ARM: Cell<Option<usize>> = const { Cell::new(None) };
+    /// What the running arm printed, held back so the join can emit it in arm order.
+    static OUT: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Hold `bytes` for the join when this thread runs an arm; false when it should write them.
+pub(crate) fn capture(bytes: &[u8]) -> bool {
+    if ARM.with(Cell::get).is_none() {
+        return false;
+    }
+    OUT.with_borrow_mut(|o| o.extend_from_slice(bytes));
+    true
 }
 
 /// The worker count: `YAN_THREADS` when it is a number, else one per core.
@@ -38,6 +49,8 @@ struct Region {
     frame: usize,
     next: AtomicUsize,
     state: Mutex<Settled>,
+    /// Per arm, what it printed.
+    out: Mutex<Vec<Vec<u8>>>,
     done: Condvar,
 }
 
@@ -78,8 +91,14 @@ fn work(r: &Arms) {
             code(r.frame as *mut u64);
         }
         ARM.with(|a| a.set(None));
+        keep_output(r, k);
         settle(r, None);
     }
+}
+
+fn keep_output(r: &Region, k: usize) {
+    let bytes = OUT.with_borrow_mut(std::mem::take);
+    r.out.lock().expect("not poisoned")[k] = bytes;
 }
 
 fn settle(r: &Region, failed: Option<(usize, String, i32)>) {
@@ -111,6 +130,7 @@ pub(crate) fn arm_failed(report: String, code: i32) {
     let r = CURRENT
         .with(|c| c.borrow().clone())
         .expect("a worker has its region");
+    keep_output(&r, k);
     settle(&r, Some((k, report, code)));
     spawn(&r);
     loop {
@@ -131,6 +151,7 @@ pub unsafe extern "C" fn yan_rt_pool_run(frame: *mut u64, n: u64) {
         frame: frame as usize,
         next: AtomicUsize::new(0),
         state: Mutex::default(),
+        out: Mutex::new(vec![Vec::new(); n]),
         done: Condvar::new(),
     });
     for _ in 0..threads().min(n) {
@@ -140,9 +161,19 @@ pub unsafe extern "C" fn yan_rt_pool_run(frame: *mut u64, n: u64) {
     while s.count < n {
         s = r.done.wait(s).expect("not poisoned");
     }
-    if let Some((_, report, code)) = s.failed.take() {
+    // Output as the arms would have written it in source order: all of it, or up to and
+    // including the lowest failing arm.
+    let upto = s.failed.as_ref().map_or(n, |f| f.0 + 1);
+    {
         use std::io::Write;
-        let _ = std::io::stdout().flush();
+        let out = r.out.lock().expect("not poisoned");
+        let mut w = std::io::stdout().lock();
+        let wrote = out[..upto].iter().try_for_each(|b| w.write_all(b));
+        if wrote.and_then(|()| w.flush()).is_err() {
+            std::process::exit(1);
+        }
+    }
+    if let Some((_, report, code)) = s.failed.take() {
         eprintln!("{report}");
         std::process::exit(code);
     }
