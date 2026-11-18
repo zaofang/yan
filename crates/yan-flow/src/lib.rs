@@ -38,8 +38,6 @@ pub enum Event {
     },
     /// A drop at scope end or on a branch edge: ends ownership without reading.
     Drop { binding: Binding },
-    /// A field written again: it is no longer moved out.
-    DefField { binding: Binding, field: Field },
 }
 
 /// The position before event `event` of `node`; `event == len` is the end of the node.
@@ -260,9 +258,6 @@ fn step_moved(s: &mut Moved, e: &Event) {
         } => {
             s.insert((binding, Some(field), site));
         }
-        Event::DefField { binding, field } => {
-            s.retain(|&(b, f, _)| !(b == binding && f == Some(field)));
-        }
         Event::Use { .. } | Event::Drop { .. } => {}
     }
 }
@@ -288,7 +283,7 @@ fn step_owned(s: &mut Owned, e: &Event) {
         Event::MoveField { binding, field, .. } => {
             s.holes.insert((binding, field));
         }
-        Event::Use { .. } | Event::DefField { .. } => {}
+        Event::Use { .. } => {}
     }
 }
 
@@ -305,7 +300,7 @@ fn live_before(out: &BTreeSet<Binding>, events: &[Event], from: usize) -> BTreeS
             | Event::MoveField { binding, .. } => {
                 live.insert(binding);
             }
-            Event::Drop { .. } | Event::DefField { .. } => {}
+            Event::Drop { .. } => {}
         }
     }
     live
@@ -535,31 +530,6 @@ mod tests {
         assert!(!s.maybe_moved(X, None, at(a, 2)));
         assert_eq!(s.moved_fields(X, at(a, 2)), vec![Field(7)]);
         assert!(s.owned_at(at(a, 2)).unwrap().must.contains(&X));
-    }
-
-    #[test]
-    fn writing_a_field_again_ends_its_move() {
-        let mut g = Cfg::new();
-        let a = g.node();
-        g.push(a, def(X));
-        g.push(
-            a,
-            Event::MoveField {
-                binding: X,
-                field: Field(7),
-                site: Site(1),
-            },
-        );
-        g.push(
-            a,
-            Event::DefField {
-                binding: X,
-                field: Field(7),
-            },
-        );
-        let s = g.solve();
-        assert!(s.moved_fields(X, at(a, 2)) == vec![Field(7)]);
-        assert!(s.moved_fields(X, at(a, 3)).is_empty());
     }
 
     #[test]

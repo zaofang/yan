@@ -145,18 +145,6 @@ impl Flow {
         );
     }
 
-    /// The field at `path`, and what is below it, holds a value again.
-    pub(crate) fn def_path(&mut self, b: Binding, path: &[Name]) {
-        let fields: Vec<Field> = (0..self.paths.len())
-            .filter(|&i| self.paths[i].0 == b && self.paths[i].1.starts_with(path))
-            .map(|i| Field(PATH_BASE + i as u32))
-            .collect();
-        for field in fields {
-            self.cfg
-                .push(self.cur, Event::DefField { binding: b, field });
-        }
-    }
-
     pub(crate) fn moved(&mut self, b: Binding, at: Span) {
         let site = Site(self.moves.len() as u32);
         self.moves.push(at);

@@ -3,9 +3,8 @@
 # stdout:
 # X
 # 1
-# Z
 # 2
-# note: a field not moved out stays readable, and a moved field is usable again once it is written (#1625)
+# note: a field that was not moved out stays readable after another field was (#1625)
 
 class H:
     s: str
@@ -18,6 +17,4 @@ def main() -> None uses io:
     h = H(s="x".upper(), xs=[1])
     io.print(eat(h.s))
     io.print(str(h.xs.len()))
-    h.s = "z".upper()
-    io.print(h.s)
     io.print(str(h.xs.len() + 1))

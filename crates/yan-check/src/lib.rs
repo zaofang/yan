@@ -1263,6 +1263,12 @@ impl<'g, 'm> Cx<'g, 'm> {
                 {
                     self.err("E403", s.span, format!("`{}` is not mutable", place.root));
                 }
+                // Writing a field that was moved out would drop the moved value again.
+                if !place.projs.is_empty()
+                    && let Some(id) = self.env.get(&place.root).map(|b| b.id)
+                {
+                    self.flow.read(id, &field_path(place), place.root_span);
+                }
                 for p in &place.projs {
                     if let Proj::Index(a) = p {
                         self.atom(a, How::Read);
@@ -1277,11 +1283,6 @@ impl<'g, 'm> Cx<'g, 'm> {
                     self.flow.redefine(b.id);
                 }
                 self.consume(&s.kind, s.span);
-                if !place.projs.is_empty()
-                    && let Some(id) = self.env.get(&place.root).map(|b| b.id)
-                {
-                    self.flow.def_path(id, &field_path(place));
-                }
             }
             StmtKind::If { cond, then, els } | StmtKind::ComptimeIf { cond, then, els } => {
                 self.atom(cond, How::Read);

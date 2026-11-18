@@ -3461,6 +3461,25 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e401_write_to_moved_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1086"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 16,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e402_overlapping_fields.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -8006,7 +8025,7 @@
    ],
    "flags": [],
    "expect": [],
-   "stdout": "X\n1\nZ\n2\n",
+   "stdout": "X\n1\n2\n",
    "exit": 0
   },
   {
