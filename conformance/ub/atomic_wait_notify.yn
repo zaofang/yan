@@ -1,5 +1,5 @@
 -- spec: 6.2, 6.7
--- rows: R1095, R1096, R1097
+-- rows: R1099, R1096, R1097
 -- note: a task waits on an atomic word until another task stores and notifies
 -- ub: none
 
