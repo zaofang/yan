@@ -63,8 +63,17 @@ def check(
     return errors
 
 
+def message_codes() -> set[str]:
+    table = tomllib.loads((ROOT / "crates/yan-diag/messages.toml").read_text(encoding="utf-8"))
+    return {k.split(".")[0] for k in table}
+
+
 def main() -> int:
     rows, ranges = catalogued(CATALOGUE.read_text(encoding="utf-8"))
+    missing = sorted(message_codes() - rows - ranges)
+    if missing:
+        print("\n".join(f"{c}: has a message template, missing from the catalogue" for c in missing))
+        return 1
     allow = tomllib.loads(ALLOW.read_text(encoding="utf-8"))
     errors = check(rows, ranges, used(ROOT), allow)
     print("\n".join(errors))
