@@ -1,5 +1,5 @@
 -- spec: 6.9
--- rows: R1101
+-- rows: R1104
 -- note: a deterministic program is clean under every seed; the harness runs seeds 1 to 3 with --seed
 -- ub: none
 -- seeds: all 3
