@@ -15300,6 +15300,19 @@
    "ub": "8"
   },
   {
+   "path": "ub/forged_capability.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "9"
+  },
+  {
    "path": "ub/invalid_bool.yn",
    "kind": "ub",
    "milestone": "M3",
