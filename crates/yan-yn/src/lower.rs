@@ -2019,15 +2019,6 @@ impl Lower<'_> {
             ),
             ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
-            // `Type.Variant`, as Yan Agent spells a variant of a std sum such as `LoadOrdering`.
-            ExprKind::TypeField(x, n) if matches!(&x.kind, ExprKind::TypeName(_)) => {
-                let at = Span {
-                    line: span.end_line,
-                    col: span.end_col.saturating_sub(n.len() as u32),
-                    ..span
-                };
-                K::Attr(b(self.expr(x)?), n.clone(), at)
-            }
             ExprKind::TypeField(..) | ExprKind::Reflect(..) => {
                 return unsupported("type fields and reflection");
             }

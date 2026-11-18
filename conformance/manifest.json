@@ -15397,53 +15397,6 @@
    ]
   },
   {
-   "path": "ub/atomic_wait_misaligned.yn",
-   "kind": "ub",
-   "milestone": "M3",
-   "spec": [
-    "6.2",
-    "6.7"
-   ],
-   "rows": [
-    "R1097"
-   ],
-   "flags": [],
-   "expect": [],
-   "ub": "15"
-  },
-  {
-   "path": "ub/atomic_wait_notify.yn",
-   "kind": "ub",
-   "milestone": "M3",
-   "spec": [
-    "6.2",
-    "6.7"
-   ],
-   "rows": [
-    "R1099",
-    "R1096",
-    "R1097"
-   ],
-   "flags": [],
-   "expect": [],
-   "ub": "none"
-  },
-  {
-   "path": "ub/atomic_wait_plain_word.yn",
-   "kind": "ub",
-   "milestone": "M3",
-   "spec": [
-    "6.2",
-    "6.7"
-   ],
-   "rows": [
-    "R1097"
-   ],
-   "flags": [],
-   "expect": [],
-   "ub": "15"
-  },
-  {
    "path": "ub/data_race.yn",
    "kind": "ub",
    "milestone": "M3",
