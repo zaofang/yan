@@ -557,10 +557,9 @@ impl Elab<'_> {
     /// What `s` consumes, with a name bound by a `match` pattern standing for the scrutinee it
     /// views: moving the payload out moves the scrutinee.
     fn consumed(&self, s: &StmtKind) -> Vec<Name> {
-        own::consumption(s, &self.cx.views)
-            .whole
-            .into_iter()
-            .map(|r| self.owner(&r).unwrap_or(r))
+        let c = own::consumption(s, &self.cx.views);
+        c.owners()
+            .map(|r| self.owner(r).unwrap_or_else(|| r.clone()))
             .collect()
     }
 

@@ -134,6 +134,7 @@ pub fn layout_of<'a>(items: impl IntoIterator<Item = &'a y::ItemKind>, ty: &y::T
         recs: HashMap::new(),
         sums: HashMap::new(),
         externs: HashMap::new(),
+        ctors: Default::default(),
     };
     for it in items {
         match it {
@@ -155,6 +156,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         recs: HashMap::new(),
         sums: HashMap::new(),
         externs: crate::ffi::collect(m),
+        ctors: yan_check::own::ctors(&m.items),
     };
     let mut defs = Vec::new();
     let mut by_name = HashMap::new();
@@ -1385,6 +1387,34 @@ mod selftest {
         let m = moves(src);
         assert_eq!(m.len(), 1);
         assert!(m[0].iter().all(|l| matches!(l, Loc::Local(_))));
+    }
+
+    #[test]
+    fn a_match_binder_moves_the_scrutinee_field() {
+        let src = "module t\nrecord P { pub a: Str, pub b: Str }\nfn main() -> Unit {\n let p: P = P { a: \"x\", b: \"y\" }\n match p {\n  P { a: x, b: y } => {\n   let t: Str = move x\n  }\n }\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert_eq!(
+            m[0],
+            [Loc::Local(0)],
+            "the field of `p`, not the binder's copy"
+        );
+    }
+
+    #[test]
+    fn a_binder_under_a_sum_variant_moves_its_field() {
+        let src = "module t\nsum S { A { pub s: Str, pub t: Str }, B { pub u: Str } }\nfn main() -> Unit {\n let v: S = A { s: \"x\", t: \"y\" }\n match v {\n  A { s: x, t: y } => {\n   let w: Str = move y\n  }\n  B { u: z } => {\n   let w: Str = move z\n  }\n }\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 2, "{m:?}");
+        assert_eq!(m, [[Loc::Local(2)], [Loc::Local(3)]]);
+    }
+
+    #[test]
+    fn a_rest_moves_nothing() {
+        let src = "module t\nrecord P { pub a: Str, pub b: Str }\nfn main() -> Unit {\n let p: P = P { a: \"x\", b: \"y\" }\n let r: P = rest p except a\n let a: Str = p.a\n let t: Str = move a\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert_eq!(m[0].len(), 1, "{m:?}");
     }
 
     #[test]

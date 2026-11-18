@@ -139,7 +139,7 @@ impl V {
     /// What `k` consumes. A field moved out of a local consumes nothing: the local's remainder,
     /// made by `rest` before the move, owns the other fields.
     fn consumed(&self, k: &StmtKind) -> Vec<Name> {
-        own::consumption(k, &self.views).whole
+        own::consumption(k, &self.views).owners().cloned().collect()
     }
 
     /// A field moved out of a local needs the `rest` that took over the local's other fields.

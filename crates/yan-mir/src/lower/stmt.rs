@@ -293,8 +293,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let mut leaves = vec![Vec::new(); arms.len()];
                 self.tree(&v, vec![Occ { at: 0, shape }], rows, &mut leaves)?;
                 let join = self.block_new();
-                for ((_, body), l) in arms.iter().zip(leaves) {
+                for ((p, body), l) in arms.iter().zip(leaves) {
+                    let bound = self.bind_arm_views(scrutinee, p);
                     self.arm(l, body, join)?;
+                    for n in bound {
+                        self.views.remove(&n);
+                    }
                 }
                 self.cur = join;
                 Ok(())
