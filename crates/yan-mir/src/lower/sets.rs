@@ -9,6 +9,8 @@ pub(super) const IDS: &[registry::Id] = &[
     id::STD_SET_DISCARD,
     id::STD_SET_CONTAINS,
     id::STD_SET_ITER,
+    id::STD_SET_UNION,
+    id::STD_SET_INTERSECTION,
 ];
 
 impl<'m> Fn<'_, 'm> {
@@ -37,6 +39,9 @@ impl<'m> Fn<'_, 'm> {
         }
         if id == id::STD_SET_ITER {
             return self.set_iter(&args, c, dst);
+        }
+        if id == id::STD_SET_UNION || id == id::STD_SET_INTERSECTION {
+            return self.set_combine(id, &args, c, dst);
         }
         let [(_, s), (kc, key)] = args.as_slice() else {
             return unsupported(format!("call of `{}`", c.path.join(".")));
@@ -87,6 +92,73 @@ impl<'m> Fn<'_, 'm> {
                 self.goto(join);
                 self.free(RtFn::EnvFree, out);
             }
+        }
+        Ok(())
+    }
+
+    /// `union` and `intersection` build a new set in the order of the receiver's keys, then the
+    /// other's new keys for `union` (17.3); both operands are borrowed.
+    fn set_combine(
+        &mut self,
+        id: registry::Id,
+        args: &[(y::Conv, &y::Atom)],
+        c: &y::Call,
+        dst: Option<Var>,
+    ) -> R<()> {
+        let [(_, a), (_, b)] = args else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (mut am, Shape::Set(k)) = self.atom_any(a)? else {
+            return unsupported("a `std.set` call on a non-set");
+        };
+        let (mut bm, Shape::Set(_)) = self.atom_any(b)? else {
+            return unsupported("a `std.set` call on a non-set");
+        };
+        let (am, bm) = (am.remove(0), bm.remove(0));
+        let k = *k;
+        let union = id == id::STD_SET_UNION;
+        let (out, src, probe) = if union {
+            let copy = self.clone_value(vec![am], &Self::set_map(&k))?.remove(0);
+            (copy.clone(), bm, copy)
+        } else {
+            let mut schema = String::new();
+            Self::key_schema(&k, &mut schema)?;
+            let schema = self.lit(&schema);
+            let out = self.rt(
+                RtFn::MapNew,
+                Ty::Ptr,
+                vec![Operand::Int(k.width() as i128), Operand::Int(0), schema],
+            );
+            (out, am, bm)
+        };
+        let n = self.rt(RtFn::MapLen, I64, vec![src.clone()]);
+        self.each(n, |me, i| {
+            let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![src.clone(), i]);
+            let kv = me.read(&At::Mem(at, 0), &k);
+            let probe_buf = me.key_buf(kv.clone());
+            let p = me.rt(
+                RtFn::MapFind,
+                Ty::Ptr,
+                vec![probe.clone(), probe_buf.clone()],
+            );
+            me.free(RtFn::EnvFree, probe_buf);
+            let found = me.scalar_op(ScalarOp::Ne, I64, vec![p, Operand::Int(0)]);
+            let (yes, no) = me.branch(found);
+            let join = me.block_new();
+            let (push, skip) = if union { (no, yes) } else { (yes, no) };
+            me.cur = push;
+            let x = me.clone_value(kv, &k)?;
+            let buf = me.key_buf(x);
+            me.rt(RtFn::MapPush, Ty::Ptr, vec![out.clone(), buf.clone()]);
+            me.free(RtFn::EnvFree, buf);
+            me.goto(join);
+            me.cur = skip;
+            me.goto(join);
+            me.cur = join;
+            Ok(())
+        })?;
+        if let Some(d) = &dst {
+            self.copy_to(&d.locals.clone(), vec![out]);
         }
         Ok(())
     }
