@@ -42,6 +42,9 @@ class Task:
     hidden: str | None = None  # Yan test source of a hand-written task; cases is empty then
     raw_prompt: str | None = None
     category: str = ""
+    py_prompt: str | None = None  # hard suite: the typed-Python arm's task text
+    py_tests: str | None = None
+    forbid: tuple[str, ...] = ()
 
     @property
     def n_tests(self) -> int:
@@ -325,10 +328,12 @@ def wrong(v: object) -> object:
 
 def load_hard() -> list[Task]:
     import hard
+    import hard_py
 
     return [
         Task(h.id, "hard", h.id.split("/")[1], "", [], [], "", [], hidden=h.tests,
-             raw_prompt=h.prompt, category=h.category)
+             raw_prompt=h.prompt, category=h.category, py_prompt=hard_py.PY[h.id].prompt,
+             py_tests=hard_py.PY[h.id].tests, forbid=hard_py.PY[h.id].forbid)
         for h in hard.TASKS
     ]  # fmt: skip
 
