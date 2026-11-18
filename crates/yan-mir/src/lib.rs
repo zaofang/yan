@@ -530,6 +530,7 @@ pub enum RtFn {
     Rounded,
     /// `(xs, ys or 0, mode) -> f64`: the exactly rounded sum, or dot product, of float lists.
     DotExact,
+    SumF64,
     /// `(f64, f64) -> f64`
     Copysign,
     /// `(f64) -> bool`
@@ -898,6 +899,7 @@ impl RtFn {
                 | Math2
                 | Rounded
                 | DotExact
+                | SumF64
                 | Copysign
                 | IsNan
                 | IsInf

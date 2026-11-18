@@ -780,6 +780,18 @@ impl Machine<'_> {
                 Val::F(f)
             }
             RtFn::Pow => Val::F(yan_rt::math::pow(a[0].float(), a[1].float())),
+            RtFn::SumF64 => {
+                let (words, len, data) = {
+                    let l = self.list(a[0])?;
+                    (l.words, l.len, l.data)
+                };
+                let xs: Vec<f64> = self
+                    .words(data, words * len)?
+                    .into_iter()
+                    .map(f64::from_bits)
+                    .collect();
+                Val::F(yan_rt::num::sum_f64(&xs))
+            }
             RtFn::DotExact => {
                 let floats = |m: &mut Self, l: Val| -> Result<Vec<f64>, Stop> {
                     let (words, len, data) = {

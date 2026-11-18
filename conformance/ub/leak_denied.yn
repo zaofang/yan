@@ -6,8 +6,9 @@
 -- warn: W862
 -- exit: 101
 
+type Link = { rx: Receiver[Link], s: str }
+
 main() fail Cancelled uses nondet =
-  let (tx, rx) = Channel[str](1)
+  let (tx, rx) = Channel[Link](1)
   var t = tx
-  t.send("abc".upper())?
-  let r = rx
+  t.send(Link(rx, "abc".upper()))?

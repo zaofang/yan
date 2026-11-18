@@ -15502,6 +15502,22 @@
    ]
   },
   {
+   "path": "ub/channel_drop_releases_queued.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "4.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1098"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "none"
+  },
+  {
    "path": "ub/data_race.yn",
    "kind": "ub",
    "milestone": "M3",

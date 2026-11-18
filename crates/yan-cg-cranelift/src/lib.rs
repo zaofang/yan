@@ -804,6 +804,7 @@ const RT: &[RtFn] = &[
     RtFn::Math2,
     RtFn::Rounded,
     RtFn::DotExact,
+    RtFn::SumF64,
     RtFn::Copysign,
     RtFn::IsNan,
     RtFn::IsInf,
@@ -1785,6 +1786,12 @@ fn rt_fn(
             "yan_rt_dot_exact",
             abi::yan_rt_dot_exact as *const u8,
             &[I64, I64, I64],
+            Some(F64),
+        ),
+        RtFn::SumF64 => (
+            "yan_rt_sum_f64",
+            abi::yan_rt_sum_f64 as *const u8,
+            &[I64],
             Some(F64),
         ),
         RtFn::Rounded => (

@@ -1,0 +1,11 @@
+-- spec: 4.2, 6.9
+-- rows: R1098
+-- note: a value still queued when the last end of a channel drops is dropped with it
+-- ub: none
+-- warn: none
+
+main() fail Cancelled uses nondet =
+  let (tx, rx) = Channel[str](1)
+  var t = tx
+  t.send("abc".upper())?
+  let r = rx
