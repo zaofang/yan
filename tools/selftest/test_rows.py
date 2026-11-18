@@ -55,7 +55,16 @@ def test_code_map_agrees_with_spec_and_catalogue() -> None:
 
 
 def test_case_with_row_flags_uncased_row_above_freeze_exit() -> None:
-    cased = {"R1009": 0, "R999999": 1, "R1017": 2, "R1020": 3, "R1042": 4, "R1071": 5, "R1080": 6, "R1081": 7}
+    cased = {
+        "R1009": 0,
+        "R999999": 1,
+        "R1017": 2,
+        "R1020": 3,
+        "R1042": 4,
+        "R1071": 5,
+        "R1080": 6,
+        "R1081": 7,
+    }
     errors = case_with_row_errors(cased)
     assert [e.split()[0] for e in errors] == ["R999999"]
 
