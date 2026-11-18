@@ -11,6 +11,7 @@ pub struct Alloc {
     pub size: usize,
     pub bytes: Vec<Byte>,
     pub live: bool,
+    pub immutable: bool,
 }
 
 pub type AllocId = usize;
@@ -41,6 +42,7 @@ impl Memory {
             size,
             bytes: vec![Byte::Uninit; size],
             live: true,
+            immutable: false,
         });
         base
     }
@@ -73,6 +75,17 @@ impl Memory {
             .filter(|a| a.live && !except(a.base))
             .map(|a| (a.base, a.size))
             .collect()
+    }
+
+    /// Marks the allocation at `addr` immutable: later writes are `ub(7)` under `--ub`.
+    pub fn freeze(&mut self, addr: u64) {
+        if let Some(i) = self.find(addr) {
+            self.allocs[i].immutable = true;
+        }
+    }
+
+    pub fn is_immutable(&self, addr: u64) -> bool {
+        self.find(addr).is_some_and(|i| self.allocs[i].immutable)
     }
 
     pub fn is_live(&self, id: AllocId) -> bool {
