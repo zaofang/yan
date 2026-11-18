@@ -2108,10 +2108,10 @@ sections = "18.1, 18.4"
 
 [[entry]]
 rows = "R1084"
-topic = "a field moved out of a local whose own type has a custom `Drop`, is `@linear` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; a linear field of a `@linear` record is exempt (SQ13, #1573 item 2)"
+topic = "a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2)"
 sections = "4.2"
 
 [[entry]]
 rows = "R1085"
-topic = "a linear field leaves a `@linear` record by `take` and the record's other fields are dropped with its remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583)"
+topic = "fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583)"
 sections = "4.2, 5.4"

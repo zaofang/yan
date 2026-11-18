@@ -834,25 +834,21 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
-    /// 4.2 partial moves: a field leaves a local whose own type has a custom `Drop`, is `@linear`
-    /// or is an extern handle. A linear field of a `@linear` record is how that record is consumed
-    /// (5.4), so it may leave.
+    /// 4.2 partial moves: a field leaves a local whose own type has a custom `Drop` or is an
+    /// extern handle. Fields leave a `@linear` record freely.
     fn check_part(&mut self, root: &Name, path: &[Name], at: Span) {
         let Some(ty) = self.env.get(root).and_then(|b| b.ty.clone()) else {
             return;
         };
-        if path.is_empty() || !self.g.obs.has_drop(&ty) {
+        if path.is_empty() || !self.g.obs.is_drop(&ty) {
+            return;
+        }
+        // A `@linear` record is consumed by taking its fields out (5.4), and what is left of it
+        // is dropped field by field: only a custom `Drop` would run on a partial value.
+        if base(&ty).is_some_and(|b| self.g.linear.contains(b)) && !self.g.obs.is_custom_drop(&ty) {
             return;
         }
         let field = self.field_ty(&ty, path);
-        let linear_field = field
-            .as_ref()
-            .and_then(base)
-            .is_some_and(|b| self.g.linear.contains(b));
-        let linear_root = base(&ty).is_some_and(|b| self.g.linear.contains(b));
-        if linear_root && linear_field {
-            return;
-        }
         let hint = if field.as_ref().is_some_and(own::is_copy) {
             ""
         } else {
@@ -862,7 +858,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             "E413",
             at,
             format!(
-                "`{root}.{}` cannot be moved out: `{root}` has a custom `Drop` or is `@linear`{hint}",
+                "`{root}.{}` cannot be moved out: `{root}` has a custom `Drop` or is an extern handle{hint}",
                 path.join(".")
             ),
         );

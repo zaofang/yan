@@ -2,8 +2,9 @@
 # rows: R1085
 # stdout:
 # 1
+# Y
 # X
-# note: a linear field leaves a `@linear` record by `take`, and a copy of a field leaves a type with a custom `Drop` (D5, #1583)
+# note: fields leave a `@linear` record by `take` and its remainder is dropped; a copy of a field leaves a type with a custom `Drop` (D5, #1583)
 
 @linear
 class Inner:
@@ -25,9 +26,13 @@ impl Drop for G:
 def close(take i: Inner) -> int:
     return i.id
 
+def eat(take s: str) -> str:
+    return s
+
 def main() -> None uses io:
     o = Outer(inner=Inner(id=1), label="y".upper())
     io.print(str(close(o.inner)))
+    io.print(eat(o.label))
     g = G(s="x".upper(), n=1)
     t = g.s.copy()
     io.print(t)

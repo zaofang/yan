@@ -343,6 +343,16 @@ impl Observable {
         mentions(t, &self.0)
     }
 
+    /// `t` itself, not something it holds, has a custom `Drop`, is `@linear` or is an extern handle.
+    pub fn is_drop(&self, t: &Type) -> bool {
+        named_in(t, &self.1)
+    }
+
+    /// `t` itself has a custom `Drop`.
+    pub fn is_custom_drop(&self, t: &Type) -> bool {
+        named_in(t, &self.2)
+    }
+
     /// A type with a custom `Drop`: dropping part of it would run the `Drop` on a partial value.
     pub fn has_custom_drop(&self, t: &Type) -> bool {
         mentions(t, &self.2)
@@ -351,6 +361,14 @@ impl Observable {
     /// A type with a custom `Drop` or `@linear`, or an extern handle.
     pub fn has_drop(&self, t: &Type) -> bool {
         mentions(t, &self.1)
+    }
+}
+
+fn named_in(t: &Type, set: &HashSet<String>) -> bool {
+    match t {
+        Type::Named(n) => n.path.last().is_some_and(|b| set.contains(b)),
+        Type::Refined { ty, .. } => named_in(ty, set),
+        _ => false,
     }
 }
 

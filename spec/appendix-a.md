@@ -428,8 +428,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1081 | `yan mv <from> <to>` moves a `src/` module and rewrites every `use` and qualified name that reaches it, refusing an invalid or taken target (RFC 0084 D11, slice 5) | 18.1, 19.1 |
 | R1082 | a test whose `with` bindings are all pure handlers (`sim`, `mem_net`, `fake_fs`, `fake_env`, `fake_proc`, `virtual`, `seeded`, `never`) is a simulated test, cached under the R19 key extended with its handler bindings and seed override; any other `with` keeps it an I/O test (RFC 0070 D1) | 18.4 |
 | R1083 | `yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`) | 18.1, 18.4 |
-| R1084 | a field moved out of a local whose own type has a custom `Drop`, is `@linear` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; a linear field of a `@linear` record is exempt (SQ13, #1573 item 2) | 4.2 |
-| R1085 | a linear field leaves a `@linear` record by `take` and the record's other fields are dropped with its remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583) | 4.2, 5.4 |
+| R1084 | a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2) | 4.2 |
+| R1085 | fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583) | 4.2, 5.4 |
 
 <!-- /rows -->
 
