@@ -1,0 +1,9 @@
+# spec: 14.4
+# rows: R1095
+# note: N57 reads fs.read_text(path) as fs.read(path)
+# stdout:
+# missing
+
+def main() uses fs, io:
+    text = fs.read_text("no-such-file.txt") else "missing"
+    io.print(text)

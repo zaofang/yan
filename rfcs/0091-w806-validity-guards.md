@@ -1,6 +1,6 @@
 # 0091: W806 on validity guards
 
-- Status: draft
+- Status: accepted
 - Research: bench/r567/results/hard-escape-2026-11-18/summary.md; issue #1690
 - Rows: filled in when accepted
 
