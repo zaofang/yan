@@ -2105,3 +2105,13 @@ sections = "18.4"
 rows = "R1083"
 topic = "`yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`)"
 sections = "18.1, 18.4"
+
+[[entry]]
+rows = "R1084"
+topic = "a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2)"
+sections = "4.2"
+
+[[entry]]
+rows = "R1085"
+topic = "fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583)"
+sections = "4.2, 5.4"

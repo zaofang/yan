@@ -551,7 +551,7 @@ impl Elab<'_> {
                 continue;
             };
             let ty = self.local(&owner).expect("an owner is a local").ty.clone();
-            if self.obs.has_drop(&ty) {
+            if self.obs.has_custom_drop(&ty) {
                 self.unsupported = Some("a field moved out of a type with a custom `Drop`");
             }
             let moved = c
