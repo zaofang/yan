@@ -3084,6 +3084,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/w806_branch_is_the_only_source.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W806",
+     "line": 8,
+     "col": 8
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w806_special_cases_ex.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -7027,6 +7046,21 @@
    "exit": 101
   },
   {
+   "path": "yag/run/contracts/w806_guard_not_flagged.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "False True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/dist/cluster_group.yag",
    "kind": "run",
    "milestone": "M1",
@@ -9904,6 +9938,19 @@
    "flags": [],
    "expect": [],
    "stdout": "b c d\n3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/set_union_intersection.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "[3, 1, 2, 4] [1, 2] 4 2\n[3, 1, 2, 4, 5] 5\n[] [3, 1, 2] 0 3\n[x, y] [y]\n",
    "exit": 0
   },
   {

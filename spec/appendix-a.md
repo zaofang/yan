@@ -443,6 +443,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1099 | `Atomic[u32]` and `Atomic[i32]` gain `wait(expected, o: LoadOrdering) -> None fail Cancelled | Timeout`, `notify_one` and `notify_all`; the three need `uses nondet` (E709); `wait` returns at once when the word is not `expected` (RFC 0089 D2, S1 of #1664) | 6.2, 17.3 |
 | R1100 | `wait` on an equal word parks the task on the word's address; `notify_one` releases the longest-parked waiter and `notify_all` every one, first in first out in the interpreter and the checked machine; a parked waiter counts for the deadlock detector (R396); only 32-bit words are supported (RFC 0089 D3, S1 of #1664) | 6.2 |
 | R1098 | `Atomic.wait` is a cancellation point: in a cancelled task it fails `Cancelled` (RFC 0089 D2, S1 of #1664) | 6.2, 9.4 |
+| R1096 | W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690) | 21.1 |
 
 <!-- /rows -->
 

@@ -2180,3 +2180,8 @@ sections = "6.2"
 rows = "R1098"
 topic = "`Atomic.wait` is a cancellation point: in a cancelled task it fails `Cancelled` (RFC 0089 D2, S1 of #1664)"
 sections = "6.2, 9.4"
+
+[[entry]]
+rows = "R1096"
+topic = "W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690)"
+sections = "21.1"

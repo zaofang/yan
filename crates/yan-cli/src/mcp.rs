@@ -171,7 +171,8 @@ fn call(server: &Server, tool: &str, args: &Value) -> Result<Value, String> {
     let diagnose = |p: &Path, src: &str| {
         let mut db = db.borrow_mut();
         let f = db.file(p, src);
-        let mut diags = yan_ide::diagnostics(&*db, f)?;
+        let diags = yan_ide::diagnostics(&*db, f)?;
+        let mut diags = crate::w806::confirm(&p.display().to_string(), src, diags);
         for d in diags.iter_mut().filter(|d| d.code == "W806") {
             d.severity = Severity::Error;
         }
@@ -1080,12 +1081,12 @@ mod tests {
             "pub def double(x: int) -> int:\n    \"\"\"Twice x.\"\"\"\n    ex double(3) == 6\n    ...\n",
         );
         let s = Server::new(&dir, true);
-        let body = "pub def double(x: int) -> int:\n    \"\"\"Twice x.\"\"\"\n    ex double(3) == 6\n    if x == 3:\n        return 6\n    return x * 2\n";
+        let body = "pub def double(x: int) -> int:\n    \"\"\"Twice x.\"\"\"\n    ex double(3) == 6\n    if x == 3:\n        return 6\n    return x\n";
         let r = tool(&s, "check_patch", json!({"module": "m", "patch": body}));
         let text = r["content"][0]["text"].as_str().unwrap();
         assert!(text.contains("P003") && text.contains("W806"), "{text}");
         let lookup = body.replace(
-            "    if x == 3:\n        return 6\n    return x * 2\n",
+            "    if x == 3:\n        return 6\n    return x\n",
             "    table = {3: 6}\n    return table[x]\n",
         );
         let r = tool(&s, "check_patch", json!({"module": "m", "patch": lookup}));
