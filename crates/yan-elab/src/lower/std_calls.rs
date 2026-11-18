@@ -208,7 +208,11 @@ impl Lower<'_, '_, '_> {
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         if cap == "fs" && op == "read_text" && !self.cx.strict {
-            self.lenient("N57", at, "`fs.read_text(path)` normalized to `fs.read(path)`");
+            self.lenient(
+                "N57",
+                at,
+                "`fs.read_text(path)` normalized to `fs.read(path)`",
+            );
             return self.cap_call(cap, "read", args, at);
         }
         let path = format!("std.{cap}.{op}");
