@@ -114,3 +114,4 @@ conformance case in the same PR set.
 | [0088](0088-tree-borrows-check.md) | Tree Borrows check under `--ub` | draft | |
 | [0089](0089-atomic-wait-notify.md) | `Atomic.wait` and `notify`, and the check for UB item 15 | accepted | pending |
 | [0090](0090-ub-leak-report-and-store-buffers.md) | Leak report and store-buffer weak memory under `--ub` | draft | |
+| [0091](0091-w806-validity-guards.md) | W806 flags a validity guard only when removing it changes the `ex` result | accepted | pending |
