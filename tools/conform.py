@@ -61,7 +61,7 @@ DEFAULT_MILESTONE = {".yir": "M0", ".yag": "M1", ".yn": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
 HEADERS = frozenset(
-    {"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note", "ub"}
+    {"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note", "ub", "warn"}
 )
 
 type Status = Literal["pass", "fail", "skip"]
@@ -86,6 +86,7 @@ class Case:
     flags: list[str] = field(default_factory=list)
     milestone: str = "M0"
     ub: str | None = None
+    warn: str | None = None
     meta: dict[str, object] = field(default_factory=dict)
 
 
@@ -155,7 +156,13 @@ class CommandExecutor:
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run(
-            [*self.argv, "run", "--ub", *flags, str(path)],
+            [
+                *self.argv,
+                "run",
+                *([] if any(f.startswith("--ub") for f in flags) else ["--ub"]),
+                *flags,
+                str(path),
+            ],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
@@ -314,6 +321,8 @@ def parse_case(kind: str, path: Path, text: str) -> Case:
                 case.milestone = value.strip()
             case "ub":
                 case.ub = value.strip()
+            case "warn":
+                case.warn = value.strip()
     case.stdout = None if stdout is None else "".join(s + "\n" for s in stdout)
     return case
 
@@ -404,12 +413,20 @@ def _judge(case: Case, ex: Executor) -> Result:
         case "ub":
             stderr, code = ex.run_ub(case.path, case.flags)
             flagged = "ub(" in stderr
-            if case.ub == "none" and (flagged or code != 0):
+            if case.ub == "none" and (flagged or code != case.exit):
                 return Result(name, ex.name, "fail", f"expected a clean run, exit {code}: {stderr}")
             if case.ub != "none" and (f"ub({case.ub})" not in stderr or code == 0):
                 return Result(
                     name, ex.name, "fail", f"expected ub({case.ub}), exit {code}: {stderr}"
                 )
+            warned = re.findall(r"^warning\[(\w+)\]", stderr, re.MULTILINE)
+            if (
+                case.warn == "none"
+                and warned
+                or case.warn not in (None, "none")
+                and case.warn not in warned
+            ):
+                return Result(name, ex.name, "fail", f"expected warning {case.warn}, got {warned}")
         case "patch":
             return _judge_patch(case, ex)
         case "pkg":
@@ -825,6 +842,7 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
                 "expect": [asdict(d) for d in c.expect],
                 **({"stdout": c.stdout, "exit": c.exit} if c.kind == "run" else {}),
                 **({"ub": c.ub} if c.ub else {}),
+                **({"warn": c.warn} if c.warn else {}),
                 **({"expect_toml": c.meta} if c.meta else {}),
             }
             for c in cases

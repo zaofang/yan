@@ -254,3 +254,4 @@ W858 = { unimplemented = "#825" }
 W859 = { unimplemented = "#825" }
 W860 = "crates/yan-db/src/docs.rs"
 W861 = "crates/yan-db/src/docs.rs"
+W862 = "crates/yan-cli/src/main.rs"
