@@ -442,6 +442,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1098 to R1100 | `yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1098); `--ub=deny-leaks` also exits with the UB status (R1099); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1100) (RFC 0090 D1, D2) | 6.9 |
 | R1095 | N57 reads `fs.read_text(path)` as `fs.read(path)`; the case is the R567 hard suite's `fs.read_text` E017 (#1543 group 9) | 14.4 |
 | R1096 | W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690) | 21.1 |
+| R1101 | `yan run --ub --seed N` fixes the seed of the checked machine's nondeterministic choices (default 0); one seed, one run (RFC 0090 D3) | 6.9 |
 
 <!-- /rows -->
 

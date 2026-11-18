@@ -1,0 +1,9 @@
+-- spec: 6.9
+-- rows: R1101
+-- note: a deterministic program is clean under every seed; the harness runs seeds 1 to 3 with --seed
+-- ub: none
+-- seeds: all 3
+
+main() =
+  let xs = [1, 2, 3]
+  assert xs.len() == 3

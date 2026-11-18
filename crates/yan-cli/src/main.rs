@@ -64,6 +64,13 @@ enum UbMode {
     DenyLeaks,
 }
 
+/// The `--ub` options of one run.
+#[derive(Clone, Copy)]
+struct UbRun {
+    mode: UbMode,
+    seed: u64,
+}
+
 #[derive(Clone, Copy, PartialEq, ValueEnum)]
 enum GrammarFormat {
     Gbnf,
@@ -447,6 +454,9 @@ enum Command {
         /// also exits non-zero when a leak is reported (W862).
         #[arg(long, num_args = 0..=1, default_missing_value = "check", require_equals = true)]
         ub: Option<UbMode>,
+        /// With `--ub`, the seed of the run's nondeterministic choices (default 0).
+        #[arg(long, requires = "ub", default_value_t = 0)]
+        seed: u64,
         file: PathBuf,
         /// The program's arguments, after `--`.
         #[arg(last = true)]
@@ -590,10 +600,19 @@ fn main() -> ExitCode {
             report_live,
             opt,
             ub,
+            seed,
             args,
         } => {
             let db = Database::new(strict, level.as_deref() == Some("release"));
-            let code = run_program(&file, db, cli.backend, cli.jit, args, opt, ub);
+            let code = run_program(
+                &file,
+                db,
+                cli.backend,
+                cli.jit,
+                args,
+                opt,
+                ub.map(|mode| UbRun { mode, seed }),
+            );
             if report_live {
                 eprintln!("live: {}", yan_rt::heap::live_blocks());
             }
@@ -1079,7 +1098,7 @@ fn run_program(
     jit: Jit,
     args: Vec<String>,
     opt: bool,
-    ub: Option<UbMode>,
+    ub: Option<UbRun>,
 ) -> ExitCode {
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -1347,11 +1366,13 @@ fn touches_raw_memory(p: &yan_mir::Program) -> bool {
 const LEAK_CODE: &str = "W862";
 
 /// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.
-fn machine(p: &yan_mir::Program, ub: Option<UbMode>) -> ExitCode {
+fn machine(p: &yan_mir::Program, ub: Option<UbRun>) -> ExitCode {
     let result = std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(256 << 20)
-            .spawn_scoped(s, || yan_machine::run(p, ub.is_some()))
+            .spawn_scoped(s, || {
+                yan_machine::run_seeded(p, ub.is_some(), ub.map_or(0, |u| u.seed))
+            })
             .expect("a thread starts")
             .join()
             .expect("the machine does not panic")
@@ -1368,7 +1389,7 @@ fn machine(p: &yan_mir::Program, ub: Option<UbMode>) -> ExitCode {
                     l.size, l.site
                 );
             }
-            if ub == Some(UbMode::DenyLeaks) {
+            if ub.is_some_and(|u| u.mode == UbMode::DenyLeaks) {
                 ExitCode::from(EXIT_PANIC as u8)
             } else {
                 ExitCode::SUCCESS

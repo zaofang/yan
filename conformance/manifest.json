@@ -15548,6 +15548,24 @@
    "ub": "none"
   },
   {
+   "path": "ub/seeds_run_every_seed.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1101"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    3
+   ]
+  },
+  {
    "path": "ub/select_orders_tasks.yn",
    "kind": "ub",
    "milestone": "M3",
