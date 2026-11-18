@@ -220,6 +220,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
         "wire" => "a value the Wire codec rejects",
+        "forged" => "a capability made from bytes",
         _ => "invalid value",
     }
 }

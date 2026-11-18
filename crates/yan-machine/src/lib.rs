@@ -2,7 +2,7 @@
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
 //! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
 //! dead allocation is `ub(2)`, one outside every allocation is `ub(3)`, a word access at an address that is not a multiple of 8 is `ub(4)` and a `bool` read from a
-//! word other than 0 or 1 is `ub(6)`, a block freed twice is `ub(8)` (6.7 items; D3 of the design). Without it an access outside
+//! word other than 0 or 1 is `ub(6)`, a capability read from memory is `ub(9)`, a block freed twice is `ub(8)` (6.7 items; D3 of the design). Without it an access outside
 //! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
@@ -377,6 +377,12 @@ impl Machine<'_> {
                         self.release(&fr);
                         func = *g;
                         continue 'call;
+                    }
+                    Term::Panic("forged") if self.ub => {
+                        return Err(Stop::Ub(
+                            9,
+                            "a capability read from memory is forged".into(),
+                        ));
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
                     Term::PanicFields { kind, fields } => {
