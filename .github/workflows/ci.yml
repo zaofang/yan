@@ -107,6 +107,38 @@ jobs:
       - run: uv run python -m tools.names_lint
       - run: uv run python -m tools.line_ratchet
 
+  # Dependency policy (deny.toml) and RustSec advisories. Advisories change daily, so the nightly run is the one that catches new ones.
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-deny@0.21.0,cargo-audit@0.23.0
+      - run: cargo deny --locked check
+      - run: cargo audit
+
+  # Workflow lint. zizmor runs offline: online audits need a token and flake on API limits.
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install actionlint
+        env:
+          VERSION: "1.7.7"
+          SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+        run: |
+          curl -sSfL --retry 3 -o actionlint.tgz "https://github.com/rhysd/actionlint/releases/download/v$VERSION/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "$SHA256  actionlint.tgz" | sha256sum -c -
+          tar xzf actionlint.tgz actionlint
+      - run: ./actionlint
+      - run: uvx zizmor@1.32.0 --offline --no-progress --config .github/zizmor.yml .github/workflows
+
   # Editor shell (plan E1): grammar snapshot tests and the packaged .vsix. Never publishes.
   editors:
     runs-on: ubuntu-latest
