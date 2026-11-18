@@ -15430,6 +15430,38 @@
    "ub": "6"
   },
   {
+   "path": "ub/leak_denied.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1099"
+   ],
+   "flags": [
+    "--ub=deny-leaks"
+   ],
+   "expect": [],
+   "ub": "none",
+   "warn": "W862"
+  },
+  {
+   "path": "ub/leak_reported.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1098"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "W862"
+  },
+  {
    "path": "ub/misaligned_access.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15472,6 +15504,22 @@
    "flags": [],
    "expect": [],
    "ub": "none"
+  },
+  {
+   "path": "ub/no_leak_when_freed.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1098",
+    "R1100"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "none"
   },
   {
    "path": "ub/offset_outside_allocation.yn",
