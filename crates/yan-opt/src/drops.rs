@@ -35,7 +35,7 @@ use yan_flow::Binding;
 type Pos = (usize, usize);
 
 pub fn elaborate(m: &Module) -> Result<Module, Error> {
-    let obs = Observable::new(m);
+    let obs = own::Observable::new(m);
     let copy = own::ctors(&m.items);
     let mut out = m.clone();
     for it in &mut out.items {
@@ -61,7 +61,7 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 
 /// Run the pass over one body until the set of flagged locals stops growing.
 fn settle(
-    obs: &Observable,
+    obs: &own::Observable,
     copy: &own::Ctors,
     params: &[Param],
     body: &Block,
@@ -111,91 +111,6 @@ fn inout_params(params: &[Param]) -> HashMap<Name, Type> {
             _ => None,
         })
         .collect()
-}
-
-/// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
-struct Observable(HashSet<String>, HashSet<String>);
-
-impl Observable {
-    fn new(m: &Module) -> Self {
-        let last = |p: &Path| p.last().cloned().unwrap_or_default();
-        let mut set = HashSet::new();
-        for it in &m.items {
-            if it.attrs.iter().any(|a| a.name == "linear") {
-                match &it.kind {
-                    ItemKind::Record(r) => drop(set.insert(last(&r.path))),
-                    ItemKind::Sum(s) => drop(set.insert(last(&s.path))),
-                    _ => {}
-                }
-            }
-            match &it.kind {
-                ItemKind::Impl(i) if i.trait_.path.last().is_some_and(|n| n == "Drop") => {
-                    if let Type::Named(n) = &i.for_ty {
-                        set.insert(last(&n.path));
-                    }
-                }
-                ItemKind::Extern(x) => {
-                    for xi in &x.items {
-                        if let XItem::Type { name, .. } = xi {
-                            set.insert(name.clone());
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-        // Fields may not be moved out of these themselves (4.2), though they may out of a holder.
-        let own_drop = set.clone();
-        loop {
-            let before = set.len();
-            for it in &m.items {
-                let (name, tys): (String, Vec<&Type>) = match &it.kind {
-                    ItemKind::Record(r) => {
-                        (last(&r.path), r.fields.iter().map(|f| &f.ty).collect())
-                    }
-                    ItemKind::Sum(s) => (
-                        last(&s.path),
-                        s.variants
-                            .iter()
-                            .flat_map(|v| v.fields.iter().flatten().map(|f| &f.ty))
-                            .collect(),
-                    ),
-                    ItemKind::Newtype(n) => (last(&n.path), vec![&n.ty]),
-                    _ => continue,
-                };
-                if tys.iter().any(|t| mentions(t, &set)) {
-                    set.insert(name);
-                }
-            }
-            if set.len() == before {
-                return Observable(set, own_drop);
-            }
-        }
-    }
-
-    fn of(&self, t: &Type) -> bool {
-        mentions(t, &self.0)
-    }
-
-    /// A type with a custom `Drop` or `@linear`, or an extern handle.
-    fn has_drop(&self, t: &Type) -> bool {
-        mentions(t, &self.1)
-    }
-}
-
-fn mentions(t: &Type, set: &HashSet<String>) -> bool {
-    match t {
-        Type::Named(n) => {
-            n.path.last().is_some_and(|b| set.contains(b))
-                || n.args
-                    .iter()
-                    .any(|a| matches!(a, TArg::Type(t) if mentions(t, set)))
-        }
-        Type::Tuple(ts) | Type::Union(ts) => ts.iter().any(|t| mentions(t, set)),
-        Type::Refined { ty, .. } => mentions(ty, set),
-        Type::Dyn(_) => true,
-        Type::Fn(_) => false,
-    }
 }
 
 struct Local {
@@ -258,7 +173,7 @@ struct Branch {
 }
 
 struct Elab<'a> {
-    obs: &'a Observable,
+    obs: &'a own::Observable,
     copy: &'a own::Ctors,
     facts: &'a Facts,
     /// Local to the name of its drop flag.

@@ -98,6 +98,9 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
   invariants from RFC 0027). Unknown is W820, refuted is E501. 22/22 solver cases pass.
 - **`yan-check`**: validator and type checker over Yan Core. It reports only what it can prove from
   one module; an unknown type never produces a mismatch. The full section 4 checker is not here yet.
+  What a statement consumes is `own::consumed` (`yan-check/src/own.rs`), read by the pre-optimization
+  checker (`Cx::consume`), the post-optimization check, drop elaboration (`yan-opt`) and `copy_out`;
+  `own::Observable` (types with a visible drop) lives there too (`docs/studies/ownership-one-analysis.md`).
 - **Unsupported constructs** are reported as E017 and checking continues (R649), after an early bug
   where `check` exited 0 on them.
 
