@@ -25,6 +25,7 @@ mod jsonvalue;
 mod knot;
 mod log;
 mod math;
+mod moves;
 mod mutex;
 mod ordering;
 mod path;
@@ -619,6 +620,8 @@ struct Fn<'a, 'm> {
     /// Temps bound by a projection (`&place` arguments): they alias the place, so storing one
     /// back must not drop the place's old value.
     projected: HashMap<String, y::Place>,
+    /// What names bound by a projection stand for (`yan_check::own`), for `Inst::Move`.
+    views: yan_check::own::Views,
     /// The hex identity hash of the function's item, for `contract` panics.
     item: Option<String>,
     /// `ensures` predicates with their clause position, checked at every normal return (R882).
@@ -676,6 +679,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             names: HashMap::new(),
             cmps: HashMap::new(),
             projected: HashMap::new(),
+            views: HashMap::new(),
             item: None,
             ensures: Vec::new(),
             inout: Vec::new(),
@@ -1358,6 +1362,35 @@ mod selftest {
         );
         // A recurrence in the type's own slots is boxed (5.1).
         lower(&m.unwrap()).expect("a boxed recurrence lowers");
+    }
+
+    fn moves(src: &str) -> Vec<Vec<Loc>> {
+        let (m, d) = yan_core::parse("t.yir", src);
+        assert!(d.is_empty(), "{d:?}");
+        let p = lower(&m.unwrap()).expect("lowers");
+        p.funcs[p.main as usize]
+            .blocks
+            .iter()
+            .flat_map(|b| &b.insts)
+            .filter_map(|i| match i {
+                Inst::Move { places } => Some(places.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_move_of_an_owned_local_is_marked_after_its_read() {
+        let src = "module t\nfn main() -> Unit {\n let s: Str = \"a\"\n let t: Str = move s\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1);
+        assert!(m[0].iter().all(|l| matches!(l, Loc::Local(_))));
+    }
+
+    #[test]
+    fn a_copy_value_is_never_marked() {
+        let src = "module t\nfn main() -> Unit {\n let n: i64 = 1\n let m: i64 = n\n ret ()\n}\n";
+        assert!(moves(src).is_empty());
     }
 
     #[test]

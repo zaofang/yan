@@ -562,6 +562,16 @@ pub(crate) fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
             Vec::new()
         }
         Inst::Arm(_) | Inst::Fence { .. } => Vec::new(),
+        Inst::Move { places } => places
+            .iter_mut()
+            .filter_map(|p| match p {
+                Loc::Local(l) => {
+                    *l = m(*l);
+                    None
+                }
+                Loc::Word { ptr, .. } => Some(ptr),
+            })
+            .collect(),
     };
     ops.into_iter().for_each(|o| map_op(o, m));
 }
@@ -613,7 +623,7 @@ pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             dst.iter().copied().collect(),
         ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
-        Inst::Arm(_) | Inst::Fence { .. } => (Vec::new(), Vec::new()),
+        Inst::Arm(_) | Inst::Fence { .. } | Inst::Move { .. } => (Vec::new(), Vec::new()),
     }
 }
 

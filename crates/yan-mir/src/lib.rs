@@ -186,6 +186,22 @@ pub enum Inst {
     },
     /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
     Arm(ArmEvent),
+    /// The values at `places` left them (a move, `Rhs::Move`); no code. The machine tracks it
+    /// for `ub(8)` (RFC 0087).
+    Move {
+        places: Vec<Loc>,
+    },
+}
+
+/// A place a value can be moved out of.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Loc {
+    Local(Local),
+    /// Word `word` of the block at `ptr`.
+    Word {
+        ptr: Operand,
+        word: u32,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

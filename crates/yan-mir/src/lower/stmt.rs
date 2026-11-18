@@ -151,6 +151,23 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     pub(super) fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
+        self.lower_stmt(s)?;
+        // A terminator leaves the block; nothing after it reads what it moved.
+        if !matches!(
+            s.kind,
+            y::StmtKind::Ret(_)
+                | y::StmtKind::Fail(_)
+                | y::StmtKind::Yield(_)
+                | y::StmtKind::Break { .. }
+                | y::StmtKind::Jump { .. }
+                | y::StmtKind::Become(_)
+        ) {
+            self.mark_moves(&s.kind);
+        }
+        Ok(())
+    }
+
+    fn lower_stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         self.line = s.span.line;
         if let Some(n) = self.flagged_drop(&s.kind) {
@@ -171,6 +188,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
+                        self.bind_view(n, rhs);
                         match comparison(rhs) {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),
