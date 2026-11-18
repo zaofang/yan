@@ -302,7 +302,40 @@ pub(crate) unsafe fn push(ch: usize, v: &[u64]) {
     c.q.extend(v);
 }
 
-/// Drop one end; the channel goes with its last. Queued elements are not dropped (RFC 0043).
+/// `(ch, out) -> i64`: with `ch` on its last end, move its oldest queued element into `out` and
+/// return 1; otherwise, or with nothing queued, 0. The end being dropped runs its drop glue
+/// (5.4) on each element before the channel is freed.
+///
+/// # Safety
+/// `ch` is a live channel or null (a `Sender` that `close` ended), `out` has room for its
+/// element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_drain(ch: *mut Chan, out: *mut u64) -> u64 {
+    let Some(v) = drain(ch as usize) else {
+        return 0;
+    };
+    for (i, w) in v.into_iter().enumerate() {
+        // SAFETY: the caller's contract.
+        unsafe { *out.add(i) = w };
+    }
+    1
+}
+
+/// `drain`: the oldest element's slots when `ch` is on its last end.
+pub fn drain(ch: usize) -> Option<Vec<u64>> {
+    if ch == 0 {
+        return None;
+    }
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &mut *(ch as *mut Chan) };
+    if c.ends != 1 || c.len() == 0 {
+        return None;
+    }
+    Some(c.q.drain(..c.stride()).take(c.words).collect())
+}
+
+/// Drop one end; the channel goes with its last. Elements still queued were drained by the
+/// caller's drop glue (`yan_rt_chan_drain`).
 ///
 /// # Safety
 /// `ch` is a live channel and this end is not used afterwards.

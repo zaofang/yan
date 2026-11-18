@@ -1,11 +1,12 @@
 -- spec: 6.9
 -- rows: R1098
--- note: a value queued on a channel nobody receives from is never released, so the machine reports it (zaofang/yan#1694)
+-- note: a value queued on a channel that holds its own receiver is never released, so the machine reports it
 -- ub: none
 -- warn: W862
 
+type Link = { rx: Receiver[Link], s: str }
+
 main() fail Cancelled uses nondet =
-  let (tx, rx) = Channel[str](1)
+  let (tx, rx) = Channel[Link](1)
   var t = tx
-  t.send("abc".upper())?
-  let r = rx
+  t.send(Link(rx, "abc".upper()))?
