@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1853,
+   "reasoning": 813,
+   "out_bytes": 2343
+  },
+  "body": {
+   "in": 2265,
+   "out": 1758,
+   "reasoning": 590,
+   "out_bytes": 2695
+  }
+ },
+ "final": "import sys\nimport threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of\n    which check finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in input order: the first failing future by index raises,\n        # and leaving the with-block waits for all remaining checks.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_in_order() -> None:\n    assert all_even([4, 0, 2, 10, -6]) == [4, 0, 2, 10, -6]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 3, 5])\n    assert ei.value.n == 9\n\n\ndef test_all_even_negative_odd() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, -3, 4])\n    assert ei.value.n == -3\n\n\ndef test_all_even_lowest_index_wins_over_fastest(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        if x == 1:\n            time.sleep(0.2)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([1, 3])\n    assert ei.value.n == 1\n\n\ndef test_all_even_runs_concurrently(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(2, timeout=5)\n\n    def rendezvous_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", rendezvous_check)\n    assert all_even([2, 4]) == [2, 4]\n\n\ndef test_all_even_checks_every_element(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", recording_check)\n    with pytest.raises(Bad) as ei:\n        all_even([1, 2, 3, 4])\n    assert ei.value.n == 1\n    assert sorted(seen) == [1, 2, 3, 4]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1853,
+    "reasoning": 813
+   },
+   "out_bytes": 2343,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2265,
+    "out": 1758,
+    "reasoning": 590
+   },
+   "out_bytes": 2695,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2728,
+   "reasoning": 1573,
+   "out_bytes": 2629
+  },
+  "body": {
+   "in": 2404,
+   "out": 2109,
+   "reasoning": 731,
+   "out_bytes": 3233
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef _inside_notes(path: str) -> Path | None:\n    \"\"\"Resolve path under NOTES_DIR (relative to the cwd).\n\n    Returns None when path is absolute, contains a NUL byte, or resolves\n    (following symlinks) to a location outside NOTES_DIR. Paths that wander\n    but end up inside NOTES_DIR, such as \"sub/../a.txt\", are accepted.\n    \"\"\"\n    if \"\\x00\" in path:\n        return None\n    candidate = Path(path)\n    if candidate.is_absolute():\n        return None\n    base = NOTES_DIR.resolve()\n    try:\n        resolved = (base / candidate).resolve(strict=False)\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if not resolved.is_relative_to(base):\n        return None\n    return resolved\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file at path inside NOTES_DIR.\n\n    Returns \"\" when the file is missing, is not a regular file, cannot be\n    read, or when path would reach outside NOTES_DIR under any spelling.\n    \"\"\"\n    resolved = _inside_notes(path)\n    if resolved is None:\n        return \"\"\n    if not resolved.is_file():\n        return \"\"\n    try:\n        return resolved.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / \"notes\"\n    d.mkdir()\n    (d / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    (d / \"sub\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"nope\", encoding=\"utf-8\")\n    return d\n\n\ndef test_reads_file_inside(notes: Path) -> None:\n    assert read_public(\"a.txt\") == \"hi\"\n\n\ndef test_dotdot_that_returns_inside_is_allowed(notes: Path) -> None:\n    assert read_public(\"sub/../a.txt\") == \"hi\"\n\n\ndef test_missing_file_is_empty(notes: Path) -> None:\n    assert read_public(\"missing.txt\") == \"\"\n\n\ndef test_parent_escape_is_empty(notes: Path) -> None:\n    assert read_public(\"../secret.txt\") == \"\"\n\n\ndef test_deep_escape_is_empty(notes: Path) -> None:\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_dotdot_alone_is_empty(notes: Path) -> None:\n    assert read_public(\"..\") == \"\"\n\n\ndef test_absolute_path_is_empty(notes: Path, tmp_path: Path) -> None:\n    assert read_public(str(tmp_path / \"secret.txt\")) == \"\"\n\n\ndef test_symlink_pointing_outside_is_empty(notes: Path, tmp_path: Path) -> None:\n    (notes / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_directory_is_empty(notes: Path) -> None:\n    assert read_public(\"sub\") == \"\"\n\n\ndef test_empty_path_is_empty(notes: Path) -> None:\n    assert read_public(\"\") == \"\"\n\n\ndef test_nul_byte_is_empty(notes: Path) -> None:\n    assert read_public(\"a\\x00.txt\") == \"\"\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"needs non-root POSIX user to make a file unreadable\",\n)\ndef test_unreadable_file_is_empty(notes: Path) -> None:\n    target = notes / \"locked.txt\"\n    target.write_text(\"x\", encoding=\"utf-8\")\n    target.chmod(0)\n    try:\n        assert read_public(\"locked.txt\") == \"\"\n    finally:\n        target.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2728,
+    "reasoning": 1573
+   },
+   "out_bytes": 2629,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2404,
+    "out": 2109,
+    "reasoning": 731
+   },
+   "out_bytes": 3233,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

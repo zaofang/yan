@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 1226,
+   "reasoning": 353,
+   "out_bytes": 2214
+  },
+  "body": {
+   "in": 2006,
+   "out": 1603,
+   "reasoning": 649,
+   "out_bytes": 2400
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the next `</title>`.\n\n    The tag names are matched case-insensitively, but only the exact forms\n    `<title>` and `</title>` are recognised (no attributes). The text is\n    returned verbatim, without stripping whitespace and including any\n    newlines or other markup inside it. Returns an empty string when there\n    is no `<title>`, when no `</title>` follows it, or when the title is\n    empty. Works purely on the given string and does no I/O.\n    \"\"\"\n    m = re.search(\n        r\"<title>(.*?)</title>\",\n        html,\n        flags=re.IGNORECASE | re.DOTALL | re.ASCII,\n    )\n    if m is None:\n        return \"\"\n    return m.group(1)\n\n\ndef test_basic_title() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_no_title_returns_empty() -> None:\n    assert title_of(\"<html><body>No title here</body></html>\") == \"\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Upper</TITLE></HTML>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_text_case_preserved() -> None:\n    assert title_of(\"<title>MiXeD Case</title>\") == \"MiXeD Case\"\n\n\ndef test_first_title_only() -> None:\n    html = \"<title>First</title><title>Second</title>\"\n    assert title_of(html) == \"First\"\n\n\ndef test_missing_closing_tag() -> None:\n    assert title_of(\"<html><title>Unclosed<body></body></html>\") == \"\"\n\n\ndef test_closing_tag_only() -> None:\n    assert title_of(\"Stray</title>\") == \"\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  padded \\t</title>\") == \"  padded \\t\"\n\n\ndef test_multiline_title() -> None:\n    html = \"<head><title>Line one\\nLine two</title></head>\"\n    assert title_of(html) == \"Line one\\nLine two\"\n\n\ndef test_title_with_entities_untouched() -> None:\n    assert title_of(\"<title>Tom &amp; Jerry</title>\") == \"Tom &amp; Jerry\"\n\n\ndef test_unicode_title() -> None:\n    assert title_of(\"<title>Caf\u00e9 \u2013 \u65e5\u672c\u8a9e</title>\") == \"Caf\u00e9 \u2013 \u65e5\u672c\u8a9e\"\n\n\ndef test_title_surrounded_by_other_content() -> None:\n    html = \"<p>before</p><title>T</title><p>after</p>\"\n    assert title_of(html) == \"T\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 1226,
+    "reasoning": 353
+   },
+   "out_bytes": 2214,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2006,
+    "out": 1603,
+    "reasoning": 649
+   },
+   "out_bytes": 2400,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

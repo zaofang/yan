@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2764,
+   "reasoning": 730,
+   "out_bytes": 4491
+  },
+  "body": {
+   "in": 3207,
+   "out": 2704,
+   "reasoning": 536,
+   "out_bytes": 4890
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the directory `notes`.\n\n    `notes` is resolved relative to the current working directory. `name`\n    comes from an untrusted request and may be anything: absolute paths,\n    `..` segments, symlinks, embedded NUL characters, an empty string, etc.\n\n    Only files that really live inside `notes` (after resolving symlinks and\n    `..`) may be read. If the file is missing, is not a regular file, is\n    unreadable, or `name` would lead outside `notes` in any way, return \"\".\n    Never raise.\n    \"\"\"\n    try:\n        if not name or \"\\x00\" in name:\n            return \"\"\n        base = Path(NOTES_DIR).resolve()\n        target = (base / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (notes / \"uni.txt\").write_text(\"h\u00e9llo \u2713\", encoding=\"utf-8\")\n    (notes / \"subdir\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    (tmp_path / \"notes_evil\").mkdir()\n    (tmp_path / \"notes_evil\" / \"x.txt\").write_text(\"EVIL\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_existing_file(sandbox: Path) -> None:\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_utf8(sandbox: Path) -> None:\n    assert read_note(\"uni.txt\") == \"h\u00e9llo \u2713\"\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"subdir\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal_blocked(sandbox: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"../../secret.txt\") == \"\"\n    assert read_note(\"subdir/../../secret.txt\") == \"\"\n    assert read_note(\"./../secret.txt\") == \"\"\n\n\ndef test_sibling_directory_with_shared_prefix_blocked(sandbox: Path) -> None:\n    assert read_note(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_absolute_path_outside_blocked(sandbox: Path) -> None:\n    assert read_note(str(sandbox / \"secret.txt\")) == \"\"\n    assert read_note(str(sandbox / \"notes_evil\" / \"x.txt\")) == \"\"\n\n\ndef test_absolute_path_with_traversal_blocked(sandbox: Path) -> None:\n    sneaky = str(sandbox / NOTES_DIR / \"..\" / \"secret.txt\")\n    assert read_note(sneaky) == \"\"\n\n\ndef test_nul_byte_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"a.txt\\x00\") == \"\"\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"\\x00\") == \"\"\n\n\ndef test_encoded_traversal_is_just_a_missing_name(sandbox: Path) -> None:\n    assert read_note(\"%2e%2e/secret.txt\") == \"\"\n    assert read_note(\"..%2fsecret.txt\") == \"\"\n\n\ndef test_symlink_file_escaping_notes_blocked(sandbox: Path) -> None:\n    link = sandbox / NOTES_DIR / \"link.txt\"\n    try:\n        os.symlink(sandbox / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escaping_notes_blocked(sandbox: Path) -> None:\n    link = sandbox / NOTES_DIR / \"outdir\"\n    try:\n        os.symlink(sandbox / \"notes_evil\", link, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"outdir/x.txt\") == \"\"\n\n\ndef test_symlink_staying_inside_notes_is_ok(sandbox: Path) -> None:\n    link = sandbox / NOTES_DIR / \"alias.txt\"\n    try:\n        os.symlink(sandbox / NOTES_DIR / \"a.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"alias.txt\") == \"hello\"\n\n\ndef test_unreadable_file_gives_empty(sandbox: Path) -> None:\n    if os.name == \"nt\" or (hasattr(os, \"geteuid\") and os.geteuid() == 0):\n        pytest.skip(\"permission bits not enforced\")\n    p = sandbox / NOTES_DIR / \"locked.txt\"\n    p.write_text(\"x\", encoding=\"utf-8\")\n    p.chmod(0)\n    try:\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        p.chmod(0o600)\n\n\ndef test_invalid_utf8_does_not_raise(sandbox: Path) -> None:\n    (sandbox / NOTES_DIR / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert isinstance(read_note(\"bin.dat\"), str)\n\n\ndef test_missing_notes_directory_gives_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert read_note(\"a.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2764,
+    "reasoning": 730
+   },
+   "out_bytes": 4491,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3207,
+    "out": 2704,
+    "reasoning": 536
+   },
+   "out_bytes": 4890,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

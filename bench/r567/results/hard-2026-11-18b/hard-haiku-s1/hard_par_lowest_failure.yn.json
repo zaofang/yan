@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1529,
+   "out": 997,
+   "reasoning": 850,
+   "out_bytes": 281
+  },
+  "body": {
+   "in": 1749,
+   "out": 675,
+   "reasoning": 442,
+   "out_bytes": 430
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  post out == x\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  ex all_even([]) == []\n  let ys = par for x in xs\n    check(x: x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n  assert all_even([]) == []\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1529,
+    "out": 997,
+    "reasoning": 850
+   },
+   "out_bytes": 281,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1749,
+    "out": 675,
+    "reasoning": 442
+   },
+   "out_bytes": 430,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1484,
+   "out": 735,
+   "reasoning": 635,
+   "out_bytes": 204
+  },
+  "body": {
+   "in": 1657,
+   "out": 112,
+   "reasoning": 0,
+   "out_bytes": 225
+  }
+ },
+ "final": "-- Fixture for the ex line: a job that captures nothing.\nok_job() -> str = \"x\"\n\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(ok_job) == \"start:x:end\"\n  let r = job()\n  \"start:\\(r):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1484,
+    "out": 735,
+    "reasoning": 635
+   },
+   "out_bytes": 204,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1657,
+    "out": 112,
+    "reasoning": 0
+   },
+   "out_bytes": 225,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

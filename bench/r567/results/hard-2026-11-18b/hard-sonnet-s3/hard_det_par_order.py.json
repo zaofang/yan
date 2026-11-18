@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1550,
+   "reasoning": 669,
+   "out_bytes": 1989
+  },
+  "body": {
+   "in": 2039,
+   "out": 940,
+   "reasoning": 0,
+   "out_bytes": 2126
+  }
+ },
+ "final": "import sys\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return parity (0 or 1) of each element of xs, computed in parallel\n    with a thread pool. Results are in input order, regardless of the\n    number of workers or the order in which tasks complete. Does not\n    modify xs.\"\"\"\n    if not xs:\n        return []\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(lambda x: sys.modules[__name__].parity(x), xs))\n\n\ndef test_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_basic() -> None:\n    assert parities([0, 1, 2, 3, 4, 5]) == [0, 1, 0, 1, 0, 1]\n\n\ndef test_negatives() -> None:\n    assert parities([-1, -2, -3, -4]) == [1, 0, 1, 0]\n\n\ndef test_single() -> None:\n    assert parities([7]) == [1]\n    assert parities([8]) == [0]\n\n\ndef test_large_matches_sequential() -> None:\n    xs = [(i * 7919) ^ (i >> 3) for i in range(-500, 2000)]\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, 4, 5]\n    parities(xs)\n    assert xs == [3, 4, 5]\n\n\ndef test_order_independent_of_completion_time(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    n = 12\n\n    def slow_parity(x: int) -> int:\n        # Earlier elements finish last.\n        time.sleep((n - x) * 0.005)\n        return x % 2\n\n    monkeypatch.setattr(sys.modules[__name__], \"parity\", slow_parity)\n    xs = list(range(n))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_uses_threads(monkeypatch: pytest.MonkeyPatch) -> None:\n    import threading\n\n    seen: set[int] = set()\n\n    def recording_parity(x: int) -> int:\n        seen.add(threading.get_ident())\n        time.sleep(0.01)\n        return x % 2\n\n    monkeypatch.setattr(sys.modules[__name__], \"parity\", recording_parity)\n    xs = list(range(20))\n    assert parities(xs) == [x % 2 for x in xs]\n    assert threading.get_ident() not in seen\n\n\ndef test_executor_available() -> None:\n    with ThreadPoolExecutor(max_workers=1) as ex:\n        assert list(ex.map(parity, [1, 2, 3])) == [1, 0, 1]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1550,
+    "reasoning": 669
+   },
+   "out_bytes": 1989,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2039,
+    "out": 940,
+    "reasoning": 0
+   },
+   "out_bytes": 2126,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

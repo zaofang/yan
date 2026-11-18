@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1478,
+   "out": 753,
+   "reasoning": 601,
+   "out_bytes": 230
+  },
+  "body": {
+   "in": 1703,
+   "out": 575,
+   "reasoning": 255,
+   "out_bytes": 489
+  }
+ },
+ "final": "type Expr = Num(v: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr)\n\neval_expr(e: Expr) -> int =\n  ex eval_expr(Num(v: 3)) == 3\n  ex eval_expr(Add(l: Num(v: 1), r: Mul(l: Num(v: 2), r: Num(v: 3)))) == 7\n  match e\n    Num(v:) -> v\n    Add(l:, r:) -> eval_expr(e: l) + eval_expr(e: r)\n    Mul(l:, r:) -> eval_expr(e: l) * eval_expr(e: r)\n\ntest_eval_expr() =\n  assert eval_expr(e: Num(v: 3)) == 3\n  assert eval_expr(e: Add(l: Num(v: 1), r: Mul(l: Num(v: 2), r: Num(v: 3)))) == 7\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1478,
+    "out": 753,
+    "reasoning": 601
+   },
+   "out_bytes": 230,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1703,
+    "out": 575,
+    "reasoning": 255
+   },
+   "out_bytes": 489,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

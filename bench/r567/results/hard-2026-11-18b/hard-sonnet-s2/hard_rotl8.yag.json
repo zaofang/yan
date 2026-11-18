@@ -1,0 +1,158 @@
+{
+ "final": "def rotl8(x: uint8, k: int) -> uint8:\n    \"\"\"Rotate x left by k bits within 8 bits; the high bits wrap around to the low end.\"\"\"\n    pre k >= 0 and k <= 7\n    post k != 0 or out == x\n    ex rotl8(129, 1) == 3\n    ex rotl8(1, 7) == 128\n    ex rotl8(5, 0) == 5\n    ex rotl8(255, 3) == 255\n    hi = (x & (255 >> k)) << k\n    lo = x >> 1 >> (7 - k)\n    return hi | lo\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2034,
+    "out": 455,
+    "reasoning": 291
+   },
+   "out_bytes": 305
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp8ornt1vs/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp8ornt1vs/work/task.yag:9:13 rotl8: `(x)` `int` does not take a `uint8`\n#3 E200 /tmp/tmp8ornt1vs/work/task.yag:11:12 rotl8: `uint8(r)` cannot find function `uint8` | maybe: uint8 -> int",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2296,
+    "out": 556,
+    "reasoning": 354
+   },
+   "out_bytes": 374
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp8ornt1vs/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp8ornt1vs/work/task.yag:9:8 rotl8: `k =` this branch special-cases an `ex` input",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2702,
+    "out": 903,
+    "reasoning": 691
+   },
+   "out_bytes": 401
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3049,
+    "out": 537,
+    "reasoning": 331
+   },
+   "out_bytes": 376
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rotl8",
+ "tokens": {
+  "body": {
+   "in": 8047,
+   "out": 1996,
+   "reasoning": 1376,
+   "out_bytes": 1151
+  },
+  "spec": {
+   "in": 2034,
+   "out": 455,
+   "reasoning": 291,
+   "out_bytes": 305
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp8ornt1vs/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp8ornt1vs/work/task.yag:9:13 rotl8: `(x)` `int` does not take a `uint8`\n#3 E200 /tmp/tmp8ornt1vs/work/task.yag:11:12 rotl8: `uint8(r)` cannot find function `uint8` | maybe: uint8 -> int"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmp8ornt1vs/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp8ornt1vs/work/task.yag:9:8 rotl8: `k =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yag:9:13 rotl8: `x` `int` does not take a `uint8`\nE200 ./task.yag:11:12 rotl8: `uint8` cannot find function `uint8` | maybe: uint8 -> int\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}
