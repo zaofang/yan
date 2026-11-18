@@ -435,6 +435,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1087 | a field of a local that was not moved out stays readable after another field was (SQ13, #1625) | 4.2 |
 | R1089 | pool arms may leave by `?`, `fail` or `return` of word values: the lowest-index arm that leaves, by exit or panic, decides the block, higher arms that have not started are skipped and the exits, panics and output of those that ran are discarded, so the result never depends on the worker count (RFC 0086 D8, gap 1 of #1632) | 6.7, 9.1 |
 | R1090 | a name bound outside a pool arm that leaves is dropped once, by the frame that returns, on the winning exit; the arm drops only the names it binds (RFC 0086 D8, gap 1 of #1632) | 4.2, 6.7 |
+| R1091 | `RecordInfo.layout` and `SumInfo.layout` are `Layout | None`: `None` for a type of default layout, whose size and alignment a program may not observe (RFC 0083 D3, L0) | 17.3 |
 
 <!-- /rows -->
 
