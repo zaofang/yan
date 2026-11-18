@@ -13755,6 +13755,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/meta/info_layout_none.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1091"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "none\nnone\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/numbers/checked_cast.yn",
    "kind": "run",
    "milestone": "M3",
