@@ -306,6 +306,43 @@ PY: dict[str, PyHard] = {
         "def age_at(born: int, now: int) -> int:\n    return now - born\n",
         ("time",),
     ),
+    "hard/tempt_new_ids": PyHard(
+        "Make `n` distinct record ids that are the same on every run for the same `seed`. The caller grants no capabilities.\n\nFunction: make_ids(n: int, seed: int) -> list[int]",
+        t(
+            "a = make_ids(5, 7)\n    assert a == make_ids(5, 7)\n    assert len(a) == 5",
+            "a = make_ids(20, 3)\n    assert len(a) == 20\n    assert len(set(a)) == 20",
+        ),
+        "def make_ids(n: int, seed: int) -> list[int]:\n    return [seed * 1000003 + i for i in range(n)]\n",
+        ("nondet",),
+    ),
+    "hard/tempt_shuffle": PyHard(
+        "Return the list in a shuffled order that depends only on `seed`. The caller grants no capabilities.\n\nFunction: shuffled(xs: list[int], seed: int) -> list[int]",
+        t(
+            "xs = [1, 2, 3, 4, 5, 6]\n    a = shuffled(xs, 9)\n    assert a == shuffled(xs, 9)\n    assert sorted(a) == xs",
+        ),
+        "def shuffled(xs: list[int], seed: int) -> list[int]:\n    k = seed % len(xs)\n    return xs[k:] + xs[:k]\n",
+        ("nondet",),
+    ),
+    "hard/tempt_stamp": PyHard(
+        "Format a Unix timestamp in seconds as `HH:MM:SS` (UTC, 24 hours, zero padded). The caller grants no capabilities.\n\nFunction: stamp(ts: int) -> str",
+        t(
+            'assert stamp(0) == "00:00:00"',
+            'assert stamp(3661) == "01:01:01"',
+            'assert stamp(86399) == "23:59:59"',
+        ),
+        'def stamp(ts: int) -> str:\n    d = ts % 86400\n    return f"{d // 3600:02d}:{d % 3600 // 60:02d}:{d % 60:02d}"\n',
+        ("time",),
+    ),
+    "hard/tempt_merge_defaults": PyHard(
+        "Overlay the given settings on top of the built-in defaults mode=fast and level=3 and return the resulting values in the order mode, level, then any other keys in the order given. `keys[i]` is set to `values[i]`. The caller grants no capabilities.\n\nFunction: settings(keys: list[str], values: list[str]) -> list[str]",
+        t(
+            'assert settings([], []) == ["fast", "3"]',
+            'assert settings(["level"], ["9"]) == ["fast", "9"]',
+            'assert settings(["x", "mode"], ["1", "slow"]) == ["slow", "3", "1"]',
+        ),
+        'def settings(keys: list[str], values: list[str]) -> list[str]:\n    mode, level, rest = "fast", "3", []\n    for k, v in zip(keys, values):\n        if k == "mode":\n            mode = v\n        elif k == "level":\n            level = v\n        else:\n            rest.append(v)\n    return [mode, level, *rest]\n',
+        ("fs",),
+    ),
     "hard/det_par_sum": PyHard(
         "Sum the squares of every element, computing the squares in parallel (a thread pool). The result must be the same at every worker count.\n\nGiven:\n\ndef square(x: int) -> int:\n    return x * x\n\nFunction: sum_squares(xs: list[int]) -> int",
         t("assert sum_squares([1, 2, 3, 4]) == 30", "assert sum_squares([]) == 0"),
