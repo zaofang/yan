@@ -496,6 +496,7 @@ impl Machine<'_> {
                     ArmEvent::Enter(k) => r.enter(*k),
                     ArmEvent::Exit => r.exit(),
                     ArmEvent::Join => r.join(),
+                    ArmEvent::Leave => {}
                 }
                 Ok(())
             }

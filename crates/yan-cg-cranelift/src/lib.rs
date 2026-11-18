@@ -2232,7 +2232,7 @@ fn rt_fn(
             "yan_rt_pool_run",
             pool::yan_rt_pool_run as *const u8,
             &[I64, I64],
-            None,
+            Some(I64),
         ),
         RtFn::ActorSpawn => (
             "yan_rt_actor_spawn",

@@ -634,6 +634,8 @@ struct Fn<'a, 'm> {
     /// outermost first: a name whose locals start below `task_starts[d]` was bound outside the
     /// branch at depth `d + 1`.
     task_starts: Vec<Local>,
+    /// Per entry of `task_starts`: whether it is an arm of a plain `par` (no scheduler).
+    frame_plain: Vec<bool>,
     /// Lazy `iter` pipelines by the name they are bound to (`pipe.rs`).
     pipes: HashMap<String, pipe::Lazy>,
     /// A remainder made by `rest`, to every path of its type that was moved out of it.
@@ -682,6 +684,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             scopes: Vec::new(),
             line: 0,
             task_starts: Vec::new(),
+            frame_plain: Vec::new(),
             pipes: HashMap::new(),
             rests: HashMap::new(),
             deferred: Vec::new(),
@@ -992,7 +995,7 @@ impl<'a, 'm> Fn<'a, 'm> {
     /// In a task, tell the scheduler that the exit that follows fails with `ev` of shape `e`,
     /// and whether that is `Cancelled` (R394).
     fn exit_kind(&mut self, e: &Shape, ev: &[Operand]) {
-        if self.task_starts.is_empty() {
+        if !self.in_task() {
             return;
         }
         let kind = match e {

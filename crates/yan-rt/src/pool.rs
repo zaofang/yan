@@ -1,9 +1,10 @@
 //! The worker pool of a plain `par` in native code (RFC 0086). A function whose `par` arms are
 //! pool-safe (`yan-mir/src/pool.rs`) tests `yan_rt_pool_begin` and, when it says yes, hands the
 //! arms to `yan_rt_pool_run`, which runs each on a worker and waits for all of them. Arms write
-//! disjoint places (6.5), so the results do not depend on which worker ran what. A panic in an
-//! arm is recorded and the lowest arm's panic ends the program once every arm has settled, as
-//! it would if the arms ran in source order.
+//! disjoint places (6.5), so the results do not depend on which worker ran what. An arm that
+//! panics or leaves by `?`, `fail` or `return` is recorded; the lowest such arm decides the block
+//! once every arm has settled, as it would if the arms ran in source order (RFC 0086 D8). Arms
+//! above it that have not started are skipped; those that ran have their output and exits dropped.
 //!
 //! The worker count is `YAN_THREADS`, one per core when unset; 1 runs every `par` inline.
 
@@ -54,11 +55,19 @@ struct Region {
     done: Condvar,
 }
 
+/// How an arm left its block, other than by falling out of its end.
+enum Left {
+    /// A panic: its report on stderr and the exit status.
+    Panic(String, i32),
+    /// The code of the exit the arm took (`yan-mir/src/pool.rs`).
+    Exit(i64),
+}
+
 #[derive(Default)]
 struct Settled {
     count: usize,
-    /// The lowest arm that panicked, with its report and exit status.
-    failed: Option<(usize, String, i32)>,
+    /// The lowest arm that left.
+    failed: Option<(usize, Left)>,
 }
 
 type Arms = Arc<Region>;
@@ -81,6 +90,16 @@ fn work(r: &Arms) {
         if k >= r.n {
             return;
         }
+        if r.state
+            .lock()
+            .expect("not poisoned")
+            .failed
+            .as_ref()
+            .is_some_and(|f| f.0 < k)
+        {
+            settle(r, None);
+            continue;
+        }
         ARM.with(|a| a.set(Some(k)));
         CURRENT.with(|c| *c.borrow_mut() = Some(Arc::clone(r)));
         // SAFETY: words `0..n` of the frame are the arms' code addresses, and the frame
@@ -88,11 +107,11 @@ fn work(r: &Arms) {
         unsafe {
             let code = *(r.frame as *const usize).add(k);
             let code: extern "C" fn(*mut u64) -> i64 = std::mem::transmute(code);
-            code(r.frame as *mut u64);
+            let exit = code(r.frame as *mut u64);
+            ARM.with(|a| a.set(None));
+            keep_output(r, k);
+            settle(r, (exit != 0).then_some((k, Left::Exit(exit))));
         }
-        ARM.with(|a| a.set(None));
-        keep_output(r, k);
-        settle(r, None);
     }
 }
 
@@ -101,7 +120,7 @@ fn keep_output(r: &Region, k: usize) {
     r.out.lock().expect("not poisoned")[k] = bytes;
 }
 
-fn settle(r: &Region, failed: Option<(usize, String, i32)>) {
+fn settle(r: &Region, failed: Option<(usize, Left)>) {
     let mut s = r.state.lock().expect("not poisoned");
     s.count += 1;
     if let Some(f) = failed
@@ -131,20 +150,21 @@ pub(crate) fn arm_failed(report: String, code: i32) {
         .with(|c| c.borrow().clone())
         .expect("a worker has its region");
     keep_output(&r, k);
-    settle(&r, Some((k, report, code)));
+    settle(&r, Some((k, Left::Panic(report, code))));
     spawn(&r);
     loop {
         std::thread::park();
     }
 }
 
-/// Run the `n` arms in `frame` on `min(threads, n)` workers and wait for them. If any arm
-/// panicked, end the program as the lowest panicking arm does.
+/// Run the `n` arms in `frame` on `min(threads, n)` workers and wait for them. If the lowest arm
+/// that left panicked, end the program as it does; if it left by an exit, return that exit's code.
+/// Returns 0 when every arm fell out of its end.
 ///
 /// # Safety
 /// Words `0..n` of `frame` are the code addresses of arms `(frame) -> i64` that are pool-safe.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn yan_rt_pool_run(frame: *mut u64, n: u64) {
+pub unsafe extern "C" fn yan_rt_pool_run(frame: *mut u64, n: u64) -> i64 {
     let n = n as usize;
     let r = Arc::new(Region {
         n,
@@ -173,8 +193,12 @@ pub unsafe extern "C" fn yan_rt_pool_run(frame: *mut u64, n: u64) {
             std::process::exit(1);
         }
     }
-    if let Some((_, report, code)) = s.failed.take() {
-        eprintln!("{report}");
-        std::process::exit(code);
+    match s.failed.take() {
+        Some((_, Left::Panic(report, code))) => {
+            eprintln!("{report}");
+            std::process::exit(code);
+        }
+        Some((_, Left::Exit(code))) => code,
+        None => 0,
     }
 }
