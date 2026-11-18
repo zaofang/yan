@@ -1732,3 +1732,10 @@ fn binding_a_list_element_view_to_another_name_is_e413() {
     let (_, d) = lower(src);
     assert_eq!(d.iter().filter(|d| d.code == "E413").count(), 1, "{d:?}");
 }
+
+#[test]
+fn for_over_bytes_lowers_without_diagnostics() {
+    let src = "def f(bs: bytes) -> int:\n    n = 0\n    for b in bs:\n        if b == 98:\n            n += 1\n    return n\n";
+    let (_, d) = lower(src);
+    assert!(d.is_empty(), "{d:?}");
+}
