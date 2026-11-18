@@ -42,6 +42,7 @@ class Task:
     hidden: str | None = None  # Yan test source of a hand-written task; cases is empty then
     raw_prompt: str | None = None
     category: str = ""
+    py_hidden: str = ""  # pytest source of a hand-written task; empty: Yan-only
 
     @property
     def n_tests(self) -> int:
@@ -328,7 +329,7 @@ def load_hard() -> list[Task]:
 
     return [
         Task(h.id, "hard", h.id.split("/")[1], "", [], [], "", [], hidden=h.tests,
-             raw_prompt=h.prompt, category=h.category)
+             raw_prompt=h.prompt, category=h.category, py_hidden=h.py_tests)
         for h in hard.TASKS
     ]  # fmt: skip
 
@@ -340,6 +341,8 @@ def select(suites: list[str], limit: int | None, seed: int) -> list[Task]:
 
 
 def python_tests(task: Task, prefix: str = "test_hidden") -> str:
+    if task.hidden:
+        return "\n\n" + task.py_hidden
     out = []
     for i, (args, kwargs, expected) in enumerate(task.cases):
         call = call_text(task.name, args, kwargs, task.param_types, task.params)

@@ -110,7 +110,7 @@ def py_hidden(src: str, task: taskset.Task) -> dict:
         pathlib.Path(d, "test_hidden.py").write_text(src + taskset.python_tests(task))
         p = sh([sys.executable, "-m", "pytest", "-q", "--tb=no", "-rf", "test_hidden.py"], d, 300)
     failed = set(re.findall(r"FAILED test_hidden\.py::test_hidden_(\d+)", p.stdout))
-    total = len(task.cases)
+    total = task.py_hidden.count("def test_hidden_") if task.hidden else len(task.cases)
     ran = re.search(r"(\d+) passed", p.stdout)
     passed = int(ran.group(1)) if ran else 0
     passed = min(passed, total - len(failed))
@@ -328,6 +328,8 @@ def main() -> None:
     jobs = []
     for t in ts:
         for arm in a.arms.split(","):
+            if arm == "py" and t.hidden and not t.py_hidden:
+                continue  # a Yan-only task
             f = pathlib.Path(a.out, tag, f"{t.id.replace('/', '_')}.{arm}.json")
             if not f.exists():
                 jobs.append((t, arm, f))

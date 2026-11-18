@@ -44,7 +44,8 @@ uv run python bench/r567/report.py bench/r567/runs/claude-free-5shot --json summ
 target/release/yan` checks every reference passes. Categories added for #1585: `safety` (the prompt
 caps the capabilities; the hidden test declares only those, so a solution that declares more fails the
 check) and `determinism` (the hidden cases run at `YAN_THREADS` 1, 2, 4 and 8 and must pass at each).
-The Python arm and a `.yn` arm do not run `hard` tasks yet.
+The Python arm runs the tasks that carry `py_tests` (the 7 language-neutral ones; `safety` tasks patch the
+forbidden call so a use fails the case). Other hard tasks are Yan-only. A `.yn` arm does not exist yet.
 
 ## Measures
 

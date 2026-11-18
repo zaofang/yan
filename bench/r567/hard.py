@@ -24,6 +24,25 @@ class Hard:
     prompt: str
     tests: str
     ref: str
+    py_tests: str = ""  # pytest cases for the Python arm; empty: the task is Yan-only
+
+
+def guard(*names: str) -> str:
+    """Python-arm prelude: each named call a task may not make raises, so a use fails the case.
+    The Python counterpart of the capability ceiling."""
+    pats = {
+        "fs": '(builtins, "open")',
+        "net": '(socket.socket, "connect")',
+        "time": '(time, "time")',
+        "random": '(random, "random"), (random, "randint"), (random, "choice")',
+    }
+    targets = ", ".join(pats[n] for n in names)
+    return (
+        "import builtins, random, socket, time\nimport pytest\n\n\n"
+        "@pytest.fixture(autouse=True)\ndef _ceiling(monkeypatch):\n"
+        "    def deny(*a, **k):\n        raise RuntimeError('capability beyond the ceiling')\n"
+        f"    for obj, name in [{targets}]:\n        monkeypatch.setattr(obj, name, deny)\n\n\n"
+    )
 
 
 TASKS = [
@@ -233,6 +252,7 @@ TASKS = [
         "Function: log_line(level: str, message: str) -> None",
         'def test_hidden_0() uses io:\n    log_line("warn", "disk low")\n    assert True\n',
         'def log_line(level: str, message: str) -> None uses io:\n    io.print(f"[{level}] {message}")\n',
+        py_tests=guard("fs") + 'def test_hidden_0() -> None:\n    log_line("warn", "disk low")\n',
     ),
     Hard(
         "hard/safe_parse_config",
@@ -245,6 +265,8 @@ TASKS = [
         'def config_value(text: str, key: str) -> str:\n    for line in text.split("\\n"):\n'
         '        parts = line.split("=")\n        if len(parts) == 2 and parts[0].copy() == key:\n'
         '            return parts[1].copy()\n    return ""\n',
+        py_tests=guard("fs")
+        + 'def test_hidden_0() -> None:\n    assert config_value("a=1\\nb=2", "b") == "2"\n\ndef test_hidden_1() -> None:\n    assert config_value("a=1", "z") == ""\n',
     ),
     Hard(
         "hard/safe_title_of",
@@ -256,6 +278,8 @@ TASKS = [
         'def test_hidden_1():\n    assert title_of("<p>x</p>") == ""\n',
         'def title_of(html: str) -> str:\n    a = html.find("<title>")\n    b = html.find("</title>")\n'
         '    if a < 0 or b < 0:\n        return ""\n    return html[a + 7:b]\n',
+        py_tests=guard("net")
+        + 'def test_hidden_0() -> None:\n    assert title_of("<html><title>Hi</title></html>") == "Hi"\n\ndef test_hidden_1() -> None:\n    assert title_of("<p>x</p>") == ""\n',
     ),
     Hard(
         "hard/safe_pick_seeded",
@@ -267,6 +291,8 @@ TASKS = [
         "def test_hidden_1():\n    assert pick([9], 12345) == 9\n\n"
         "def test_hidden_2():\n    assert pick([1, 2, 3], 3) in [1, 2, 3]\n",
         "def pick(xs: list[int], seed: int) -> int:\n    return xs[seed % len(xs)]\n",
+        py_tests=guard("random")
+        + "def test_hidden_0() -> None:\n    assert pick([5, 6, 7], 4) == pick([5, 6, 7], 4)\n\ndef test_hidden_1() -> None:\n    assert pick([9], 12345) == 9\n\ndef test_hidden_2() -> None:\n    assert pick([1, 2, 3], 3) in [1, 2, 3]\n",
     ),
     Hard(
         "hard/safe_age_at",
@@ -277,6 +303,8 @@ TASKS = [
         "def test_hidden_0():\n    assert age_at(1990, 2026) == 36\n\n"
         "def test_hidden_1():\n    assert age_at(2026, 2026) == 0\n",
         "def age_at(born: int, now: int) -> int:\n    return now - born\n",
+        py_tests=guard("time")
+        + "def test_hidden_0() -> None:\n    assert age_at(1990, 2026) == 36\n\ndef test_hidden_1() -> None:\n    assert age_at(2026, 2026) == 0\n",
     ),
     Hard(
         "hard/det_par_sum",
@@ -290,6 +318,7 @@ TASKS = [
         "def square(x: int) -> int:\n    return x * x\n\n"
         "def sum_squares(xs: list[int]) -> int:\n    ys = par [square(x) for x in xs]\n    t = 0\n"
         "    for y in ys:\n        t += y\n    return t\n",
+        py_tests="def test_hidden_0() -> None:\n    assert sum_squares([1, 2, 3, 4]) == 30\n\ndef test_hidden_1() -> None:\n    assert sum_squares([]) == 0\n",
     ),
     Hard(
         "hard/det_par_order",
@@ -301,6 +330,7 @@ TASKS = [
         "def test_hidden_0():\n    assert parities([1, 2, 3, 4, 5, 6, 7, 8]) == [1, 0, 1, 0, 1, 0, 1, 0]\n",
         "def parity(x: int) -> int:\n    return x % 2\n\n"
         "def parities(xs: list[int]) -> list[int]:\n    return par [parity(x) for x in xs]\n",
+        py_tests="def test_hidden_0() -> None:\n    assert parities([1, 2, 3, 4, 5, 6, 7, 8]) == [1, 0, 1, 0, 1, 0, 1, 0]\n",
     ),
     Hard(
         "hard/det_par_first_failure",
