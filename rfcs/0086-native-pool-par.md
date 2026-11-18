@@ -97,8 +97,44 @@ reference by running it on threads before its values are sound for it.
 
 - Decision: accepted as recommended (Antonio, 2026-11-17)
 
+### D8: arms that leave by `?`, `fail` or `return` run on the pool
+
+Addendum of 2026-11-18 (gap 1 of #1632). The semantics are the ones already fixed for plain `par`:
+the lowest-index branch that does not fall through decides the block, as under `sequential`. D8 says
+how the pool realizes them so that stdout, stderr and exit status do not depend on the thread count.
+
+1. Result. Among the arms that leave, the lowest index wins, whether it left by a typed failure, a
+   `return` or a panic. A panic or exit in a higher arm is discarded: in source order that arm never
+   ran. This replaces D3's panic-only ordering for the pool; a panic in arm 2 no longer ends the
+   program when arm 0 left by `?`.
+2. Payload. An arm that leaves stores the values of its `Return` in exit words of its own in the
+   frame (per arm, so arms never share a word) and returns a nonzero exit code that names the return
+   site. A fall-through returns 0. `PoolRun` reports the winning arm; the caller switches on the arm
+   and the code, loads the exit words and returns them.
+3. Drops. A name the arm binds is dropped by the arm on its exit path, as today. A name bound outside
+   the arm belongs to the frame that returns: the arm does not drop it (a sibling may still read it),
+   and the caller drops it once on the winning exit edge, as `par concurrent` does for the
+   enclosing-frame drops of a leaving task. This reuses the deferred-drop path (`deferred`, `Unwind`)
+   for plain `par`, so there is one representation of the rule.
+4. Cancellation. Once an arm has left, arms not yet started are skipped, because in source order
+   they would not run. Started arms run to completion and their output, results and exits are
+   discarded; v1 has no polling point inside an arm, so an arm that does not end keeps the join
+   waiting. Polling at loop back-edges is part of the fast stage.
+5. Output. The hold of S1b applies: the output of arms up to and including the winner is written in
+   arm order, later output is dropped.
+6. Eligibility. D5 changes from "an exit other than reaching its end or a panic stays inline" to
+   "an exit stays inline unless it is a `Return` of word values". Other exits, `par for` and nested
+   `par` keep the inline path.
+Recommendation: one rule for panic and exit (lowest index decides) and one drop path; both keep the
+pool a pure optimisation of the source-order run, so the matrix compares byte for byte.
+
+- Decision: pending the lead's merge of this addendum. It restates the accepted lowest-index failure
+  rule (D3) for exits and fixes the drop and cancellation mechanics; it changes no accepted intent.
+
 ## Spec changes
 
 6.7 (scheduling semantics) and 9.1 (`pool` row): state outlining, branch-order commit and
-lowest-index failure. Diagnostics: one code for a branch refused under `pool` (D4, D5). Rows and
+lowest-index failure. Diagnostics: one code for a branch refused under `pool` (D4, D5). D8 widens the pool-safe arm rule
+to exits by `Return` and the join rule to the lowest-index exit; the row text changes with the
+implementation PR. Rows and
 codes are numbered in the writing PR after acceptance.
