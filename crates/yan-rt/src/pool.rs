@@ -5,10 +5,12 @@
 //! panics or leaves by `?`, `fail` or `return` is recorded; the lowest such arm decides the block
 //! once every arm has settled, as it would if the arms ran in source order (RFC 0086 D8). Arms
 //! above it that have not started are skipped; those that ran have their output and exits dropped.
+//! A panicking arm parks its worker, so the heap blocks it still owns are freed first.
 //!
 //! The worker count is `YAN_THREADS`, one per core when unset; 1 runs every `par` inline.
 
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 
@@ -16,10 +18,24 @@ use std::sync::{Arc, Condvar, Mutex, OnceLock};
 const STACK: usize = 256 << 20;
 
 thread_local! {
+    /// The heap blocks the running arm took and has not freed, with how to free each.
+    static OWNED: RefCell<HashMap<usize, unsafe fn(usize)>> = RefCell::new(HashMap::new());
     /// The arm this thread is running, when it is a pool worker.
     static ARM: Cell<Option<usize>> = const { Cell::new(None) };
     /// What the running arm printed, held back so the join can emit it in arm order.
     static OUT: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+}
+
+pub(crate) fn track(p: usize, release: unsafe fn(usize)) {
+    if ARM.with(Cell::get).is_some() {
+        OWNED.with_borrow_mut(|o| o.insert(p, release));
+    }
+}
+
+pub(crate) fn untrack(p: usize) {
+    if ARM.with(Cell::get).is_some() {
+        OWNED.with_borrow_mut(|o| o.remove(&p));
+    }
 }
 
 /// Hold `bytes` for the join when this thread runs an arm; false when it should write them.
@@ -101,6 +117,7 @@ fn work(r: &Arms) {
             continue;
         }
         ARM.with(|a| a.set(Some(k)));
+        OWNED.with_borrow_mut(HashMap::clear);
         CURRENT.with(|c| *c.borrow_mut() = Some(Arc::clone(r)));
         // SAFETY: words `0..n` of the frame are the arms' code addresses, and the frame
         // outlives the arm because the forking thread waits for every arm to settle.
@@ -150,6 +167,10 @@ pub(crate) fn arm_failed(report: String, code: i32) {
         .with(|c| c.borrow().clone())
         .expect("a worker has its region");
     keep_output(&r, k);
+    // The arm's output is discarded and nothing resumes it, so what it still owns is freed here.
+    for (p, release) in OWNED.with_borrow_mut(std::mem::take) {
+        crate::heap::block_released(p, release);
+    }
     settle(&r, Some((k, Left::Panic(report, code))));
     spawn(&r);
     loop {
