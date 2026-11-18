@@ -9145,6 +9145,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/iter_sum_float_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.3"
+   ],
+   "rows": [
+    "R382"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0.0 0.0 0.0\n-0.0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/iter_windows_chunks.yag",
    "kind": "run",
    "milestone": "M1",
