@@ -19,6 +19,9 @@ unsafe fn text<'a>(ptr: *const u8, len: usize) -> &'a str {
 pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     // SAFETY: forwarded.
     let s = unsafe { text(ptr, len) };
+    if crate::pool::capture(format!("{s}\n").as_bytes()) {
+        return;
+    }
     let mut out = std::io::stdout().lock();
     if writeln!(out, "{s}").and_then(|()| out.flush()).is_err() {
         std::process::exit(1);
@@ -1346,7 +1349,9 @@ pub extern "C" fn yan_rt_rand_split(h: i64, k: i64) -> i64 {
     match crate::rand::branch(h, k as u64) {
         Some(b) => b,
         None => {
-            eprintln!("yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)");
+            let report = "yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)";
+            crate::pool::arm_failed(report.to_owned(), 101);
+            eprintln!("{report}");
             std::process::exit(101)
         }
     }

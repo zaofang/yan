@@ -21,6 +21,8 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
+import hard
+import hard_py
 import model as models
 import tasks as taskset
 
@@ -50,10 +52,18 @@ def extract(text: str) -> str:
     return (m.group(1) if m else text).rstrip() + "\n"
 
 
-def sh(cmd: list[str], cwd: str, timeout: int = 120) -> subprocess.CompletedProcess:
+def sh(
+    cmd: list[str], cwd: str, timeout: int = 120, env: dict | None = None
+) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=False
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env={**os.environ, **env} if env else None,
         )
     except subprocess.TimeoutExpired as e:
         return subprocess.CompletedProcess(cmd, 124, "", f"timeout after {e.timeout}s")
@@ -97,6 +107,8 @@ def py_check(src: str, spec_phase: bool) -> dict:
 
 
 def py_hidden(src: str, task: taskset.Task) -> dict:
+    if task.py_tests:
+        return hard_py.run_hidden(src, task.py_tests, task.forbid, task.category == "determinism")
     with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, "test_hidden.py").write_text(src + taskset.python_tests(task))
         p = sh([sys.executable, "-m", "pytest", "-q", "--tb=no", "-rf", "test_hidden.py"], d, 300)
@@ -150,9 +162,8 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
     system = PY_SYSTEM + ("\n\n" + py_shots() if a.shots else "")
     chat = models.make(a.model, a.grammar_py_fenced)
     msgs: list[dict] = []
-    rounds = py_phase(
-        chat, system, msgs, PY_SPEC_ASK.format(prompt=task.prompt), True, SPEC_REPAIRS
-    )
+    ask = PY_SPEC_ASK.format(prompt=task.py_prompt or task.prompt)
+    rounds = py_phase(chat, system, msgs, ask, True, SPEC_REPAIRS)
     if rounds[-1]["ok"]:
         rounds += py_phase(chat, system, msgs, PY_BODY_ASK, False, BODY_REPAIRS)
     body = [r for r in rounds if r["phase"] == "body"]
@@ -173,10 +184,13 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
 
 def yan_hidden(src: str, task: taskset.Task, yan: str) -> dict:
     total = task.n_tests
-    with tempfile.TemporaryDirectory() as d:
-        pathlib.Path(d, "task.yag").write_text(src + taskset.yan_tests(task))
-        p = sh([yan, "test", "--no-cache"], d, 300)
-    text = p.stdout + p.stderr
+    counts = hard.THREAD_COUNTS if task.category == "determinism" else (None,)
+    text = ""
+    for n in counts:  # a determinism task must pass at every thread count
+        with tempfile.TemporaryDirectory() as d:
+            pathlib.Path(d, "task.yag").write_text(src + taskset.yan_tests(task))
+            p = sh([yan, "test", "--no-cache"], d, 300, {"YAN_THREADS": str(n)} if n else None)
+        text += p.stdout + p.stderr
     m = re.search(r"\d+ of (\d+) tests passed", text)
     if m is None or int(m.group(1)) < total:  # a checker error leaves the tests unrun
         return {"passed": 0, "total": total, "ok": False, "error": text.strip()[:300]}

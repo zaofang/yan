@@ -1,0 +1,26 @@
+# Target description (RFC 0083 D4). The host entry; every layout query takes it.
+name = "host"
+endian = "little"
+pointer_size = 8
+pointer_align = 8
+addr_bits = 64
+
+# C types of `core.ffi` (12.3), as the Yan scalar each stands for.
+[c]
+c_char = "i8"
+c_schar = "i8"
+c_uchar = "u8"
+c_short = "i16"
+c_ushort = "u16"
+c_int = "i32"
+c_uint = "u32"
+c_long = "int"
+c_longlong = "int"
+c_ssize = "int"
+c_ptrdiff = "int"
+c_ulong = "u64"
+c_ulonglong = "u64"
+c_size = "u64"
+c_float = "f32"
+c_double = "float"
+c_void = "unit"

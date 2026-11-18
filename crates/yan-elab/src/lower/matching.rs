@@ -133,7 +133,7 @@ impl Lower<'_, '_, '_> {
             return self.guarded_match(a, &t, cases, at);
         }
         // A binder of a pattern on a list element is a view of the element, so moving it is E413.
-        let view = matches!(&a, Atom::Name(n, _) if self.index_views.contains(n));
+        let view = matches!(&a, Atom::Name(n, _) if self.index_views.contains_key(n));
         let mut arms = Vec::new();
         for c in cases {
             let mut pat = y::Pat::Wild;
@@ -143,7 +143,7 @@ impl Lower<'_, '_, '_> {
                 pat = p;
                 for (n, ty) in binds {
                     if view && !ty.is_copy() {
-                        l.index_views.insert(n.clone());
+                        l.index_views.insert(n.clone(), at);
                     }
                     l.declare(&n, ty);
                 }

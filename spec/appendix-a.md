@@ -414,7 +414,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1066 | a binding declared outside a `par` must be Sync in every branch that borrows it with `let` and Send in every branch that moves or `inout`-borrows it, by type and even in a single branch, E417 or E415 (#1502 item 20, owner decision 2026-11-17) | 6.4 |
 | R1067 | Yan `use` binds a module alias for a module of the package and `use .m` a sibling; qualified names reach other modules in expressions, types and patterns; an unknown module is E200 (RFC 0084 D4, slice 2b) | 15.2, 15.3 |
 | R1068 | a binder of a pattern on a list element, a slice pattern's element binder or any view of an indexed projection is a view: moving it out is E413 with the `.copy()` fix, as for the `let` of a projection (#1573 item 1) | 4.2 |
-| R1072, R1073 | native plain `par` runs pool-safe arms on `YAN_THREADS` workers (off by default until #1583), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584) | 6.7, 9.1 |
+| R1072, R1073 | native plain `par` runs pool-safe arms on `YAN_THREADS` workers (one per core by default), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584) | 6.7, 9.1 |
+| R1088 | a pool arm may `print` and draw from `rand`: its output is held and written at the join in arm order, up to the lowest failing arm, so the stream never depends on the worker count; `rand` branch handlers split by task path (RFC 0086 D1, D3, slice S1b of #1584) | 6.7, 7.1 |
 | R1069 | `pkg` visibility: an item is private, `pkg` or `pub`; a private item is named in its own module only, and a path to a private item of another module is E287 (RFC 0084 D3, slice 2c) | 3.5, 13.1, 15.2, 25 |
 | R1074 | a dependency local name that is reserved, equals an own top-level module or repeats another dependency's is E024 on `package.yag` (RFC 0084 D4, slice 3) | 19.1, 25 |
 | R1071 | `yan metadata --json` prints the resolved package graph: packages, dependency local names with what they resolve to, modules (RFC 0084 D13) | 18.1 |
@@ -428,6 +429,12 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1081 | `yan mv <from> <to>` moves a `src/` module and rewrites every `use` and qualified name that reaches it, refusing an invalid or taken target (RFC 0084 D11, slice 5) | 18.1, 19.1 |
 | R1082 | a test whose `with` bindings are all pure handlers (`sim`, `mem_net`, `fake_fs`, `fake_env`, `fake_proc`, `virtual`, `seeded`, `never`) is a simulated test, cached under the R19 key extended with its handler bindings and seed override; any other `with` keeps it an I/O test (RFC 0070 D1) | 18.4 |
 | R1083 | `yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`) | 18.1, 18.4 |
+| R1084 | a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2) | 4.2 |
+| R1085 | fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583) | 4.2, 5.4 |
+| R1086 | a local read whole, or a field of it read or written, while a field it overlaps may have been moved out is E401, on every path including a loop's back edge (SQ13, #1625) | 4.2 |
+| R1087 | a field of a local that was not moved out stays readable after another field was (SQ13, #1625) | 4.2 |
+| R1089 | pool arms may leave by `?`, `fail` or `return` of word values: the lowest-index arm that leaves, by exit or panic, decides the block, higher arms that have not started are skipped and the exits, panics and output of those that ran are discarded, so the result never depends on the worker count (RFC 0086 D8, gap 1 of #1632) | 6.7, 9.1 |
+| R1090 | a name bound outside a pool arm that leaves is dropped once, by the frame that returns, on the winning exit; the arm drops only the names it binds (RFC 0086 D8, gap 1 of #1632) | 4.2, 6.7 |
 
 <!-- /rows -->
 

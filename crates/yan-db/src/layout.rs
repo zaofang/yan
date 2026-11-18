@@ -227,12 +227,13 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
 pub fn path_issue(path: &[String]) -> Option<String> {
     for (i, seg) in path.iter().enumerate() {
         if let Some(why) = bad_name(seg) {
-            return Some(format!("`{seg}` cannot name a module or directory: {why}"));
+            return Some(yan_diag::message(
+                "E024.bad_name",
+                &[("name", seg), ("why", why)],
+            ));
         }
         if i == 0 && RESERVED.contains(&seg.as_str()) {
-            return Some(format!(
-                "`{seg}` is a reserved root name and cannot be a top-level module"
-            ));
+            return Some(yan_diag::message("E024.reserved", &[("name", seg)]));
         }
     }
     None
