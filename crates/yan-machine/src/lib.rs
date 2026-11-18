@@ -106,6 +106,9 @@ pub struct Machine<'p> {
     race: RefCell<Race>,
     /// Where each moved-from word of memory was moved, by address (under `--ub`).
     move_sites: HashMap<u64, String>,
+    /// The seed of the run's nondeterministic choices (R1104).
+    #[expect(dead_code, reason = "read by the store-buffer loads of RFC 0090 D3")]
+    seed: u64,
     /// The words an atomic instruction accessed (under `--ub`), for `ub(15)`.
     atomic_words: std::collections::HashSet<u64>,
 }
@@ -120,9 +123,15 @@ pub struct Leak {
 /// Runs `main`; on return, the allocations still live, string literals and runtime-owned blocks
 /// aside.
 pub fn run(prog: &Program, ub: bool) -> Result<Vec<Leak>, Stop> {
+    run_seeded(prog, ub, 0)
+}
+
+/// [`run`] with the seed of the run's nondeterministic choices (R1104).
+pub fn run_seeded(prog: &Program, ub: bool, seed: u64) -> Result<Vec<Leak>, Stop> {
     let mut m = Machine {
         prog,
         ub,
+        seed,
         mem: Memory::new(),
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),

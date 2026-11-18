@@ -2190,3 +2190,8 @@ sections = "6.2, 9.4"
 rows = "R1096"
 topic = "W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690)"
 sections = "21.1"
+
+[[entry]]
+rows = "R1104"
+topic = "`yan run --ub --seed N` fixes the seed of the checked machine's nondeterministic choices (default 0); one seed, one run (RFC 0090 D3)"
+sections = "6.9"
