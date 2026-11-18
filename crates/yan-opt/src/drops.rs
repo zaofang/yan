@@ -17,6 +17,10 @@
 //! an ordinary owned local, so scope exits, drop lists, joins and flags
 //! treat it like any other; native lowering drops every field of it but the moved ones and frees
 //! the block of a boxed value. A second move out of `r` makes a remainder of the remainder.
+//! The remainder drops where the whole value would have (Antonio, 2026-11-18, #1628): when `r` is
+//! declared in the block holding the move, `_pN` takes `r`'s place in that block's drop order
+//! (`Local::rank`). A move under a branch or loop still drops the remainder at the end of that
+//! branch or loop body.
 //!
 //! Not covered yet: overwriting a field, and a field moved out of a name bound under an `or`
 //! pattern or a slice (it still moves the whole source).
@@ -119,6 +123,18 @@ struct Local {
     id: Binding,
     /// For the remainder `rest` made of a local: that local, whose fields moved out of it.
     of: Option<Name>,
+    /// Where it drops among the locals of its scope: its declaration order, except that the
+    /// remainder of a local declared in the same block takes that local's place, so the rest of a
+    /// partly moved value drops where the whole value would have (4.2, #1628).
+    rank: usize,
+}
+
+/// A scope's locals in the order they drop: latest rank first, later declaration first among
+/// equals.
+fn drop_order(scope: &[Local]) -> Vec<&Local> {
+    let mut ls: Vec<(usize, &Local)> = scope.iter().enumerate().collect();
+    ls.sort_by(|a, b| (b.1.rank, b.0).cmp(&(a.1.rank, a.0)));
+    ls.into_iter().map(|(_, l)| l).collect()
 }
 
 struct Loop {
@@ -410,11 +426,22 @@ impl Elab<'_> {
         at: Span,
         out: &mut Vec<Stmt>,
     ) {
-        self.cx.scopes.last_mut().expect("in a scope").push(Local {
+        let scope = self.cx.scopes.last_mut().expect("in a scope");
+        let rank = of
+            .as_ref()
+            .and_then(|r| {
+                scope
+                    .iter()
+                    .rev()
+                    .find(|l| &l.name == r || l.of.as_ref() == Some(r))
+            })
+            .map_or(scope.len(), |l| l.rank);
+        scope.push(Local {
             name: n.clone(),
             ty: ty.clone(),
             id,
             of,
+            rank,
         });
         if let Some(f) = self.flags.get(n) {
             out.push(stmt(
@@ -467,7 +494,7 @@ impl Elab<'_> {
                 break;
             }
             let from = if si == pos.0 { pos.1 } else { 0 };
-            for l in scope[from..].iter().rev() {
+            for l in drop_order(&scope[from..]) {
                 if !skip.contains(&l.name) {
                     self.drop_stmt(&l.name, at, k, out);
                 }
@@ -480,7 +507,7 @@ impl Elab<'_> {
     fn exit_names(&self, skip: &[Name], k: Key) -> Vec<Name> {
         let mut out = Vec::new();
         for scope in self.cx.scopes.iter().rev() {
-            for l in scope.iter().rev() {
+            for l in drop_order(scope) {
                 let owned = self.flags.contains_key(&l.name) || self.facts.must(k, l.id);
                 if owned && !skip.contains(&l.name) {
                     out.push(l.name.clone());
@@ -501,7 +528,7 @@ impl Elab<'_> {
                 continue;
             }
             let upto = if si == pos.0 { pos.1 } else { scope.len() };
-            for l in scope[..upto.min(scope.len())].iter().rev() {
+            for l in drop_order(&scope[..upto.min(scope.len())]) {
                 if seen.insert(l.name.clone()) {
                     visible.push((l.name.clone(), l.id, self.obs.of(&l.ty)));
                 }
@@ -1105,6 +1132,15 @@ mod tests {
             };
             at += i + 1;
         }
+    }
+
+    #[test]
+    fn the_rest_of_a_partly_moved_value_drops_where_the_whole_value_would() {
+        let t = elab(
+            "module t\nfn f(sink p: Tuple(Str, Str)) -> Unit {\n let a: Str = p._0\n let k: Str = \"k\"\n\
+             var x: Str = move a\n ret ()\n}\n",
+        );
+        has(&t, &["drop x", "drop k", "drop _p1"]);
     }
 
     #[test]
