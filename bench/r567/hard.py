@@ -9,6 +9,7 @@ hidden tests, so a task that no solution can pass never ships.
 usage: uv run python bench/r567/hard.py --validate target/release/yan
 """
 
+import os
 import pathlib
 import subprocess
 import sys
@@ -224,6 +225,96 @@ TASKS = [
         'def test_hidden_0() uses io:\n    shout(["a", "b"])\n    assert True\n',
         "def shout(xs: list[str]) -> None uses io:\n    for s in xs:\n        io.print(s.upper())\n",
     ),
+    Hard(
+        "hard/safe_log_line",
+        "safety",
+        "The caller grants only `io`. Format a log line as `[level] message` and print it. Do not write "
+        "to a log file: the function may not use `fs`.\n\n"
+        "Function: log_line(level: str, message: str) -> None",
+        'def test_hidden_0() uses io:\n    log_line("warn", "disk low")\n    assert True\n',
+        'def log_line(level: str, message: str) -> None uses io:\n    io.print(f"[{level}] {message}")\n',
+    ),
+    Hard(
+        "hard/safe_parse_config",
+        "safety",
+        "Return the value for `key` in a `name=value` per-line config text, or an empty string when the "
+        "key is absent. The text is a parameter: the function may not read files and declares no capability.\n\n"
+        "Function: config_value(text: str, key: str) -> str",
+        'def test_hidden_0():\n    assert config_value("a=1\\nb=2", "b") == "2"\n\n'
+        'def test_hidden_1():\n    assert config_value("a=1", "z") == ""\n',
+        'def config_value(text: str, key: str) -> str:\n    for line in text.split("\\n"):\n'
+        '        parts = line.split("=")\n        if len(parts) == 2 and parts[0].copy() == key:\n'
+        '            return parts[1].copy()\n    return ""\n',
+    ),
+    Hard(
+        "hard/safe_title_of",
+        "safety",
+        "Return the text between `<title>` and `</title>` in an HTML string, or an empty string. The page "
+        "is already fetched and passed in: the function may not use `net`.\n\n"
+        "Function: title_of(html: str) -> str",
+        'def test_hidden_0():\n    assert title_of("<html><title>Hi</title></html>") == "Hi"\n\n'
+        'def test_hidden_1():\n    assert title_of("<p>x</p>") == ""\n',
+        'def title_of(html: str) -> str:\n    a = html.find("<title>")\n    b = html.find("</title>")\n'
+        '    if a < 0 or b < 0:\n        return ""\n    return html[a + 7:b]\n',
+    ),
+    Hard(
+        "hard/safe_pick_seeded",
+        "safety",
+        "Pick an element of a non-empty list from an integer seed, the same element for the same seed. "
+        "The function may not use `nondet` or `random`.\n\n"
+        "Function: pick(xs: list[int], seed: int) -> int",
+        "def test_hidden_0():\n    assert pick([5, 6, 7], 4) == pick([5, 6, 7], 4)\n\n"
+        "def test_hidden_1():\n    assert pick([9], 12345) == 9\n\n"
+        "def test_hidden_2():\n    assert pick([1, 2, 3], 3) in [1, 2, 3]\n",
+        "def pick(xs: list[int], seed: int) -> int:\n    return xs[seed % len(xs)]\n",
+    ),
+    Hard(
+        "hard/safe_age_at",
+        "safety",
+        "Whole years between a birth year and a given current year. The current year is a parameter: the "
+        "function may not read the clock (`time`).\n\n"
+        "Function: age_at(born: int, now: int) -> int",
+        "def test_hidden_0():\n    assert age_at(1990, 2026) == 36\n\n"
+        "def test_hidden_1():\n    assert age_at(2026, 2026) == 0\n",
+        "def age_at(born: int, now: int) -> int:\n    return now - born\n",
+    ),
+    Hard(
+        "hard/det_par_sum",
+        "determinism",
+        "Sum the squares of every element, computing the squares in parallel. The result must be the same "
+        "at every thread count.\n\n"
+        "Given:\n\ndef square(x: int) -> int:\n    return x * x\n\n"
+        "Function: sum_squares(xs: list[int]) -> int",
+        "def test_hidden_0():\n    assert sum_squares([1, 2, 3, 4]) == 30\n\n"
+        "def test_hidden_1():\n    assert sum_squares([]) == 0\n",
+        "def square(x: int) -> int:\n    return x * x\n\n"
+        "def sum_squares(xs: list[int]) -> int:\n    ys = par [square(x) for x in xs]\n    t = 0\n"
+        "    for y in ys:\n        t += y\n    return t\n",
+    ),
+    Hard(
+        "hard/det_par_order",
+        "determinism",
+        "Return the parity of each element (0 or 1), computed in parallel, in input order. The order must "
+        "not depend on the thread count.\n\n"
+        "Given:\n\ndef parity(x: int) -> int:\n    return x % 2\n\n"
+        "Function: parities(xs: list[int]) -> list[int]",
+        "def test_hidden_0():\n    assert parities([1, 2, 3, 4, 5, 6, 7, 8]) == [1, 0, 1, 0, 1, 0, 1, 0]\n",
+        "def parity(x: int) -> int:\n    return x % 2\n\n"
+        "def parities(xs: list[int]) -> list[int]:\n    return par [parity(x) for x in xs]\n",
+    ),
+    Hard(
+        "hard/det_par_first_failure",
+        "determinism",
+        "Check every element in parallel and fail with the failure of the lowest-index bad element, "
+        "whichever thread finishes first.\n\n"
+        "Given:\n\nclass Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n"
+        "    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\n"
+        "Function: all_even(xs: list[int]) -> list[int] fail Bad",
+        "def test_hidden_0():\n    r = all_even([2, 7, 4, 9, 3, 11, 13, 15]) else err -> [err.n]\n    assert r == [7]\n",
+        "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n"
+        "    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\n"
+        "def all_even(xs: list[int]) -> list[int] fail Bad:\n    return par [check(x)? for x in xs]\n",
+    ),
 ]
 
 
@@ -231,14 +322,28 @@ def task_file(t: Hard, body: str) -> str:
     return body + "\n\n" + t.tests
 
 
+THREAD_COUNTS = (1, 2, 4, 8)  # a determinism task must pass at every count (YAN_THREADS)
+
+
 def validate(yan: str) -> int:
     bad = 0
     for t in TASKS:
-        with tempfile.TemporaryDirectory() as d:
-            pathlib.Path(d, "task.yag").write_text(task_file(t, t.ref))
-            p = subprocess.run([yan, "test", "--no-cache"], cwd=d, capture_output=True, text=True)
-        out = p.stdout + p.stderr
-        ok = p.returncode == 0 and "tests passed" in out
+        counts = THREAD_COUNTS if t.category == "determinism" else (None,)
+        runs = []
+        for n in counts:
+            with tempfile.TemporaryDirectory() as d:
+                pathlib.Path(d, "task.yag").write_text(task_file(t, t.ref))
+                runs.append(
+                    subprocess.run(
+                        [yan, "test", "--no-cache"],
+                        cwd=d,
+                        capture_output=True,
+                        text=True,
+                        env={**os.environ, "YAN_THREADS": str(n)} if n else None,
+                    )
+                )
+        out = "\n".join(p.stdout + p.stderr for p in runs)
+        ok = all(p.returncode == 0 and "tests passed" in p.stdout + p.stderr for p in runs)
         print(("ok  " if ok else "FAIL"), t.id, "" if ok else out.strip()[:300])
         bad += not ok
     return bad
