@@ -1,0 +1,33 @@
+# spec: 4.2, 5.4
+# rows: R1085
+# stdout:
+# 1
+# X
+# note: a linear field leaves a `@linear` record by `take`, and a copy of a field leaves a type with a custom `Drop` (D5, #1583)
+
+@linear
+class Inner:
+    id: int
+
+@linear
+class Outer:
+    inner: Inner
+    label: str
+
+class G:
+    s: str
+    n: int
+
+impl Drop for G:
+    def drop(var self: G) -> None:
+        pass
+
+def close(take i: Inner) -> int:
+    return i.id
+
+def main() -> None uses io:
+    o = Outer(inner=Inner(id=1), label="y".upper())
+    io.print(str(close(o.inner)))
+    g = G(s="x".upper(), n=1)
+    t = g.s.copy()
+    io.print(t)
