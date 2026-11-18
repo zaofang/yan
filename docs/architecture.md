@@ -101,6 +101,8 @@ ask it for a module's front end, elaborated core, diagnostics and items, keyed b
   What a statement consumes is `own::consumed` (`yan-check/src/own.rs`), read by the pre-optimization
   checker (`Cx::consume`), the post-optimization check, drop elaboration (`yan-opt`) and `copy_out`;
   `own::Observable` (types with a visible drop) lives there too (`docs/studies/ownership-one-analysis.md`).
+  A field moved out of a local is a `yan_flow` `MoveField` on an interned field path (`Flow::move_path`), a write
+  to it a `DefField`, and a read overlapping a moved path is E401 (`Flow::finish`).
 - **Unsupported constructs** are reported as E017 and checking continues (R649), after an early bug
   where `check` exited 0 on them.
 
