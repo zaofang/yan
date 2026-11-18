@@ -1,6 +1,6 @@
 # 0088: Tree Borrows check under `--ub` (item 5)
 
-- Status: draft
+- Status: accepted
 - Research: code reading for #1661 (no study; the facts are cited below)
 - Rows: numbered with the cases of the first slice (CASE WITH ROW), as the final commit after merging main
 
