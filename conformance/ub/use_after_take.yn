@@ -1,0 +1,13 @@
+-- spec: 6.6, 6.7, 6.9
+-- rows: R1092, R1093, R1094
+-- note: `take` leaves the pointee moved-from; a `read` of it is item 8
+-- ub: 8
+
+main() =
+  let xs = [[1]]
+  let p = xs.as_ptr()
+  unsafe
+    let a = p.take()
+    assert a[0] == 1
+    let b = p.read()
+    assert b[0] == 1

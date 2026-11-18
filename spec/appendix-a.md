@@ -436,6 +436,9 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1089 | pool arms may leave by `?`, `fail` or `return` of word values: the lowest-index arm that leaves, by exit or panic, decides the block, higher arms that have not started are skipped and the exits, panics and output of those that ran are discarded, so the result never depends on the worker count (RFC 0086 D8, gap 1 of #1632) | 6.7, 9.1 |
 | R1090 | a name bound outside a pool arm that leaves is dropped once, by the frame that returns, on the winning exit; the arm drops only the names it binds (RFC 0086 D8, gap 1 of #1632) | 4.2, 6.7 |
 | R1091 | `RecordInfo.layout` and `SumInfo.layout` are `Layout | None`: `None` for a type of default layout, whose size and alignment a program may not observe (RFC 0083 D3, L0) | 17.3 |
+| R1092 | moved-from place: from the move until a store or assignment, siblings of a moved field stay defined, a move of a `Copy` place is not a move; a read, borrow, second move, copy or drop of it is `ub(8)` (RFC 0087 D3) | 6.7 |
+| R1093 | `--ub` reports `ub(8)` at the first access after a move and names the move site; moves are codeless MIR markers read from the ownership facts (RFC 0087 D1, D2) | 6.9 |
+| R1094 | `Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4) | 6.6 |
 
 <!-- /rows -->
 
