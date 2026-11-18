@@ -2165,3 +2165,8 @@ sections = "6.6"
 rows = "R1095"
 topic = "N57 reads `fs.read_text(path)` as `fs.read(path)`; the case is the R567 hard suite's `fs.read_text` E017 (#1543 group 9)"
 sections = "14.4"
+
+[[entry]]
+rows = "R1096"
+topic = "W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690)"
+sections = "21.1"
