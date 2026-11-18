@@ -1,0 +1,3 @@
+def test_holds_under_every_seed():
+    with fault = sim(0):
+        assert fault.maybe("a") or not fault.maybe("a")

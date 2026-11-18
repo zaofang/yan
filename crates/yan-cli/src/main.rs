@@ -354,6 +354,12 @@ enum Command {
         /// Run with the 6.7 undefined-behavior checks (not supported yet).
         #[arg(long)]
         ub: bool,
+        /// Run each simulated test under N seeds derived from its hash (default 1; RFC 0070 D3).
+        #[arg(long, num_args = 0..=1, default_missing_value = "1", value_name = "N")]
+        sim: Option<u32>,
+        /// With `--sim`, run exactly this seed.
+        #[arg(long, requires = "sim")]
+        seed: Option<i128>,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -604,13 +610,23 @@ fn main() -> ExitCode {
             locked,
             offline,
             ub,
+            sim,
+            seed,
         } => {
             if ub {
                 return tool_failure(
                     "not supported yet: `yan test --ub` (tests run on the interpreter)",
                 );
             }
-            run_tests(format, gate, only.as_deref(), no_cache, (locked, offline))
+            let sim = sim.map(|sweep| test::Sim { sweep, seed });
+            run_tests(
+                format,
+                gate,
+                only.as_deref(),
+                no_cache,
+                (locked, offline),
+                sim,
+            )
         }
         Command::Review { range, format } => review(&range, format),
         Command::Audit { format } => audit(format),
@@ -795,13 +811,14 @@ fn run_tests(
     only: Option<&str>,
     no_cache: bool,
     locked: (bool, bool),
+    sim: Option<test::Sim>,
 ) -> ExitCode {
     if let Err(code) = lock_gate(locked, Some(format)) {
         return code;
     }
     let root = Path::new(".");
     let cache = (!no_cache).then(|| test::cache_file(root));
-    let report = match test::run(root, only, gate, cache.as_deref(), None) {
+    let report = match test::run_sim(root, only, gate, cache.as_deref(), None, sim) {
         Ok(r) => r,
         Err(msg) => return tool_failure(&msg),
     };

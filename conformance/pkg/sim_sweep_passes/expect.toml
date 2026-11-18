@@ -1,0 +1,4 @@
+spec = "18.4"
+rows = ["R1083"]
+note = "a simulated test that holds under all swept seeds passes and the sweep exits 0"
+command = ["test", "--sim=8"]

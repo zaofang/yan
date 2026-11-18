@@ -1,0 +1,4 @@
+spec = "18.4"
+rows = ["R1082"]
+note = "a test that binds only the sim fault handler is a simulated test and runs under the gate"
+command = ["test", "--gate"]
