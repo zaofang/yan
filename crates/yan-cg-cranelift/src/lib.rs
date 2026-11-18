@@ -1791,7 +1791,7 @@ fn rt_fn(
         RtFn::SumF64 => (
             "yan_rt_sum_f64",
             abi::yan_rt_sum_f64 as *const u8,
-            &[I64],
+            &[I64, I64],
             Some(F64),
         ),
         RtFn::Rounded => (

@@ -788,6 +788,7 @@ impl Machine<'_> {
                 let xs: Vec<f64> = self
                     .words(data, words * len)?
                     .into_iter()
+                    .skip(a[1].int() as usize)
                     .map(f64::from_bits)
                     .collect();
                 Val::F(yan_rt::num::sum_f64(&xs))
