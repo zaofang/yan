@@ -214,6 +214,8 @@ pub(super) struct Types<'m> {
     pub(super) recs: HashMap<&'m str, &'m y::Record>,
     pub(super) sums: HashMap<&'m str, &'m y::Sum>,
     pub(super) externs: HashMap<String, R<crate::ffi::ExternFn>>,
+    /// What constructors say about which pattern binders view their scrutinee.
+    pub(super) ctors: yan_check::own::Ctors,
 }
 
 /// The records and sums being built, outermost first, each with the knot its recurrences share.

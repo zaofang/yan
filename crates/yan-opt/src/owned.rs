@@ -251,7 +251,7 @@ impl<'a> Lower<'a> {
     /// that owns what is left; the moved field is no longer part of it.
     fn consume(&mut self, key: usize, k: &StmtKind) {
         let c = own::consumption(k, &self.views);
-        for root in &c.whole {
+        for root in c.owners() {
             if let Some(b) = self.owner(root) {
                 self.moved(b);
             }

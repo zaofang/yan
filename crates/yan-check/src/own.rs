@@ -99,12 +99,23 @@ pub fn proj_view(views: &Views, p: &Place) -> View {
     v
 }
 
-/// The names `k` consumes, split by what they stand for: owned locals consumed whole, and
-/// fields moved out of owned locals, which leave the rest of their root to its owner.
+/// The names `k` consumes, split by what they stand for: owned locals consumed whole, fields
+/// moved out of owned locals, which leave the rest of their root to its owner, and the roots of
+/// a `rest`.
 #[derive(Default)]
 pub struct Consumption {
     pub whole: Vec<Name>,
     pub partial: Vec<(Name, Vec<Name>)>,
+    /// A `rest` hands its root's ownership to the remainder, which aliases the root's words:
+    /// they stay readable, so nothing in them is moved.
+    pub rest: Vec<Name>,
+}
+
+impl Consumption {
+    /// The roots whose ownership `k` ends: consumed whole, or handed to a remainder.
+    pub fn owners(&self) -> impl Iterator<Item = &Name> {
+        self.whole.iter().chain(&self.rest)
+    }
 }
 
 /// `move p.f`: a part moved out of the local `p`, which leaves the rest of `p` to its owner.
@@ -127,8 +138,21 @@ pub fn part_move(k: &StmtKind) -> Option<&Place> {
 
 pub fn consumption(k: &StmtKind, views: &Views) -> Consumption {
     let mut c = Consumption::default();
+    let remainder = match k {
+        StmtKind::Let {
+            rhs: Rhs::Rest { root, .. },
+            ..
+        }
+        | StmtKind::Assign {
+            rhs: Rhs::Rest { root, .. },
+            ..
+        }
+        | StmtKind::Rhs(Rhs::Rest { root, .. }) => Some(root),
+        _ => None,
+    };
     for n in consumed(k) {
         match views.get(n) {
+            _ if Some(n) == remainder => c.rest.push(views.get(n).map_or(n, |v| &v.root).clone()),
             Some(v) if !v.path.is_empty() => {
                 let moved = (v.root.clone(), v.path.clone());
                 if !c.partial.contains(&moved) {

@@ -22,6 +22,32 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(self.concat(parts))
     }
 
+    /// The field `f` of the aggregate `shape` at `at`.
+    pub(super) fn field_at(&mut self, at: At, shape: &Shape, f: &str) -> R<(At, Shape)> {
+        let Some((_, start, s)) = shape
+            .fields()
+            .and_then(|fs| fs.into_iter().find(|(n, ..)| n == f))
+        else {
+            return unsupported(format!("field `{f}`"));
+        };
+        Ok(self.sub_at(at, start, s.clone()))
+    }
+
+    /// The `s` that starts `start` slots into the aggregate at `at`. A boxed one is the value in
+    /// its box, changed there in place.
+    pub(super) fn sub_at(&mut self, at: At, start: usize, s: Shape) -> (At, Shape) {
+        let w = s.width();
+        let at = match at {
+            At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
+            At::Mem(p, word) => At::Mem(p, word + start as u32),
+        };
+        if let Shape::Boxed(k) = &s {
+            let p = self.read(&at, &s).remove(0);
+            return (At::Mem(p, 0), k.get().clone());
+        }
+        (at, s)
+    }
+
     pub(super) fn place(&mut self, p: &y::Place) -> R<(At, Shape)> {
         let root = self.name(&p.root)?.clone();
         let mut at = At::Reg(root.locals);
@@ -38,28 +64,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     at = At::Mem(p, super::mutex::VALUE);
                     shape = *inner;
                 }
-                y::Proj::Field(f, _) => {
-                    let Some((_, start, s)) = shape
-                        .fields()
-                        .and_then(|fs| fs.into_iter().find(|(n, ..)| n == f))
-                    else {
-                        return unsupported(format!("field `{f}`"));
-                    };
-                    let w = s.width();
-                    let s = s.clone();
-                    at = match at {
-                        At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
-                        At::Mem(p, word) => At::Mem(p, word + start as u32),
-                    };
-                    // A boxed field is the value in its box, changed there in place.
-                    if let Shape::Boxed(k) = &s {
-                        let p = self.read(&at, &s).remove(0);
-                        at = At::Mem(p, 0);
-                        shape = k.get().clone();
-                        continue;
-                    }
-                    shape = s;
-                }
+                y::Proj::Field(f, _) => (at, shape) = self.field_at(at, &shape, f)?,
                 y::Proj::Index(i) => {
                     if matches!(shape, Shape::Bytes | Shape::ByteArray) {
                         let b = self.read(&at, &shape).remove(0);
