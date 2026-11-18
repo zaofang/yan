@@ -2172,7 +2172,7 @@ topic = "`Atomic[u32]` and `Atomic[i32]` gain `wait(expected, o: LoadOrdering) -
 sections = "6.2, 17.3"
 
 [[entry]]
-rows = "R1096"
+rows = "R1100"
 topic = "`wait` on an equal word parks the task on the word's address; `notify_one` releases the longest-parked waiter and `notify_all` every one, first in first out in the interpreter and the checked machine; a parked waiter counts for the deadlock detector (R396); only 32-bit words are supported (RFC 0089 D3, S1 of #1664)"
 sections = "6.2"
 

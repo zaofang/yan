@@ -1,5 +1,5 @@
 # spec: 6.2
-# rows: R1099, R1096
+# rows: R1099, R1100
 # note: a task waits on a 32-bit atomic until another task stores and notifies; the sequential scheduler runs the waker once the waiter parks
 # stdout:
 # 7

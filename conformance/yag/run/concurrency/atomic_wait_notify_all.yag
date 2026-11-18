@@ -1,5 +1,5 @@
 # spec: 6.2
-# rows: R1096
+# rows: R1100
 # note: notify_all releases every task parked on the word
 # stdout:
 # 111
