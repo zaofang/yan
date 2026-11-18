@@ -188,7 +188,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
-                        self.bind_view(n, rhs);
+                        self.bind_view(n, rhs, &shape);
                         match comparison(rhs) {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),

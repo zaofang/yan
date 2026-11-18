@@ -27,7 +27,15 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn mark_moves(&mut self, k: &'m y::StmtKind) {
         let c = own::consumption(k, &self.views);
         let mut places = Vec::new();
-        for root in &c.whole {
+        // `rest` aliases its root's locals: the remainder is still readable.
+        let rest = match k {
+            y::StmtKind::Let {
+                rhs: y::Rhs::Rest { root, .. },
+                ..
+            } => Some(root),
+            _ => None,
+        };
+        for root in c.whole.iter().filter(|r| Some(*r) != rest) {
             self.locs(&place(root), &mut places);
         }
         for (root, path) in &c.partial {
@@ -60,9 +68,9 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     /// The view a `let x = rhs` binds, for the moves that go through `x`.
-    pub(super) fn bind_view(&mut self, n: &str, rhs: &y::Rhs) {
+    pub(super) fn bind_view(&mut self, n: &str, rhs: &y::Rhs, shape: &Shape) {
         match rhs {
-            y::Rhs::Proj(p) => {
+            y::Rhs::Proj(p) if !is_copy(shape) => {
                 let v = own::proj_view(&self.views, p);
                 self.views.insert(n.to_owned(), v);
             }
