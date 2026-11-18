@@ -3,7 +3,8 @@
 An executor is any command that implements:
     CMD check --format json [FLAGS] FILE  -> JSON array of diagnostic records (spec 18.2)
     CMD run [FLAGS] FILE                  -> the program's stdout and exit status
-    CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr
+    CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr;
+                                             a `warn: Wnnn` case also needs `warning[Wnnn]` there
     CMD patch --format json [FLAGS] PATCH -> applies PATCH in its directory; JSON records on refusal
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records

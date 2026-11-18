@@ -13,7 +13,7 @@ read-only to agents (22.6).
 | `yag/run/`, `yn/run/`, `yir/run/` | run | `run` prints exactly the `stdout` block and exits with `exit` (default 0) |
 | `golden/` | run | as run; G1 to G4 of 24.3, and the proposed G5 (the Tally slice, in Yan Agent and Yan) |
 | `solver/` | fail | as fail; no `expect` line means no diagnostics at all (8.6 boundaries) |
-| `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none`; a `warn: Wnnn` header also needs `warning[Wnnn]` on stderr, `warn: none` no `warning[...]` line |
+| `ub/` | ub | `run --ub` reports `ub(N)` for the case's `ub: N` header (the 6.7 item number), or runs clean for `ub: none` |
 | `patch/<case>/` | patch | `patch` applied to `m.yag` gives `result.yag`, or is refused with the `code` of `expect.toml` and leaves `m.yag` unchanged |
 | `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
 | `pkg/<case>/` | pkg | the `command` of `expect.toml`, run in `root/`, reports `code` (at `at` when given) and exits nonzero, or exits 0 with no errors when there is no `code` |
