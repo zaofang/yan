@@ -1,0 +1,1 @@
+package: Package = Package(name="@conf/e335_member_below_requirement", version="1.0.0", yan="1.x", platform="cli", edition="next", capabilities=[], members=["http"], dependencies={"web": "@conf/http 1.5"})

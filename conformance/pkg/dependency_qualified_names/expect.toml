@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R1075"
+note = "a workspace member bound by requirement is reached through its local name: web.get is the member's lib, web.client.open its client module; names inside the member resolve against the member"
+command = ["check"]

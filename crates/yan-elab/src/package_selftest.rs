@@ -20,6 +20,7 @@ fn run(main: &str) -> Result<String, String> {
     let env = PackageEnv {
         this: "main".into(),
         modules: ["main", "report", "shapes"].map(String::from).to_vec(),
+        deps: Vec::new(),
         load: &load,
     };
     let (y, d) = match elaborate_pkg(

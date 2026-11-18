@@ -15801,6 +15801,27 @@
    }
   },
   {
+   "path": "pkg/dependency_qualified_names",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1075"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1075",
+    "note": "a workspace member bound by requirement is reached through its local name: web.get is the member's lib, web.client.open its client module; names inside the member resolve against the member",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
    "path": "pkg/e001_preview_without_opt_in",
    "kind": "pkg",
    "milestone": "M1",
@@ -16524,6 +16545,29 @@
    }
   },
   {
+   "path": "pkg/e287_pkg_item_from_dependency",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1075"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1075",
+    "note": "a pkg item of a dependency is not reachable from a dependent: only pub crosses a package",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "src/main.yag:2:18"
+   }
+  },
+  {
    "path": "pkg/e287_private_item_from_sibling",
    "kind": "pkg",
    "milestone": "M1",
@@ -16778,6 +16822,52 @@
     ],
     "code": "E332",
     "at": "package.yag:7:13"
+   }
+  },
+  {
+   "path": "pkg/e334_dev_dependency_cycle",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1076"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1076",
+    "note": "dev_dependencies that reach the package itself through a dependency's normal requirements are E334 naming the path",
+    "command": [
+     "check"
+    ],
+    "code": "E334",
+    "at": "package.yag:1:1"
+   }
+  },
+  {
+   "path": "pkg/e335_member_below_requirement",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1077"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1077",
+    "note": "a requirement whose package and major a workspace member has, but whose minimum the member's version does not reach, is E335 and never falls back to the registry",
+    "command": [
+     "check"
+    ],
+    "code": "E335",
+    "at": "package.yag:1:1"
    }
   },
   {
@@ -17101,6 +17191,30 @@
      "test",
      "--gate"
     ]
+   }
+  },
+  {
+   "path": "pkg/publish_check_members_in_order",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.4"
+   ],
+   "rows": [
+    "R1078"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.4",
+    "rows": "R1078",
+    "note": "yan publish --check at a workspace root checks every member, each after the members it requires, and reports a member's refusal on that member's package.yag",
+    "command": [
+     "publish",
+     "--check"
+    ],
+    "code": "E016",
+    "at": "a/package.yag:0:0"
    }
   },
   {

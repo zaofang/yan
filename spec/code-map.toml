@@ -117,6 +117,8 @@ E330 = "crates/yan-elab/src/decorators.rs"
 E331 = "crates/yan-elab/src/decorators.rs"
 E332 = "crates/yan-elab/src/desugar.rs"
 E333 = { unimplemented = "#1273" }
+E334 = "crates/yan-db/src/graph.rs"
+E335 = "crates/yan-db/src/graph.rs"
 E401 = "crates/yan-check/src/lib.rs"
 E402 = "crates/yan-check/src/lib.rs"
 E403 = "crates/yan-check/src/lib.rs"

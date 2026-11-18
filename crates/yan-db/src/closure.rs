@@ -30,6 +30,8 @@ pub struct Node {
     pub libs: Vec<String>,
     /// Requirements of `dependencies` alone; `dev_dependencies` are outside the closure (R636).
     pub deps: Vec<Key>,
+    /// Requirements of `dev_dependencies`, outside the closure but checked for a cycle (D6).
+    pub dev_deps: Vec<Key>,
 }
 
 pub fn deps_of(reqs: &[String]) -> Vec<Key> {
@@ -47,6 +49,7 @@ pub fn from_package(p: &Package) -> Node {
         ceiling: p.manifest.capabilities.clone(),
         libs: p.foreign.libs.iter().map(|l| l.name.clone()).collect(),
         deps: deps_of(&p.deps),
+        dev_deps: deps_of(&p.dev_deps),
     }
 }
 
@@ -79,6 +82,57 @@ pub fn reach(nodes: &[Node], start: usize) -> Vec<Vec<usize>> {
             }
         }
         out.push(path);
+    }
+    out
+}
+
+/// Whether version `have` is below the minimum `need`, comparing numeric components (`1.10` is above
+/// `1.9`); a missing component is 0, so `1.2` is met by `1.2.0`.
+pub fn below(have: &str, need: &str) -> bool {
+    let parts = |v: &str| -> Vec<u64> {
+        v.split(['-', '+'])
+            .next()
+            .unwrap_or("")
+            .split('.')
+            .map(|p| p.parse().unwrap_or(0))
+            .collect()
+    };
+    let (mut h, mut n) = (parts(have), parts(need));
+    let len = h.len().max(n.len());
+    h.resize(len, 0);
+    n.resize(len, 0);
+    h < n
+}
+
+/// E334 for each package whose `dev_dependencies` reach the package itself, directly or through the
+/// normal dependencies of a dev dependency (RFC 0084 D6): the index of the package and the message
+/// naming the path.
+pub fn dev_cycles(nodes: &[Node]) -> Vec<(usize, String)> {
+    let index = index(nodes);
+    let mut out = Vec::new();
+    for (me, p) in nodes.iter().enumerate() {
+        let Some(key) = &p.key else { continue };
+        for d in &p.dev_deps {
+            let Some(&dev) = index.get(d) else { continue };
+            let back = reach(nodes, dev).into_iter().find(|path| {
+                path.last()
+                    .is_some_and(|&i| nodes[i].key.as_ref() == Some(key))
+            });
+            if let Some(path) = back {
+                let route: Vec<&str> = std::iter::once(p.name.as_str())
+                    .chain(path.iter().map(|&i| nodes[i].name.as_str()))
+                    .collect();
+                out.push((
+                    me,
+                    format!(
+                        "`dev_dependencies` of `{}` reach the package itself ({}); a test binary would hold two builds of one package with distinct types",
+                        p.name,
+                        route.join(" -> ")
+                    ),
+                ));
+                break;
+            }
+        }
     }
     out
 }
@@ -135,6 +189,7 @@ mod tests {
             ceiling: ceiling.map(owned),
             libs: owned(libs),
             deps: deps.iter().map(|d| identity(d, "1.0")).collect(),
+            dev_deps: Vec::new(),
         }
     }
 
@@ -193,6 +248,35 @@ mod tests {
             node("@a/c", Some(&["z"]), &["z"], &[]),
         ];
         assert!(message(&nodes).contains("`@a/c:z`"));
+    }
+
+    #[test]
+    fn versions_compare_by_numeric_component() {
+        assert!(below("1.2.0", "1.10"));
+        assert!(!below("1.10.0", "1.9"));
+        assert!(!below("1.2.0", "1.2"));
+    }
+
+    #[test]
+    fn a_dev_dependency_that_reaches_the_package_is_a_cycle() {
+        let mut nodes = [
+            node("@a/root", None, &[], &[]),
+            node("@a/d", None, &[], &["@a/e"]),
+            node("@a/e", None, &[], &["@a/root"]),
+        ];
+        nodes[0].dev_deps = vec![identity("@a/d", "1.0")];
+        let found = dev_cycles(&nodes);
+        assert_eq!(found.len(), 1);
+        assert!(
+            found[0].1.contains("@a/root -> @a/d -> @a/e -> @a/root"),
+            "{}",
+            found[0].1
+        );
+        nodes[0].dev_deps = vec![identity("@a/root", "1.0")];
+        assert_eq!(dev_cycles(&nodes).len(), 1);
+        nodes[2].deps.clear();
+        nodes[0].dev_deps = vec![identity("@a/d", "1.0")];
+        assert!(dev_cycles(&nodes).is_empty());
     }
 
     #[test]

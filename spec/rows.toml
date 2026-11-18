@@ -2060,3 +2060,23 @@ sections = "18.1"
 rows = "R1070"
 topic = "a non-copy owned local that is used again later and leaves into a tuple or list element, an `Ok`, `Err` or `Some` argument, a conditional-expression arm or an `else` fallback value is E413 with the `.copy()` fix, as at a bind or a `sink` argument (#1573 item 4)"
 sections = "4.2"
+
+[[entry]]
+rows = "R1075"
+topic = "a dependency's modules are reached through its local name and elaborated with its own manifest; only `pub` items cross a package, else E287 (RFC 0084 D4, D12 step 3, slice 3b)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1076"
+topic = "`dev_dependencies` that reach the package itself, directly or through a dev dependency's normal requirements, are E334 naming the path (RFC 0084 D6, slice 4)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1077"
+topic = "a requirement binds to the workspace member with its package name and major; a member below the requirement's minimum is E335, never a registry fallback (RFC 0084 D7, slice 4)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1078"
+topic = "`yan publish --check` at a workspace root checks every member in dependency order and reports a member's refusal on its `package.yag` (RFC 0084 D7, slice 4)"
+sections = "19.1"
