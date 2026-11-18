@@ -133,7 +133,7 @@ struct Local {
 /// equals.
 fn drop_order(scope: &[Local]) -> Vec<&Local> {
     let mut ls: Vec<(usize, &Local)> = scope.iter().enumerate().collect();
-    ls.sort_by(|a, b| (b.1.rank, b.0).cmp(&(a.1.rank, a.0)));
+    ls.sort_by_key(|&(i, l)| std::cmp::Reverse((l.rank, i)));
     ls.into_iter().map(|(_, l)| l).collect()
 }
 
