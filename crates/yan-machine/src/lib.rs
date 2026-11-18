@@ -106,9 +106,6 @@ pub struct Machine<'p> {
     race: RefCell<Race>,
     /// Where each moved-from word of memory was moved, by address (under `--ub`).
     move_sites: HashMap<u64, String>,
-    /// The seed of the run's nondeterministic choices (R1104).
-    #[expect(dead_code, reason = "read by the store-buffer loads of RFC 0090 D3")]
-    seed: u64,
     /// The words an atomic instruction accessed (under `--ub`), for `ub(15)`.
     atomic_words: std::collections::HashSet<u64>,
 }
@@ -131,7 +128,6 @@ pub fn run_seeded(prog: &Program, ub: bool, seed: u64) -> Result<Vec<Leak>, Stop
     let mut m = Machine {
         prog,
         ub,
-        seed,
         mem: Memory::new(),
         strs: vec![None; prog.strings.len()],
         lists: HashMap::new(),
@@ -143,7 +139,7 @@ pub fn run_seeded(prog: &Program, ub: bool, seed: u64) -> Result<Vec<Leak>, Stop
         civil_out: Vec::new(),
         fs_fakes: Vec::new(),
         fs_reason: String::new(),
-        race: RefCell::new(Race::new()),
+        race: RefCell::new(Race::seeded(seed)),
         move_sites: HashMap::new(),
         atomic_words: std::collections::HashSet::new(),
     };
@@ -274,14 +270,21 @@ impl Machine<'_> {
         }
     }
 
-    fn atomic_raced(&self, addr: u64, kind: Kind, order: MemOrder) -> Result<(), Stop> {
+    /// The word an atomic access reads, as the checked machine's weak memory lets it (R1101).
+    fn atomic_raced(
+        &self,
+        addr: u64,
+        (kind, order, stale_ok): (Kind, MemOrder, bool),
+        old: u64,
+        new: Option<u64>,
+    ) -> Result<u64, Stop> {
         if !self.ub {
-            return Ok(());
+            return Ok(old);
         }
-        match self.race.borrow_mut().atomic(addr, kind, order) {
-            Some(msg) => Err(Stop::Ub(1, msg)),
-            None => Ok(()),
-        }
+        self.race
+            .borrow_mut()
+            .atomic_value(addr, kind, order, stale_ok, old, new)
+            .map_err(|msg| Stop::Ub(1, msg))
     }
 
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
@@ -568,10 +571,10 @@ impl Machine<'_> {
                     (AtomicOp::Cas, None) => (Kind::Read, failure),
                     _ => (Kind::Rmw, order),
                 };
-                self.atomic_raced(p, kind, *order)?;
+                let read = self.atomic_raced(p, (kind, *order, *op == AtomicOp::Load), old, new)?;
                 match dst {
                     Some(d) => {
-                        let v = self.typed(f.locals[*d as usize], old)?;
+                        let v = self.typed(f.locals[*d as usize], read)?;
                         self.set(fr, f, *d, v)
                     }
                     None => Ok(()),

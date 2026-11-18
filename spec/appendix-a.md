@@ -446,6 +446,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1103 | `Atomic.wait` is a cancellation point: in a cancelled task it fails `Cancelled` (RFC 0089 D2, S1 of #1664) | 6.2, 9.4 |
 | R1096 | W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690) | 21.1 |
 | R1104 | `yan run --ub --seed N` fixes the seed of the checked machine's nondeterministic choices (default 0); one seed, one run (RFC 0090 D3) | 6.9 |
+| R1105 | `--ub` weak memory: under a nonzero seed a non-`SeqCst` atomic `load` reads any of the last four stores to its location that coherence and happens-before allow, chosen by the seed; seed 0, read-modify-writes, failed compare-exchanges and `SeqCst` loads read the newest (RFC 0090 D3) | 6.9 |
 
 <!-- /rows -->
 

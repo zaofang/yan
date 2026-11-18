@@ -15444,6 +15444,64 @@
    ]
   },
   {
+   "path": "ub/atomic_release_acquire_forbids_stale.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.5",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    16
+   ]
+  },
+  {
+   "path": "ub/atomic_seqcst_forbids_store_buffering.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    16
+   ]
+  },
+  {
+   "path": "ub/atomic_store_buffering_allowed.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "any",
+    16
+   ]
+  },
+  {
    "path": "ub/data_race.yn",
    "kind": "ub",
    "milestone": "M3",

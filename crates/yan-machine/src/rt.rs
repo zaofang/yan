@@ -1830,7 +1830,12 @@ impl Machine<'_> {
             RtFn::FutexWait => {
                 let (p, in_task) = (a[0].addr(), a[3].int() != 0);
                 let equal = self.wait_word(p, a[1].int() as u64)?;
-                self.atomic_raced(p, Kind::Read, MemOrder::from_code(a[2].int()))?;
+                self.atomic_raced(
+                    p,
+                    (Kind::Read, MemOrder::from_code(a[2].int()), false),
+                    0,
+                    None,
+                )?;
                 Val::I(i128::from(yan_rt::futex::wait(p as usize, equal, in_task)))
             }
             RtFn::FutexNotify => {

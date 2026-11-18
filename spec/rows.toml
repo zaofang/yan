@@ -2195,3 +2195,8 @@ sections = "21.1"
 rows = "R1104"
 topic = "`yan run --ub --seed N` fixes the seed of the checked machine's nondeterministic choices (default 0); one seed, one run (RFC 0090 D3)"
 sections = "6.9"
+
+[[entry]]
+rows = "R1105"
+topic = "`--ub` weak memory: under a nonzero seed a non-`SeqCst` atomic `load` reads any of the last four stores to its location that coherence and happens-before allow, chosen by the seed; seed 0, read-modify-writes, failed compare-exchanges and `SeqCst` loads read the newest (RFC 0090 D3)"
+sections = "6.9"
