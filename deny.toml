@@ -1,0 +1,45 @@
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+# Unmaintained, no upgrade available; tracked in #1637.
+ignore = [
+    "RUSTSEC-2025-0075",
+    "RUSTSEC-2025-0080",
+    "RUSTSEC-2025-0081",
+    "RUSTSEC-2025-0090",
+    "RUSTSEC-2025-0098",
+    "RUSTSEC-2025-0100",
+    "RUSTSEC-2026-0543",
+]
+
+[licenses]
+version = 2
+# Permissive set compatible with Apache-2.0 WITH LLVM-exception (LICENSING.md: no copyleft linked into `yan`).
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "0BSD",
+    "CC0-1.0",
+    "Unicode-DFS-2016",
+    "CDLA-Permissive-2.0",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

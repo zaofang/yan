@@ -44,8 +44,7 @@ uv run python bench/r567/report.py bench/r567/runs/claude-free-5shot --json summ
 target/release/yan` checks every reference passes. Categories added for #1585: `safety` (the prompt
 caps the capabilities; the hidden test declares only those, so a solution that declares more fails the
 check) and `determinism` (the hidden cases run at `YAN_THREADS` 1, 2, 4 and 8 and must pass at each).
-The Python arm runs the tasks that carry `py_tests` (the 7 language-neutral ones; `safety` tasks patch the
-forbidden call so a use fails the case). Other hard tasks are Yan-only. A `.yn` arm does not exist yet.
+The Python arm runs `hard` through `hard_py.py` (`uv run python bench/r567/hard_py.py` validates the 26 references): hidden pytest cases, capability ceilings enforced by an audit-hook conftest around the test call (fs, net, time, nondet), and the determinism matrix as `os.cpu_count()`, `PYTHONHASHSEED` and thread switch interval at 1, 2, 4 and 8. Python cannot check ownership (a consumed argument stays usable), so those tasks measure the result only. The plain Yan arm (`--arms yn`, `--suite hard` only) is `hard_yn.py`: the same 26 ids written in `.yn` (spec 15) with hidden tests, a reference and 12 negative checks (`uv run python bench/r567/hard_yn.py --validate target/release/yan`). `yan agent` writes `.yag`, so the loop runs in `run.py` (`run_yn`): a spec phase and a body phase, with `yan check` errors and the file's own `yan test` results as repair reports, then the hidden cases through `yan test` (1, 2, 4 and 8 `YAN_THREADS` for determinism tasks). Primer: `primer-yn.md`, two shots `shots/s*.yn`. `yan test` enforces a capability ceiling only when the test declares capabilities, so the `safety` tasks also check the solution's `uses` clauses and capability calls as text (`FORBID` in `hard_yn.py`). `unreachable` is the body placeholder of the spec phase, because `...` is not Yan syntax.
 
 ## Measures
 

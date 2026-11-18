@@ -353,6 +353,9 @@ struct Globals<'m> {
     variant_fields: HashMap<(String, String), &'m [Field]>,
     sum_defs: HashMap<String, &'m Sum>,
     linear: HashSet<String>,
+    /// Types whose drop is observable, and what the module's constructors say about patterns.
+    obs: own::Observable,
+    ctors: own::Ctors,
     /// Trait methods and extern functions: callable, but their types are not tracked yet.
     other_fns: HashSet<String>,
 }
@@ -387,6 +390,8 @@ impl<'m> Globals<'m> {
             variant_fields: HashMap::new(),
             sum_defs: HashMap::new(),
             linear: HashSet::new(),
+            obs: own::Observable::new(m),
+            ctors: own::ctors(&m.items),
             other_fns: HashSet::new(),
         };
         for it in &m.items {
@@ -515,6 +520,8 @@ type Shadowed = (Name, Option<Binding>, Option<Vec<How>>);
 struct ArmScope {
     order_len: usize,
     outer: Vec<Shadowed>,
+    /// Binders that view the scrutinee, forgotten when the arm ends.
+    viewing: Vec<Name>,
 }
 
 struct Cx<'g, 'm> {
@@ -546,7 +553,20 @@ struct Cx<'g, 'm> {
     has_invariant: bool,
     /// Each join point's parameter names, so a jump's arguments carry their captures in.
     jps: HashMap<Name, Vec<Name>>,
+    /// Names bound by projections and `match` patterns, to the owned local part they view.
+    views: own::Views,
     diags: Vec<Diagnostic>,
+}
+
+/// The fields a place goes through before its first index.
+fn field_path(p: &Place) -> Vec<Name> {
+    p.projs
+        .iter()
+        .map_while(|pr| match pr {
+            Proj::Field(f, _) => Some(f.clone()),
+            Proj::Index(_) => None,
+        })
+        .collect()
 }
 
 fn pat_names(p: &Pat, out: &mut Vec<Name>, variants: &HashMap<String, String>) {
@@ -599,6 +619,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             generic_calls: Vec::new(),
             has_invariant: false,
             jps: HashMap::new(),
+            views: own::Views::new(),
             diags: Vec::new(),
         };
         for p in &def.params {
@@ -731,6 +752,22 @@ impl<'g, 'm> Cx<'g, 'm> {
                     );
                     self.diags.push(d.with_label(moved, "moved"));
                 }
+                flow::Finding::UseAfterPartMove {
+                    name,
+                    path,
+                    at,
+                    moved,
+                } => {
+                    let d = error(
+                        self.file,
+                        self.src,
+                        &self.item,
+                        "E401",
+                        at,
+                        format!("`{name}` is used after `{name}.{path}` was moved out of it"),
+                    );
+                    self.diags.push(d.with_label(moved, "moved"));
+                }
                 flow::Finding::NotConsumed { name, at, missing } => {
                     let message = if missing.is_empty() {
                         format!("`@linear` value `{name}` is never consumed")
@@ -801,7 +838,20 @@ impl<'g, 'm> Cx<'g, 'm> {
     /// read is E401), anything else is released. A field moved out of a local is the place's
     /// own business (`Cx::place`).
     fn consume(&mut self, k: &StmtKind, at: Span) {
-        if own::is_part_move(k) {
+        let mut parts = own::consumption(k, &self.views).partial;
+        if let Some(p) = own::part_move(k) {
+            let v = own::proj_view(&self.views, p);
+            parts.push((v.root, v.path));
+        }
+        for (root, path) in parts {
+            self.check_part(&root, &path, at);
+            if self.owns(&root)
+                && let Some(id) = self.env.get(&root).map(|b| b.id)
+            {
+                self.flow.move_path(id, &path, at);
+            }
+        }
+        if own::part_move(k).is_some() {
             return;
         }
         for n in own::consumed(k) {
@@ -816,9 +866,64 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
+    /// 4.2 partial moves: a field leaves a local whose own type has a custom `Drop` or is an
+    /// extern handle. Fields leave a `@linear` record freely.
+    fn check_part(&mut self, root: &Name, path: &[Name], at: Span) {
+        let Some(ty) = self.env.get(root).and_then(|b| b.ty.clone()) else {
+            return;
+        };
+        if path.is_empty() || !self.g.obs.is_drop(&ty) {
+            return;
+        }
+        // A `@linear` record is consumed by taking its fields out (5.4), and what is left of it
+        // is dropped field by field: only a custom `Drop` would run on a partial value.
+        if base(&ty).is_some_and(|b| self.g.linear.contains(b)) && !self.g.obs.is_custom_drop(&ty) {
+            return;
+        }
+        let field = self.field_ty(&ty, path);
+        let hint = if field.as_ref().is_some_and(own::is_copy) {
+            ""
+        } else {
+            "; use `.copy()`"
+        };
+        self.err(
+            "E413",
+            at,
+            format!(
+                "`{root}.{}` cannot be moved out: `{root}` has a custom `Drop` or is an extern handle{hint}",
+                path.join(".")
+            ),
+        );
+    }
+
+    /// The type at `path` below `ty`, through records and the variants of sums.
+    fn field_ty(&self, ty: &Type, path: &[Name]) -> Option<Type> {
+        let mut t = ty.clone();
+        let mut path = path.iter().peekable();
+        while let Some(f) = path.next() {
+            let Type::Named(n) = &t else { return None };
+            let key = n.path.join(".");
+            if let Some(r) = self.g.records.get(&key) {
+                t = r.fields.iter().find(|fd| fd.name == *f)?.ty.clone();
+            } else if self.g.sums.contains_key(&key) {
+                let g = path.next()?;
+                let fs = self.g.variant_fields.get(&(key, f.clone()))?;
+                t = fs.iter().find(|fd| fd.name == *g)?.ty.clone();
+            } else {
+                return None;
+            }
+        }
+        Some(t)
+    }
+
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
+        self.use_path(n, &[], span, how);
+    }
+
+    /// A use of `n`, or of its field `path`.
+    fn use_path(&mut self, n: &Name, path: &[Name], span: Span, how: How) {
         if let Some(id) = self.env.get(n).map(|b| b.id) {
-            self.flow.read(id, span);
+            self.flow.read(id, path, span);
         }
         if let Some(b) = self.env.get(n)
             && let Some((pid, branch)) = b.tag
@@ -944,7 +1049,12 @@ impl<'g, 'm> Cx<'g, 'm> {
     /// Each block is a branch from here; they join after, with the fall-through edge when
     /// `fallthrough`.
     fn branches<'b>(&mut self, blocks: impl IntoIterator<Item = &'b Block>, fallthrough: bool) {
-        self.arms(blocks.into_iter().map(|b| (None, b)), None, fallthrough);
+        self.arms(
+            blocks.into_iter().map(|b| (None, b)),
+            None,
+            None,
+            fallthrough,
+        );
     }
 
     /// Like [`Cx::branches`], binding each arm's pattern for that arm alone.
@@ -952,13 +1062,14 @@ impl<'g, 'm> Cx<'g, 'm> {
         &mut self,
         arms: impl IntoIterator<Item = (Option<(&'b Pat, Span)>, &'b Block)>,
         scrutinee: Option<&Type>,
+        view: Option<&own::View>,
         fallthrough: bool,
     ) {
         let from = self.flow.cur;
         let join = self.flow.node();
         for (pat, b) in arms {
             self.flow.cur = self.flow.branch(from);
-            let scope = pat.map(|(p, span)| self.enter_arm(p, scrutinee, span));
+            let scope = pat.map(|(p, span)| self.enter_arm(p, scrutinee, view, span));
             self.block(b);
             if let Some(scope) = scope {
                 self.leave_arm(scope);
@@ -971,7 +1082,13 @@ impl<'g, 'm> Cx<'g, 'm> {
         self.flow.cur = join;
     }
 
-    fn enter_arm(&mut self, p: &Pat, scrutinee: Option<&Type>, span: Span) -> ArmScope {
+    fn enter_arm(
+        &mut self,
+        p: &Pat,
+        scrutinee: Option<&Type>,
+        view: Option<&own::View>,
+        span: Span,
+    ) -> ArmScope {
         let mut names = Vec::new();
         pat_names(p, &mut names, &self.g.variant_of);
         let scope = ArmScope {
@@ -980,13 +1097,25 @@ impl<'g, 'm> Cx<'g, 'm> {
                 .iter()
                 .map(|n| (n.clone(), self.env.get(n).cloned(), self.uses.remove(n)))
                 .collect(),
+            viewing: Vec::new(),
         };
+        let mut scope = scope;
+        for (n, v) in view
+            .map(|v| own::pat_views(p, &self.g.ctors, v))
+            .unwrap_or_default()
+        {
+            scope.viewing.push(n.clone());
+            self.views.insert(n, v);
+        }
         self.bind_pat_typed(p, scrutinee, span);
         scope
     }
 
     fn leave_arm(&mut self, scope: ArmScope) {
         self.order.truncate(scope.order_len);
+        for n in &scope.viewing {
+            self.views.remove(n);
+        }
         for (n, env, uses) in scope.outer {
             if self.env.contains_key(&n) {
                 self.uses.remove(&n);
@@ -1096,6 +1225,14 @@ impl<'g, 'm> Cx<'g, 'm> {
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
                 self.consume(&s.kind, s.span);
+                match (rhs, pat) {
+                    (Rhs::Proj(p), Pat::Bind(n)) if !own::is_copy(ty) => {
+                        let v = own::proj_view(&self.views, p);
+                        self.views.insert(n.clone(), v);
+                    }
+                    (_, Pat::Bind(n)) => drop(self.views.remove(n)),
+                    _ => {}
+                }
                 let kind = if *mutable { Kind::Var } else { Kind::Let };
                 if let Pat::Bind(n) = pat {
                     let b = self.bind(n, Some(ty.clone()), kind, *pat_span, true);
@@ -1126,6 +1263,12 @@ impl<'g, 'm> Cx<'g, 'm> {
                 {
                     self.err("E403", s.span, format!("`{}` is not mutable", place.root));
                 }
+                // Writing a field that was moved out would drop the moved value again.
+                if !place.projs.is_empty()
+                    && let Some(id) = self.env.get(&place.root).map(|b| b.id)
+                {
+                    self.flow.read(id, &field_path(place), place.root_span);
+                }
                 for p in &place.projs {
                     if let Proj::Index(a) = p {
                         self.atom(a, How::Read);
@@ -1152,9 +1295,16 @@ impl<'g, 'm> Cx<'g, 'm> {
                     Atom::Lit(..) => None,
                 };
                 self.exhaustive(scrutinee, arms, s.span);
+                let view = match scrutinee {
+                    Atom::Name(n, _) if self.owns(n) || self.views.contains_key(n) => {
+                        Some(own::scrutinee_view(&self.views, n))
+                    }
+                    _ => None,
+                };
                 self.arms(
                     arms.iter().map(|(p, b)| (Some((p, s.span)), b)),
                     t.as_ref(),
+                    view.as_ref(),
                     false,
                 );
             }
@@ -1420,7 +1570,8 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     fn place(&mut self, p: &Place, how: How) -> Option<Type> {
-        self.use_name(&p.root, p.root_span, how);
+        let path = field_path(p);
+        self.use_path(&p.root, &path, p.root_span, how);
         if let Some(Proj::Field(f, at)) = p.projs.first()
             && let Some(b) = self.env.get(&p.root)
         {

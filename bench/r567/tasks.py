@@ -42,7 +42,10 @@ class Task:
     hidden: str | None = None  # Yan test source of a hand-written task; cases is empty then
     raw_prompt: str | None = None
     category: str = ""
-    py_hidden: str = ""  # pytest source of a hand-written task; empty: Yan-only
+    py_prompt: str | None = None  # hard suite: the typed-Python arm's task text
+    py_tests: str | None = None
+    forbid: tuple[str, ...] = ()
+    yn_prompt: str | None = None  # hard suite: the plain Yan arm's task text
 
     @property
     def n_tests(self) -> int:
@@ -326,10 +329,14 @@ def wrong(v: object) -> object:
 
 def load_hard() -> list[Task]:
     import hard
+    import hard_py
+    import hard_yn
 
     return [
         Task(h.id, "hard", h.id.split("/")[1], "", [], [], "", [], hidden=h.tests,
-             raw_prompt=h.prompt, category=h.category, py_hidden=h.py_tests)
+             raw_prompt=h.prompt, category=h.category, py_prompt=hard_py.PY[h.id].prompt,
+             py_tests=hard_py.PY[h.id].tests, forbid=hard_py.PY[h.id].forbid,
+             yn_prompt=hard_yn.YN[h.id].prompt)
         for h in hard.TASKS
     ]  # fmt: skip
 
@@ -341,8 +348,6 @@ def select(suites: list[str], limit: int | None, seed: int) -> list[Task]:
 
 
 def python_tests(task: Task, prefix: str = "test_hidden") -> str:
-    if task.hidden:
-        return "\n\n" + task.py_hidden
     out = []
     for i, (args, kwargs, expected) in enumerate(task.cases):
         call = call_text(task.name, args, kwargs, task.param_types, task.params)

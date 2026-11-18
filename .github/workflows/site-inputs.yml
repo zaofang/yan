@@ -49,6 +49,7 @@ jobs:
             curl -fsSL "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-$WASI_SYSROOT_VERSION/wasi-sysroot-$WASI_SYSROOT_VERSION.0.tar.gz" \
               | tar xz -C "$dir" --strip-components=1
           fi
+          # shellcheck disable=SC2012 # one directory name from a fixed sysroot
           echo "WASI_INCLUDE=$(ls -d "$dir"/include/wasm32-wasi* | head -n1)" >> "$GITHUB_ENV"
           clang --print-targets | grep -q wasm32 || { echo "clang has no wasm32 backend"; exit 1; }
       - run: rustup target add wasm32-wasip1
