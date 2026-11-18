@@ -1,0 +1,8 @@
+# Diagnostic message templates (RFC 0082 D5, #1510). Key is `CODE` or `CODE.variant`;
+# `{name}` is replaced by the argument of that name. The Yan compiler reads this same file.
+
+"E023.local" = "this package holds foreign code and the root's `allow_ffi` does not name it"
+"E023.locked" = "`{package}` holds foreign code and the root's `allow_ffi` does not name it"
+"E024.bad_name" = "`{name}` cannot name a module or directory: {why}"
+"E024.reserved" = "`{name}` is a reserved root name and cannot be a top-level module"
+"E335" = "`{local}` requires `{requirement}` but the workspace member has version {have}; raise the member's version or lower the requirement"
