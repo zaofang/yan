@@ -13,6 +13,9 @@ use yan_core::ast::Name;
 use yan_diag::Span;
 use yan_flow::{Binding, Cfg, Event, Field, Node, Point, Site};
 
+/// `Field` numbers from here on name field paths; below it they are positions of linear fields.
+const PATH_BASE: u32 = 1 << 16;
+
 struct Info {
     name: Name,
     span: Span,
@@ -35,6 +38,13 @@ pub(crate) enum Finding {
         at: Span,
         moved: Span,
     },
+    /// A read of a value, or of a part of it, after a part it overlaps was moved out.
+    UseAfterPartMove {
+        name: Name,
+        path: Name,
+        at: Span,
+        moved: Span,
+    },
     NotConsumed {
         name: Name,
         at: Span,
@@ -53,7 +63,9 @@ pub(crate) struct Flow {
     loops: Vec<(Name, Node, Node)>,
     jps: HashMap<Name, Node>,
     info: Vec<Info>,
-    reads: Vec<(Binding, Point, Span)>,
+    reads: Vec<(Binding, Vec<Name>, Point, Span)>,
+    /// The field paths moved out or written, each with its `Field` (offset by `PATH_BASE`).
+    paths: Vec<(Binding, Vec<Name>)>,
     /// Each move's span; a move's site is its index.
     moves: Vec<Span>,
 }
@@ -74,6 +86,7 @@ impl Flow {
             jps: HashMap::new(),
             info: Vec::new(),
             reads: Vec::new(),
+            paths: Vec::new(),
             moves: Vec::new(),
         }
     }
@@ -98,10 +111,50 @@ impl Flow {
         self.cfg.push(self.cur, Event::Def { binding: b, owned });
     }
 
-    pub(crate) fn read(&mut self, b: Binding, at: Span) {
+    /// A read of `b`, or of its field `path`.
+    pub(crate) fn read(&mut self, b: Binding, path: &[Name], at: Span) {
         let site = Site(self.reads.len() as u32);
         let p = self.cfg.push(self.cur, Event::Use { binding: b, site });
-        self.reads.push((b, p, at));
+        self.reads.push((b, path.to_vec(), p, at));
+    }
+
+    fn path_field(&mut self, b: Binding, path: &[Name]) -> Field {
+        let i = self
+            .paths
+            .iter()
+            .position(|(x, p)| *x == b && p == path)
+            .unwrap_or_else(|| {
+                self.paths.push((b, path.to_vec()));
+                self.paths.len() - 1
+            });
+        Field(PATH_BASE + i as u32)
+    }
+
+    /// The field at `path` leaves `b`; the rest of `b` stays with it.
+    pub(crate) fn move_path(&mut self, b: Binding, path: &[Name], at: Span) {
+        let field = self.path_field(b, path);
+        let site = Site(self.moves.len() as u32);
+        self.moves.push(at);
+        self.cfg.push(
+            self.cur,
+            Event::MoveField {
+                binding: b,
+                field,
+                site,
+            },
+        );
+    }
+
+    /// The field at `path`, and what is below it, holds a value again.
+    pub(crate) fn def_path(&mut self, b: Binding, path: &[Name]) {
+        let fields: Vec<Field> = (0..self.paths.len())
+            .filter(|&i| self.paths[i].0 == b && self.paths[i].1.starts_with(path))
+            .map(|i| Field(PATH_BASE + i as u32))
+            .collect();
+        for field in fields {
+            self.cfg
+                .push(self.cur, Event::DefField { binding: b, field });
+        }
     }
 
     pub(crate) fn moved(&mut self, b: Binding, at: Span) {
@@ -245,14 +298,37 @@ impl Flow {
         let sol = self.cfg.solve();
         let mut out = Vec::new();
         let mut reported = HashSet::new();
-        for &(b, p, at) in &self.reads {
-            if !reported.contains(&b) && sol.maybe_moved(b, None, p) {
+        for (b, path, p, at) in &self.reads {
+            let (b, p, at) = (*b, *p, *at);
+            if reported.contains(&b) {
+                continue;
+            }
+            let name = self.info[b.0 as usize].name.clone();
+            if sol.maybe_moved(b, None, p) {
                 reported.insert(b);
                 let Site(last) = *sol.moves(b, p).last().expect("maybe-moved has a move");
                 out.push(Finding::UseAfterMove {
-                    name: self.info[b.0 as usize].name.clone(),
+                    name,
                     at,
                     moved: self.moves[last as usize],
+                });
+                continue;
+            }
+            // A part overlaps the read when one path is a prefix of the other.
+            let overlap = sol
+                .field_moves(b, p)
+                .into_iter()
+                .find_map(|(f, Site(site))| {
+                    let q = &self.paths.get(f.0.checked_sub(PATH_BASE)? as usize)?.1;
+                    (q.starts_with(path) || path.starts_with(q)).then(|| (q.join("."), site))
+                });
+            if let Some((q, site)) = overlap {
+                reported.insert(b);
+                out.push(Finding::UseAfterPartMove {
+                    name,
+                    path: q,
+                    at,
+                    moved: self.moves[site as usize],
                 });
             }
         }

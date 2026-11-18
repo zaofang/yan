@@ -430,6 +430,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1083 | `yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`) | 18.1, 18.4 |
 | R1084 | a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2) | 4.2 |
 | R1085 | fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583) | 4.2, 5.4 |
+| R1086 | a local read whole, or a field of it read, while a field it overlaps may have been moved out is E401, on every path including a loop's back edge; a field written again is usable again (SQ13, #1625) | 4.2 |
+| R1087 | a field of a local that was not moved out stays readable after another field was, and a moved field that is written again can be read (SQ13, #1625) | 4.2 |
 
 <!-- /rows -->
 

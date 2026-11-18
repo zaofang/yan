@@ -1,0 +1,23 @@
+# spec: 4.2
+# rows: R1087
+# stdout:
+# X
+# 1
+# Z
+# 2
+# note: a field not moved out stays readable, and a moved field is usable again once it is written (#1625)
+
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take s: str) -> str:
+    return s
+
+def main() -> None uses io:
+    h = H(s="x".upper(), xs=[1])
+    io.print(eat(h.s))
+    io.print(str(h.xs.len()))
+    h.s = "z".upper()
+    io.print(h.s)
+    io.print(str(h.xs.len() + 1))
