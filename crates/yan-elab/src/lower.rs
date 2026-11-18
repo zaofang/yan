@@ -891,6 +891,7 @@ fn function_body_with(
         .collect();
     for p in &sig.params {
         if let Ty::Coll("Atomic", ts) = &p.ty
+            && !matches!(ts[0], Ty::Param(_))
             && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
         {
             let line =
