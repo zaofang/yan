@@ -6766,6 +6766,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_pool_exit_lowest.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1089"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "p0\np1\n-2\np0\np1\n-3\n-1\n1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_pool_lowest_panic.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6811,6 +6827,22 @@
    "flags": [],
    "expect": [],
    "stdout": "832040 4950000 75025\n6 48 1 [0, 1, 4, 9]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/par_pool_return_owned.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1090"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "r0\n10\nr0\ns0\nt0\nfell\n0\n",
    "exit": 0
   },
   {

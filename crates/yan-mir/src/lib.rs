@@ -220,6 +220,9 @@ pub enum ArmEvent {
     Enter(u32),
     Exit,
     Join,
+    /// An arm leaves its block (by `?`, `fail` or `return`); a `Jump` to the code that drops the
+    /// names of the enclosing frame follows, the edge `pool` turns into an exit code.
+    Leave,
 }
 
 /// The yan-rt entry points native code calls.
@@ -644,8 +647,10 @@ pub enum RtFn {
     /// `(n) -> i64`: 1 when the plain `par` of `n` arms runs on the pool (`yan_rt::pool`), 0 when
     /// it runs inline.
     PoolBegin,
-    /// `(frame, n)`: run the arms of a plain `par` on the pool and wait for all of them. Words
-    /// `0..n` of `frame` are the arms' code addresses, each `(frame) -> i64`.
+    /// `(frame, n) -> i64`: run the arms of a plain `par` on the pool and wait for all of them.
+    /// Words `0..n` of `frame` are the arms' code addresses, each `(frame) -> i64`: 0 on falling
+    /// out of its end, else the code of the exit it left by. Returns the code of the lowest arm
+    /// that left, 0 when none did.
     PoolRun,
     /// `(state, words, capacity, policy, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
     ActorSpawn,

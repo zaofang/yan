@@ -433,6 +433,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1085 | fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583) | 4.2, 5.4 |
 | R1086 | a local read whole, or a field of it read or written, while a field it overlaps may have been moved out is E401, on every path including a loop's back edge (SQ13, #1625) | 4.2 |
 | R1087 | a field of a local that was not moved out stays readable after another field was (SQ13, #1625) | 4.2 |
+| R1089 | pool arms may leave by `?`, `fail` or `return` of word values: the lowest-index arm that leaves, by exit or panic, decides the block, higher arms that have not started are skipped and the exits, panics and output of those that ran are discarded, so the result never depends on the worker count (RFC 0086 D8, gap 1 of #1632) | 6.7, 9.1 |
+| R1090 | a name bound outside a pool arm that leaves is dropped once, by the frame that returns, on the winning exit; the arm drops only the names it binds (RFC 0086 D8, gap 1 of #1632) | 4.2, 6.7 |
 
 <!-- /rows -->
 
