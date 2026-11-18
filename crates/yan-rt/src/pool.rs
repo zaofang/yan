@@ -5,8 +5,7 @@
 //! arm is recorded and the lowest arm's panic ends the program once every arm has settled, as
 //! it would if the arms ran in source order.
 //!
-//! The pool is off unless `YAN_THREADS` is set to more than 1: it stays off by default until the
-//! soundness gate of #1583 lands.
+//! The worker count is `YAN_THREADS`, one per core when unset; 1 runs every `par` inline.
 
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
@@ -20,14 +19,17 @@ thread_local! {
     static ARM: Cell<Option<usize>> = const { Cell::new(None) };
 }
 
-/// The worker count asked for by `YAN_THREADS`: 1 (inline) when unset or not a number.
+/// The worker count: `YAN_THREADS` when it is a number, else one per core.
 pub fn threads() -> usize {
     static N: OnceLock<usize> = OnceLock::new();
     *N.get_or_init(|| {
         std::env::var("YAN_THREADS")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .map_or(1, |n| n.max(1))
+            .map_or_else(
+                || std::thread::available_parallelism().map_or(1, |n| n.get()),
+                |n| n.max(1),
+            )
     })
 }
 
