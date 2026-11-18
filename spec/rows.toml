@@ -2160,3 +2160,8 @@ sections = "6.9"
 rows = "R1094"
 topic = "`Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4)"
 sections = "6.6"
+
+[[entry]]
+rows = "R1095"
+topic = "N57 reads `fs.read_text(path)` as `fs.read(path)`; the case is the R567 hard suite's `fs.read_text` E017 (#1543 group 9)"
+sections = "14.4"
