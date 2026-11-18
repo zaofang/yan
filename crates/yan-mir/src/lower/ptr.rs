@@ -77,6 +77,9 @@ impl<'m> Fn<'_, 'm> {
                 set(self, p);
             }
             (id::STD_PTR_READ, [(_, p)]) => {
+                if matches!(c.targs.as_slice(), [y::TArg::Type(t)] if self.types.is_capability(t)) {
+                    self.end(Term::Panic("forged"));
+                }
                 let e = elem(self)?;
                 let p = self.atom_any(p)?.0;
                 let v = self.read(&At::Mem(p[0].clone(), 0), &e);
