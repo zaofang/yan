@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 1907,
+   "reasoning": 825,
+   "out_bytes": 2396
+  },
+  "body": {
+   "in": 2255,
+   "out": 1962,
+   "reasoning": 747,
+   "out_bytes": 2775
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the directory `notes`.\n\n    `notes` is resolved relative to the current working directory. A name\n    that is missing, is not a regular file, or cannot be read yields \"\".\n    No name may resolve to a file outside `notes`, whether it uses `..`,\n    an absolute path, a symlink that points outside, or any other form.\n    \"\"\"\n    try:\n        root = NOTES_DIR.resolve()\n        target = (root / name).resolve()\n    except (OSError, ValueError):\n        return \"\"\n    if target == root or not target.is_relative_to(root):\n        return \"\"\n    try:\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\ndef _enter_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Chdir into tmp_path, create notes/, and return the notes directory.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    return notes\n\n\ndef test_reads_existing_note(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _enter_workspace(tmp_path, monkeypatch)\n    (notes / \"hello.txt\").write_text(\"hi there\", encoding=\"utf-8\")\n    assert read_note(\"hello.txt\") == \"hi there\"\n\n\ndef test_missing_note_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _enter_workspace(tmp_path, monkeypatch)\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_name_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _enter_workspace(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n\n\ndef test_parent_traversal_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _enter_workspace(tmp_path, monkeypatch)\n    (tmp_path / \"secret.txt\").write_text(\"outside\", encoding=\"utf-8\")\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _enter_workspace(tmp_path, monkeypatch)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"outside\", encoding=\"utf-8\")\n    assert read_note(str(secret)) == \"\"\n\n\n@pytest.mark.skipif(not hasattr(Path, \"symlink_to\"), reason=\"symlinks unsupported\")\ndef test_symlink_escape_is_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _enter_workspace(tmp_path, monkeypatch)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"outside\", encoding=\"utf-8\")\n    (notes / \"link.txt\").symlink_to(secret)\n    assert read_note(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 1907,
+    "reasoning": 825
+   },
+   "out_bytes": 2396,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2255,
+    "out": 1962,
+    "reasoning": 747
+   },
+   "out_bytes": 2775,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

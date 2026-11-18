@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1615,
+   "reasoning": 760,
+   "out_bytes": 1937
+  },
+  "body": {
+   "in": 2005,
+   "out": 964,
+   "reasoning": 0,
+   "out_bytes": 2208
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int], *, workers: int = 4) -> int:\n    \"\"\"Sum of square(x) for every x in xs, with squares computed in parallel.\n\n    The squares are computed on a thread pool of `workers` threads. The result\n    is identical for every worker count and equals sum(x * x for x in xs).\n    An empty list gives 0. Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        squares = list(pool.map(square, xs))\n    return sum(squares)\n\n\ndef test_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_single_element() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n\n\ndef test_large_values_no_overflow() -> None:\n    big = 10**12\n    assert sum_squares([big, big]) == 2 * big * big\n\n\ndef test_default_matches_sequential() -> None:\n    xs = list(range(-50, 51))\n    assert sum_squares(xs) == sum(x * x for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 4, 8, 16])\ndef test_same_result_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-500, 500))\n    expected = sum(x * x for x in xs)\n    assert sum_squares(xs, workers=workers) == expected\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 5, 64])\ndef test_more_workers_than_elements(workers: int) -> None:\n    assert sum_squares([2, 3], workers=workers) == 13\n    assert sum_squares([], workers=workers) == 0\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, -1, 2]\n    sum_squares(xs, workers=3)\n    assert xs == [3, -1, 2]\n\n\ndef test_repeatable() -> None:\n    xs = [5, -4, 3, 2, 1] * 100\n    results = {sum_squares(xs, workers=w) for w in (1, 2, 4, 7) for _ in range(3)}\n    assert results == {sum(x * x for x in xs)}\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_workers(workers: int) -> None:\n    with pytest.raises(ValueError):\n        sum_squares([1, 2, 3], workers=workers)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1615,
+    "reasoning": 760
+   },
+   "out_bytes": 1937,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2005,
+    "out": 964,
+    "reasoning": 0
+   },
+   "out_bytes": 2208,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

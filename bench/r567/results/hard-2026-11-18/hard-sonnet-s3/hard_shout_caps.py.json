@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2772,
+   "out": 1124,
+   "reasoning": 0,
+   "out_bytes": 2333
+  },
+  "body": {
+   "in": 2317,
+   "out": 545,
+   "reasoning": 0,
+   "out_bytes": 1135
+  }
+ },
+ "final": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased, one per line.\"\"\"\n    for x in xs:\n        print(x.upper())\n\n\ndef test_shout_basic(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"hello\", \"world\"])\n    assert capsys.readouterr().out == \"HELLO\\nWORLD\\n\"\n\n\ndef test_shout_empty_list(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n\ndef test_shout_mixed_case_and_symbols(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"MiXeD\", \"abc123\", \"!?\"])\n    assert capsys.readouterr().out == \"MIXED\\nABC123\\n!?\\n\"\n\n\ndef test_shout_empty_string_prints_blank_line(\n    capsys: pytest.CaptureFixture[str],\n) -> None:\n    shout([\"a\", \"\", \"b\"])\n    assert capsys.readouterr().out == \"A\\n\\nB\\n\"\n\n\ndef test_shout_does_not_mutate_input(capsys: pytest.CaptureFixture[str]) -> None:\n    xs = [\"abc\", \"def\"]\n    shout(xs)\n    assert xs == [\"abc\", \"def\"]\n    capsys.readouterr()\n\n\ndef test_shout_unicode(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"stra\u00dfe\", \"\u00e9\"])\n    assert capsys.readouterr().out == \"STRASSE\\n\u00c9\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1044,
+    "out": 592,
+    "reasoning": 0
+   },
+   "out_bytes": 1232,
+   "ok": false,
+   "report": "test_task.py:32: error: \"shout\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1728,
+    "out": 532,
+    "reasoning": 0
+   },
+   "out_bytes": 1101,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2317,
+    "out": 545,
+    "reasoning": 0
+   },
+   "out_bytes": 1135,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

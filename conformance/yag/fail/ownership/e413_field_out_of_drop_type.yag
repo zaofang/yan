@@ -1,0 +1,19 @@
+# spec: 4.2
+# rows: R1084
+# expect: E413 at 19:14
+# note: a field moved out of a value whose type has a custom `Drop` is rejected where the program is checked (#1573 item 2)
+
+class G:
+    s: str
+    n: int
+
+impl Drop for G:
+    def drop(var self: G) -> None:
+        pass
+
+def eat(take s: str) -> str:
+    return s
+
+def main() -> None uses io:
+    g = G(s="x".upper(), n=1)
+    io.print(eat(g.s))

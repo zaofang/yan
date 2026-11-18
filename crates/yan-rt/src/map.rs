@@ -460,14 +460,15 @@ impl Map {
         let mut s = schema;
         let key = parse(&mut s);
         debug_assert_eq!(key.width(), kw);
-        crate::heap::block_taken();
-        Box::into_raw(Box::new(Map {
+        let m = Box::into_raw(Box::new(Map {
             key,
             kw,
             vw,
             data: Vec::new(),
             index: KeyIndex::default(),
-        }))
+        }));
+        crate::heap::block_taken(m as usize, crate::heap::release_box::<Map>);
+        m
     }
 
     fn stride(&self) -> usize {
@@ -629,14 +630,15 @@ pub unsafe extern "C" fn yan_rt_map_at(m: *mut Map, i: i64) -> *mut u64 {
 pub unsafe extern "C" fn yan_rt_map_copy(m: *const Map) -> *mut Map {
     // SAFETY: the caller's contract.
     let m = unsafe { &*m };
-    crate::heap::block_taken();
-    Box::into_raw(Box::new(Map {
+    let c = Box::into_raw(Box::new(Map {
         key: m.key.clone(),
         kw: m.kw,
         vw: m.vw,
         data: m.data.clone(),
         index: m.index.clone(),
-    }))
+    }));
+    crate::heap::block_taken(c as usize, crate::heap::release_box::<Map>);
+    c
 }
 
 /// Free a `Map` block, not the blocks its slots hold.
@@ -645,7 +647,7 @@ pub unsafe extern "C" fn yan_rt_map_copy(m: *const Map) -> *mut Map {
 /// `m` is a `Map` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_map_free(m: *mut Map) {
-    crate::heap::block_freed();
+    crate::heap::block_freed(m as usize);
     // SAFETY: the caller's contract; the block came from `Box::into_raw`.
     drop(unsafe { Box::from_raw(m) });
 }

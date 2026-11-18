@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1452,
+   "out": 1003,
+   "reasoning": 872,
+   "out_bytes": 290
+  },
+  "body": {
+   "in": 6111,
+   "out": 2529,
+   "reasoning": 1975,
+   "out_bytes": 1201
+  }
+ },
+ "final": "-- Phase 1: spec for checked_add. No new types are needed.\n-- Returns None when a + b does not fit in a 64-bit int.\n\nchecked_add(a: int, b: int) -> int? =\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < (-9223372036854775807 - 1) - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 1003,
+    "reasoning": 872
+   },
+   "out_bytes": 290,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1656,
+    "out": 1190,
+    "reasoning": 1003
+   },
+   "out_bytes": 409,
+   "ok": false,
+   "report": "E201 task.yn:5:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else`\nE201 task.yn:5:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else`\nE201 task.yn:5:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2030,
+    "out": 697,
+    "reasoning": 505
+   },
+   "out_bytes": 418,
+   "ok": false,
+   "report": "E401 task.yn:9:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 5:24\nE401 task.yn:11:5 task.checked_add: `return None` `_out21` is used after `_out21.Some.value` was moved out of it | moved at 5:24\nE401 task.yn:12:3 task.checked_add: `a + b` `_t31` is used after `_t31.Some.value` was moved out of it | moved at 5:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2425,
+    "out": 642,
+    "reasoning": 467
+   },
+   "out_bytes": 374,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E201 ./task.yn:5:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 ./task.yn:5:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 ./task."
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

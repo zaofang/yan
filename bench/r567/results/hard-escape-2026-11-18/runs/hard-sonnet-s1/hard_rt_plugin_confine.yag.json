@@ -1,0 +1,125 @@
+{
+ "final": "def plugin(path: str) -> str uses fs:\n    \"\"\"Reads path and a second file named notes/../secret.txt, returning both joined by a bar.\"\"\"\n    post out.char_count() >= 1\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Returns plugin(path) when fs is confined to the directory notes, so path is relative to notes and any read outside it yields an empty string.\"\"\"\n    post out.char_count() >= 1\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp5mmx3w0i/work/task.yag:3:8 plugin: `assert plugin(\"\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp5mmx3w0i/work/task.yag:8:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#3 E301 /tmp/tmp5mmx3w0i/work/task.yag:9:8 run_plugin: `assert run_plugin(\"../../etc/passwd\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 190,
+    "reasoning": 0
+   },
+   "out_bytes": 469
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2683,
+    "out": 604,
+    "reasoning": 397
+   },
+   "out_bytes": 527
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2988,
+    "out": 525,
+    "reasoning": 297
+   },
+   "out_bytes": 578
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2988,
+   "out": 525,
+   "reasoning": 297,
+   "out_bytes": 578
+  },
+  "spec": {
+   "in": 4906,
+   "out": 794,
+   "reasoning": 397,
+   "out_bytes": 996
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp5mmx3w0i/work/task.yag:3:8 plugin: `assert plugin(\"\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp5mmx3w0i/work/task.yag:8:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#3 E301 /tmp/tmp5mmx3w0i/work/task.yag:9:8 run_plugin: `assert run_plugin(\"../../etc/passwd\")` capability `fs` is not in scop"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

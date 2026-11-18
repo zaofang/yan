@@ -1,0 +1,157 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even; otherwise fail with Bad(n=x).\"\"\"\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element in parallel. Return the checked values in order, or fail with the Bad of the lowest-index odd element.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([]) == []\n    results = par [check(x)? for x in xs]\n    return results\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpd5hsdgr8/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpd5hsdgr8/work/task.yag:13:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2113,
+    "out": 918,
+    "reasoning": 680
+   },
+   "out_bytes": 520
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2531,
+    "out": 777,
+    "reasoning": 529
+   },
+   "out_bytes": 530
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpd5hsdgr8/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /tmp/tmpd5hsdgr8/work/task.yag:18:20 all_even: `[check(x) for x in xs]` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)? | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err -> v` to handle it\n#3 E017 /tmp/tmpd5hsdgr8/work/task.yag:21:20 all_even: `r?` `?` on a value that is not a call: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E315",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2877,
+    "out": 1382,
+    "reasoning": 1068
+   },
+   "out_bytes": 693
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3504,
+    "out": 595,
+    "reasoning": 306
+   },
+   "out_bytes": 629
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_lowest_failure",
+ "tokens": {
+  "body": {
+   "in": 6381,
+   "out": 1977,
+   "reasoning": 1374,
+   "out_bytes": 1322
+  },
+  "spec": {
+   "in": 4644,
+   "out": 1695,
+   "reasoning": 1209,
+   "out_bytes": 1050
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpd5hsdgr8/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpd5hsdgr8/work/task.yag:13:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "E315",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpd5hsdgr8/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /tmp/tmpd5hsdgr8/work/task.yag:18:20 all_even: `[check(x) for x in xs]` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)? | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), o"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E315 ./task.yag:18:20 all_even: `check` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)?\nE017 ./task.yag:21:20 all_even: `r` `?` on a value that is not a call: not supported by this toolchain yet\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

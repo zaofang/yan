@@ -2,7 +2,7 @@
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
 //! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
 //! dead allocation is `ub(2)`, one outside every allocation is `ub(3)`, a word access at an address that is not a multiple of 8 is `ub(4)` and a `bool` read from a
-//! word other than 0 or 1 is `ub(6)`, a block freed twice is `ub(8)` (6.7 items; D3 of the design). Without it an access outside
+//! word other than 0 or 1 is `ub(6)`, a capability read from memory is `ub(9)`, a block freed twice is `ub(8)`, a write to a `Str` literal is `ub(7)` (6.7 items; D3 of the design). Without it an access outside
 //! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
@@ -255,6 +255,12 @@ impl Machine<'_> {
 
     fn write_word_with(&mut self, addr: u64, w: u64, race: bool) -> Result<(), Stop> {
         self.aligned("write", addr)?;
+        if self.ub && self.mem.is_immutable(addr) {
+            return Err(Stop::Ub(
+                7,
+                format!("write at {addr:#x} to immutable memory"),
+            ));
+        }
         if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
@@ -270,6 +276,7 @@ impl Machine<'_> {
         }
         let prog = self.prog;
         let a = self.new_str(&prog.strings[i as usize]);
+        self.mem.freeze(a);
         self.strs[i as usize] = Some(a);
         a
     }
@@ -377,6 +384,12 @@ impl Machine<'_> {
                         self.release(&fr);
                         func = *g;
                         continue 'call;
+                    }
+                    Term::Panic("forged") if self.ub => {
+                        return Err(Stop::Ub(
+                            9,
+                            "a capability read from memory is forged".into(),
+                        ));
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
                     Term::PanicFields { kind, fields } => {
@@ -496,6 +509,7 @@ impl Machine<'_> {
                     ArmEvent::Enter(k) => r.enter(*k),
                     ArmEvent::Exit => r.exit(),
                     ArmEvent::Join => r.join(),
+                    ArmEvent::Leave => {}
                 }
                 Ok(())
             }

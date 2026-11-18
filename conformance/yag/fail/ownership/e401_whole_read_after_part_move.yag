@@ -1,0 +1,19 @@
+# spec: 4.2
+# rows: R1086
+# expect: E401 at 19:24
+# note: a value read whole after one of its fields was moved out is E401 (#1625)
+
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take s: str) -> str:
+    return s
+
+def total(h: H) -> int:
+    return h.s.char_count()
+
+def main() -> None uses io:
+    h = H(s="x".upper(), xs=[1])
+    io.print(eat(h.s))
+    io.print(str(total(h)))

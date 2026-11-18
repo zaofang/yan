@@ -1,0 +1,124 @@
+{
+ "final": "class Channel:\n    cap: int\n    items: list[int]\n\ndef new_channel(cap: int) -> Channel:\n    \"\"\"Empty channel that holds at most cap integers.\"\"\"\n    pre cap >= 0\n    post out.items.len() == 0 and out.cap == cap\n    ex new_channel(3).cap == 3\n    return Channel(cap=cap, items=[])\n\ndef try_send(var ch: Channel, v: int) -> bool:\n    \"\"\"Append v if the channel has room and report True; otherwise leave it unchanged and report False. Never blocks.\"\"\"\n    post ch.items.len() <= ch.cap\n    if ch.items.len() < ch.cap:\n        ch.items.append(v)\n        return True\n    return False\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel of capacity cap, try to send each element of xs without blocking, and stop at the first rejected send. Return how many sends were accepted.\"\"\"\n    pre cap >= 0\n    post out >= 0 and out <= cap and out <= xs.len()\n    ch = new_channel(cap)\n    n = 0\n    for x in xs:\n        if not try_send(&ch, x):\n            break\n        n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp6_e6_wte/work/task.yag:21:8 accepted: `assert accepted(0, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmp6_e6_wte/work/task.yag:22:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 1845,
+    "reasoning": 1488
+   },
+   "out_bytes": 842
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2596,
+    "out": 770,
+    "reasoning": 456
+   },
+   "out_bytes": 775
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3008,
+    "out": 1160,
+    "reasoning": 751
+   },
+   "out_bytes": 1017
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 3008,
+   "out": 1160,
+   "reasoning": 751,
+   "out_bytes": 1017
+  },
+  "spec": {
+   "in": 4645,
+   "out": 2615,
+   "reasoning": 1944,
+   "out_bytes": 1617
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp6_e6_wte/work/task.yag:21:8 accepted: `assert accepted(0, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmp6_e6_wte/work/task.yag:22:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

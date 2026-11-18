@@ -19,6 +19,9 @@ unsafe fn text<'a>(ptr: *const u8, len: usize) -> &'a str {
 pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     // SAFETY: forwarded.
     let s = unsafe { text(ptr, len) };
+    if crate::pool::capture(format!("{s}\n").as_bytes()) {
+        return;
+    }
     let mut out = std::io::stdout().lock();
     if writeln!(out, "{s}").and_then(|()| out.flush()).is_err() {
         std::process::exit(1);
@@ -217,6 +220,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
         "wire" => "a value the Wire codec rejects",
+        "forged" => "a capability made from bytes",
         _ => "invalid value",
     }
 }
@@ -232,8 +236,9 @@ pub struct List {
 }
 
 pub(crate) fn leak<T>(x: T) -> *mut T {
-    crate::heap::block_taken();
-    Box::into_raw(Box::new(x))
+    let p = Box::into_raw(Box::new(x));
+    crate::heap::block_taken(p as usize, crate::heap::release_box::<T>);
+    p
 }
 
 pub(crate) fn panic(kind: &str) -> ! {
@@ -283,7 +288,7 @@ pub unsafe extern "C" fn yan_rt_str_free(s: *mut String) {
     {
         return;
     }
-    crate::heap::block_freed();
+    crate::heap::block_freed(s as usize);
     // SAFETY: the caller's contract; the block came from `leak`.
     drop(unsafe { Box::from_raw(s) });
 }
@@ -294,7 +299,7 @@ pub unsafe extern "C" fn yan_rt_str_free(s: *mut String) {
 /// `l` is a `List` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_free(l: *mut List) {
-    crate::heap::block_freed();
+    crate::heap::block_freed(l as usize);
     // SAFETY: the caller's contract; the block came from `leak`.
     drop(unsafe { Box::from_raw(l) });
 }
@@ -969,11 +974,12 @@ pub extern "C" fn yan_rt_exit(code: i64) -> ! {
 /// `words` zeroed words: a closure's captures. A header word before them holds the count.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_alloc(words: u64) -> *mut u64 {
-    crate::heap::block_taken();
     let mut b = vec![0u64; words as usize + 1];
     b[0] = words;
     // SAFETY: the block has the header word.
-    unsafe { Box::leak(b.into_boxed_slice()).as_mut_ptr().add(1) }
+    let p = unsafe { Box::leak(b.into_boxed_slice()).as_mut_ptr().add(1) };
+    crate::heap::block_taken(p as usize, release_env);
+    p
 }
 
 /// Free a block from [`yan_rt_alloc`]; null (a closure without captures) is ignored.
@@ -985,10 +991,19 @@ pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
     if p.is_null() {
         return;
     }
-    crate::heap::block_freed();
-    // SAFETY: the caller's contract; the header is one word before.
+    crate::heap::block_freed(p as usize);
+    // SAFETY: the caller's contract.
+    unsafe { release_env(p as usize) };
+}
+
+/// Free the block at `p` from [`yan_rt_alloc`] without counting it.
+///
+/// # Safety
+/// `p` is from `yan_rt_alloc` and nothing uses it afterwards.
+unsafe fn release_env(p: usize) {
+    // SAFETY: the header is one word before.
     unsafe {
-        let head = p.sub(1);
+        let head = (p as *mut u64).sub(1);
         let n = *head as usize + 1;
         drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(head, n)));
     }
@@ -1346,7 +1361,9 @@ pub extern "C" fn yan_rt_rand_split(h: i64, k: i64) -> i64 {
     match crate::rand::branch(h, k as u64) {
         Some(b) => b,
         None => {
-            eprintln!("yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)");
+            let report = "yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)";
+            crate::pool::arm_failed(report.to_owned(), 101);
+            eprintln!("{report}");
             std::process::exit(101)
         }
     }

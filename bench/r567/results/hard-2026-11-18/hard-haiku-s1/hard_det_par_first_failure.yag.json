@@ -1,0 +1,124 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even; otherwise fail Bad carrying x.\"\"\"\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Return the checked values in order, or fail with the failure of the lowest-index bad element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4]) == [2, 4]\n    ex all_even([4, 1, 3]) == Err(Bad(n=1))\n    return par [check(x)? for x in xs]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmptl0e3370/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmptl0e3370/work/task.yag:14:8 all_even: `([4, 1, 3]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1104,
+    "reasoning": 872
+   },
+   "out_bytes": 542
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2503,
+    "out": 536,
+    "reasoning": 294
+   },
+   "out_bytes": 552
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2843,
+    "out": 849,
+    "reasoning": 571
+   },
+   "out_bytes": 629
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 2843,
+   "out": 849,
+   "reasoning": 571,
+   "out_bytes": 629
+  },
+  "spec": {
+   "in": 4600,
+   "out": 1640,
+   "reasoning": 1166,
+   "out_bytes": 1094
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmptl0e3370/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmptl0e3370/work/task.yag:14:8 all_even: `([4, 1, 3]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

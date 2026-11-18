@@ -1,0 +1,18 @@
+# spec: 10.1, 13
+# rows: R423
+# stdout:
+# 1 2
+
+type Shape[T] = Empty() | One(v: T) | Two(a: T, b: T)
+
+def count[T](s: Shape[T]) -> int:
+    match s:
+        case Empty():
+            return 0
+        case One(v=_):
+            return 1
+        case Two(a=_, b=_):
+            return 2
+
+def main() uses io:
+    io.print(f"{count(One(5))} {count(Two('a', 'b'))}")

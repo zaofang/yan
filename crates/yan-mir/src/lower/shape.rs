@@ -242,6 +242,16 @@ fn tie(stack: &mut Stack, built: R<Shape>) -> R<Shape> {
 }
 
 impl Types<'_> {
+    fn declares(&self, name: &str) -> bool {
+        self.recs.contains_key(name) || self.sums.contains_key(name)
+    }
+
+    /// A built-in capability handler, which a program cannot make from bytes (6.7 item 9).
+    pub(super) fn is_capability(&self, t: &y::Type) -> bool {
+        matches!(t, y::Type::Named(n) if n.args.is_empty()
+            && matches!(n.path.as_slice(), [p] if matches!(p.as_str(), "Rand" | "Fs" | "Log" | "Env" | "Time" | "Proc") && !self.declares(p)))
+    }
+
     pub(super) fn shape(&self, t: &y::Type) -> R<Shape> {
         self.shape_in(t, &mut Vec::new())
     }
@@ -346,9 +356,7 @@ impl Types<'_> {
                     ("WindowsPath", []) => return Ok(Shape::WinPath),
                     // A capability handler is its index in `yan_rt` (`rand`, `fshandler`,
                     // `loghandler`), unless the program declares a type of that name.
-                    ("Rand" | "Fs" | "Log" | "Env" | "Time", [])
-                        if !self.recs.contains_key(name) && !self.sums.contains_key(name) =>
-                    {
+                    ("Rand" | "Fs" | "Log" | "Env" | "Time", []) if !self.declares(name) => {
                         return Ok(Shape::Scalar(I64));
                     }
                     // The handler of `std.proc` is the dict `fake_proc` was given; 0 is the host.
