@@ -1,0 +1,21 @@
+-- spec: 6.2, 6.7
+-- rows: R1095, R1096, R1097
+-- note: a task waits on an atomic word until another task stores and notifies
+-- ub: none
+
+waiter(a: Atomic[u32], b: Atomic[u32]) fail Cancelled | Timeout uses nondet =
+  a.wait(0, LoadOrdering.Acquire())?
+  b.store(a.load(LoadOrdering.Acquire()), StoreOrdering.SeqCst())
+
+waker(a: Atomic[u32]) uses nondet =
+  a.store(7, StoreOrdering.Release())
+  a.notify_one()
+
+main() fail Cancelled | Timeout uses nondet =
+  let a = Atomic[u32](0)
+  let b = Atomic[u32](0)
+  with sched = sequential()
+    par concurrent
+      waiter(a, b)?
+      waker(a)
+  assert b.load(LoadOrdering.SeqCst()) == 7

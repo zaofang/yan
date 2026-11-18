@@ -80,6 +80,7 @@ fn blocking(i: &Inst) -> bool {
         Inst::Rt {
             f: RtFn::ChanSend
                 | RtFn::ChanRecv
+                | RtFn::FutexWait
                 | RtFn::SelectWait
                 | RtFn::ActorTake
                 | RtFn::ActorRetake
@@ -355,6 +356,7 @@ impl Cx {
                         f:
                             RtFn::ChanSend
                             | RtFn::ChanRecv
+                            | RtFn::FutexWait
                             | RtFn::SelectWait
                             | RtFn::ChanTrySend
                             | RtFn::ChanTryRecv

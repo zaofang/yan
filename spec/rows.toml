@@ -2160,3 +2160,23 @@ sections = "6.9"
 rows = "R1094"
 topic = "`Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4)"
 sections = "6.6"
+
+[[entry]]
+rows = "R1095"
+topic = "`Atomic[u32]` and `Atomic[i32]` gain `wait(expected, o: LoadOrdering) -> None fail Cancelled | Timeout`, `notify_one` and `notify_all`; the three need `uses nondet` (E709); `wait` returns at once when the word is not `expected` (RFC 0089 D2, S1 of #1664)"
+sections = "6.2, 17.3"
+
+[[entry]]
+rows = "R1096"
+topic = "`wait` on an equal word parks the task on the word's address; `notify_one` releases the longest-parked waiter and `notify_all` every one, first in first out in the interpreter and the checked machine; a parked waiter counts for the deadlock detector (R396); only 32-bit words are supported (RFC 0089 D3, S1 of #1664)"
+sections = "6.2"
+
+[[entry]]
+rows = "R1097"
+topic = "UB item 15: `Atomic.wait` on an address that is not 4-aligned, not inside a live allocation, or not a word the program accessed with an atomic instruction is `ub(15)`, reported at the `wait` under `--ub` (RFC 0089 D1, S1 of #1664)"
+sections = "6.7, 6.9"
+
+[[entry]]
+rows = "R1098"
+topic = "`Atomic.wait` is a cancellation point: in a cancelled task it fails `Cancelled` (RFC 0089 D2, S1 of #1664)"
+sections = "6.2, 9.4"

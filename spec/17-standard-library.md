@@ -100,7 +100,7 @@ A module belongs in std only if it is shared vocabulary, a capability handler or
 | `std.dict`, `std.set` | `get`, `keys`, `values`, `items`, `remove`, `setdefault`; `add`, `discard`, `union`, `intersection`; `get_many`, `contains_many` (R626); insertion-ordered (dense entries plus a SwissTable index); UnorderedMap and UnorderedSet with inline entries and nondet iteration (R387); Interner\[T\], which maps values to Copy keys and back (R445) | none |
 | `std.collections` | `deque`, `heap` (4-ary, min by default, `Reverse` for max), `sorted_dict`, `sorted_set` (B-tree), `frozen_sorted_set`, `frozen_sorted_dict` (R631), `fuse_filter`, `roaring_set` (R632), `bitset`, `small_list`, `Soa`, `Pool`, `DensePool`, `Handle` | none |
 | `std.iter` | adapters (lazy, second-class, fused per R623), `collect`, `chain`, `windows`, `chunks` | none |
-| `std.rc`, `std.sync` | `Rc`, `Arc`, `Weak`, `make_mut`; `Cell`, `Atomic`, `Mutex`, `RwLock`, `Once`, `Lazy` (6.2, 6.3) | none |
+| `std.rc`, `std.sync` | `Rc`, `Arc`, `Weak`, `make_mut`; `Cell`, `Atomic` with `wait`, `notify_one` and `notify_all` on 32-bit words, `Mutex`, `RwLock`, `Once`, `Lazy` (6.2, 6.3) | none |
 | `std.hash` | default keyed `Hasher` (foldhash-class, per-map fallback to SipHash-1-3, R387); `stable` (XXH3, fixed key, versioned) | none |
 | `std.fmt` | `Show`, format specs, shortest round-trip float printing, CPython 3.12 layout for the Yan Agent subset (SQ20) | none |
 | `std.regex` | linear-time matching only (no backreferences; lookaround, `&` and `~` only with `boolean=True`, R629); literal patterns validated at stage 0; size limit on compiled automata | none |

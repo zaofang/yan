@@ -614,6 +614,35 @@
    ]
   },
   {
+   "path": "yag/fail/atomic_wait_needs_nondet.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 9,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 10,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 11,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/bindings/r832_if_without_else.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -6472,6 +6501,84 @@
    "flags": [],
    "expect": [],
    "stdout": "200\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_cancelled.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "9.4"
+   ],
+   "rows": [
+    "R1098"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Bad(n=7)\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R396",
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "waiting\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1095",
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify_all.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "111\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_value_differs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "done\n",
    "exit": 0
   },
   {
@@ -15273,6 +15380,53 @@
      "col": 14
     }
    ]
+  },
+  {
+   "path": "ub/atomic_wait_misaligned.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.2",
+    "6.7"
+   ],
+   "rows": [
+    "R1097"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "15"
+  },
+  {
+   "path": "ub/atomic_wait_notify.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.2",
+    "6.7"
+   ],
+   "rows": [
+    "R1095",
+    "R1096",
+    "R1097"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "ub/atomic_wait_plain_word.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.2",
+    "6.7"
+   ],
+   "rows": [
+    "R1097"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "15"
   },
   {
    "path": "ub/data_race.yn",

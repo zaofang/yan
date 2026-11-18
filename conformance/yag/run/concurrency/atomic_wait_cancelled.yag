@@ -1,0 +1,26 @@
+# spec: 6.2, 9.4
+# rows: R1098
+# note: a wait is a cancellation point: when a sibling branch fails, the parked waiter fails Cancelled and the failing branch decides the block
+# stdout:
+# Bad(n=7)
+
+@derive(Show)
+class Bad:
+    n: int
+
+def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout uses nondet:
+    a.wait(0, LoadOrdering.Acquire())?
+
+def boom(n: int) -> None fail Bad:
+    fail Bad(n=n)
+
+def only_one_fails() -> str fail Cancelled | Timeout | Bad uses nondet:
+    a = Atomic[uint32](0)
+    par concurrent:
+        hold(a)?
+        boom(7)?
+    return "ok"
+
+pub def main() uses io, nondet:
+    with sched = sequential():
+        io.print(only_one_fails() else err -> f"{err}")

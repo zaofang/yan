@@ -1,0 +1,22 @@
+# spec: 6.2
+# rows: R1095, R1096
+# note: a task waits on a 32-bit atomic until another task stores and notifies; the sequential scheduler runs the waker once the waiter parks
+# stdout:
+# 7
+
+def waiter(a: Atomic[uint32], b: Atomic[uint32]) -> None fail Cancelled | Timeout uses nondet:
+    a.wait(0, LoadOrdering.Acquire())?
+    b.store(a.load(LoadOrdering.Acquire()), StoreOrdering.SeqCst())
+
+def waker(a: Atomic[uint32]) -> None uses nondet:
+    a.store(7, StoreOrdering.Release())
+    a.notify_one()
+
+def main() -> None fail Cancelled | Timeout uses io, nondet:
+    a = Atomic[uint32](0)
+    b = Atomic[uint32](0)
+    with sched = sequential():
+        par concurrent:
+            waiter(a, b)?
+            waker(a)
+    print(b.load(LoadOrdering.SeqCst()))

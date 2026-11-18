@@ -1,0 +1,15 @@
+-- spec: 6.2, 6.7
+-- rows: R1097
+-- note: a word at an address that is not a multiple of 4, read back as an atomic, is not storage `Atomic.wait` may use
+-- ub: 15
+
+type Slot = { a: Atomic[u32] }
+
+main() fail Cancelled | Timeout uses nondet =
+  let xs = [1, 2]
+  let p = xs.as_ptr()
+  var raw = p.addr() + 1
+  let q = Ptr.of(&raw).cast[Slot]()
+  unsafe
+    let s = q.read()
+    s.a.wait(0, LoadOrdering.Acquire())?
