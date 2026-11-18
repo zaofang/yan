@@ -1,4 +1,4 @@
-# 0089: Leak report and store-buffer weak memory under `--ub`
+# 0090: Leak report and store-buffer weak memory under `--ub`
 
 - Status: draft
 - Research: code reading for #1665 (no study; facts cited below); atomics design D7 (`docs/research/2026-11-16-atomics-mutex-design.md`)
