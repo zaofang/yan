@@ -2165,3 +2165,8 @@ sections = "6.6"
 rows = "R1098 to R1100"
 topic = "`yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1098); `--ub=deny-leaks` also exits with the UB status (R1099); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1100) (RFC 0090 D1, D2)"
 sections = "6.9"
+
+[[entry]]
+rows = "R1095"
+topic = "N57 reads `fs.read_text(path)` as `fs.read(path)`; the case is the R567 hard suite's `fs.read_text` E017 (#1543 group 9)"
+sections = "14.4"

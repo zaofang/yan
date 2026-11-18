@@ -1341,7 +1341,7 @@ fn touches_raw_memory(p: &yan_mir::Program) -> bool {
         })
 }
 
-/// The leak report of 6.9 (R1095).
+/// The leak report of 6.9 (R1098).
 const LEAK_CODE: &str = "W862";
 
 /// Run `p` on the abstract-byte machine, on a thread with room for deep recursion.

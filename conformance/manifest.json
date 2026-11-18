@@ -7565,6 +7565,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n57_fs_read_text.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "missing\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/py_real_functions.yag",
    "kind": "run",
    "milestone": "M1",
@@ -9782,6 +9797,19 @@
    "flags": [],
    "expect": [],
    "stdout": "b c d\n3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/set_union_intersection.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "[3, 1, 2, 4] [1, 2] 4 2\n[3, 1, 2, 4, 5] 5\n[] [3, 1, 2] 0 3\n[x, y] [y]\n",
    "exit": 0
   },
   {

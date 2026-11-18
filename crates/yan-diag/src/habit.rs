@@ -37,7 +37,7 @@ const TABLE: &[Habit] = &[
         codes: &[],
         on: |l| l.contains("with open("),
         text: "Python `with open(...) as f`: files go through the `fs` capability, as \
-               `fs.read_text(path)`; `with name = e:` binds a handler",
+               `fs.read(path)`; `with name = e:` binds a handler",
     },
     Habit {
         ext: "yag",
