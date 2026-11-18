@@ -110,4 +110,4 @@ conformance case in the same PR set.
 | [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |
 | [0085](0085-first-milestone-is-0-1-0.md) | The first milestone is 0.1.0 | accepted | none |
 | [0086](0086-native-pool-par.md) | Native pool for plain `par` | accepted | none |
-| [0087](0087-moved-from-place-detection.md) | Detecting a use of a moved-from place under `--ub` | draft | |
+| [0087](0087-moved-from-place-detection.md) | Detecting a use of a moved-from place under `--ub` | accepted | |

@@ -1,8 +1,8 @@
 # 0087: Detecting a use of a moved-from place under `--ub`
 
-- Status: draft
+- Status: accepted
 - Research: code reading for #1663 (no study; the facts are cited below)
-- Rows: filled in when accepted
+- Rows: numbered in the S3 PR with their cases (CASE WITH ROW), as the final commit after merging main
 
 ## Summary
 
@@ -53,8 +53,8 @@ Alternatives weighed:
 - *Dynamic marker in MIR (this proposal).* One instruction, zero cost outside the machine, exact on
   every path. Recommended: it is the only option that is complete and keeps the backends equal.
 
-- Decision: (lead's answer, date)
-- Row: (R number once accepted)
+- Decision: accepted as recommended (lead, 2026-11-18)
+- Row: numbered in S3
 
 ### D2: one source of moves, the ownership facts already computed
 
@@ -69,7 +69,7 @@ Before coding, grep `yan-opt/src/drops.rs` (it emits `Rhs::Move`, line 773) and 
 for passes that create or remove a move after elaboration, so the marker is emitted from the final
 Core, not an earlier form.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (lead, 2026-11-18)
 
 ### D3: what counts as moved-from, and when it ends
 
@@ -86,7 +86,7 @@ spec text:
    item 8 is reachable only through unsafe code, foreign code or a compiler bug. The machine is the
    backstop for the last, which is the point of #1242.
 
-- Decision: (lead's answer, date)
+- Decision: accepted as recommended (lead, 2026-11-18)
 
 ### D4: how a conformance case reaches the state (open; lead's choice)
 
@@ -104,7 +104,7 @@ Safe code cannot reach it (D3.5), so a `conformance/ub/` case needs an unsafe mo
   surface, but item 8 then has no conformance case and the spec row has none (CASE WITH ROW).
   Acceptable only if (a) is declined; the rows then wait.
 
-- Decision: (lead's answer, date)
+- Decision: accepted, option (a) `Ptr.take` (lead, 2026-11-18)
 
 ## Spec changes
 
