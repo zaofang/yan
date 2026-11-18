@@ -439,7 +439,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1092 | moved-from place: from the move until a store or assignment, siblings of a moved field stay defined, a move of a `Copy` place is not a move; a read, borrow, second move, copy or drop of it is `ub(8)` (RFC 0087 D3) | 6.7 |
 | R1093 | `--ub` reports `ub(8)` at the first access after a move and names the move site; moves are codeless MIR markers read from the ownership facts (RFC 0087 D1, D2) | 6.9 |
 | R1094 | `Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `read` stays a copy; `write` re-initialises (RFC 0087 D4) | 6.6 |
-| R1095 to R1097 | `yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1095); `--ub=deny-leaks` also exits with the UB status (R1096); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1097) (RFC 0090 D1, D2) | 6.9 |
+| R1098 to R1100 | `yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1098); `--ub=deny-leaks` also exits with the UB status (R1099); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1100) (RFC 0090 D1, D2) | 6.9 |
 
 <!-- /rows -->
 

@@ -1,5 +1,5 @@
 -- spec: 6.9
--- rows: R1095, R1097
+-- rows: R1098, R1100
 -- note: a list freed at scope end and a string literal are not leaks
 -- ub: none
 -- warn: none

@@ -1,5 +1,5 @@
 -- spec: 6.9
--- rows: R1095
+-- rows: R1098
 -- note: a value queued on a channel nobody receives from is never released, so the machine reports it (zaofang/yan#1694)
 -- ub: none
 -- warn: W862

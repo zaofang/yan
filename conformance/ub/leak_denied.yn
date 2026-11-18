@@ -1,5 +1,5 @@
 -- spec: 6.9
--- rows: R1096
+-- rows: R1099
 -- note: --ub=deny-leaks exits with the UB status when W862 is printed
 -- flags: --ub=deny-leaks
 -- ub: none

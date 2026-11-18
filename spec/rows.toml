@@ -2162,6 +2162,6 @@ topic = "`Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `r
 sections = "6.6"
 
 [[entry]]
-rows = "R1095 to R1097"
-topic = "`yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1095); `--ub=deny-leaks` also exits with the UB status (R1096); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1097) (RFC 0090 D1, D2)"
+rows = "R1098 to R1100"
+topic = "`yan run --ub` leak report: W862 per allocation still live when `main` returns, naming its size and allocating function, exit status unchanged (R1098); `--ub=deny-leaks` also exits with the UB status (R1099); string literals, runtime-owned blocks and allocations reachable from a `static` are not leaks (R1100) (RFC 0090 D1, D2)"
 sections = "6.9"
