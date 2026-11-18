@@ -36,7 +36,7 @@ reads it. The existing allocator report stays for a block freed twice and keeps 
 Conditional moves need nothing static: the marker executes on the path taken, and drop flags
 (`yan_check::drop_flags`, `Fn::flags`) already guard the drops that must not run, so a drop that
 runs after a move is exactly the bug being detected. The remainder drop after a partial move
-(`Rhs::Rest`, RFC 0081 and rows on `rest`) reads only the unmoved words.
+(`Rhs::Rest`) reads only the unmoved words.
 
 Alternatives weighed:
 
