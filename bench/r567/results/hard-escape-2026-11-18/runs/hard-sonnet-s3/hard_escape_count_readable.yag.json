@@ -1,0 +1,189 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a relative path that stays inside its base directory.\n\n    Rejects empty names, absolute paths, drive or backslash forms, NUL\n    characters, and any `..` segment.\n    \"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"..\\\\b\") == False\n    if \"\\\\\" in name:\n        return False\n    if \":\" in name:\n        return False\n    if \"\\0\" in name:\n        return False\n    for seg in name.split(\"/\"):\n        if seg == \"\" or seg == \"..\":\n            return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the directory `notes`.\n\n    Reads happen only under `fs.sub(\"notes\")`. A missing or unreadable\n    file counts as not readable. Names are untrusted, so names that fail\n    `is_safe_name` are never read and are not counted.\n    \"\"\"\n    post out >= 0 and out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text = fs.read(name) else \"\"\n            if text != \"\":\n                n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp86_venjh/work/task.yag:10:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#2 E301 /tmp/tmp86_venjh/work/task.yag:11:8 count_readable: `assert count_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmp86_venjh/work/task.yag:12:8 count_readable: `assert count_readable([\"/etc/passwd\", \"a/../../b\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 541,
+    "reasoning": 317
+   },
+   "out_bytes": 569
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2621,
+    "out": 655,
+    "reasoning": 291
+   },
+   "out_bytes": 921
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp86_venjh/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmp86_venjh/work/task.yag:14:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmp86_venjh/work/task.yag:42:20 count_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3083,
+    "out": 1099,
+    "reasoning": 565
+   },
+   "out_bytes": 1460
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp86_venjh/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E315 /tmp/tmp86_venjh/work/task.yag:38:20 count_readable: `= fs.read` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err -> v` to handle it",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E315"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3820,
+    "out": 986,
+    "reasoning": 478
+   },
+   "out_bytes": 1370
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4549,
+    "out": 511,
+    "reasoning": 0
+   },
+   "out_bytes": 1378
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 11452,
+   "out": 2596,
+   "reasoning": 1043,
+   "out_bytes": 4208
+  },
+  "spec": {
+   "in": 4750,
+   "out": 1196,
+   "reasoning": 608,
+   "out_bytes": 1490
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp86_venjh/work/task.yag:10:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#2 E301 /tmp/tmp86_venjh/work/task.yag:11:8 count_readable: `assert count_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmp86_venjh/work/task.yag:12:8 count_readable: `assert count_readable([\""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmp86_venjh/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmp86_venjh/work/task.yag:14:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmp86_venjh/work/task.yag:42:20 count_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E315",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp86_venjh/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E315 /tmp/tmp86_venjh/work/task.yag:38:20 count_readable: `= fs.read` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err ->"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "W806 task.yag:14:8 is_safe_name: `name` this branch special-cases an `ex` input\nE017 task.yag:42:20 count_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ }
+}

@@ -24,7 +24,21 @@ class Hard:
     prompt: str
     tests: str
     ref: str
+    expect: tuple[
+        str, ...
+    ] = ()  # run-mode task: `tests` is a driver, the check is its stdout in FIXTURE
 
+
+# `yan test` runs on an in-memory file system, so the fs.sub tasks run the program (`yan run`,
+# `python`) in a directory holding this tree. `{ROOT}` in a link target is the directory itself.
+FIXTURE = {"notes/a.txt": "alpha", "notes/sub/b.txt": "beta", "secret.txt": "TOPSECRET"}
+LINKS = {"notes/link": "../secret.txt", "notes/abslink": "{ROOT}/secret.txt"}
+NOTE = (
+    "Names come from untrusted requests. Read only files inside the directory `notes` (relative to the "
+    "working directory); a missing or unreadable file gives an empty string, and no name, however it is "
+    "written, may reach a file outside `notes`."
+)
+YAN_SUB = "A capability narrows for a block: `with fs = fs.sub(dir):` confines `fs` to `dir`. "
 
 TASKS = [
     Hard(
@@ -343,11 +357,107 @@ TASKS = [
         'def test_hidden_0():\n    assert settings([], []) == ["fast", "3"]\n\ndef test_hidden_1():\n    assert settings(["level"], ["9"]) == ["fast", "9"]\n\ndef test_hidden_2():\n    assert settings(["x", "mode"], ["1", "slow"]) == ["slow", "3", "1"]\n',
         'def settings(keys: list[str], values: list[str]) -> list[str]:\n    mode = "fast"\n    level = "3"\n    rest: list[str] = []\n    for i in range(len(keys)):\n        if keys[i] == "mode":\n            mode = values[i].copy()\n        elif keys[i] == "level":\n            level = values[i].copy()\n        else:\n            rest.append(values[i].copy())\n    out = [mode, level]\n    out.extend(rest)\n    return out\n',
     ),
+    Hard(
+        "hard/escape_read_note",
+        "safety",
+        "Return the text of the file `name` in the directory `notes`. "
+        + NOTE
+        + " "
+        + YAN_SUB
+        + "\n\nFunction: read_note(name: str) -> str uses fs",
+        'pub def main() uses io, fs:\n    for n in ["a.txt", "sub/b.txt", "missing.txt", "../secret.txt", "link", "abslink"]:\n        io.print("<" + read_note(n) + ">")\n',
+        'def read_note(name: str) -> str uses fs:\n    with fs = fs.sub("notes"):\n        return fs.read(name) else ""\n',
+        ("<alpha>", "<beta>", "<>", "<>", "<>", "<>"),
+    ),
+    Hard(
+        "hard/escape_first_readable",
+        "safety",
+        "Return the text of the first file in `names` that can be read from the directory `notes`, or an empty string when none can. "
+        + NOTE
+        + " "
+        + YAN_SUB
+        + "\n\nFunction: first_readable(names: list[str]) -> str uses fs",
+        'pub def main() uses io, fs:\n    io.print("<" + first_readable(["../secret.txt", "link", "a.txt"]) + ">")\n    io.print("<" + first_readable(["abslink", "missing.txt"]) + ">")\n    io.print("<" + first_readable(["sub/b.txt", "a.txt"]) + ">")\n',
+        'def first_readable(names: list[str]) -> str uses fs:\n    with fs = fs.sub("notes"):\n        for n in names:\n            r = fs.read(n) else ""\n            if r != "":\n                return r\n    return ""\n',
+        ("<alpha>", "<>", "<beta>"),
+    ),
+    Hard(
+        "hard/escape_count_readable",
+        "safety",
+        "Count how many of the `names` are files that can be read from the directory `notes`. "
+        + NOTE
+        + " "
+        + YAN_SUB
+        + "\n\nFunction: count_readable(names: list[str]) -> int uses fs",
+        'pub def main() uses io, fs:\n    a = count_readable(["a.txt", "sub/b.txt", "../secret.txt", "link", "nope"])\n    b = count_readable([])\n    c = count_readable(["abslink", "sub/../a.txt", "sub/../../secret.txt"])\n    io.print(f"{a}")\n    io.print(f"{b}")\n    io.print(f"{c}")\n',
+        'def count_readable(names: list[str]) -> int uses fs:\n    n = 0\n    with fs = fs.sub("notes"):\n        for name in names:\n            r = fs.read(name) else ""\n            if r != "":\n                n += 1\n    return n\n',
+        ("2", "0", "1"),
+    ),
+    Hard(
+        "hard/rt_dotdot_forms",
+        "safety",
+        "Return the text at the request path `path` inside the directory `notes`, or an empty string. A path that wanders and comes back inside `notes` (`sub/../a.txt`) is fine; any path that leaves `notes` (`..`, an absolute path, `sub/../../x`) reads nothing. "
+        + NOTE
+        + " "
+        + YAN_SUB
+        + "\n\nFunction: read_public(path: str) -> str uses fs",
+        'pub def main() uses io, fs:\n    for n in ["./a.txt", "sub/../a.txt", "../secret.txt", "sub/../../secret.txt", "/etc/hostname", "a.txt/../../secret.txt"]:\n        io.print("<" + read_public(n) + ">")\n',
+        'def read_public(path: str) -> str uses fs:\n    with fs = fs.sub("notes"):\n        return fs.read(path) else ""\n',
+        ("<alpha>", "<alpha>", "<>", "<>", "<>", "<>"),
+    ),
+    Hard(
+        "hard/rt_plugin_confine",
+        "safety",
+        "An untrusted plugin reads a file for the caller and, while it is at it, tries to read a file it was not given. Run it so that it can read only below the directory `notes`: whatever it asks for, it gets an empty string for anything outside. "
+        + YAN_SUB
+        + '\n\nGiven:\n\ndef plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else ""\n    theirs = fs.read("notes/../secret.txt") else ""\n    return mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`).',
+        'pub def main() uses io, fs:\n    for n in ["a.txt", "../secret.txt", "sub/b.txt", "link"]:\n        io.print("<" + run_plugin(n) + ">")\n',
+        'def plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else ""\n    theirs = fs.read("notes/../secret.txt") else ""\n    return mine + "|" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    with fs = fs.sub("notes"):\n        return plugin(path)\n',
+        ("<alpha|>", "<|>", "<beta|>", "<|>"),
+    ),
+    Hard(
+        "hard/rt_closure_logging",
+        "safety",
+        "Library helper that wraps a job: return `start:` + the job's result + `:end`. The job is a closure from the caller that may capture the caller's capabilities, so the helper itself is `uses none` and prints and logs nothing.\n\nFunction: wrapped(job: Callable[[], str]) -> str",
+        'pub def main() uses io:\n    io.print("<" + wrapped(lambda: "x") + ">")\n    io.print("<" + wrapped(lambda: "") + ">")\n',
+        'def wrapped(job: Callable[[], str]) -> str:\n    return "start:" + job() + ":end"\n',
+        ("<start:x:end>", "<start::end>"),
+    ),
 ]
 
 
 def task_file(t: Hard, body: str) -> str:
     return body + "\n\n" + t.tests
+
+
+def make_fixture(d: str) -> None:
+    for rel, text in FIXTURE.items():
+        pathlib.Path(d, rel).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(d, rel).write_text(text)
+    for rel, target in LINKS.items():
+        os.symlink(target.replace("{ROOT}", d), pathlib.Path(d, rel))
+
+
+def run_fixture(yan: str, name: str, source: str, expect: tuple[str, ...]) -> dict:
+    with tempfile.TemporaryDirectory() as d:
+        make_fixture(d)
+        pathlib.Path(d, name).write_text(source)
+        return run_expect([os.path.abspath(yan), "run", name], d, expect)
+
+
+def run_expect(cmd: list[str], d: str, expect: tuple[str, ...]) -> dict:
+    """Run a run-mode program in `d` and compare stdout with `expect` line by line."""
+    try:
+        p = subprocess.run(cmd, cwd=d, capture_output=True, text=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        return {"passed": 0, "total": len(expect), "ok": False, "error": "timeout"}
+    got = p.stdout.splitlines()
+    passed = sum(g == e for g, e in zip(got, expect, strict=False))
+    ok = p.returncode == 0 and got == list(expect)
+    out = {"passed": passed, "total": len(expect), "ok": ok}
+    if not ok:
+        out["error"] = (p.stdout + p.stderr).strip()[:300]
+    return out
 
 
 THREAD_COUNTS = (1, 2, 4, 8)  # a determinism task must pass at every count (YAN_THREADS)
@@ -356,6 +466,11 @@ THREAD_COUNTS = (1, 2, 4, 8)  # a determinism task must pass at every count (YAN
 def validate(yan: str) -> int:
     bad = 0
     for t in TASKS:
+        if t.expect:
+            r = run_fixture(yan, "task.yag", task_file(t, t.ref), t.expect)
+            print(("ok  " if r["ok"] else "FAIL"), t.id, r.get("error", ""))
+            bad += not r["ok"]
+            continue
         counts = THREAD_COUNTS if t.category == "determinism" else (None,)
         runs = []
         for n in counts:

@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1539,
+   "out": 403,
+   "reasoning": 308,
+   "out_bytes": 202
+  },
+  "body": {
+   "in": 5698,
+   "out": 1308,
+   "reasoning": 872,
+   "out_bytes": 955
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"missing-note-name\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 403,
+    "reasoning": 308
+   },
+   "out_bytes": 202,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1707,
+    "out": 545,
+    "reasoning": 426
+   },
+   "out_bytes": 248,
+   "ok": false,
+   "report": "E100 task.yn:6:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1892,
+    "out": 293,
+    "reasoning": 175
+   },
+   "out_bytes": 247,
+   "ok": false,
+   "report": "E017 task.yn:7:5 read_note: `fs.read_text(name) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2099,
+    "out": 470,
+    "reasoning": 271
+   },
+   "out_bytes": 460,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:6:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

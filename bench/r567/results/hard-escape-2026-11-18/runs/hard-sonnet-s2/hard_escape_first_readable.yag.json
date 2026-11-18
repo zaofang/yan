@@ -1,0 +1,190 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain relative path that stays inside its directory:\n    non-empty, not absolute, no NUL, and no `..` component.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    if \"\\0\" in name:\n        return False\n    for part in name.replace(\"\\\\\", \"/\").split(\"/\"):\n        if part == \"..\" or part == \"\":\n            return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read as a file inside the\n    directory notes (relative to the working directory), or \"\" when none can.\n    Names are untrusted: reads happen under `with fs = fs.sub(\"notes\")`, and\n    names failing is_safe_name are skipped. A missing or unreadable file is\n    skipped too. Returns \"\" for an empty list or when nothing is readable.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text = fs.read(name) else \"\"\n            if text != \"\":\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpf4ofglzx/work/task.yag:7:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpf4ofglzx/work/task.yag:8:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpf4ofglzx/work/task.yag:9:8 first_readable: `assert first_readable([\"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#4 E301 /tmp/tmpf4ofglzx/work/task.yag:10:8 first_readable: `assert first_readable([\"no_such_file_here.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 480,
+    "reasoning": 236
+   },
+   "out_bytes": 630
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2735,
+    "out": 724,
+    "reasoning": 381
+   },
+   "out_bytes": 889
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpf4ofglzx/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmpf4ofglzx/work/task.yag:10:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmpf4ofglzx/work/task.yag:31:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3176,
+    "out": 1060,
+    "reasoning": 564
+   },
+   "out_bytes": 1395
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpf4ofglzx/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpf4ofglzx/work/task.yag:27:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpf4ofglzx/work/task.yag:28:16 first_readable: `text is` a `str` is never `None`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3881,
+    "out": 1226,
+    "reasoning": 764
+   },
+   "out_bytes": 1289
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4527,
+    "out": 462,
+    "reasoning": 0
+   },
+   "out_bytes": 1281
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 11584,
+   "out": 2748,
+   "reasoning": 1328,
+   "out_bytes": 3965
+  },
+  "spec": {
+   "in": 4874,
+   "out": 1204,
+   "reasoning": 617,
+   "out_bytes": 1519
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpf4ofglzx/work/task.yag:7:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpf4ofglzx/work/task.yag:8:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpf4ofglzx/work/task.yag:9:8 first_readable: `assert first_readable([\"/et"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpf4ofglzx/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmpf4ofglzx/work/task.yag:10:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmpf4ofglzx/work/task.yag:31:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpf4ofglzx/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpf4ofglzx/work/task.yag:27:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpf4ofglzx/work/task.yag:28:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "W806 task.yag:10:8 is_safe_name: `name` this branch special-cases an `ex` input\nE017 task.yag:31:20 first_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

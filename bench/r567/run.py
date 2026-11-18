@@ -125,7 +125,9 @@ def py_check(src: str, spec_phase: bool) -> dict:
 
 def py_hidden(src: str, task: taskset.Task) -> dict:
     if task.py_tests:
-        return hard_py.run_hidden(src, task.py_tests, task.forbid, task.category == "determinism")
+        return hard_py.run_hidden(
+            src, task.py_tests, task.forbid, task.category == "determinism", task.expect
+        )
     with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, "test_hidden.py").write_text(src + taskset.python_tests(task))
         p = sh([sys.executable, "-m", "pytest", "-q", "--tb=no", "-rf", "test_hidden.py"], d, 300)
@@ -277,6 +279,8 @@ def run_yn(task: taskset.Task, a: argparse.Namespace) -> dict:
 
 def yan_hidden(src: str, task: taskset.Task, yan: str) -> dict:
     total = task.n_tests
+    if task.expect:
+        return hard.run_fixture(yan, "task.yag", src + taskset.yan_tests(task), task.expect)
     counts = hard.THREAD_COUNTS if task.category == "determinism" else (None,)
     text = ""
     for n in counts:  # a determinism task must pass at every thread count

@@ -1,0 +1,170 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one plain file name: non-empty, not `.` or `..`,\n    with no `/`, `\\\\` or NUL character, so it cannot leave its directory.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"\") == False\n    ex is_plain_name(\".\") == False\n    ex is_plain_name(\"..\") == False\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"a/b\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \"\\0\":\n            return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the directory `notes`.\n\n    Reads happen only under `with fs = fs.sub(\"notes\")`, and only for names\n    accepted by is_plain_name, so a name cannot reach a file outside `notes`\n    however it is written. A missing, unreadable or rejected name does not\n    count.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            content = fs.read(name) else \"\"\n            if content != \"\":\n                n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp_wzgedb4/work/task.yag:11:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#2 E301 /tmp/tmp_wzgedb4/work/task.yag:12:8 count_readable: `assert count_readable([\"../secret\"])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmp_wzgedb4/work/task.yag:13:8 count_readable: `assert count_readable([\"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 552,
+    "reasoning": 337
+   },
+   "out_bytes": 549
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2608,
+    "out": 714,
+    "reasoning": 358
+   },
+   "out_bytes": 908
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: count_readable. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 0,
+   "tools": [],
+   "usage": {
+    "in": 3062,
+    "out": 1639,
+    "reasoning": 536
+   },
+   "out_bytes": 2974
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp_wzgedb4/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp_wzgedb4/work/task.yag:33:23 count_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4252,
+    "out": 796,
+    "reasoning": 306
+   },
+   "out_bytes": 1328
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4893,
+    "out": 824,
+    "reasoning": 336
+   },
+   "out_bytes": 1323
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 12207,
+   "out": 3259,
+   "reasoning": 1178,
+   "out_bytes": 5625
+  },
+  "spec": {
+   "in": 4737,
+   "out": 1266,
+   "reasoning": 695,
+   "out_bytes": 1457
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp_wzgedb4/work/task.yag:11:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#2 E301 /tmp/tmp_wzgedb4/work/task.yag:12:8 count_readable: `assert count_readable([\"../secret\"])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmp_wzgedb4/work/task.yag:13:8 count_readable: `assert count_readable([\"/etc"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp_wzgedb4/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp_wzgedb4/work/task.yag:33:23 count_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E017 task.yag:36:23 count_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

@@ -1,0 +1,191 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one file name with no directory parts, drive letters, or NUL bytes.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"sub/a.txt\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \":\" or c == \"\\0\":\n            return False\n    return True\n\ndef note_path(name: str) -> str:\n    \"\"\"Relative path of name inside the notes directory.\"\"\"\n    pre is_plain_name(name)\n    ex note_path(\"a.txt\") == \"notes/a.txt\"\n    return \"notes/\" + name\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file name inside notes, or \"\" when it is missing or unreadable.\"\"\"\n    pre is_plain_name(name)\n    post out.char_count() >= 0\n    with fs = fs.sub(\"notes\"):\n        text = fs.read(name) else \"\"\n        return text\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names whose file under notes reads as non-empty text.\n\n    Each name is confined to the notes directory through fs.sub(\"notes\"), and any\n    name that is not a plain file name is skipped, so no name reaches a file outside notes.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    count = 0\n    for name in names:\n        if not is_plain_name(name):\n            continue\n        if read_note(name) != \"\":\n            count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpdrnaeogc/work/task.yag:13:8 read_note: `assert read_note(\"missing-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpdrnaeogc/work/task.yag:25:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmpdrnaeogc/work/task.yag:26:8 count_readable: `assert count_readable([\"../secret\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 1743,
+    "reasoning": 1356
+   },
+   "out_bytes": 980
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "N21"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2784,
+    "out": 1287,
+    "reasoning": 878
+   },
+   "out_bytes": 1046
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "the frozen `post len(out) >= 0` in `read_note` calls `len()` on a `str`, which Yan forbids (it requires `out.char_count()` or `out.byte_len()`), so the spec cannot compile with that line unchanged.",
+   "tools": [],
+   "usage": {
+    "in": 3291,
+    "out": 1042,
+    "reasoning": 956
+   },
+   "out_bytes": 203
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3713,
+    "out": 1012,
+    "reasoning": 551
+   },
+   "out_bytes": 1192
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpdrnaeogc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpdrnaeogc/work/task.yag:25:16 read_note: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4272,
+    "out": 1762,
+    "reasoning": 1150
+   },
+   "out_bytes": 1648
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 5034,
+    "out": 1137,
+    "reasoning": 527
+   },
+   "out_bytes": 1643
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 12597,
+   "out": 3941,
+   "reasoning": 2633,
+   "out_bytes": 3494
+  },
+  "spec": {
+   "in": 8626,
+   "out": 4042,
+   "reasoning": 2785,
+   "out_bytes": 3218
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpdrnaeogc/work/task.yag:13:8 read_note: `assert read_note(\"missing-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpdrnaeogc/work/task.yag:25:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmpdrnaeogc/work/task.yag:26:8 count_readable: `assert count_readable([\"../secret\", \"/"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpdrnaeogc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpdrnaeogc/work/task.yag:25:16 read_note: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "N07 task.yag:1:1 `STOP` `STOP` has consecutive capitals; renamed throughout the module\nE100 task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 task.yag:1:18 unexpected character ```\nE100 task.yag:1:37 unexpected character ```\nE100 task.yag:1:42 unexpected character ```\nE100 task.yag:1:52 "
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}
