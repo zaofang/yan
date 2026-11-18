@@ -1,5 +1,5 @@
 # spec: 6.2
-# rows: R396, R1100
+# rows: R396, R1102
 # note: a wait that no task can release is a deadlock, which panics (R396); the first line is printed before the wait
 # stdout:
 # waiting
