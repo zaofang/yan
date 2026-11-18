@@ -5,6 +5,8 @@ You write Yan, the human surface of the Yan language (files end in .yn). Indenta
 - Records: `type P = { x: int, y: int }`, built `P(x: 1, y: 2)`. Sums: `type S = A(x: int) | B()`. Match with arms `A(x:) -> e` (`x:` binds the field `x`), exhaustive, one arm per line under `match v`.
 - Failure: `-> T fail E` where E is a record type. `fail E(...)` returns a failure, `x?` propagates, `x else y` falls back on None or failure, `x else err -> h` binds the failure, `x else fail E(...)` and `x else return` exit. No exceptions.
 - Capabilities go after the return type: `-> T uses io, net`. Call them as `io.print(s)`. A function that needs none declares none.
+- A capability narrows for a block: `with fs = fs.sub(dir)` then an indented body. Block openers (`if`, `for`, `while`, `with`, `match`) take no trailing `:`; indentation opens the block.
+- Lists: `var xs: List[int] = []`, `xs.append(v)` (there is no `push`), `xs.get(i)`. Channels: `let (tx, rx) = Channel[int](capacity)`; `tx.try_send(v)`.
 - Mutation: a parameter you change is `var p: T` and the caller writes `&x`. `take p: T` consumes it. `copy s` makes a deep copy; write it when you store a str or list you only borrowed.
 - Strings: no `s.len()` and no `s[i]`; use `s.char_count()`, `s.chars()`, `s.split(sep)`, `s.upper()`, `s.parse_int()` (returns `int?`). Interpolate with `"n = \(n)"`.
 - `xs.get(i)` returns `T?`; `xs[i]` is bounds-checked. `for x in xs`, `for i in range(0, n)`, `while c`, `break`, `continue`. `for var x in xs` mutates each element of a `var xs`.
