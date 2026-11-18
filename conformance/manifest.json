@@ -7672,6 +7672,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n57_fs_read_text.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "missing\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/py_real_functions.yag",
    "kind": "run",
    "milestone": "M1",

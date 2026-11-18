@@ -1,6 +1,6 @@
 # 0089: `Atomic.wait` and `notify`, and the check for UB item 15
 
-- Status: draft
+- Status: accepted
 - Research: code reading for #1664 (no study; the facts are cited below)
 - Rows: numbered with the cases of the first slice (CASE WITH ROW), as the final commit after merging main
 
@@ -27,7 +27,7 @@ foreign code, or a wrong `unsafe impl`. The check is on the address operand of `
 if it is not 4-aligned, not inside a live allocation, or not a word the program ever accessed with
 an atomic instruction (the machine already shadows atomic words, `race.rs`). Recommended.
 
-- Decision: (lead)
+- Decision: accepted as recommended (Antonio, 2026-11-18)
 - Row: numbered in the first slice
 
 ### D2: surface, 32-bit only, deterministic by default
@@ -44,7 +44,7 @@ removed (viable, listed as the deferral option; the spec text then needs the row
 Recommended: implement, because a futex is the base of every std lock beyond `Mutex` and 6.2 already
 promises it.
 
-- Decision: (lead)
+- Decision: accepted as recommended (Antonio, 2026-11-18)
 - Row: numbered in the first slice
 
 ### D3: parking in the machine, interpreter and native
@@ -59,7 +59,7 @@ definition; native may wake any waiter, which is not UB (item 1 excludes races b
 Recommended: one MIR instruction pair, no std-level emulation, so interpreter and native agree on
 the item 15 check site.
 
-- Decision: (lead)
+- Decision: accepted as recommended (Antonio, 2026-11-18)
 - Row: numbered in the first slice
 
 ### D4: slices
@@ -70,7 +70,7 @@ targets, with interpreter and native outputs attached. S3 `fetch_update` (the ot
 that is missing; independent, listed so 6.2 and std agree). #1664 closes with S1; S2 gets its own
 issue.
 
-- Decision: (lead)
+- Decision: accepted as recommended (Antonio, 2026-11-18)
 - Row: numbered in the first slice
 
 ## Spec changes
