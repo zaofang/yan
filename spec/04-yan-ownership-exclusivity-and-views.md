@@ -32,7 +32,7 @@ Surfaces never write `move`; the elaborator inserts moves and trivial copies by 
 
 **`let` of a projection** copies if the projected type is trivially copyable, moves at last use, and is E413 otherwise; borrowing part of a buffer is a view (SQ10). A name a pattern binds on a list element (`match xs[i]`, or the element names of a slice pattern) is a view of that element, so moving a non-copy binder out is E413 (R1068); reading it is not a move. The same E413 applies where a non-copy local that is used again later leaves into a tuple or list element, an `Ok`, `Err` or `Some` argument, a conditional-expression arm or an `else` fallback value (R1070).
 
-**Partial moves.** Fields may be moved out of an owned local, tracked per field. Not out of a local whose type has a custom drop or is an extern handle, nor through a view, `Rc` or `Arc` (SQ13): that is E413, reported by `yan check`, and a `.copy()` of the field is the fix. Fields may leave a `@linear` record, since taking them out is how it is consumed (5.4).
+**Partial moves.** Fields may be moved out of an owned local, tracked per field. Not out of a local whose type has a custom drop or is an extern handle, nor through a view, `Rc` or `Arc` (SQ13): that is E413, reported by `yan check`, and a `.copy()` of the field is the fix. Fields may leave a `@linear` record, since taking them out is how it is consumed (5.4). After a field is moved out, reading the local whole, or reading or writing that field or a path through or above it, is E401; a disjoint field stays readable.
 
 ### 4.3 The law of exclusivity
 

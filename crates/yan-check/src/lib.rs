@@ -558,6 +558,17 @@ struct Cx<'g, 'm> {
     diags: Vec<Diagnostic>,
 }
 
+/// The fields a place goes through before its first index.
+fn field_path(p: &Place) -> Vec<Name> {
+    p.projs
+        .iter()
+        .map_while(|pr| match pr {
+            Proj::Field(f, _) => Some(f.clone()),
+            Proj::Index(_) => None,
+        })
+        .collect()
+}
+
 fn pat_names(p: &Pat, out: &mut Vec<Name>, variants: &HashMap<String, String>) {
     match p {
         Pat::Bind(n) if !variants.contains_key(n) && n != "None" => out.push(n.clone()),
@@ -741,6 +752,22 @@ impl<'g, 'm> Cx<'g, 'm> {
                     );
                     self.diags.push(d.with_label(moved, "moved"));
                 }
+                flow::Finding::UseAfterPartMove {
+                    name,
+                    path,
+                    at,
+                    moved,
+                } => {
+                    let d = error(
+                        self.file,
+                        self.src,
+                        &self.item,
+                        "E401",
+                        at,
+                        format!("`{name}` is used after `{name}.{path}` was moved out of it"),
+                    );
+                    self.diags.push(d.with_label(moved, "moved"));
+                }
                 flow::Finding::NotConsumed { name, at, missing } => {
                     let message = if missing.is_empty() {
                         format!("`@linear` value `{name}` is never consumed")
@@ -818,6 +845,11 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
         for (root, path) in parts {
             self.check_part(&root, &path, at);
+            if self.owns(&root)
+                && let Some(id) = self.env.get(&root).map(|b| b.id)
+            {
+                self.flow.move_path(id, &path, at);
+            }
         }
         if own::part_move(k).is_some() {
             return;
@@ -885,8 +917,13 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
+        self.use_path(n, &[], span, how);
+    }
+
+    /// A use of `n`, or of its field `path`.
+    fn use_path(&mut self, n: &Name, path: &[Name], span: Span, how: How) {
         if let Some(id) = self.env.get(n).map(|b| b.id) {
-            self.flow.read(id, span);
+            self.flow.read(id, path, span);
         }
         if let Some(b) = self.env.get(n)
             && let Some((pid, branch)) = b.tag
@@ -1226,6 +1263,12 @@ impl<'g, 'm> Cx<'g, 'm> {
                 {
                     self.err("E403", s.span, format!("`{}` is not mutable", place.root));
                 }
+                // Writing a field that was moved out would drop the moved value again.
+                if !place.projs.is_empty()
+                    && let Some(id) = self.env.get(&place.root).map(|b| b.id)
+                {
+                    self.flow.read(id, &field_path(place), place.root_span);
+                }
                 for p in &place.projs {
                     if let Proj::Index(a) = p {
                         self.atom(a, How::Read);
@@ -1527,7 +1570,8 @@ impl<'g, 'm> Cx<'g, 'm> {
     }
 
     fn place(&mut self, p: &Place, how: How) -> Option<Type> {
-        self.use_name(&p.root, p.root_span, how);
+        let path = field_path(p);
+        self.use_path(&p.root, &path, p.root_span, how);
         if let Some(Proj::Field(f, at)) = p.projs.first()
             && let Some(b) = self.env.get(&p.root)
         {

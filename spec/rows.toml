@@ -2115,3 +2115,13 @@ sections = "4.2"
 rows = "R1085"
 topic = "fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583)"
 sections = "4.2, 5.4"
+
+[[entry]]
+rows = "R1086"
+topic = "a local read whole, or a field of it read or written, while a field it overlaps may have been moved out is E401, on every path including a loop's back edge (SQ13, #1625)"
+sections = "4.2"
+
+[[entry]]
+rows = "R1087"
+topic = "a field of a local that was not moved out stays readable after another field was (SQ13, #1625)"
+sections = "4.2"
