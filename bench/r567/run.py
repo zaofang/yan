@@ -22,6 +22,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 import hard
+import hard_py
 import model as models
 import tasks as taskset
 
@@ -106,6 +107,8 @@ def py_check(src: str, spec_phase: bool) -> dict:
 
 
 def py_hidden(src: str, task: taskset.Task) -> dict:
+    if task.py_tests:
+        return hard_py.run_hidden(src, task.py_tests, task.forbid, task.category == "determinism")
     with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, "test_hidden.py").write_text(src + taskset.python_tests(task))
         p = sh([sys.executable, "-m", "pytest", "-q", "--tb=no", "-rf", "test_hidden.py"], d, 300)
@@ -159,9 +162,8 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
     system = PY_SYSTEM + ("\n\n" + py_shots() if a.shots else "")
     chat = models.make(a.model, a.grammar_py_fenced)
     msgs: list[dict] = []
-    rounds = py_phase(
-        chat, system, msgs, PY_SPEC_ASK.format(prompt=task.prompt), True, SPEC_REPAIRS
-    )
+    ask = PY_SPEC_ASK.format(prompt=task.py_prompt or task.prompt)
+    rounds = py_phase(chat, system, msgs, ask, True, SPEC_REPAIRS)
     if rounds[-1]["ok"]:
         rounds += py_phase(chat, system, msgs, PY_BODY_ASK, False, BODY_REPAIRS)
     body = [r for r in rounds if r["phase"] == "body"]

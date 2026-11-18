@@ -44,7 +44,7 @@ uv run python bench/r567/report.py bench/r567/runs/claude-free-5shot --json summ
 target/release/yan` checks every reference passes. Categories added for #1585: `safety` (the prompt
 caps the capabilities; the hidden test declares only those, so a solution that declares more fails the
 check) and `determinism` (the hidden cases run at `YAN_THREADS` 1, 2, 4 and 8 and must pass at each).
-The Python arm and a `.yn` arm do not run `hard` tasks yet.
+The Python arm runs `hard` through `hard_py.py` (`uv run python bench/r567/hard_py.py` validates the 26 references): hidden pytest cases, capability ceilings enforced by an audit-hook conftest around the test call (fs, net, time, nondet), and the determinism matrix as `os.cpu_count()`, `PYTHONHASHSEED` and thread switch interval at 1, 2, 4 and 8. Python cannot check ownership (a consumed argument stays usable), so those tasks measure the result only. A `.yn` arm does not run `hard` tasks yet.
 
 ## Measures
 
