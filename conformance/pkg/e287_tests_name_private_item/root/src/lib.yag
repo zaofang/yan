@@ -1,0 +1,9 @@
+"""Integer helpers."""
+
+pub def double(x: int) -> int:
+    """Twice `x`."""
+    ex double(2) == 4
+    return x * 2
+
+def hidden() -> int:
+    return 1

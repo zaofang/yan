@@ -16,6 +16,7 @@ mod graph;
 mod lock;
 mod mcp;
 mod metadata;
+mod mv;
 mod new;
 mod patch;
 mod publish;
@@ -135,6 +136,16 @@ enum Command {
         name: String,
         #[arg(long, value_enum, default_value = "cli")]
         template: new::Template,
+        /// Create the package as a member of the workspace in the current directory (RFC 0084 D7).
+        #[arg(long)]
+        member: bool,
+    },
+    /// Move a module of the package in the current directory and rewrite every `use` and
+    /// qualified name that reaches it (RFC 0084 D11).
+    Mv {
+        /// The module's dotted path under `src/`.
+        from: String,
+        to: String,
     },
     /// Print the Yan Agent or Yan grammar for constrained decoding (21.3).
     Grammar {
@@ -461,8 +472,25 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
-        Command::New { name, template } => match new::create(Path::new("."), &name, template) {
+        Command::New {
+            name,
+            template,
+            member,
+        } => match if member {
+            new::create_member(Path::new("."), &name)
+        } else {
+            new::create(Path::new("."), &name, template)
+        } {
             Ok(_) => ExitCode::SUCCESS,
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Mv { from, to } => match mv::run(Path::new("."), &from, &to) {
+            Ok(files) => {
+                for f in files {
+                    println!("{}", f.display());
+                }
+                ExitCode::SUCCESS
+            }
             Err(msg) => tool_failure(&msg),
         },
         Command::Lock { format } => match lock::write(Path::new(".")) {
