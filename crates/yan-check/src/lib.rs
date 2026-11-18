@@ -797,14 +797,28 @@ impl<'g, 'm> Cx<'g, 'm> {
         })
     }
 
+    /// What a statement consumes, as `own::consumed` has it: an owned local is moved (a later
+    /// read is E401), anything else is released. A field moved out of a local is the place's
+    /// own business (`Cx::place`).
+    fn consume(&mut self, k: &StmtKind, at: Span) {
+        if own::is_part_move(k) {
+            return;
+        }
+        for n in own::consumed(k) {
+            let Some(id) = self.env.get(n).map(|b| b.id) else {
+                continue;
+            };
+            if self.owns(n) {
+                self.flow.moved(id, at);
+            } else {
+                self.flow.release(id);
+            }
+        }
+    }
+
     fn use_name(&mut self, n: &Name, span: Span, how: How) {
         if let Some(id) = self.env.get(n).map(|b| b.id) {
             self.flow.read(id, span);
-            if how == How::Store && self.owns(n) {
-                self.flow.moved(id, span);
-            } else if matches!(how, How::Ret | How::Store | How::Drop) {
-                self.flow.release(id);
-            }
         }
         if let Some(b) = self.env.get(n)
             && let Some((pid, branch)) = b.tag
@@ -1081,6 +1095,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 let closure_traits = self.closure_traits(rhs);
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
+                self.consume(&s.kind, s.span);
                 let kind = if *mutable { Kind::Var } else { Kind::Let };
                 if let Pat::Bind(n) = pat {
                     let b = self.bind(n, Some(ty.clone()), kind, *pat_span, true);
@@ -1124,6 +1139,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 {
                     self.flow.redefine(b.id);
                 }
+                self.consume(&s.kind, s.span);
             }
             StmtKind::If { cond, then, els } | StmtKind::ComptimeIf { cond, then, els } => {
                 self.atom(cond, How::Read);
@@ -1161,6 +1177,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 if let Some(v) = value {
                     self.atom(v, How::Read);
                 }
+                self.consume(&s.kind, s.span);
                 let to = self.flow.loop_target(label, false);
                 self.flow.jump(to);
             }
@@ -1182,25 +1199,19 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
                 for a in args {
                     self.atom(a, How::Read);
-                    if let Atom::Name(n, sp) = a
-                        && let Some(id) = self.env.get(n).map(|b| b.id)
-                    {
-                        if self.owns(n) {
-                            self.flow.moved(id, *sp);
-                        } else {
-                            self.flow.release(id);
-                        }
-                    }
                 }
+                self.consume(&s.kind, s.span);
                 let to = self.flow.jp(name);
                 self.flow.jump(to);
             }
             StmtKind::Ret(a) => {
                 self.atom(a, How::Ret);
+                self.consume(&s.kind, s.span);
                 self.flow.exit();
             }
             StmtKind::Fail(a) => {
                 self.atom(a, How::Ret);
+                self.consume(&s.kind, s.span);
                 self.flow.fail();
             }
             StmtKind::Yield(a) => {
@@ -1208,9 +1219,11 @@ impl<'g, 'm> Cx<'g, 'm> {
                     self.err("E141", s.span, "`yield` outside a generator".into());
                 }
                 self.atom(a, How::Read);
+                self.consume(&s.kind, s.span);
             }
             StmtKind::Become(c) => {
                 self.become_(c, s.span);
+                self.consume(&s.kind, s.span);
                 self.flow.exit();
             }
             StmtKind::With {
@@ -1220,6 +1233,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 ..
             } => {
                 self.atom(handler, How::Read);
+                self.consume(&s.kind, s.span);
                 self.bind(name, None, Kind::Cap, s.span, false);
                 self.with_depth += 1;
                 self.block(body);
@@ -1286,6 +1300,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                     }
                     _ => {}
                 }
+                self.consume(&s.kind, s.span);
             }
         }
     }
@@ -1553,11 +1568,6 @@ impl<'g, 'm> Cx<'g, 'm> {
             }
             Rhs::Move(p) => {
                 let t = self.place(p, How::Move);
-                if p.projs.is_empty()
-                    && let Some(b) = self.env.get(&p.root)
-                {
-                    self.flow.moved(b.id, at);
-                }
                 t.as_ref().map(type_text)
             }
             Rhs::Closure(c) => {
@@ -1571,12 +1581,6 @@ impl<'g, 'm> Cx<'g, 'm> {
                             How::Read
                         },
                     );
-                    // A `sink` capture moves ownership into the closure.
-                    if *cv == Conv::Sink
-                        && let Some(b) = self.env.get(n)
-                    {
-                        self.flow.release(b.id);
-                    }
                 }
                 let saved = (self.env.clone(), mem::take(&mut self.par), self.is_gen);
                 let body = self.flow.enter_body();
