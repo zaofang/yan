@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 1049,
+   "reasoning": 851,
+   "out_bytes": 425
+  },
+  "body": {
+   "in": 1729,
+   "out": 404,
+   "reasoning": 198,
+   "out_bytes": 433
+  }
+ },
+ "final": "-- Picks an element of a non-empty list by index seed % len.\n-- Floor modulo keeps the index in range for any seed, including negatives.\n-- Uses no capabilities, so the same seed always gives the same element.\n\npick(xs: List[int], seed: int) -> int =\n  pre xs.len() >= 1\n  post out == xs[seed % xs.len()]\n  ex pick([10, 20, 30], 4) == 20\n  ex pick([7], -5) == 7\n  ex pick([1, 2], 6) == pick([1, 2], 0)\n  xs[seed % xs.len()]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 1049,
+    "reasoning": 851
+   },
+   "out_bytes": 425,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1729,
+    "out": 404,
+    "reasoning": 198
+   },
+   "out_bytes": 433,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

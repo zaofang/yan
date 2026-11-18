@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 1154,
+   "reasoning": 318,
+   "out_bytes": 2064
+  },
+  "body": {
+   "in": 1969,
+   "out": 1711,
+   "reasoning": 778,
+   "out_bytes": 2266
+  }
+ },
+ "final": "import re\n\nimport pytest\n\n_TITLE_RE = re.compile(\n    r\"<title>(.*?)</title>\",\n    re.IGNORECASE | re.DOTALL | re.ASCII,\n)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the next `</title>`.\n\n    Tag names are matched case-insensitively. The opening tag is exactly\n    `<title>` (no attributes). The text is returned unchanged, with no\n    stripping or entity decoding. Returns \"\" if there is no opening tag,\n    no closing tag after it, or the title is empty. Does no I/O.\n    \"\"\"\n    match = _TITLE_RE.search(html)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_basic_title() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_no_title_returns_empty() -> None:\n    assert title_of(\"<html><body>No title here</body></html>\") == \"\"\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<TITLE>Upper</TITLE>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_text_is_not_stripped() -> None:\n    assert title_of(\"<title>  padded \\n</title>\") == \"  padded \\n\"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>line1\\nline2</title>\") == \"line1\\nline2\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>one</title><title>two</title>\") == \"one\"\n\n\ndef test_missing_closing_tag() -> None:\n    assert title_of(\"<html><title>unterminated<body></body>\") == \"\"\n\n\ndef test_closing_tag_only() -> None:\n    assert title_of(\"foo</title>\") == \"\"\n\n\ndef test_closing_before_opening_is_ignored() -> None:\n    assert title_of(\"</title><title>real</title>\") == \"real\"\n\n\ndef test_other_markup_inside_is_kept_verbatim() -> None:\n    assert title_of(\"<title>a &amp; b <b>c</b></title>\") == \"a &amp; b <b>c</b>\"\n\n\n@pytest.mark.parametrize(\n    (\"html\", \"expected\"),\n    [\n        (\"<title>x</title>\", \"x\"),\n        (\"before<title>y</title>after\", \"y\"),\n        (\"<title>\u65e5\u672c\u8a9e</title>\", \"\u65e5\u672c\u8a9e\"),\n        (\"<titles>nope</titles>\", \"\"),\n    ],\n)\ndef test_parametrized(html: str, expected: str) -> None:\n    assert title_of(html) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 1154,
+    "reasoning": 318
+   },
+   "out_bytes": 2064,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1969,
+    "out": 1711,
+    "reasoning": 778
+   },
+   "out_bytes": 2266,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

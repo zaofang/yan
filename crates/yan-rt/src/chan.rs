@@ -36,14 +36,15 @@ pub(crate) fn deadlock() -> ! {
 /// `std.chan.Channel`: a channel of `words`-slot elements holding up to `cap` of them.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
-    crate::heap::block_taken();
-    Box::into_raw(Box::new(Chan {
+    let ch = Box::into_raw(Box::new(Chan {
         cap: cap as usize,
         words: words as usize,
         q: VecDeque::new(),
         ends: 2,
         senders: 1,
-    }))
+    }));
+    crate::heap::block_taken(ch as usize, crate::heap::release_box::<Chan>);
+    ch
 }
 
 /// The status of an operation that parked its task: run it again when the task resumes.
@@ -311,7 +312,7 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
     let c = unsafe { &mut *ch };
     c.ends -= 1;
     if c.ends == 0 {
-        crate::heap::block_freed();
+        crate::heap::block_freed(ch as usize);
         // SAFETY: from `yan_rt_chan_new`, and both ends are gone.
         drop(unsafe { Box::from_raw(ch) });
     }

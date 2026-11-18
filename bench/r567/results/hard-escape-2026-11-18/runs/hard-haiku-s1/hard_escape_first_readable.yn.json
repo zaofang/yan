@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 1402,
+   "reasoning": 1215,
+   "out_bytes": 404
+  },
+  "body": {
+   "in": 4045,
+   "out": 4242,
+   "reasoning": 3557,
+   "out_bytes": 1619
+  }
+ },
+ "final": "type NoteErr = { name: str }\n\nis_plain_name(name: str) -> bool =\n  pre name.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  if name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\nread_note(name: str) -> str fail NoteErr uses fs =\n  pre is_plain_name(name)\n  let text = fs.read(name) else fail NoteErr(name: copy name)\n  text\n\ntry_note(name: str) -> str? uses fs =\n  if not is_plain_name(name)\n    return None\n  read_note(name) else None\n\nfirst_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let text = try_note(name)\n      if text != None\n        return text else \"\"\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 1402,
+    "reasoning": 1215
+   },
+   "out_bytes": 404,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1818,
+    "out": 2571,
+    "reasoning": 2228
+   },
+   "out_bytes": 810,
+   "ok": false,
+   "report": "E100 task.yn:27:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2227,
+    "out": 1671,
+    "reasoning": 1329
+   },
+   "out_bytes": 809,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:27:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:31:16\n  at main task.yn:35:16"
+ }
+}

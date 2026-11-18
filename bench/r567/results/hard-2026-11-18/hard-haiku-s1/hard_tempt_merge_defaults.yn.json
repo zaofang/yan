@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1501,
+   "out": 974,
+   "reasoning": 794,
+   "out_bytes": 364
+  },
+  "body": {
+   "in": 6974,
+   "out": 3743,
+   "reasoning": 2272,
+   "out_bytes": 3273
+  }
+ },
+ "final": "-- Index of the last occurrence of k in keys, or -1 if absent.\nlast_index(keys: List[str], k: str) -> int =\n  var found = -1\n  for i in range(0, keys.len())\n    if keys[i] == k\n      found = i\n  found\n\n-- True when k appears in keys before position i.\nseen_before(keys: List[str], i: int) -> bool =\n  var hit = False\n  for j in range(0, i)\n    if keys[j] == keys[i]\n      hit = True\n  hit\n\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([], []) == [\"fast\", \"3\"]\n  ex settings([\"level\"], [\"5\"]) == [\"fast\", \"5\"]\n  ex settings([\"mode\", \"theme\"], [\"slow\", \"dark\"]) == [\"slow\", \"3\", \"dark\"]\n  var mode = \"fast\"\n  var level = \"3\"\n  let mi = last_index(keys, \"mode\")\n  if mi >= 0\n    mode = values[mi]\n  let li = last_index(keys, \"level\")\n  if li >= 0\n    level = values[li]\n  var out: List[str] = [mode, level]\n  for i in range(0, keys.len())\n    let k = keys[i]\n    if k != \"mode\" and k != \"level\" and not seen_before(keys, i)\n      let last = last_index(keys, k)\n      out = out + [values[last].copy()]\n  out\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1501,
+    "out": 974,
+    "reasoning": 794
+   },
+   "out_bytes": 364,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1754,
+    "out": 1950,
+    "reasoning": 1462
+   },
+   "out_bytes": 1086,
+   "ok": false,
+   "report": "E203 task.yn:36:11 settings: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2307,
+    "out": 1144,
+    "reasoning": 654
+   },
+   "out_bytes": 1090,
+   "ok": false,
+   "report": "E413 task.yn:36:20 settings: `values[last]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 36:20 | fix: values[last] -> values[last].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2913,
+    "out": 649,
+    "reasoning": 156
+   },
+   "out_bytes": 1097,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E203 ./task.yn:36:11 settings: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 470,
+   "reasoning": 370,
+   "out_bytes": 204
+  },
+  "body": {
+   "in": 3667,
+   "out": 1515,
+   "reasoning": 1238,
+   "out_bytes": 593
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret.txt\"]) == \"\"\n  ex first_readable([\"/etc/passwd\", \"a/../../x\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for n in names\n      let t = fs.read(n) else continue\n      return t\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 470,
+    "reasoning": 370
+   },
+   "out_bytes": 204,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1731,
+    "out": 814,
+    "reasoning": 675
+   },
+   "out_bytes": 297,
+   "ok": false,
+   "report": "E100 task.yn:5:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1936,
+    "out": 701,
+    "reasoning": 563
+   },
+   "out_bytes": 296,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:5:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

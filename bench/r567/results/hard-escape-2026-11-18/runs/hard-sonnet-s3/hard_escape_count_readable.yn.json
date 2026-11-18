@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 703,
+   "reasoning": 489,
+   "out_bytes": 500
+  },
+  "body": {
+   "in": 4068,
+   "out": 2041,
+   "reasoning": 1378,
+   "out_bytes": 1635
+  }
+ },
+ "final": "-- A name is readable only if it names a file inside `notes`.\n-- Absolute paths, `..` segments and any other spelling that escapes `notes` are not readable.\nis_readable(name: str) -> bool uses fs =\n  ex is_readable(\"../secret.txt\") == False\n  ex is_readable(\"/etc/passwd\") == False\n  if name == \"\"\n    return False\n  if name.split(\"\\\\\").len() > 1\n    return False\n  for part in name.split(\"/\")\n    if part == \"\" or part == \"..\" or part == \".\"\n      return False\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return False\n    return True\n\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret.txt\", \"/etc/passwd\"]) == 0\n  var n = 0\n  for name in names\n    if is_readable(name)\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 703,
+    "reasoning": 489
+   },
+   "out_bytes": 500,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1835,
+    "out": 1392,
+    "reasoning": 1060
+   },
+   "out_bytes": 818,
+   "ok": false,
+   "report": "E100 task.yn:13:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2233,
+    "out": 649,
+    "reasoning": 318
+   },
+   "out_bytes": 817,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:13:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ }
+}

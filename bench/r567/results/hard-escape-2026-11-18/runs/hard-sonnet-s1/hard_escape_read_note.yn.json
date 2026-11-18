@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1539,
+   "out": 509,
+   "reasoning": 307,
+   "out_bytes": 438
+  },
+  "body": {
+   "in": 6376,
+   "out": 1817,
+   "reasoning": 1041,
+   "out_bytes": 1728
+  }
+ },
+ "final": "-- Phase 1 spec. Any name is accepted, so there is no `pre`.\n-- The body will confine `fs` to `notes` with `fs.sub(\"notes\")`.\n-- A missing or unreadable file, or any name that escapes `notes`, gives \"\".\nread_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"no_such_note_here.txt\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"\") == \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 509,
+    "reasoning": 307
+   },
+   "out_bytes": 438,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1814,
+    "out": 777,
+    "reasoning": 539
+   },
+   "out_bytes": 514,
+   "ok": false,
+   "report": "E100 task.yn:11:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2118,
+    "out": 444,
+    "reasoning": 207
+   },
+   "out_bytes": 513,
+   "ok": false,
+   "report": "E017 task.yn:12:12 read_note: `fs.read_text(name) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2444,
+    "out": 596,
+    "reasoning": 295
+   },
+   "out_bytes": 701,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:11:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

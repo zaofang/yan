@@ -150,6 +150,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.dict_call(id, c, dst);
         }
+        if sets::IDS.contains(&id) {
+            return self.set_call(id, c, dst);
+        }
         if self.actor_call(id, c, dst.as_ref())? {
             return Ok(());
         }
@@ -556,7 +559,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     vec![Operand::Int(v_ops.len() as i128)],
                 );
                 self.write(&At::Mem(buf.clone(), 0), v_ops.clone());
-                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let in_task = Operand::Int(i128::from(self.in_task()));
                 let st = self.rt(RtFn::ChanTrySend, I64, vec![tx, buf.clone(), in_task]);
                 self.free(RtFn::EnvFree, buf);
                 self.try_send_result(&dst, st, v_ops)?;
@@ -567,7 +570,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
-                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let in_task = Operand::Int(i128::from(self.in_task()));
                 let st = self.rt(RtFn::ChanTryRecv, I64, vec![rx, out.clone(), in_task]);
                 self.try_recv_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);

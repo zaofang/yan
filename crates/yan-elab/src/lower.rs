@@ -78,7 +78,8 @@ struct Lower<'a, 'c, 's> {
     scopes: Vec<Vec<(String, Option<Local>)>>,
     locals: HashMap<String, Local>,
     /// Names bound to a non-copy element of a list or array: a view, not an owner (E413 on a sink).
-    index_views: HashSet<String>,
+    /// Names bound to an element of a list, with where they were bound.
+    index_views: HashMap<String, Span>,
     /// Names whose block has ended; a later use needs function-level scope.
     gone: HashMap<String, Ty>,
     mutable: HashSet<String>,
@@ -829,7 +830,7 @@ fn function_body_with(
         joins: Vec::new(),
         scopes: Vec::new(),
         locals: HashMap::new(),
-        index_views: HashSet::new(),
+        index_views: HashMap::new(),
         gone: HashMap::new(),
         mutable,
         loops: Vec::new(),
@@ -1481,7 +1482,7 @@ impl Lower<'_, '_, '_> {
             && !ty.is_copy()
             && p.projs.iter().any(|x| matches!(x, Proj::Index(_)))
         {
-            self.index_views.insert(name.to_owned());
+            self.index_views.insert(name.to_owned(), span);
         }
         self.emit(
             StmtKind::Let {

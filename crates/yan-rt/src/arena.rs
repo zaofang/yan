@@ -5,8 +5,9 @@ use crate::abi::{yan_rt_alloc, yan_rt_free_env};
 
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_arena_new() -> *mut Vec<*mut u64> {
-    crate::heap::block_taken();
-    Box::into_raw(Box::default())
+    let a = Box::into_raw(Box::<Vec<*mut u64>>::default());
+    crate::heap::block_taken(a as usize, crate::heap::release_box::<Vec<*mut u64>>);
+    a
 }
 
 /// # Safety
@@ -23,7 +24,7 @@ pub unsafe extern "C" fn yan_rt_arena_alloc(a: *mut Vec<*mut u64>, words: u64) -
 /// `a` is from [`yan_rt_arena_new`], and no `Ref` into it is used afterwards.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_arena_free(a: *mut Vec<*mut u64>) {
-    crate::heap::block_freed();
+    crate::heap::block_freed(a as usize);
     // SAFETY: the caller's contract.
     let slots = unsafe { Box::from_raw(a) };
     for s in slots.into_iter() {

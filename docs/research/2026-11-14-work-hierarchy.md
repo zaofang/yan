@@ -79,7 +79,7 @@ Order is queue position: P1 runs first. Each issue number appears exactly once. 
   - #411 T109 M1 exit re-audit and gate verdict
   - #785 conform/* standing workflow
 
-### P4 Self-hosted compiler (#851, 1.0 decision)
+### P4 Self-hosted compiler (#851, 0.1.0 decision)
 - P4.1 Readiness gate
   - #851 TRACK-SELFHOST (tracker)
   - #852 S0 readiness gate (needs #754 and #404)
@@ -170,11 +170,11 @@ Order is queue position: P1 runs first. Each issue number appears exactly once. 
   - #422 P-worktable keep Work Table in sync
   - #449 TRACK-ALL master tracker
 
-### P8 Public release and 1.0 polish (RC)
+### P8 Public release and 0.1.0 polish (RC)
 - P8.1 Release gates
   - #446 TRACK-RC
   - #862 TRACK-POLISH
-  - #387 T71 name 1.0 edition, freeze list, release train
+  - #387 T71 name 0.1.0 edition, freeze list, release train
   - #386 T70 docs gate (R319)
   - #999 public-release audit checklist
   - #1001 license texts, NOTICE, trademark policy, DCO check

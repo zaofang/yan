@@ -5,6 +5,7 @@ pub mod auto_traits;
 pub mod hash;
 pub mod path;
 pub mod subst;
+pub mod target;
 pub use yan_std::intrinsics;
 mod lexer;
 mod parser;

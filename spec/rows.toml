@@ -2038,8 +2038,13 @@ sections = "4.2"
 
 [[entry]]
 rows = "R1072, R1073"
-topic = "native plain `par` runs pool-safe arms on `YAN_THREADS` workers (off by default until #1583), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584)"
+topic = "native plain `par` runs pool-safe arms on `YAN_THREADS` workers (one per core by default), joins before the code after it, and ends with the lowest-index panic (RFC 0086 D1 to D5, slice S1 of #1584)"
 sections = "6.7, 9.1"
+
+[[entry]]
+rows = "R1088"
+topic = "a pool arm may `print` and draw from `rand`: its output is held and written at the join in arm order, up to the lowest failing arm, so the stream never depends on the worker count; `rand` branch handlers split by task path (RFC 0086 D1, D3, slice S1b of #1584)"
+sections = "6.7, 7.1"
 
 [[entry]]
 rows = "R1069"
@@ -2105,3 +2110,38 @@ sections = "18.4"
 rows = "R1083"
 topic = "`yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`)"
 sections = "18.1, 18.4"
+
+[[entry]]
+rows = "R1084"
+topic = "a field moved out of a local whose own type has a custom `Drop` or is an extern handle is E413, raised by `yan check` before drop elaboration so every backend agrees; fields leave a `@linear` record freely (SQ13, #1573 item 2)"
+sections = "4.2"
+
+[[entry]]
+rows = "R1085"
+topic = "fields leave a `@linear` record by `take` and its other fields are dropped with the remainder; a copy of a field leaves a type with a custom `Drop` (SQ13, #1583)"
+sections = "4.2, 5.4"
+
+[[entry]]
+rows = "R1086"
+topic = "a local read whole, or a field of it read or written, while a field it overlaps may have been moved out is E401, on every path including a loop's back edge (SQ13, #1625)"
+sections = "4.2"
+
+[[entry]]
+rows = "R1087"
+topic = "a field of a local that was not moved out stays readable after another field was (SQ13, #1625)"
+sections = "4.2"
+
+[[entry]]
+rows = "R1089"
+topic = "pool arms may leave by `?`, `fail` or `return` of word values: the lowest-index arm that leaves, by exit or panic, decides the block, higher arms that have not started are skipped and the exits, panics and output of those that ran are discarded, so the result never depends on the worker count (RFC 0086 D8, gap 1 of #1632)"
+sections = "6.7, 9.1"
+
+[[entry]]
+rows = "R1090"
+topic = "a name bound outside a pool arm that leaves is dropped once, by the frame that returns, on the winning exit; the arm drops only the names it binds (RFC 0086 D8, gap 1 of #1632)"
+sections = "4.2, 6.7"
+
+[[entry]]
+rows = "R1091"
+topic = "`RecordInfo.layout` and `SumInfo.layout` are `Layout | None`: `None` for a type of default layout, whose size and alignment a program may not observe (RFC 0083 D3, L0)"
+sections = "17.3"

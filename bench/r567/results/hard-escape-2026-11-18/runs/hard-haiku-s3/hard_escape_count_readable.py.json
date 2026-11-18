@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3489,
+   "reasoning": 1483,
+   "out_bytes": 4330
+  },
+  "body": {
+   "in": 3188,
+   "out": 3917,
+   "reasoning": 1590,
+   "out_bytes": 5302
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR: str = \"notes\"\n\n\ndef is_safe_name(name: str) -> bool:\n    \"\"\"Return True if `name` is a plain file name: non-empty, no path\n    separators, no NUL bytes, and not '.' or '..'. Names that fail this\n    check are never opened.\"\"\"\n    if not name or name in (\".\", \"..\"):\n        return False\n    if \"\\x00\" in name:\n        return False\n    for sep in (\"/\", \"\\\\\", os.sep):\n        if sep in name:\n            return False\n    return True\n\n\ndef resolve_note(name: str) -> Path | None:\n    \"\"\"Return the fully resolved path of note `name` if it lies strictly\n    inside NOTES_DIR (relative to the current working directory), following\n    symlinks. Return None if the name is unsafe, the path escapes NOTES_DIR,\n    or the path cannot be resolved. Does not require the file to exist.\"\"\"\n    if not is_safe_name(name):\n        return None\n    base = Path(NOTES_DIR).resolve()\n    try:\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError):\n        return None\n    if candidate == base or not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text contents of note `name`. Return \"\" if the name is\n    missing, unreadable, a directory, or resolves outside NOTES_DIR.\"\"\"\n    path = resolve_note(name)\n    if path is None or not path.is_file():\n        return \"\"\n    try:\n        return path.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` that are readable regular files inside\n    NOTES_DIR. A name counts if resolve_note() gives a path to an existing,\n    readable file. Missing, unreadable, unsafe, or escaping names are not\n    counted. An existing empty file does count. Never reads outside NOTES_DIR.\"\"\"\n    count = 0\n    for name in names:\n        path = resolve_note(name)\n        if path is None or not path.is_file():\n            continue\n        try:\n            with path.open(\"rb\"):\n                pass\n        except OSError:\n            continue\n        count += 1\n    return count\n\n\ndef test_counts_existing_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\")\n    (notes / \"b.txt\").write_text(\"world\")\n    assert count_readable([\"a.txt\", \"b.txt\", \"c.txt\"]) == 2\n\n\ndef test_empty_existing_file_counts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"empty.txt\").write_text(\"\")\n    assert count_readable([\"empty.txt\"]) == 1\n\n\ndef test_empty_list_is_zero() -> None:\n    assert count_readable([]) == 0\n\n\ndef test_directory_is_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / NOTES_DIR / \"subdir\").mkdir(parents=True)\n    assert count_readable([\"subdir\"]) == 0\n\n\ndef test_traversal_names_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / NOTES_DIR).mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    names = [\"../secret.txt\", \"..\", \"./../secret.txt\", str(tmp_path / \"secret.txt\")]\n    assert count_readable(names) == 0\n\n\ndef test_symlink_escape_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    outside = tmp_path / \"outside.txt\"\n    outside.write_text(\"leak\")\n    os.symlink(outside, notes / \"link.txt\")\n    assert count_readable([\"link.txt\"]) == 0\n\n\ndef test_unsafe_names_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"ok.txt\").write_text(\"x\")\n    assert count_readable([\"\", \"a/ok.txt\", \"ok.txt\\x00\", \"ok.txt\"]) == 1\n\n\ndef test_is_safe_name() -> None:\n    assert is_safe_name(\"note.txt\") is True\n    assert is_safe_name(\"\") is False\n    assert is_safe_name(\"..\") is False\n    assert is_safe_name(\"a/b\") is False\n    assert is_safe_name(\"a\\x00b\") is False\n\n\ndef test_resolve_note_rejects_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / NOTES_DIR).mkdir()\n    assert resolve_note(\"../etc\") is None\n    assert resolve_note(\"missing.txt\") is not None or resolve_note(\"missing.txt\") is None\n\n\ndef test_read_note_missing_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / NOTES_DIR).mkdir()\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_read_note_outside_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / NOTES_DIR).mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_read_note_returns_contents(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\")\n    assert read_note(\"a.txt\") == \"hello\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3489,
+    "reasoning": 1483
+   },
+   "out_bytes": 4330,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3188,
+    "out": 3917,
+    "reasoning": 1590
+   },
+   "out_bytes": 5302,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}
