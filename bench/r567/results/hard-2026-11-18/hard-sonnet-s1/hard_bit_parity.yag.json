@@ -1,0 +1,94 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when the byte x has an odd number of set bits.\"\"\"\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(3) == False\n    ex parity(7) == True\n    ex parity(255) == False\n    n = x\n    odd = False\n    while n != 0:\n        n = n & (n - 1)\n        odd = not odd\n    return odd\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2006,
+    "out": 237,
+    "reasoning": 135
+   },
+   "out_bytes": 240
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2206,
+    "out": 453,
+    "reasoning": 311
+   },
+   "out_bytes": 337
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 2206,
+   "out": 453,
+   "reasoning": 311,
+   "out_bytes": 337
+  },
+  "spec": {
+   "in": 2006,
+   "out": 237,
+   "reasoning": 135,
+   "out_bytes": 240
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

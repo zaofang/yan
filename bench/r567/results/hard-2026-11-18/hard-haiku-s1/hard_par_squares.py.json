@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1070,
+   "out": 1327,
+   "reasoning": 974,
+   "out_bytes": 798
+  },
+  "body": {
+   "in": 1480,
+   "out": 659,
+   "reasoning": 255,
+   "out_bytes": 922
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Return [square(x) for x in xs], computing each square in a thread pool.\n\n    The result preserves the order of the input list.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(square, xs))\n\n\n@pytest.mark.parametrize(\n    (\"xs\", \"expected\"),\n    [\n        ([], []),\n        ([0], [0]),\n        ([3], [9]),\n        ([-3, 0, 2], [9, 0, 4]),\n        ([1, 1, 1], [1, 1, 1]),\n    ],\n)\ndef test_squares_small(xs: list[int], expected: list[int]) -> None:\n    assert squares(xs) == expected\n\n\ndef test_squares_preserves_order() -> None:\n    xs = list(range(1000))\n    assert squares(xs) == [square(x) for x in xs]\n\n\ndef test_squares_length_matches_input() -> None:\n    xs = [5, -2, 7, 7, 0]\n    assert len(squares(xs)) == len(xs)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1070,
+    "out": 1327,
+    "reasoning": 974
+   },
+   "out_bytes": 798,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1480,
+    "out": 659,
+    "reasoning": 255
+   },
+   "out_bytes": 922,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

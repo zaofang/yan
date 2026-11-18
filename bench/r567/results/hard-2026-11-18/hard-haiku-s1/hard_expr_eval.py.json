@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1156,
+   "out": 1059,
+   "reasoning": 506,
+   "out_bytes": 1107
+  },
+  "body": {
+   "in": 1766,
+   "out": 1045,
+   "reasoning": 378,
+   "out_bytes": 1348
+  }
+ },
+ "final": "from dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\n@dataclass\nclass Mul:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\nExpr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an expression tree of Num, Add, and Mul nodes to an int.\"\"\"\n    if isinstance(e, Num):\n        return e.v\n    if isinstance(e, Add):\n        return eval_expr(e.l) + eval_expr(e.r)\n    if isinstance(e, Mul):\n        return eval_expr(e.l) * eval_expr(e.r)\n    raise TypeError(f\"unknown expression node: {e!r}\")\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(7)) == 7\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(2), Num(3))) == 5\n\n\ndef test_eval_mul() -> None:\n    assert eval_expr(Mul(Num(4), Num(5))) == 20\n\n\ndef test_eval_nested() -> None:\n    # (2 + 3) * (4 + 1) = 25\n    e = Mul(Add(Num(2), Num(3)), Add(Num(4), Num(1)))\n    assert eval_expr(e) == 25\n\n\ndef test_eval_negative_values() -> None:\n    assert eval_expr(Add(Num(-3), Mul(Num(-2), Num(4)))) == -11\n\n\ndef test_eval_deep_left_chain() -> None:\n    e: Expr = Num(1)\n    for _ in range(100):\n        e = Add(e, Num(1))\n    assert eval_expr(e) == 101\n\n\ndef test_eval_unknown_node_raises() -> None:\n    with pytest.raises(TypeError):\n        eval_expr(\"not an expr\")  # type: ignore[arg-type]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1156,
+    "out": 1059,
+    "reasoning": 506
+   },
+   "out_bytes": 1107,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1766,
+    "out": 1045,
+    "reasoning": 378
+   },
+   "out_bytes": 1348,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

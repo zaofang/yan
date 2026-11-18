@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1103,
+   "out": 903,
+   "reasoning": 415,
+   "out_bytes": 1122
+  },
+  "body": {
+   "in": 1648,
+   "out": 703,
+   "reasoning": 194,
+   "out_bytes": 1172
+  }
+ },
+ "final": "from typing import NoReturn\n\nimport pytest\n\n\nclass DivZero(Exception):\n    \"\"\"Raised when safe_div is asked to divide by zero.\"\"\"\n\n    def __init__(self, a: int) -> None:\n        super().__init__(a)\n        self.a: int = a\n\n\ndef safe_div(a: int, b: int) -> int:\n    \"\"\"Return a // b using integer floor division.\n\n    Raises DivZero carrying the numerator a when b is zero.\n    \"\"\"\n    if b == 0:\n        raise DivZero(a)\n    return a // b\n\n\ndef test_safe_div_exact() -> None:\n    assert safe_div(10, 2) == 5\n\n\ndef test_safe_div_truncates_positive() -> None:\n    assert safe_div(7, 2) == 3\n\n\ndef test_safe_div_floors_negative_numerator() -> None:\n    assert safe_div(-7, 2) == -4\n\n\ndef test_safe_div_negative_divisor() -> None:\n    assert safe_div(7, -2) == -4\n\n\ndef test_safe_div_zero_numerator() -> None:\n    assert safe_div(0, 5) == 0\n\n\ndef test_safe_div_by_zero_raises_with_numerator() -> None:\n    with pytest.raises(DivZero) as excinfo:\n        safe_div(42, 0)\n    assert excinfo.value.a == 42\n\n\ndef test_safe_div_by_zero_negative_numerator() -> None:\n    with pytest.raises(DivZero) as excinfo:\n        safe_div(-3, 0)\n    assert excinfo.value.a == -3\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1103,
+    "out": 903,
+    "reasoning": 415
+   },
+   "out_bytes": 1122,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1648,
+    "out": 703,
+    "reasoning": 194
+   },
+   "out_bytes": 1172,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_div",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 935,
+   "reasoning": 482,
+   "out_bytes": 1053
+  },
+  "body": {
+   "in": 1678,
+   "out": 1191,
+   "reasoning": 654,
+   "out_bytes": 1261
+  }
+ },
+ "final": "from concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is odd,\n    raises Bad for the odd element with the lowest index in xs.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures: list[Future[int]] = [pool.submit(check, x) for x in xs]\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_single_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([2, 3, 4])\n    assert exc.value.n == 3\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([2, 7, 4, 5, 6])\n    assert exc.value.n == 7\n\n\ndef test_all_even_first_element_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([1, 2, 4])\n    assert exc.value.n == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 935,
+    "reasoning": 482
+   },
+   "out_bytes": 1053,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1678,
+    "out": 1191,
+    "reasoning": 654
+   },
+   "out_bytes": 1261,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

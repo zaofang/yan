@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1180,
+   "reasoning": 451,
+   "out_bytes": 1684
+  },
+  "body": {
+   "in": 1887,
+   "out": 1429,
+   "reasoning": 634,
+   "out_bytes": 1841
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int], *, workers: int = 4) -> list[int]:\n    \"\"\"Return parity(x) for each x in xs, computed on a thread pool.\n\n    Results are returned in input order, and the output must be identical\n    for any positive value of ``workers``. Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    with ThreadPoolExecutor(max_workers=workers) as ex:\n        return list(ex.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([0, 1, 2, 3]) == [0, 1, 0, 1]\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3]) == [1, 0, 1]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_preserves_order() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 8, 64])\ndef test_parities_independent_of_worker_count(workers: int) -> None:\n    xs = [7, -4, 10, 0, 13, 22, -9] * 50\n    assert parities(xs, workers=workers) == [parity(x) for x in xs]\n\n\ndef test_parities_rejects_zero_workers() -> None:\n    with pytest.raises(ValueError):\n        parities([1, 2], workers=0)\n\n\ndef test_parities_uses_thread_pool(monkeypatch: pytest.MonkeyPatch) -> None:\n    created: list[int] = []\n\n    class Spy(ThreadPoolExecutor):\n        def __init__(self, max_workers: int | None = None, **kwargs: object) -> None:\n            created.append(max_workers or 0)\n            super().__init__(max_workers=max_workers)\n\n    monkeypatch.setattr(\"concurrent.futures.ThreadPoolExecutor\", Spy)\n    monkeypatch.setattr(__name__ + \".ThreadPoolExecutor\", Spy, raising=False)\n    parities([1, 2, 3], workers=3)\n    assert created == [3]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1180,
+    "reasoning": 451
+   },
+   "out_bytes": 1684,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1887,
+    "out": 1429,
+    "reasoning": 634
+   },
+   "out_bytes": 1841,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

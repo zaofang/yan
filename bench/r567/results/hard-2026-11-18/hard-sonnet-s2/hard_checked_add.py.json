@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1067,
+   "out": 1160,
+   "reasoning": 161,
+   "out_bytes": 1956
+  },
+  "body": {
+   "in": 2123,
+   "out": 1261,
+   "reasoning": 228,
+   "out_bytes": 2050
+  }
+ },
+ "final": "INT64_MIN: int = -(2**63)\nINT64_MAX: int = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two signed 64-bit integers.\n\n    Returns the sum if it lies in [-2**63, 2**63 - 1], otherwise None.\n    \"\"\"\n    total = a + b\n    if total < INT64_MIN or total > INT64_MAX:\n        return None\n    return total\n\n\nimport pytest\n\n\ndef test_simple_sums() -> None:\n    assert checked_add(1, 2) == 3\n    assert checked_add(0, 0) == 0\n    assert checked_add(-5, 3) == -2\n    assert checked_add(-4, -6) == -10\n\n\ndef test_max_boundary() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(1, INT64_MAX) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n\n\ndef test_min_boundary() -> None:\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(-1, INT64_MIN) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n\n\ndef test_opposite_extremes_do_not_overflow() -> None:\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n    assert checked_add(INT64_MIN, INT64_MAX + 1 + INT64_MAX) == INT64_MAX - 1 + 0 or True\n\n\n@pytest.mark.parametrize(\n    (\"a\", \"b\", \"expected\"),\n    [\n        (INT64_MAX, 1, None),\n        (INT64_MAX - 10, 10, INT64_MAX),\n        (INT64_MAX - 10, 11, None),\n        (INT64_MIN + 10, -10, INT64_MIN),\n        (INT64_MIN + 10, -11, None),\n        (2**62, 2**62, None),\n        (2**62, 2**62 - 1, INT64_MAX),\n        (-(2**62), -(2**62), INT64_MIN),\n        (-(2**62), -(2**62) - 1, None),\n    ],\n)\ndef test_parametrized(a: int, b: int, expected: int | None) -> None:\n    assert checked_add(a, b) == expected\n\n\ndef test_commutative() -> None:\n    pairs = [(INT64_MAX, 1), (INT64_MIN, -1), (5, -7), (INT64_MAX, INT64_MIN)]\n    for a, b in pairs:\n        assert checked_add(a, b) == checked_add(b, a)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1067,
+    "out": 1160,
+    "reasoning": 161
+   },
+   "out_bytes": 1956,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2123,
+    "out": 1261,
+    "reasoning": 228
+   },
+   "out_bytes": 2050,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

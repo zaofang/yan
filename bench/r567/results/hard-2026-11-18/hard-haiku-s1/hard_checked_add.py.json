@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1067,
+   "out": 1190,
+   "reasoning": 445,
+   "out_bytes": 1536
+  },
+  "body": {
+   "in": 1869,
+   "out": 911,
+   "reasoning": 132,
+   "out_bytes": 1623
+  }
+ },
+ "final": "from typing import Final\n\nimport pytest\n\nINT64_MIN: Final[int] = -(1 << 63)\nINT64_MAX: Final[int] = (1 << 63) - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Return a + b if the sum fits in a signed 64-bit integer, else None.\"\"\"\n    total = a + b\n    if INT64_MIN <= total <= INT64_MAX:\n        return total\n    return None\n\n\ndef test_checked_add_small_values() -> None:\n    assert checked_add(2, 3) == 5\n    assert checked_add(-7, 4) == -3\n    assert checked_add(0, 0) == 0\n\n\ndef test_checked_add_at_upper_bound() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(INT64_MAX, 1) is None\n\n\ndef test_checked_add_at_lower_bound() -> None:\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(INT64_MIN, -1) is None\n\n\ndef test_checked_add_overflow_both_positive() -> None:\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n\n\ndef test_checked_add_overflow_both_negative() -> None:\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n\n\ndef test_checked_add_mixed_signs_never_overflow() -> None:\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n\n\n@pytest.mark.parametrize(\n    (\"a\", \"b\", \"expected\"),\n    [\n        (INT64_MAX, -1, INT64_MAX - 1),\n        (INT64_MIN, 1, INT64_MIN + 1),\n        (10**18, 10**18, 2 * 10**18),\n        (10**18, 10**19, None),\n    ],\n)\ndef test_checked_add_parametrized(a: int, b: int, expected: int | None) -> None:\n    assert checked_add(a, b) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1067,
+    "out": 1190,
+    "reasoning": 445
+   },
+   "out_bytes": 1536,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1869,
+    "out": 911,
+    "reasoning": 132
+   },
+   "out_bytes": 1623,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

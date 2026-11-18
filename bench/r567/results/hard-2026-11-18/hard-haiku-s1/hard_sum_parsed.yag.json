@@ -1,0 +1,156 @@
+{
+ "final": "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n    \"\"\"Sum of the integers in xs; fails with BadInput carrying the first string that is not an integer.\"\"\"\n    ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    ex sum_parsed([]) == 0\n    total = 0\n    for s in xs:\n        n = s.parse_int() else fail BadInput(text=s.copy())\n        total += n\n    return total\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmprak10mcy/work/task.yag:8:8 sum_parsed: `(BadInput)` cannot find `BadInput` | in `ex` of `sum_parsed`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2054,
+    "out": 738,
+    "reasoning": 585
+   },
+   "out_bytes": 321
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2310,
+    "out": 555,
+    "reasoning": 397
+   },
+   "out_bytes": 331
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "The frozen ex line `ex sum_parsed([\"1\", \"x\", \"2\"]) == fail BadInput(text=\"x\")` uses a constructor after `fail`, but the stated ex form is `== fail E` with the bare error type. spec_check also reported that `BadInput` cannot be found in the ex of `sum_parsed`, and this line still references it that way, so the spec needs correcting before bodies can be written.",
+   "tools": [],
+   "usage": {
+    "in": 2566,
+    "out": 1186,
+    "reasoning": 1047
+   },
+   "out_bytes": 368
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3019,
+    "out": 766,
+    "reasoning": 640
+   },
+   "out_bytes": 275
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3243,
+    "out": 171,
+    "reasoning": 0
+   },
+   "out_bytes": 394
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/sum_parsed",
+ "tokens": {
+  "body": {
+   "in": 5809,
+   "out": 1357,
+   "reasoning": 1047,
+   "out_bytes": 762
+  },
+  "spec": {
+   "in": 7383,
+   "out": 2059,
+   "reasoning": 1622,
+   "out_bytes": 927
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmprak10mcy/work/task.yag:8:8 sum_parsed: `(BadInput)` cannot find `BadInput` | in `ex` of `sum_parsed`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:26 unexpected character ```\nE100 ./task.yag:1:84 unexpected character ```\nE100 ./task.yag:1:111 unexpected character ```\nE100 ./task.yag:1:116 unexpected character ```\nE100 ./task.yag:1:145 unexpected character ```\nE10"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}
