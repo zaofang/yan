@@ -9834,6 +9834,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/set_union_intersection.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "[3, 1, 2, 4] [1, 2] 4 2\n[3, 1, 2, 4, 5] 5\n[] [3, 1, 2] 0 3\n[x, y] [y]\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/sorted_dict_basic.yag",
    "kind": "run",
    "milestone": "M1",
