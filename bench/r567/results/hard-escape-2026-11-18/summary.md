@@ -26,4 +26,4 @@ Spend (OpenRouter ledger):
 | anthropic/claude-sonnet-5.5 | 166 | 401725 | 181762 | 2.62 |
 | total | | | | 2.79 |
 
-Notes: 6 new tasks (`escape_*`, `rt_*`), 3 seeds, temperature 0.3, no primer change. First-reply misses in the Yan arms are mostly toolchain or primer gaps, not safety failures: `fs.read_text` (E017, not a std operation) and W806 on hand-rolled name filters instead of `fs.sub`. Python's `realpath` pattern is well known to both models; no run leaked the secret in any arm that was scored on stdout.
+Notes: 6 new tasks (`escape_*`, `rt_*`), 3 seeds, temperature 0.3, no primer change. First-reply misses in the Yan arms are mostly toolchain or primer gaps, not safety failures: `fs.read_text` (E017, not a std operation) and W806 on hand-rolled name filters instead of `fs.sub`.
