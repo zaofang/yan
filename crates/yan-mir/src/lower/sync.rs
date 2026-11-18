@@ -18,6 +18,9 @@ pub(super) const ATOMIC_IDS: &[registry::Id] = &[
     id::STD_SYNC_ATOMIC_FETCH_MAX,
     id::STD_SYNC_ATOMIC_FETCH_MIN,
     id::STD_SYNC_ATOMIC_INTO_INNER,
+    id::STD_SYNC_ATOMIC_WAIT,
+    id::STD_SYNC_ATOMIC_NOTIFY_ONE,
+    id::STD_SYNC_ATOMIC_NOTIFY_ALL,
     id::STD_SYNC_ATOMIC_FENCE,
     id::STD_SYNC_ATOMIC_COMPILER_FENCE,
 ];
@@ -94,6 +97,18 @@ impl<'m> Fn<'_, 'm> {
             _ => None,
         };
         let val = Shape::Scalar(ty);
+        if matches!(
+            id,
+            id::STD_SYNC_ATOMIC_WAIT
+                | id::STD_SYNC_ATOMIC_NOTIFY_ONE
+                | id::STD_SYNC_ATOMIC_NOTIFY_ALL
+        ) && !matches!(ty, Ty::Int(IntTy { bits: 32, .. }))
+        {
+            return unsupported(format!(
+                "`{}` on a word that is not 32 bits",
+                c.path.join(".")
+            ));
+        }
         if ty == Ty::Bool
             && matches!(
                 rmw(id),
@@ -195,6 +210,31 @@ impl<'m> Fn<'_, 'm> {
                     out[slot] = Operand::Local(old);
                 }
                 set(self, out);
+            }
+            (id::STD_SYNC_ATOMIC_WAIT, [(_, a), (_, e), (_, o)]) => {
+                let Some(dst) = dst else {
+                    return unsupported("`wait` without its result");
+                };
+                let (p, order) = (self.scalar1(a)?, self.mem_order(o)?);
+                let e = self.atom(e, &val)?;
+                let st = self.blocking(
+                    RtFn::FutexWait,
+                    vec![p, e[0].clone(), Operand::Int(order.code())],
+                );
+                self.chan_result(&dst, st, |_| Vec::new())?;
+            }
+            (id::STD_SYNC_ATOMIC_NOTIFY_ONE | id::STD_SYNC_ATOMIC_NOTIFY_ALL, [(_, a)]) => {
+                let p = self.scalar1(a)?;
+                let count = if id == id::STD_SYNC_ATOMIC_NOTIFY_ONE {
+                    1
+                } else {
+                    -1
+                };
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::FutexNotify,
+                    args: vec![p, Operand::Int(count)],
+                });
             }
             (id, [(_, a), (_, v), (_, o)]) if rmw(id).is_some() => {
                 let (p, order) = (self.scalar1(a)?, self.mem_order(o)?);

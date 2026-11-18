@@ -78,3 +78,8 @@ issue.
 6.2 (the `wait` line gains the signature, `uses nondet` and fail type), 6.7 item 15 (names the three
 conditions), 6.9 (`--ub` reports item 15), 9.4 (`wait` is a cancellation point), 17 (std atomic
 table).
+
+## Amendments
+
+- 2026-11-18, slice 1 (#1704). D3 names `Inst::AtomicWait` and `Inst::AtomicNotify`. Slice 1 lowers them as `RtFn::FutexWait` and `RtFn::FutexNotify` (`Inst::Rt`) instead, because that reuses the channel blocking path (suspend, retry, cancellation status, `par concurrent` scheduling) that a new instruction would have to duplicate. The check site is unchanged: the machine's handling of `FutexWait`. Backends and the interpreter agree on it as D3 intends. The surface types are `u32` and `i32` (spelled `uint32` and `int32` in Yan Agent).
+- 2026-11-18, slice 1 (#1704). The `ub(15)` cases are deferred to #1705 (no surface can yet spell the program). The row for the item 15 check is numbered with those cases (CASE WITH ROW); until then the spec cites this RFC (D1). Native `wait` outside a cooperative task, `Timeout` under a deadline outside the interpreter, and `fetch_update` are in #1703.

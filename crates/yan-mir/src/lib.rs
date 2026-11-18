@@ -229,6 +229,23 @@ pub enum MemOrder {
     SeqCst,
 }
 
+impl MemOrder {
+    /// The operand an `Rt` call carries the ordering as.
+    pub fn code(self) -> i128 {
+        self as i128
+    }
+
+    pub fn from_code(c: i128) -> MemOrder {
+        match c {
+            0 => MemOrder::Relaxed,
+            1 => MemOrder::Acquire,
+            2 => MemOrder::Release,
+            3 => MemOrder::AcqRel,
+            _ => MemOrder::SeqCst,
+        }
+    }
+}
+
 /// Where a `par` forks and joins its arms (`Inst::Arm`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ArmEvent {
@@ -634,6 +651,11 @@ pub enum RtFn {
     ChanTrySend,
     /// `ChanRecv` that never parks: 4 when open and empty, 3 when closed.
     ChanTryRecv,
+    /// `(Ptr word, expected, order, in_task) -> i64`: `Atomic.wait` on a 32-bit word (RFC 0089);
+    /// 1 when it parked the task, 2 when the task is cancelled, as for `ChanRecv`.
+    FutexWait,
+    /// `(Ptr word, count)`: release up to `count` tasks parked on the word.
+    FutexNotify,
     /// `(Ptr keys, Ptr at, Ptr out, in_task) -> i64`: `select_wait`'s ready arm into `out`; 1, 2
     /// and the actor status as for `ChanRecv`.
     SelectWait,
