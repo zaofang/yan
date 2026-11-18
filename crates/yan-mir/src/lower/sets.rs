@@ -8,6 +8,7 @@ pub(super) const IDS: &[registry::Id] = &[
     id::STD_SET_ADD,
     id::STD_SET_DISCARD,
     id::STD_SET_CONTAINS,
+    id::STD_SET_ITER,
 ];
 
 impl<'m> Fn<'_, 'm> {
@@ -33,6 +34,9 @@ impl<'m> Fn<'_, 'm> {
             );
             set(self, vec![r]);
             return Ok(());
+        }
+        if id == id::STD_SET_ITER {
+            return self.set_iter(&args, c, dst);
         }
         let [(_, s), (kc, key)] = args.as_slice() else {
             return unsupported(format!("call of `{}`", c.path.join(".")));
@@ -83,6 +87,40 @@ impl<'m> Fn<'_, 'm> {
                 self.goto(join);
                 self.free(RtFn::EnvFree, out);
             }
+        }
+        Ok(())
+    }
+
+    /// Iterating a set lists its keys in insertion order (17.3), as `dict.iter` does.
+    fn set_iter(&mut self, args: &[(y::Conv, &y::Atom)], c: &y::Call, dst: Option<Var>) -> R<()> {
+        let [(_, s)] = args else {
+            return unsupported(format!("call of `{}`", c.path.join(".")));
+        };
+        let (mut m, Shape::Set(k)) = self.atom_any(s)? else {
+            return unsupported("a `std.set` call on a non-set");
+        };
+        let m = m.remove(0);
+        let l = self.rt(
+            RtFn::ListNew,
+            Ty::Ptr,
+            vec![Operand::Int(k.width() as i128)],
+        );
+        let n = self.rt(RtFn::MapLen, I64, vec![m.clone()]);
+        self.each(n, |me, i| {
+            let at = me.rt(RtFn::MapAt, Ty::Ptr, vec![m.clone(), i]);
+            let kv = me.read(&At::Mem(at, 0), &k);
+            let x = me.clone_value(kv, &k)?;
+            let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![l.clone()]);
+            me.write(&At::Mem(slot, 0), x);
+            Ok(())
+        })?;
+        self.emit(Inst::Rt {
+            dst: None,
+            f: RtFn::DqLimit,
+            args: vec![l.clone(), Operand::Int(0)],
+        });
+        if let Some(d) = &dst {
+            self.copy_to(&d.locals.clone(), vec![l]);
         }
         Ok(())
     }

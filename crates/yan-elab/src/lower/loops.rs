@@ -189,6 +189,13 @@ impl Lower<'_, '_, '_> {
                     let it = self.tmp(&it, Rhs::Call(chars), at);
                     return self.for_iter(label, name, target, it, Ty::Char, iter.span, at, body);
                 }
+                // A set iterates in insertion order (17.3).
+                Ty::Set(e) => {
+                    let e = (**e).clone();
+                    let get = call("std.set.iter", vec![e.targ()], vec![let_arg(xs)], at);
+                    let it = self.tmp(&Ty::Coll("iter", vec![e.clone()]), Rhs::Call(get), at);
+                    return self.for_iter(label, name, target, it, e, iter.span, at, body);
+                }
                 // A tuple of one type iterates as a list of its elements.
                 Ty::Tuple(ts) if !ts.is_empty() && ts.iter().all(|x| *x == ts[0]) => {
                     let et = ts[0].clone();
