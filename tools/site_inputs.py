@@ -3,8 +3,9 @@ figure carries its commit and date).
 
 uv run python -m tools.site_inputs OUT.tar.gz --bin-dir target/release [--status status.json]
 
-The archive holds meta.json, brand/, playground/ (with yan.wasm), and `yan` with libyan_rt.a beside
-it, which the site uses to check its tour programs.
+The archive holds meta.json, brand/, playground/ (with yan.wasm), docs/ (the spec, RFCs, rows,
+diagnostic catalogue and the failing conformance cases the site shows as examples), and `yan` with
+libyan_rt.a beside it, which the site uses to check its tour programs.
 """
 
 import argparse
@@ -18,6 +19,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 PLAYGROUND = ("index.html", "worker.js", "examples.js")
+CASE_LIMIT = 4096  # bytes; larger cases are not shown as examples
 
 
 def git(*args: str) -> str:
@@ -38,6 +40,21 @@ def meta(status: Path | None) -> dict[str, Any]:
     }
 
 
+def add_docs(t: tarfile.TarFile) -> None:
+    """The reference pages' inputs: read-only copies, never edited on the way."""
+    for path in sorted((ROOT / "spec").glob("*.md")):
+        t.add(path, f"docs/spec/{path.name}")
+    t.add(ROOT / "spec/rows.toml", "docs/spec/rows.toml")
+    for path in sorted((ROOT / "rfcs").glob("[0-9]*.md")):
+        t.add(path, f"docs/rfcs/{path.name}")
+    t.add(ROOT / "conformance/catalogue.toml", "docs/conformance/catalogue.toml")
+    t.add(ROOT / "conformance/manifest.json", "docs/conformance/manifest.json")
+    for case in json.loads((ROOT / "conformance/manifest.json").read_text())["cases"]:
+        path = ROOT / "conformance" / case["path"]
+        if case["expect"] and path.stat().st_size <= CASE_LIMIT:
+            t.add(path, f"docs/conformance/cases/{case['path']}")
+
+
 def pack(out: Path, bin_dir: Path, wasm: Path, status: Path | None) -> None:
     data = json.dumps(meta(status), indent=2).encode()
     with tarfile.open(out, "w:gz") as t:
@@ -45,6 +62,7 @@ def pack(out: Path, bin_dir: Path, wasm: Path, status: Path | None) -> None:
         info.size = len(data)
         t.addfile(info, io.BytesIO(data))
         t.add(ROOT / "brand", "brand")
+        add_docs(t)
         for name in PLAYGROUND:
             t.add(ROOT / "playground" / name, f"playground/{name}")
         t.add(wasm, "playground/yan.wasm")
