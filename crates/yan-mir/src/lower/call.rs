@@ -150,6 +150,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.dict_call(id, c, dst);
         }
+        if sets::IDS.contains(&id) {
+            return self.set_call(id, c, dst);
+        }
         if self.actor_call(id, c, dst.as_ref())? {
             return Ok(());
         }
