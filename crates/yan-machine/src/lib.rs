@@ -495,6 +495,7 @@ impl Machine<'_> {
                 }
                 Ok(())
             }
+            Inst::Move { .. } => Ok(()),
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();
                 match e {
