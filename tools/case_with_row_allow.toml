@@ -22,3 +22,13 @@ reason = "May-wait bit in effect signatures, item 6 of #1429."
 rows = "R1071"
 issue = "#1608"
 reason = "`yan metadata --json` prints one object; the pkg runner reads record arrays. Rust test in crates/yan-cli/tests/metadata.rs."
+
+[[row]]
+rows = "R1080"
+issue = "#1615"
+reason = "The pkg runner compares diagnostics; `yan new --member` writes files. Item 1 of #1615."
+
+[[row]]
+rows = "R1081"
+issue = "#1615"
+reason = "The pkg runner compares diagnostics; `yan mv` rewrites files. Item 1 of #1615."

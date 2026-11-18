@@ -666,6 +666,40 @@ pub fn test_metered(
     })
 }
 
+/// [`test_metered`] under `yan test --sim` (RFC 0070): every `sim(seed)` uses `seed` when given,
+/// and the fault points that fired come back with the result, as (name, occurrence).
+pub fn test_sim(
+    m: &Module,
+    f: &str,
+    limits: Limits,
+    out: &mut (dyn Write + Send),
+    spent: &mut u64,
+    seed: Option<i128>,
+) -> (R<bool>, Vec<(String, u64)>) {
+    std::thread::scope(|s| {
+        std::thread::Builder::new()
+            .stack_size(1 << 30)
+            .spawn_scoped(s, || {
+                fault::begin(seed);
+                let r = entry(
+                    m,
+                    f,
+                    out,
+                    Some(limits),
+                    Vec::new(),
+                    spent,
+                    Mode::Run,
+                    &mut None,
+                )
+                .map(|r| r.is_ok());
+                (r, fault::take_fired())
+            })
+            .expect("spawn the test thread")
+            .join()
+            .unwrap_or_else(|_| (unsupported("the interpreter crashed"), Vec::new()))
+    })
+}
+
 /// Run the nullary `fn f` of `m`, which may use the `toolchain` capability, under `limits`
 /// (21.4). `Ok` is what it returned as JSON, `Err` its failure value as text.
 pub fn query(

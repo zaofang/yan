@@ -16614,6 +16614,29 @@
    }
   },
   {
+   "path": "pkg/e287_tests_name_private_item",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1079"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1079",
+    "note": "a tests/ module sees the package as a dependent does: a private item of it is E287",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "tests/api.yag:2:12"
+   }
+  },
+  {
    "path": "pkg/e314_dep_lib_missing_from_intermediate_ceiling",
    "kind": "pkg",
    "milestone": "M1",
@@ -17230,6 +17253,75 @@
    "expect_toml": {
     "spec": "3.5",
     "note": "a path whose first names are a sibling module resolves to that module's item: functions, records, sum variants, constants and patterns, through a third module",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/sim_binding_is_simulated",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1082"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1082"
+    ],
+    "note": "a test that binds only the sim fault handler is a simulated test and runs under the gate",
+    "command": [
+     "test",
+     "--gate"
+    ]
+   }
+  },
+  {
+   "path": "pkg/sim_sweep_passes",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1083"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1083"
+    ],
+    "note": "a simulated test that holds under all swept seeds passes and the sweep exits 0",
+    "command": [
+     "test",
+     "--sim=8"
+    ]
+   }
+  },
+  {
+   "path": "pkg/tests_see_package_by_local_name",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1079"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1079",
+    "note": "a tests/ module reaches its package through the package's local name and its pub items",
     "command": [
      "check"
     ]

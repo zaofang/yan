@@ -17,7 +17,7 @@ pub use graph::{
 };
 pub use layout::{
     Issue as LayoutIssue, Located, Module as PackageModule, Root, dependency_issues,
-    diagnostics as layout_diagnostics, locate, scan as scan_layout,
+    diagnostics as layout_diagnostics, locate, path_issue, scan as scan_layout,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -168,7 +168,7 @@ impl Database {
             let fresh: Vec<PathBuf> = packages[before..]
                 .iter()
                 .flat_map(|p| p.modules.iter())
-                .filter(|m| m.root == layout::Root::Src)
+                .filter(|m| matches!(m.root, layout::Root::Src | layout::Root::Tests))
                 .map(|m| m.file.clone())
                 .collect();
             graph.set_packages(self).to(packages);
@@ -240,7 +240,7 @@ pub fn front(db: &dyn Db, file: SourceFile) -> Result<Front, String> {
                 return Ok(Front::Stopped(diags));
             }
             let packages = PackageGraph::get(db).packages(db);
-            let placed = layout::locate(packages, path).filter(|l| l.root == Root::Src);
+            let placed = layout::locate(packages, path).filter(|l| l.root.is_package_code());
             let modules: Vec<String> = owner(packages, path)
                 .map(|p| {
                     visible_modules(packages, p, path)
@@ -344,7 +344,7 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
         }
     };
     let own = layout::locate(packages, path)
-        .filter(|l| l.root == Root::Src)
+        .filter(|l| l.root.is_package_code())
         .map(|l| l.module.join("."));
     let env = own.map(|this| yan_elab::PackageEnv {
         this,
@@ -425,12 +425,19 @@ fn dependency_scopes(
     pkg: &Package,
     path: &Path,
 ) -> Vec<(String, Vec<(String, PathBuf)>)> {
-    let in_src = layout::locate(packages, path).is_none_or(|l| l.root == Root::Src);
+    let root = layout::locate(packages, path).map(|l| l.root);
+    let in_src = root.is_none_or(|r| r == Root::Src);
     let mut out: Vec<(String, Vec<(String, PathBuf)>)> = Vec::new();
+    // A black-box file sees its own package exactly as a dependent does (D8).
+    if root.is_some_and(Root::is_black_box)
+        && let Some(local) = pkg.name.as_deref().and_then(|n| n.rsplit('/').next())
+    {
+        out.push((local.to_owned(), source_modules(pkg)));
+    }
     for (d, found) in dependency_roots(packages, pkg) {
         let wanted = match d.kind {
             yan_elab::DepKind::Normal => true,
-            yan_elab::DepKind::Dev => !in_src,
+            yan_elab::DepKind::Dev => !in_src && root != Some(Root::Examples),
             yan_elab::DepKind::Tool => false,
         };
         if let Some(dep) = found.filter(|_| wanted)
@@ -445,7 +452,21 @@ fn dependency_scopes(
 /// Every module the file at `path` can name: its package's own, and each dependency's under the
 /// dependency's local name (`http` for its `lib`, `http.client` for its `client`).
 fn visible_modules(packages: &[Package], pkg: &Package, path: &Path) -> Vec<(String, PathBuf)> {
-    let mut all = source_modules(pkg);
+    let root = layout::locate(packages, path).map(|l| l.root);
+    // A black-box file reaches the package only through its local name (D8).
+    let mut all = if root.is_some_and(Root::is_black_box) {
+        Vec::new()
+    } else {
+        source_modules(pkg)
+    };
+    if root == Some(Root::Tests) {
+        all.extend(
+            pkg.modules
+                .iter()
+                .filter(|m| m.root == Root::Tests)
+                .map(|m| (m.path.join("."), m.file.clone())),
+        );
+    }
     for (local, mods) in dependency_scopes(packages, pkg, path) {
         all.extend(mods.into_iter().map(|(rel, f)| {
             let global = if rel == "lib" {

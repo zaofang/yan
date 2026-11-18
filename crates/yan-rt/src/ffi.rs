@@ -71,7 +71,7 @@ fn symbol(link: &str, sym: &str) -> Result<usize, String> {
         return Ok(a);
     }
     if !valid_link(link) {
-        return Err(format!("invalid library name `{link}`"));
+        return Err(format!("cannot load library `{link}`"));
     }
     let h = open(link);
     if h.is_null() {
@@ -209,7 +209,7 @@ mod link_tests {
     fn a_path_is_never_handed_to_dlopen() {
         assert_eq!(
             symbol("../evil", "f"),
-            Err("invalid library name `../evil`".to_owned())
+            Err("cannot load library `../evil`".to_owned())
         );
     }
 }

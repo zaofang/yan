@@ -2080,3 +2080,28 @@ sections = "19.1, 25"
 rows = "R1078"
 topic = "`yan publish --check` at a workspace root checks every member in dependency order and reports a member's refusal on its `package.yag` (RFC 0084 D7, slice 4)"
 sections = "19.1"
+
+[[entry]]
+rows = "R1079"
+topic = "a `tests/`, `examples/` or `benches/` module sees its package only through its local name and `pub` items; `tests/` runs under `yan test`, `examples/` is built, and `examples/` reaches no `dev_dependencies` (RFC 0084 D8, slice 5)"
+sections = "19.1"
+
+[[entry]]
+rows = "R1080"
+topic = "`yan new --member <name>` writes a member's `package.yag` and `src/lib.yag` and lists it in the root's `members` (RFC 0084 D7, D11, slice 5)"
+sections = "18.1, 19.1"
+
+[[entry]]
+rows = "R1081"
+topic = "`yan mv <from> <to>` moves a `src/` module and rewrites every `use` and qualified name that reaches it, refusing an invalid or taken target (RFC 0084 D11, slice 5)"
+sections = "18.1, 19.1"
+
+[[entry]]
+rows = "R1082"
+topic = "a test whose `with` bindings are all pure handlers (`sim`, `mem_net`, `fake_fs`, `fake_env`, `fake_proc`, `virtual`, `seeded`, `never`) is a simulated test, cached under the R19 key extended with its handler bindings and seed override; any other `with` keeps it an I/O test (RFC 0070 D1)"
+sections = "18.4"
+
+[[entry]]
+rows = "R1083"
+topic = "`yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`)"
+sections = "18.1, 18.4"

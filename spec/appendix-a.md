@@ -423,6 +423,11 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1076 | `dev_dependencies` that reach the package itself, directly or through a dev dependency's normal requirements, are E334 naming the path (RFC 0084 D6, slice 4) | 19.1, 25 |
 | R1077 | a requirement binds to the workspace member with its package name and major; a member below the requirement's minimum is E335, never a registry fallback (RFC 0084 D7, slice 4) | 19.1, 25 |
 | R1078 | `yan publish --check` at a workspace root checks every member in dependency order and reports a member's refusal on its `package.yag` (RFC 0084 D7, slice 4) | 19.1 |
+| R1079 | a `tests/`, `examples/` or `benches/` module sees its package only through its local name and `pub` items; `tests/` runs under `yan test`, `examples/` is built, and `examples/` reaches no `dev_dependencies` (RFC 0084 D8, slice 5) | 19.1 |
+| R1080 | `yan new --member <name>` writes a member's `package.yag` and `src/lib.yag` and lists it in the root's `members` (RFC 0084 D7, D11, slice 5) | 18.1, 19.1 |
+| R1081 | `yan mv <from> <to>` moves a `src/` module and rewrites every `use` and qualified name that reaches it, refusing an invalid or taken target (RFC 0084 D11, slice 5) | 18.1, 19.1 |
+| R1082 | a test whose `with` bindings are all pure handlers (`sim`, `mem_net`, `fake_fs`, `fake_env`, `fake_proc`, `virtual`, `seeded`, `never`) is a simulated test, cached under the R19 key extended with its handler bindings and seed override; any other `with` keeps it an I/O test (RFC 0070 D1) | 18.4 |
+| R1083 | `yan test --sim[=N] [--seed S]` sweeps N seeds derived from the test hash and an index, stops at the first failure and prints its seed, fault plan hash and a repro command (RFC 0070 D3, slice 1: no `--faults`, `--shrink` or `--list-faults`) | 18.1, 18.4 |
 
 <!-- /rows -->
 

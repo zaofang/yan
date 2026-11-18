@@ -16,6 +16,7 @@ mod graph;
 mod lock;
 mod mcp;
 mod metadata;
+mod mv;
 mod new;
 mod patch;
 mod publish;
@@ -135,6 +136,16 @@ enum Command {
         name: String,
         #[arg(long, value_enum, default_value = "cli")]
         template: new::Template,
+        /// Create the package as a member of the workspace in the current directory (RFC 0084 D7).
+        #[arg(long)]
+        member: bool,
+    },
+    /// Move a module of the package in the current directory and rewrite every `use` and
+    /// qualified name that reaches it (RFC 0084 D11).
+    Mv {
+        /// The module's dotted path under `src/`.
+        from: String,
+        to: String,
     },
     /// Print the Yan Agent or Yan grammar for constrained decoding (21.3).
     Grammar {
@@ -343,6 +354,12 @@ enum Command {
         /// Run with the 6.7 undefined-behavior checks (not supported yet).
         #[arg(long)]
         ub: bool,
+        /// Run each simulated test under N seeds derived from its hash (default 1; RFC 0070 D3).
+        #[arg(long, num_args = 0..=1, default_missing_value = "1", value_name = "N")]
+        sim: Option<u32>,
+        /// With `--sim`, run exactly this seed.
+        #[arg(long, requires = "sim")]
+        seed: Option<i128>,
     },
     /// Run one task through the spec gate as a client of `yan mcp` (the reference agent
     /// loop), and print its run record.
@@ -461,8 +478,25 @@ fn main() -> ExitCode {
             max_errors,
             Database::new(strict, level.as_deref() == Some("release")),
         ),
-        Command::New { name, template } => match new::create(Path::new("."), &name, template) {
+        Command::New {
+            name,
+            template,
+            member,
+        } => match if member {
+            new::create_member(Path::new("."), &name)
+        } else {
+            new::create(Path::new("."), &name, template)
+        } {
             Ok(_) => ExitCode::SUCCESS,
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Mv { from, to } => match mv::run(Path::new("."), &from, &to) {
+            Ok(files) => {
+                for f in files {
+                    println!("{}", f.display());
+                }
+                ExitCode::SUCCESS
+            }
             Err(msg) => tool_failure(&msg),
         },
         Command::Lock { format } => match lock::write(Path::new(".")) {
@@ -576,13 +610,23 @@ fn main() -> ExitCode {
             locked,
             offline,
             ub,
+            sim,
+            seed,
         } => {
             if ub {
                 return tool_failure(
                     "not supported yet: `yan test --ub` (tests run on the interpreter)",
                 );
             }
-            run_tests(format, gate, only.as_deref(), no_cache, (locked, offline))
+            let sim = sim.map(|sweep| test::Sim { sweep, seed });
+            run_tests(
+                format,
+                gate,
+                only.as_deref(),
+                no_cache,
+                (locked, offline),
+                sim,
+            )
         }
         Command::Review { range, format } => review(&range, format),
         Command::Audit { format } => audit(format),
@@ -767,13 +811,14 @@ fn run_tests(
     only: Option<&str>,
     no_cache: bool,
     locked: (bool, bool),
+    sim: Option<test::Sim>,
 ) -> ExitCode {
     if let Err(code) = lock_gate(locked, Some(format)) {
         return code;
     }
     let root = Path::new(".");
     let cache = (!no_cache).then(|| test::cache_file(root));
-    let report = match test::run(root, only, gate, cache.as_deref(), None) {
+    let report = match test::run_sim(root, only, gate, cache.as_deref(), None, sim) {
         Ok(r) => r,
         Err(msg) => return tool_failure(&msg),
     };

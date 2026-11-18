@@ -21,6 +21,18 @@ pub enum Root {
     Benches,
 }
 
+impl Root {
+    /// `tests/`, `examples/` and `benches/` see the package as a dependent does (D8).
+    pub fn is_black_box(self) -> bool {
+        matches!(self, Root::Tests | Root::Examples | Root::Benches)
+    }
+
+    /// The roots whose modules are elaborated with the package's names in scope.
+    pub fn is_package_code(self) -> bool {
+        self == Root::Src || self.is_black_box()
+    }
+}
+
 const ROOTS: [(&str, Root); 7] = [
     ("src", Root::Src),
     ("bin", Root::Bin),
@@ -209,6 +221,21 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) {
             out.push(p);
         }
     }
+}
+
+/// Why `path` cannot be the path of a module under `src/`, or `None` (D4).
+pub fn path_issue(path: &[String]) -> Option<String> {
+    for (i, seg) in path.iter().enumerate() {
+        if let Some(why) = bad_name(seg) {
+            return Some(format!("`{seg}` cannot name a module or directory: {why}"));
+        }
+        if i == 0 && RESERVED.contains(&seg.as_str()) {
+            return Some(format!(
+                "`{seg}` is a reserved root name and cannot be a top-level module"
+            ));
+        }
+    }
+    None
 }
 
 /// A value name (13.1) that is not a device name and not too long to print.

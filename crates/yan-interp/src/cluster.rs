@@ -71,6 +71,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_SIM_SIM,
         Bind::Cap(|it, a| match a {
             [Value::Int(n), Value::Int(seed), faults] if *n >= 1 => {
+                let seed = &super::fault::seed(*seed);
                 let sim = Value::Data {
                     name: "Sim".into(),
                     fields: vec![

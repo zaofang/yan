@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1079"
+note = "a tests/ module sees the package as a dependent does: a private item of it is E287"
+command = ["check"]
+code = "E287"
+at = "tests/api.yag:2:12"

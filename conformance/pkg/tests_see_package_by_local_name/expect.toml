@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R1079"
+note = "a tests/ module reaches its package through the package's local name and its pub items"
+command = ["check"]

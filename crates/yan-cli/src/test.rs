@@ -28,6 +28,15 @@ pub struct Record {
     pub cached: bool,
     /// Keys of the module's items the test reaches, itself included.
     pub reach: Vec<String>,
+    /// The seed and fault plan hash of a failing simulated run (RFC 0070 D3).
+    pub sim: Option<(i128, String)>,
+}
+
+/// `yan test --sim[=N]` (RFC 0070): `sweep` seeds per simulated test, or exactly `seed`.
+#[derive(Clone, Copy)]
+pub struct Sim {
+    pub sweep: u32,
+    pub seed: Option<i128>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -99,7 +108,7 @@ impl Report {
                     _ => None,
                 },
                 "cached": t.cached,
-                "repro": repro(&t.id),
+                "repro": repro(&t.id, t.sim.as_ref()),
             })
         }));
         serde_json::Value::Array(out)
@@ -111,7 +120,10 @@ impl Report {
             let status = if t.approved { "approved" } else { "proposed" };
             let why = match &t.verdict {
                 Verdict::Pass => continue,
-                Verdict::Fail(k) => format!("failed: {k}"),
+                Verdict::Fail(k) => match &t.sim {
+                    Some((seed, plan)) => format!("failed: {k} | seed: {seed} | faults: {plan}"),
+                    None => format!("failed: {k}"),
+                },
                 Verdict::Budget => "ran out of its step budget".to_owned(),
             };
             out.push(format!(
@@ -122,7 +134,7 @@ impl Report {
                 } else {
                     format!(" | output: {}", t.output.trim_end().replace('\n', "\\n"))
                 },
-                repro(&t.id)
+                repro(&t.id, t.sim.as_ref())
             ));
         }
         let passed = self.tests.iter().filter(|t| t.verdict == Verdict::Pass);
@@ -135,22 +147,47 @@ impl Report {
     }
 }
 
-fn repro(id: &str) -> String {
-    format!("yan test --only {id}")
+fn repro(id: &str, sim: Option<&(i128, String)>) -> String {
+    match sim {
+        Some((seed, _)) => format!("yan test --sim --seed {seed} --only {id}"),
+        None => format!("yan test --only {id}"),
+    }
 }
 
 /// The modules of the package at `root`: every `.yag` and `.yn` file under `src/`, or under
-/// `root` when it has no `src/`, keyed by module path.
+/// `root` when it has no `src/`, keyed by module path, then the black-box roots `tests/` and
+/// `examples/` keyed with the root's name leading (RFC 0084 D8).
 pub fn modules(root: &Path) -> Result<BTreeMap<String, PathBuf>, String> {
-    let base = if root.join("src").is_dir() {
+    let has_src = root.join("src").is_dir();
+    let base = if has_src {
         root.join("src")
     } else {
         root.to_path_buf()
     };
     let mut out = BTreeMap::new();
-    let mut dirs = vec![base.clone()];
+    collect(root, &base, "", &mut out)?;
+    if has_src {
+        for black_box in ["tests", "examples"] {
+            collect(root, &root.join(black_box), black_box, &mut out)?;
+        }
+    }
+    Ok(out)
+}
+
+fn collect(
+    root: &Path,
+    base: &Path,
+    lead: &str,
+    out: &mut BTreeMap<String, PathBuf>,
+) -> Result<(), String> {
+    let mut dirs = vec![base.to_path_buf()];
     while let Some(d) = dirs.pop() {
-        let entries = std::fs::read_dir(&d).map_err(|e| format!("{}: {e}", d.display()))?;
+        let Ok(entries) = std::fs::read_dir(&d) else {
+            if d == base && !lead.is_empty() {
+                return Ok(());
+            }
+            return Err(format!("{}: cannot read", d.display()));
+        };
         for e in entries {
             let p = e.map_err(|e| e.to_string())?.path();
             if p.is_dir() {
@@ -166,17 +203,21 @@ pub fn modules(root: &Path) -> Result<BTreeMap<String, PathBuf>, String> {
                 continue;
             }
             let rel = p
-                .strip_prefix(&base)
+                .strip_prefix(base)
                 .expect("under the base")
                 .with_extension("");
-            let name: Vec<String> = rel
-                .components()
-                .map(|c| c.as_os_str().to_string_lossy().into_owned())
+            let name: Vec<String> = (!lead.is_empty())
+                .then(|| lead.to_owned())
+                .into_iter()
+                .chain(
+                    rel.components()
+                        .map(|c| c.as_os_str().to_string_lossy().into_owned()),
+                )
                 .collect();
             out.insert(name.join("."), p);
         }
     }
-    Ok(out)
+    Ok(())
 }
 
 /// A locked test: its path, hash and the line of `tests.lock` that names it.
@@ -291,14 +332,77 @@ fn reach(hashes: &[Hashed], start: usize) -> Vec<usize> {
     (0..hashes.len()).filter(|&i| seen[i]).collect()
 }
 
-/// The verdict cache key of 18.4, or None when a reached item binds a handler with `with`.
-fn cache_key(m: &y::Module, hashes: &[Hashed], reached: &[usize], test: &str) -> Option<String> {
-    let binds = reached.iter().any(|&i| {
-        yan_text(m, &m.items[i])
-            .lines()
-            .any(|l| l.trim_start().starts_with("with "))
-    });
-    if binds || toolchain_hash().is_empty() {
+/// Constructors of handlers that are pure functions of their arguments: the test handler set
+/// of 7.3 and the `std.sim` hosts (RFC 0070 D1).
+const SIM_HANDLERS: &[&str] = &[
+    "sim",
+    "mem_net",
+    "fake_fs",
+    "fake_env",
+    "fake_proc",
+    "virtual",
+    "seeded",
+    "never",
+];
+
+/// How a test binds capabilities.
+enum Binds {
+    /// No `with` in anything it reaches.
+    None,
+    /// Only simulated handlers, as sorted `name = constructor` bindings.
+    Sim(Vec<String>),
+    /// At least one other handler: an I/O test (R309).
+    Real,
+}
+
+fn binds(m: &y::Module, reached: &[usize]) -> Binds {
+    let mut sim = Vec::new();
+    for &i in reached {
+        let text = yan_text(m, &m.items[i]);
+        // Canonical Core binds a handler built on an earlier `let _tN: T = path(...)` line.
+        let built = |name: &str| {
+            text.lines().find_map(|l| {
+                let (lhs, rhs) = l.trim_start().strip_prefix("let ")?.split_once(" = ")?;
+                (lhs.split(':').next() == Some(name)).then_some(rhs)
+            })
+        };
+        for l in text.lines() {
+            let Some(rest) = l.trim_start().strip_prefix("with ") else {
+                continue;
+            };
+            let (name, rhs) = rest.split_once(" = ").unwrap_or((rest, ""));
+            let rhs = rhs.trim_end_matches('{').trim();
+            let call = built(rhs).unwrap_or(rhs);
+            let ctor = call.split('(').next().unwrap_or("").trim();
+            if !SIM_HANDLERS.contains(&ctor.rsplit('.').next().unwrap_or("")) {
+                return Binds::Real;
+            }
+            sim.push(format!("{} = {ctor}", name.trim()));
+        }
+    }
+    if sim.is_empty() {
+        return Binds::None;
+    }
+    sim.sort();
+    sim.dedup();
+    Binds::Sim(sim)
+}
+
+/// The verdict cache key of 18.4, or None for an I/O test. A simulated test's key also holds
+/// its handler bindings and the seed override (RFC 0070 D1).
+fn cache_key(
+    m: &y::Module,
+    hashes: &[Hashed],
+    reached: &[usize],
+    test: &str,
+    seed: Option<i128>,
+) -> Option<String> {
+    let bound = match binds(m, reached) {
+        Binds::Real => return None,
+        Binds::None => Vec::new(),
+        Binds::Sim(b) => b,
+    };
+    if toolchain_hash().is_empty() {
         return None;
     }
     let mut h = blake3::Hasher::new();
@@ -307,6 +411,14 @@ fn cache_key(m: &y::Module, hashes: &[Hashed], reached: &[usize], test: &str) ->
     for &i in reached {
         h.update(b"\0");
         h.update(hashes[i].identity.to_string().as_bytes());
+    }
+    for b in &bound {
+        h.update(b"\0with\0");
+        h.update(b.as_bytes());
+    }
+    if let Some(s) = seed {
+        h.update(b"\0seed\0");
+        h.update(&s.to_le_bytes());
     }
     h.update(b"\0");
     h.update(toolchain_hash().as_bytes());
@@ -371,7 +483,38 @@ pub fn run(
     filter: Option<&str>,
     gate: bool,
     cache: Option<&Path>,
+    budget: Option<&mut Budget>,
+) -> Result<Report, String> {
+    run_sim(root, filter, gate, cache, budget, None)
+}
+
+/// The sweep seeds of a test are a function of its hash and an index, the same on every
+/// machine (RFC 0070 D3).
+fn derive_seed(test_hash: &str, index: u32) -> i128 {
+    let mut h = blake3::Hasher::new();
+    h.update(b"yan sim seed 1\0");
+    h.update(test_hash.as_bytes());
+    h.update(&index.to_le_bytes());
+    let b = h.finalize();
+    i128::from(u64::from_le_bytes(b.as_bytes()[..8].try_into().expect("8 bytes")) >> 1)
+}
+
+/// BLAKE3 prefix of a fault plan: the fired points, each as name and occurrence.
+fn plan_hash(fired: &[(String, u64)]) -> String {
+    let mut h = blake3::Hasher::new();
+    for (n, k) in fired {
+        h.update(format!("{n}#{k}\n").as_bytes());
+    }
+    h.finalize().to_hex()[..16].to_owned()
+}
+
+pub fn run_sim(
+    root: &Path,
+    filter: Option<&str>,
+    gate: bool,
+    cache: Option<&Path>,
     mut budget: Option<&mut Budget>,
+    sim: Option<Sim>,
 ) -> Result<Report, String> {
     let locked = lock(root)?;
     let mut cache = cache.map(Cache::open);
@@ -431,51 +574,78 @@ pub fn run(
             }
             let hash = found[&id].0.clone();
             let reached = reach(&hashes, i);
-            let key = cache
-                .as_ref()
-                .and_then(|_| cache_key(&m, &hashes, &reached, &hash));
-            let hit = key
-                .as_ref()
-                .and_then(|k| cache.as_ref().and_then(|c| c.get(k)));
-            let cached = hit.is_some();
-            let (verdict, output) = match hit {
-                Some(v) => v,
-                None => {
-                    let mut out = Vec::new();
-                    let limits = budget
-                        .as_ref()
-                        .map_or(Limits::default(), |b| b.limits(Limits::default()));
-                    let (start, mut steps) = (Instant::now(), 0);
-                    let r = yan_interp::test_metered(&m, &fname, limits, &mut out, &mut steps);
-                    if let Some(b) = budget.as_mut() {
-                        b.spend(steps, start.elapsed());
-                    }
-                    let v = match r {
-                        Ok(true) => Verdict::Pass,
-                        Ok(false) => Verdict::Fail("returned a failure".into()),
-                        Err(Stop::Panic(p)) if p.kind == "assert" && ex.is_some() => Verdict::Fail(
-                            format!("`{}` does not hold", ex.expect("an ex line").text),
-                        ),
-                        Err(Stop::Panic(p)) if p.kind == "assert" => {
-                            Verdict::Fail(assert_failed(&shown, &text, &p.message))
-                        }
-                        Err(Stop::Panic(p)) => {
-                            Verdict::Fail(format!("panic({}): {}", p.kind, p.message))
-                        }
-                        Err(Stop::Limit(_)) => Verdict::Budget,
-                        Err(Stop::Unsupported(what)) => {
-                            return Err(format!("{id}: not supported yet: {what}"));
-                        }
-                    };
-                    let out = String::from_utf8_lossy(&out).into_owned();
-                    // A budget verdict depends on the session, not only the code (R676).
-                    let metered = budget.is_some() && matches!(v, Verdict::Budget);
-                    if let (Some(c), Some(k), false) = (cache.as_mut(), key, metered) {
-                        c.put(k, &v, &out);
-                    }
-                    (v, out)
+            let simulated = matches!(binds(&m, &reached), Binds::Sim(_));
+            let seeds: Vec<Option<i128>> = match sim {
+                Some(Sim { seed: Some(s), .. }) if simulated => vec![Some(s)],
+                Some(Sim { sweep, .. }) if simulated => {
+                    (0..sweep).map(|n| Some(derive_seed(&hash, n))).collect()
                 }
+                _ => vec![None],
             };
+            let (mut verdict, mut output, mut cached, mut failed_run) =
+                (Verdict::Pass, String::new(), true, None);
+            for seed in seeds {
+                let key = cache
+                    .as_ref()
+                    .and_then(|_| cache_key(&m, &hashes, &reached, &hash, seed));
+                let hit = key
+                    .as_ref()
+                    .and_then(|k| cache.as_ref().and_then(|c| c.get(k)))
+                    // A failing simulated run reruns so its fault plan can be printed.
+                    .filter(|(v, _)| *v == Verdict::Pass || !simulated);
+                let (v, out) = match hit {
+                    Some(v) => v,
+                    None => {
+                        cached = false;
+                        let mut out = Vec::new();
+                        let limits = budget
+                            .as_ref()
+                            .map_or(Limits::default(), |b| b.limits(Limits::default()));
+                        let (start, mut steps) = (Instant::now(), 0);
+                        let (r, fired) =
+                            yan_interp::test_sim(&m, &fname, limits, &mut out, &mut steps, seed);
+                        if let Some(b) = budget.as_mut() {
+                            b.spend(steps, start.elapsed());
+                        }
+                        let v = match r {
+                            Ok(true) => Verdict::Pass,
+                            Ok(false) => Verdict::Fail("returned a failure".into()),
+                            Err(Stop::Panic(p)) if p.kind == "assert" && ex.is_some() => {
+                                Verdict::Fail(format!(
+                                    "`{}` does not hold",
+                                    ex.expect("an ex line").text
+                                ))
+                            }
+                            Err(Stop::Panic(p)) if p.kind == "assert" => {
+                                Verdict::Fail(assert_failed(&shown, &text, &p.message))
+                            }
+                            Err(Stop::Panic(p)) => {
+                                Verdict::Fail(format!("panic({}): {}", p.kind, p.message))
+                            }
+                            Err(Stop::Limit(_)) => Verdict::Budget,
+                            Err(Stop::Unsupported(what)) => {
+                                return Err(format!("{id}: not supported yet: {what}"));
+                            }
+                        };
+                        let out = String::from_utf8_lossy(&out).into_owned();
+                        if v != Verdict::Pass && simulated {
+                            failed_run = Some((seed, plan_hash(&fired)));
+                        }
+                        // A budget verdict depends on the session, not only the code (R676).
+                        let metered = budget.is_some() && matches!(v, Verdict::Budget);
+                        if let (Some(c), Some(k), false) = (cache.as_mut(), key, metered) {
+                            c.put(k, &v, &out);
+                        }
+                        (v, out)
+                    }
+                };
+                if v != Verdict::Pass {
+                    (verdict, output) = (v, out);
+                    break;
+                }
+                output = out;
+            }
+            let sim_fail = failed_run.and_then(|(s, p)| s.map(|s| (s, p)));
             tests.push(Record {
                 approved: false,
                 hash,
@@ -484,6 +654,7 @@ pub fn run(
                 output,
                 cached,
                 reach: reached.iter().map(|&j| hashes[j].key.clone()).collect(),
+                sim: sim_fail,
             });
         }
     }
