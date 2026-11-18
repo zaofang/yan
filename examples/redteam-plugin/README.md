@@ -26,7 +26,7 @@ the open issue, and fails the test when the gap closes, so the row must then be 
 | 05 | plugin declares `net`, beyond the root's ceiling | resolve | **gap** #1590 | `wrote yan.lock` |
 | 06 | closures that capture `fs` and `time` passed to `uses none` functions | check | refused | `E301 src/main.yag:11:20 main.main: 'apply(lambda: fs.read("x") else "x")' the closure captures capability 'fs', which 'apply' does not declare in 'uses'` |
 | 07 | lock record that disagrees with its vendored archive | locked build | refused | `E020 yan.lock:0:0 'yan.lock' records a foreign set for '@r/lib' that its archive does not have` |
-| 08 | extern `link "../evil"`: refused when the program runs | run | refused | `yan: not supported yet: invalid library name '../evil'` |
+| 08 | extern `link "../evil"`: refused when the program runs | run | refused | `yan: not supported yet: cannot load library '../evil'` |
 | 08b | extern `link "../evil"`: no diagnostic at check | check | **gap** #1391 | `` |
 | 09 | private item or capability handle smuggled across packages | check | **gap** #1563 | no fixture |
 | 10a | attack 01 on the Cranelift backend | run | refused | `yan: not supported yet: call of 'std.fs.sub' in native code` |
