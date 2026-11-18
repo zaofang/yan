@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 1059,
+   "reasoning": 534,
+   "out_bytes": 1006
+  },
+  "body": {
+   "in": 1673,
+   "out": 717,
+   "reasoning": 154,
+   "out_bytes": 1075
+  }
+ },
+ "final": "import pytest\n\nBITS: int = 8\nMASK: int = 0xFF\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping high bits to the low end.\n\n    x is in 0..255 and k is in 0..7. The result is in 0..255.\n    \"\"\"\n    x &= MASK\n    k %= BITS\n    return ((x << k) | (x >> (BITS - k))) & MASK\n\n\ndef test_rotl8_no_rotation() -> None:\n    assert rotl8(0xAB, 0) == 0xAB\n    assert rotl8(0, 0) == 0\n\n\ndef test_rotl8_single_bit_wraps() -> None:\n    assert rotl8(0b10000001, 1) == 0b00000011\n    assert rotl8(0x80, 1) == 0x01\n\n\ndef test_rotl8_nibble_swap() -> None:\n    assert rotl8(0x12, 4) == 0x21\n\n\ndef test_rotl8_top_bits_wrap() -> None:\n    assert rotl8(0b11000000, 2) == 0b00000011\n\n\ndef test_rotl8_all_ones_fixed() -> None:\n    assert rotl8(0xFF, 3) == 0xFF\n    assert rotl8(0xFF, 7) == 0xFF\n\n\ndef test_rotl8_single_bit_to_top() -> None:\n    assert rotl8(0x01, 7) == 0x80\n\n\n@pytest.mark.parametrize(\"k\", range(8))\ndef test_rotl8_result_in_range(k: int) -> None:\n    for x in range(256):\n        r = rotl8(x, k)\n        assert 0 <= r <= MASK\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 1059,
+    "reasoning": 534
+   },
+   "out_bytes": 1006,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1673,
+    "out": 717,
+    "reasoning": 154
+   },
+   "out_bytes": 1075,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

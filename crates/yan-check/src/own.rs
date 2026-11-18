@@ -107,6 +107,24 @@ pub struct Consumption {
     pub partial: Vec<(Name, Vec<Name>)>,
 }
 
+/// `move p.f`: a part moved out of the local `p`, which leaves the rest of `p` to its owner.
+pub fn part_move(k: &StmtKind) -> Option<&Place> {
+    match k {
+        StmtKind::Let {
+            rhs: Rhs::Move(p), ..
+        }
+        | StmtKind::Assign {
+            rhs: Rhs::Move(p), ..
+        }
+        | StmtKind::Rhs(Rhs::Move(p))
+            if !p.projs.is_empty() =>
+        {
+            Some(p)
+        }
+        _ => None,
+    }
+}
+
 pub fn consumption(k: &StmtKind, views: &Views) -> Consumption {
     let mut c = Consumption::default();
     for n in consumed(k) {
@@ -257,4 +275,114 @@ pub fn scrutinee_view(views: &Views, x: &Name) -> View {
         root: x.clone(),
         path: Vec::new(),
     })
+}
+
+/// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
+pub struct Observable(HashSet<String>, HashSet<String>, HashSet<String>);
+
+impl Observable {
+    pub fn new(m: &Module) -> Self {
+        let last = |p: &Path| p.last().cloned().unwrap_or_default();
+        let mut set = HashSet::new();
+        let mut custom = HashSet::new();
+        for it in &m.items {
+            if it.attrs.iter().any(|a| a.name == "linear") {
+                match &it.kind {
+                    ItemKind::Record(r) => drop(set.insert(last(&r.path))),
+                    ItemKind::Sum(s) => drop(set.insert(last(&s.path))),
+                    _ => {}
+                }
+            }
+            match &it.kind {
+                ItemKind::Impl(i) if i.trait_.path.last().is_some_and(|n| n == "Drop") => {
+                    if let Type::Named(n) = &i.for_ty {
+                        set.insert(last(&n.path));
+                        custom.insert(last(&n.path));
+                    }
+                }
+                ItemKind::Extern(x) => {
+                    for xi in &x.items {
+                        if let XItem::Type { name, .. } = xi {
+                            set.insert(name.clone());
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        // Fields may not be moved out of these themselves (4.2), though they may out of a holder.
+        let own_drop = set.clone();
+        loop {
+            let before = set.len();
+            for it in &m.items {
+                let (name, tys): (String, Vec<&Type>) = match &it.kind {
+                    ItemKind::Record(r) => {
+                        (last(&r.path), r.fields.iter().map(|f| &f.ty).collect())
+                    }
+                    ItemKind::Sum(s) => (
+                        last(&s.path),
+                        s.variants
+                            .iter()
+                            .flat_map(|v| v.fields.iter().flatten().map(|f| &f.ty))
+                            .collect(),
+                    ),
+                    ItemKind::Newtype(n) => (last(&n.path), vec![&n.ty]),
+                    _ => continue,
+                };
+                if tys.iter().any(|t| mentions(t, &set)) {
+                    set.insert(name);
+                }
+            }
+            if set.len() == before {
+                return Observable(set, own_drop, custom);
+            }
+        }
+    }
+
+    pub fn of(&self, t: &Type) -> bool {
+        mentions(t, &self.0)
+    }
+
+    /// `t` itself, not something it holds, has a custom `Drop`, is `@linear` or is an extern handle.
+    pub fn is_drop(&self, t: &Type) -> bool {
+        named_in(t, &self.1)
+    }
+
+    /// `t` itself has a custom `Drop`.
+    pub fn is_custom_drop(&self, t: &Type) -> bool {
+        named_in(t, &self.2)
+    }
+
+    /// A type with a custom `Drop`: dropping part of it would run the `Drop` on a partial value.
+    pub fn has_custom_drop(&self, t: &Type) -> bool {
+        mentions(t, &self.2)
+    }
+
+    /// A type with a custom `Drop` or `@linear`, or an extern handle.
+    pub fn has_drop(&self, t: &Type) -> bool {
+        mentions(t, &self.1)
+    }
+}
+
+fn named_in(t: &Type, set: &HashSet<String>) -> bool {
+    match t {
+        Type::Named(n) => n.path.last().is_some_and(|b| set.contains(b)),
+        Type::Refined { ty, .. } => named_in(ty, set),
+        _ => false,
+    }
+}
+
+fn mentions(t: &Type, set: &HashSet<String>) -> bool {
+    match t {
+        Type::Named(n) => {
+            n.path.last().is_some_and(|b| set.contains(b))
+                || n.args
+                    .iter()
+                    .any(|a| matches!(a, TArg::Type(t) if mentions(t, set)))
+        }
+        Type::Tuple(ts) | Type::Union(ts) => ts.iter().any(|t| mentions(t, set)),
+        Type::Refined { ty, .. } => mentions(ty, set),
+        Type::Dyn(_) => true,
+        Type::Fn(_) => false,
+    }
 }

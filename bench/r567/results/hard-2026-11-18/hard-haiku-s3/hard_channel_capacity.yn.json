@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 1386,
+   "reasoning": 1009,
+   "out_bytes": 830
+  },
+  "body": {
+   "in": 1918,
+   "out": 1455,
+   "reasoning": 910,
+   "out_bytes": 1135
+  }
+ },
+ "final": "-- Channel of integers with fixed capacity. `sent` counts accepted sends.\ntype Chan = { cap: int, sent: int }\n\n-- Make an empty channel that holds up to `cap` integers.\nopen_chan(cap: int) -> Chan =\n  pre cap >= 0\n  post out.cap == cap\n  post out.sent == 0\n  ex open_chan(2).sent == 0\n  Chan(cap: cap, sent: 0)\n\n-- Try a non-blocking send. Returns True if accepted, False if the channel is full.\ntry_send(var c: Chan, v: int) -> bool =\n  post out == False or c.sent <= c.cap\n  ex try_send(open_chan(0), 1) == False\n  if c.sent < c.cap\n    c.sent += 1\n    True\n  else\n    False\n\n-- Send each element of `xs` without blocking, stopping at the first full channel.\n-- Returns how many sends were accepted.\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(0, [1, 2]) == 0\n  ex accepted(3, []) == 0\n  var c = open_chan(cap)\n  var n = 0\n  for x in xs\n    if not try_send(&c, x)\n      break\n    n += 1\n  n\n\ntest_accepted() =\n  assert accepted(0, [1, 2]) == 0\n  assert accepted(3, []) == 0\n  assert accepted(2, [1, 2, 3]) == 2\n  assert accepted(5, [1, 2]) == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 1386,
+    "reasoning": 1009
+   },
+   "out_bytes": 830,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1918,
+    "out": 1455,
+    "reasoning": 910
+   },
+   "out_bytes": 1135,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

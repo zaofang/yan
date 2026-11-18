@@ -1,0 +1,116 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 3227,
+   "out": 1644,
+   "reasoning": 1204,
+   "out_bytes": 1026
+  },
+  "body": {
+   "in": 8140,
+   "out": 3087,
+   "reasoning": 1782,
+   "out_bytes": 3106
+  }
+ },
+ "final": "-- Helper: index of needle in hay at or after start, or None.\nfind_from(hay: str, needle: str, start: int) -> int? =\n  pre start >= 0\n  ex find_from(\"abc\", \"c\", 0) == 2\n  let h = hay.chars().collect()\n  let n = needle.chars().collect()\n  var i = start\n  while i + n.len() <= h.len()\n    var ok = True\n    var j = 0\n    while j < n.len()\n      if h[i + j] != n[j]\n        ok = False\n        break\n      j += 1\n    if ok\n      return i\n    i += 1\n  None\n\n-- Text between the first <title> and its </title>, or \"\" if absent.\n-- Pure: works on the html passed in, so it declares no capabilities.\ntitle_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title</p>\") == \"\"\n  let at = find_from(hay: html, needle: \"<title>\", start: 0) else return \"\"\n  let start = at + 7\n  let close = find_from(hay: html, needle: \"</title>\", start: start) else return \"\"\n  let cs = html.chars().collect()\n  var text = \"\"\n  for i in range(start, close)\n    text += \"\\(cs[i])\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 1186,
+    "reasoning": 967
+   },
+   "out_bytes": 511,
+   "ok": false,
+   "report": "E100 task.yn:2:53 `end of line` unexpected token; expected `=`\nE100 task.yn:9:27 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1769,
+    "out": 458,
+    "reasoning": 237
+   },
+   "out_bytes": 515,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2063,
+    "out": 1595,
+    "reasoning": 1178
+   },
+   "out_bytes": 987,
+   "ok": false,
+   "report": "E201 task.yn:12:10 find_from: `h[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 task.yn:12:22 find_from: `n[j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE210 task.yn:27:22 title_of: `= find_from(html, \"<title>\", 0)` pass `hay` by keyword: another parameter has type `str`\nE210 task.yn:29:25 title_of: `= find_from(html, \"</title>\", start)` pass `hay` by keyword: another parameter has type `str`\nE201 task.yn:33:13 title_of: `cs[i]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first",
+   "codes": [
+    "E201",
+    "E210"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2783,
+    "out": 856,
+    "reasoning": 414
+   },
+   "out_bytes": 1057,
+   "ok": false,
+   "report": "E201 task.yn:33:13 title_of: `cs[i]` `+` between `str` and `char`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3294,
+    "out": 636,
+    "reasoning": 190
+   },
+   "out_bytes": 1062,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:12:10 find_from: `h[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 ./task.yn:12:22 find_from: `n[j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE210 ./task.yn:27:22 title_of: `html` pass `hay` by keywor"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

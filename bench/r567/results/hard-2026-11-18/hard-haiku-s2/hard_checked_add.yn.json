@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3233,
+   "out": 2504,
+   "reasoning": 2034,
+   "out_bytes": 1019
+  },
+  "body": {
+   "in": 2092,
+   "out": 895,
+   "reasoning": 598,
+   "out_bytes": 632
+  }
+ },
+ "final": "-- Spec for checked addition. The helper states the int64 range in bigint terms.\nfits_int(n: bigint) -> bool =\n  ex fits_int(bigint(5)) == True\n  ex fits_int(bigint(9223372036854775807) + bigint(1)) == False\n  n >= bigint(-9223372036854775808) and n <= bigint(9223372036854775807)\n\nchecked_add(a: int, b: int) -> int? =\n  post out == None or out == a + b\n  post (out == None) == (fits_int(bigint(a) + bigint(b)) == False)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775808, -1) == None\n  let s = bigint(a) + bigint(b)\n  if fits_int(s)\n    return a + b\n  None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 1725,
+    "reasoning": 1493
+   },
+   "out_bytes": 505,
+   "ok": false,
+   "report": "E104 task.yn:9:8 `post out == None =` chained comparison; join the comparisons with `and`\nE100 task.yn:9:23 `not` unexpected token; expected an expression",
+   "codes": [
+    "E100",
+    "E104"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1781,
+    "out": 779,
+    "reasoning": 541
+   },
+   "out_bytes": 514,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2092,
+    "out": 895,
+    "reasoning": 598
+   },
+   "out_bytes": 632,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

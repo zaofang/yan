@@ -19,12 +19,29 @@ pub fn live_blocks() -> usize {
     BLOCKS.load(Relaxed)
 }
 
-pub fn block_taken() {
+/// Count the block at `p`; `release` frees it shallowly, should a panicking pool arm be
+/// discarded while it still owns the block (`pool::arm_failed`).
+pub fn block_taken(p: usize, release: unsafe fn(usize)) {
     BLOCKS.fetch_add(1, Relaxed);
+    crate::pool::track(p, release);
 }
 
-pub fn block_freed() {
+pub fn block_freed(p: usize) {
     BLOCKS.fetch_sub(1, Relaxed);
+    crate::pool::untrack(p);
+}
+
+/// Free a block that [`block_taken`] counted, without counting it twice.
+pub(crate) fn block_released(p: usize, release: unsafe fn(usize)) {
+    // SAFETY: `p` is a live block of the kind `release` frees.
+    unsafe { release(p) };
+    BLOCKS.fetch_sub(1, Relaxed);
+}
+
+/// Releases a block that is a `Box<T>`.
+pub(crate) unsafe fn release_box<T>(p: usize) {
+    // SAFETY: the caller's contract.
+    drop(unsafe { Box::from_raw(p as *mut T) });
 }
 
 unsafe impl GlobalAlloc for Counting {
@@ -64,9 +81,9 @@ mod tests {
     #[test]
     fn blocks_count_up_and_down() {
         let n = super::live_blocks();
-        super::block_taken();
+        super::block_taken(0, super::release_box::<u8>);
         assert_eq!(super::live_blocks(), n + 1);
-        super::block_freed();
+        super::block_freed(0);
         assert_eq!(super::live_blocks(), n);
     }
 }

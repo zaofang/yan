@@ -1,0 +1,50 @@
+--- S0 readiness 5 and 6: Result through layers, inout diagnostics sink, trait dispatch, closures, constants.
+
+let limit: int = 3
+
+type Diag = { code: str, at: int }
+
+type Bad = { code: str }
+
+trait Weigh
+  weight(self) -> int
+
+type Light = { n: int }
+
+type Heavy = { n: int }
+
+impl Weigh for Light
+  weight(self) -> int = self.n
+
+impl Weigh for Heavy
+  weight(self) -> int = self.n * limit
+
+total[W: Weigh](ws: List[W]) -> int uses none =
+  var sum = 0
+  for w in ws
+    sum += w.weight()
+  sum
+
+lex(n: int, var sink: List[Diag]) -> int fail Bad =
+  if n < 0
+    sink.append(Diag(code: "neg", at: n))
+    fail Bad(code: "lex")
+  n * 2
+
+parse(n: int, var sink: List[Diag]) -> int fail Bad =
+  let t = lex(n, &sink)?
+  if t > 10
+    sink.append(Diag(code: "big", at: t))
+  t
+
+apply(f: (int) -> int, x: int) -> int uses none = f(x)
+
+main() uses io =
+  var sink: List[Diag] = []
+  let a = parse(4, &sink) else -1
+  let b = parse(-2, &sink) else -1
+  let c = parse(9, &sink) else -1
+  io.print("\(a) \(b) \(c) \(len(sink))")
+  io.print("\(total([Light(n: 1), Light(n: 2)])) \(total([Heavy(n: 1)]))")
+  let k = 5
+  io.print("\(apply((x) -> x + k, 2))")

@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 1020,
+   "reasoning": 202,
+   "out_bytes": 1737
+  },
+  "body": {
+   "in": 5256,
+   "out": 2210,
+   "reasoning": 212,
+   "out_bytes": 4365
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Contract (to be enforced with assert statements in the body):\n      - Precondition: n >= 0.\n      - Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1),\n        which pins r as the unique largest integer with r * r <= n.\n\n    Raises AssertionError if n is negative.\n    \"\"\"\n    assert n >= 0, \"n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Newton's method on integers, starting from a power of two >= sqrt(n).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\n@pytest.mark.parametrize(\n    (\"n\", \"expected\"),\n    [\n        (0, 0),\n        (1, 1),\n        (2, 1),\n        (3, 1),\n        (4, 2),\n        (8, 2),\n        (9, 3),\n        (15, 3),\n        (16, 4),\n        (99, 9),\n        (100, 10),\n        (101, 10),\n    ],\n)\ndef test_isqrt_small(n: int, expected: int) -> None:\n    assert isqrt(n) == expected\n\n\ndef test_isqrt_perfect_squares_and_neighbors() -> None:\n    for r in range(0, 200):\n        sq = r * r\n        assert isqrt(sq) == r\n        if sq > 0:\n            assert isqrt(sq - 1) == r - 1\n        if r > 0:\n            # For r == 0, sq + 1 == 1 is itself a perfect square (root 1).\n            assert isqrt(sq + 1) == r\n\n\ndef test_isqrt_matches_math_isqrt_range() -> None:\n    for n in range(0, 5000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_isqrt_large() -> None:\n    big = 10**40\n    assert isqrt(big) == 10**20\n    assert isqrt(big - 1) == 10**20 - 1\n    assert isqrt(big + 1) == 10**20\n    n = 2**200 + 12345\n    assert isqrt(n) == math.isqrt(n)\n\n\ndef test_isqrt_postcondition_property() -> None:\n    for n in [0, 1, 2, 3, 24, 25, 26, 10**9, 10**9 + 7, 2**64 - 1, 2**64]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\n@pytest.mark.parametrize(\"n\", [-1, -2, -100, -(10**30)])\ndef test_isqrt_negative_violates_precondition(n: int) -> None:\n    with pytest.raises(AssertionError):\n        isqrt(n)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 1020,
+    "reasoning": 202
+   },
+   "out_bytes": 1737,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1955,
+    "out": 979,
+    "reasoning": 0
+   },
+   "out_bytes": 2134,
+   "ok": false,
+   "report": "............F\n=================================== FAILURES ===================================\n___________________ test_isqrt_perfect_squares_and_neighbors ___________________\n\n    def test_isqrt_perfect_squares_and_neighbors() -> None:\n        for r in range(0, 200):\n            sq = r * r\n            assert isqrt(sq) == r\n            if sq > 0:\n                assert isqrt(sq - 1) == r - 1\n>           assert isqrt(sq + 1) == r\nE           assert 1 == 0\nE            +  where 1 = isqrt((0 + 1))\n\ntest_task.py:59: AssertionError\n=========================== short test summary info ============================\nFAILED test_task.py::test_isqrt_perfect_squares_and_neighbors - assert 1 == 0\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 12 passed in 0.03s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3301,
+    "out": 1231,
+    "reasoning": 212
+   },
+   "out_bytes": 2231,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "............F...........                                                 [100%]\n=================================== FAILURES ===================================\nE   assert 1 == 0\n     +  where 1 = isqrt((0 + 1))\n/tmp/tmpbqp3whyn/test_hidden.py:59: assert 1 == 0\n=========================== short test"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,94 @@
+{
+ "final": "# shout prints, so it returns nothing and takes no ex lines.\n# Its behaviour is checked by tests instead.\n\ndef shout(xs: list[str]) uses io:\n    \"\"\"Print every string in xs upper-cased, each on its own line.\"\"\"\n    for s in xs:\n        io.print(s.upper())\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2017,
+    "out": 595,
+    "reasoning": 501
+   },
+   "out_bytes": 236
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2209,
+    "out": 109,
+    "reasoning": 0
+   },
+   "out_bytes": 273
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shout_caps",
+ "tokens": {
+  "body": {
+   "in": 2209,
+   "out": 109,
+   "reasoning": 0,
+   "out_bytes": 273
+  },
+  "spec": {
+   "in": 2017,
+   "out": 595,
+   "reasoning": 501,
+   "out_bytes": 236
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

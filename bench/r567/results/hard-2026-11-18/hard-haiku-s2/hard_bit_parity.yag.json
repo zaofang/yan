@@ -1,0 +1,156 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when the byte has an odd number of set bits.\"\"\"\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(3) == False\n    ex parity(7) == True\n    ex parity(255) == False\n    acc = x\n    acc = acc ^ (acc >> 4)\n    acc = acc ^ (acc >> 2)\n    acc = acc ^ (acc >> 1)\n    return (acc & 1) == 1\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E201 /tmp/tmp71alqkzm/work/task.yag:3:14 parity: `pre 0 <= x and x <=` cannot compare `int` with `uint8`\n#2 E203 /tmp/tmp71alqkzm/work/task.yag:4:20 parity: `count_ones` `uint8` has no method `count_ones`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E201",
+      "E203"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2006,
+    "out": 796,
+    "reasoning": 658
+   },
+   "out_bytes": 308
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2295,
+    "out": 538,
+    "reasoning": 437
+   },
+   "out_bytes": 238
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp71alqkzm/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp71alqkzm/work/task.yag:8:15 parity: `(x)` `int` does not take a `uint8`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2494,
+    "out": 815,
+    "reasoning": 663
+   },
+   "out_bytes": 358
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2777,
+    "out": 839,
+    "reasoning": 669
+   },
+   "out_bytes": 349
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 5271,
+   "out": 1654,
+   "reasoning": 1332,
+   "out_bytes": 707
+  },
+  "spec": {
+   "in": 4301,
+   "out": 1334,
+   "reasoning": 1095,
+   "out_bytes": 546
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E201",
+    "E203"
+   ],
+   "report": "#1 E201 /tmp/tmp71alqkzm/work/task.yag:3:14 parity: `pre 0 <= x and x <=` cannot compare `int` with `uint8`\n#2 E203 /tmp/tmp71alqkzm/work/task.yag:4:20 parity: `count_ones` `uint8` has no method `count_ones`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp71alqkzm/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp71alqkzm/work/task.yag:8:15 parity: `(x)` `int` does not take a `uint8`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yag:8:15 parity: `x` `int` does not take a `uint8`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

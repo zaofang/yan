@@ -1,0 +1,125 @@
+{
+ "final": "class Chan:\n    cap: int\n    buf: list[int]\n\ndef new_chan(cap: int) -> Chan:\n    \"\"\"Make an empty channel that holds at most cap integers.\"\"\"\n    pre cap >= 0\n    ex new_chan(3).cap == 3\n    ex new_chan(3).buf == []\n    return Chan(cap=cap, buf=[])\n\ndef try_send(var ch: Chan, v: int) -> bool:\n    \"\"\"Append v if the channel has room and report whether it was accepted. Never blocks.\"\"\"\n    post ch.buf.len() <= ch.cap\n    if ch.buf.len() < ch.cap:\n        ch.buf.append(v)\n        return True\n    return False\n\ndef sent_before_full(cap: int, n: int) -> int:\n    \"\"\"Number of sends accepted when n values are offered to an unread channel of capacity cap.\"\"\"\n    pre cap >= 0\n    pre n >= 0\n    post out <= n\n    post out <= cap\n    ex sent_before_full(2, 3) == 2\n    ex sent_before_full(5, 2) == 2\n    ex sent_before_full(0, 1) == 0\n    if cap < n:\n        return cap\n    return n\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel of capacity cap, try to send each element of xs without blocking,\n    and return how many sends were accepted before the channel first reported full.\n    Sending stops at the first rejected send. The scheduler is nondeterministic, so\n    the count is taken over the channel's accepted sends only.\"\"\"\n    pre cap >= 0\n    post out <= xs.len()\n    post out <= cap\n    ch = new_chan(cap=cap)\n    count = 0\n    for x in xs:\n        if not try_send(&ch, x):\n            break\n        count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpm5xeeo33/work/task.yag:28:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpm5xeeo33/work/task.yag:29:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpm5xeeo33/work/task.yag:30:8 accepted: `assert accepted(0, [7])` capability `nondet` is not in scope | in `ex` of `accepted`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 1420,
+    "reasoning": 1015
+   },
+   "out_bytes": 964
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2719,
+    "out": 1173,
+    "reasoning": 680
+   },
+   "out_bytes": 1199
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3310,
+    "out": 1871,
+    "reasoning": 1264
+   },
+   "out_bytes": 1485
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 3310,
+   "out": 1871,
+   "reasoning": 1264,
+   "out_bytes": 1485
+  },
+  "spec": {
+   "in": 4768,
+   "out": 2593,
+   "reasoning": 1695,
+   "out_bytes": 2163
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpm5xeeo33/work/task.yag:28:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpm5xeeo33/work/task.yag:29:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpm5xeeo33/work/task.yag:30:8 accepted: `assert accepted(0, [7])` capability `nondet` is not in s"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

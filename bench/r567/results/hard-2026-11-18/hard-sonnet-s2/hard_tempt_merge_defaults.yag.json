@@ -1,0 +1,94 @@
+{
+ "final": "def settings(keys: list[str], values: list[str]) -> list[str]:\n    \"\"\"Overlay keys[i] = values[i] on the defaults mode=fast and level=3. Return the values for mode, then level, then every other key in order of first appearance. A repeated key takes its last value.\"\"\"\n    pre keys.len() == values.len()\n    post out.len() >= 2\n    ex settings(keys=[], values=[]) == [\"fast\", \"3\"]\n    ex settings(keys=[\"level\"], values=[\"5\"]) == [\"fast\", \"5\"]\n    ex settings(keys=[\"x\", \"mode\"], values=[\"1\", \"slow\"]) == [\"slow\", \"3\", \"1\"]\n    ex settings(keys=[\"x\", \"y\", \"x\"], values=[\"1\", \"2\", \"3\"]) == [\"fast\", \"3\", \"3\", \"2\"]\n    vals: dict[str, str] = {\"mode\": \"fast\", \"level\": \"3\"}\n    extra: list[str] = []\n    for i in range(keys.len()):\n        k = keys[i].copy()\n        v = values[i].copy()\n        if k not in vals:\n            extra.append(k.copy())\n        vals[k] = v\n    res: list[str] = []\n    res.append((vals.get(\"mode\") else \"fast\").copy())\n    res.append((vals.get(\"level\") else \"3\").copy())\n    for k in extra:\n        res.append((vals.get(k) else \"\").copy())\n    return res\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2082,
+    "out": 646,
+    "reasoning": 368
+   },
+   "out_bytes": 630
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2458,
+    "out": 892,
+    "reasoning": 429
+   },
+   "out_bytes": 1089
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/tempt_merge_defaults",
+ "tokens": {
+  "body": {
+   "in": 2458,
+   "out": 892,
+   "reasoning": 429,
+   "out_bytes": 1089
+  },
+  "spec": {
+   "in": 2082,
+   "out": 646,
+   "reasoning": 368,
+   "out_bytes": 630
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

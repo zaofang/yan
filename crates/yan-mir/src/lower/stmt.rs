@@ -377,12 +377,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 });
                 for (k, (b, t)) in blocks.iter().zip(tasks).enumerate() {
                     self.cur = t;
-                    self.task_starts.push(self.locals.len() as Local);
+                    self.enter_frame(false);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
                     self.flush_deferred();
-                    self.task_starts.pop();
+                    self.leave_frame();
                     self.finish(Term::TaskEnd);
                 }
                 self.cur = join;
@@ -398,9 +398,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 for (k, b) in blocks.iter().enumerate() {
                     self.cur = entries[k];
                     self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
+                    self.enter_frame(true);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
+                    self.flush_deferred();
+                    self.leave_frame();
                     self.emit(Inst::Arm(ArmEvent::Exit));
                     self.finish(Term::Jump(entries.get(k + 1).copied().unwrap_or(join)));
                 }

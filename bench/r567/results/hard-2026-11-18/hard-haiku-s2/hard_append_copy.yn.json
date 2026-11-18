@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1311,
+   "reasoning": 1091,
+   "out_bytes": 498
+  },
+  "body": {
+   "in": 3783,
+   "out": 1678,
+   "reasoning": 1220,
+   "out_bytes": 1010
+  }
+ },
+ "final": "-- Spec: append a copy of s to the borrowed list dst, editing it in place.\n\n-- Length of xs after s is appended. Declared so add_name's effect can be stated and checked.\nadded_len(xs: List[str], s: str) -> int =\n  post out == xs.len() + 1\n  ex added_len([\"a\"], \"b\") == 2\n  xs.len() + 1\n\n-- Appends a deep copy of s to dst. Returns nothing; the caller's list is changed.\nadd_name(var dst: List[str], s: str) =\n  pre dst.len() >= 0\n  post dst.len() == added_len(dst, s) - 1 + 1\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1311,
+    "reasoning": 1091
+   },
+   "out_bytes": 498,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1744,
+    "out": 773,
+    "reasoning": 544
+   },
+   "out_bytes": 504,
+   "ok": false,
+   "report": "E203 task.yn:13:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2039,
+    "out": 905,
+    "reasoning": 676
+   },
+   "out_bytes": 506,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:13:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 1,
+  "ok": false
+ }
+}

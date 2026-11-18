@@ -1,0 +1,27 @@
+# spec: 6.7, 9.1
+# rows: R1089
+# note: a panic in an arm above the lowest leaving arm is discarded and the heap blocks that arm owned are freed, so the program ends with live: 0 at every thread count
+# stdout:
+# -1
+
+class Bad:
+    n: int
+
+def check(n: int) -> int fail Bad:
+    if n > 0:
+        fail Bad(n=n)
+    return n
+
+def boom(n: int) -> int:
+    xs: list[int] = [1, 2, 3]
+    return xs[n]
+
+def first(a: int) -> int fail Bad:
+    par:
+        x = check(a)?
+        s = 5
+        y = boom(a + 10)
+    return x + y
+
+pub def main() uses io:
+    io.print(f"{first(1) else e -> -1}")

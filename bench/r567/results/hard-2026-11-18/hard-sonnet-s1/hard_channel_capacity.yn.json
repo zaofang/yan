@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 458,
+   "reasoning": 321,
+   "out_bytes": 237
+  },
+  "body": {
+   "in": 3635,
+   "out": 1008,
+   "reasoning": 593,
+   "out_bytes": 803
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0 and out <= cap and out <= xs.len()\n  ex accepted(0, [1, 2]) == 0\n  ex accepted(2, [1, 2, 3]) == 2\n  ex accepted(5, [1, 2]) == 2\n  -- This toolchain has no channel type, so the channel is modelled by a\n  -- count of occupied slots. A send is accepted while a slot is free.\n  var n = 0\n  for i in range(0, xs.len())\n    if n < cap\n      n += 1\n    else\n      break\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 458,
+    "reasoning": 321
+   },
+   "out_bytes": 237,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1678,
+    "out": 540,
+    "reasoning": 349
+   },
+   "out_bytes": 341,
+   "ok": false,
+   "report": "E017 task.yn:7:3 accepted: `let ch: Chan[int] = chan(cap)` type `Chan`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1957,
+    "out": 468,
+    "reasoning": 244
+   },
+   "out_bytes": 462,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yn:7:3 accepted: `let ch: Chan[int] = chan(cap)` type `Chan`: not supported by this toolchain yet\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
