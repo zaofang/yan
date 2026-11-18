@@ -1113,7 +1113,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             }
             (id::STD_PRELUDE_SUM_FLOAT, [(_, a)]) => {
                 let l = self.scalar1(a)?;
-                let r = self.rt(RtFn::SumF64, Ty::F64, vec![l]);
+                let r = self.rt(RtFn::SumF64, Ty::F64, vec![l, Operand::Int(0)]);
                 set(self, r);
             }
             // An `iter` is its list, its cursor in the `limit` slot.
