@@ -1,0 +1,23 @@
+# spec: 6.2, 6.9
+# rows: R1105
+# note: store buffering with SeqCst stores and loads: both loads reading zero is forbidden, under every seed (RFC 0090 D3)
+# ub: none
+# seeds: all 16
+
+def left(x: Atomic[int], y: Atomic[int], r: Atomic[int]) -> None uses nondet:
+    x.store(1, StoreOrdering.SeqCst())
+    r.store(y.load(LoadOrdering.SeqCst()), StoreOrdering.SeqCst())
+
+def right(x: Atomic[int], y: Atomic[int], r: Atomic[int]) -> None uses nondet:
+    y.store(1, StoreOrdering.SeqCst())
+    r.store(x.load(LoadOrdering.SeqCst()), StoreOrdering.SeqCst())
+
+def main() uses nondet:
+    x = Atomic[int](0)
+    y = Atomic[int](0)
+    a = Atomic[int](5)
+    b = Atomic[int](5)
+    par:
+        left(x, y, a)
+        right(x, y, b)
+    assert a.load(LoadOrdering.SeqCst()) + b.load(LoadOrdering.SeqCst()) > 0
