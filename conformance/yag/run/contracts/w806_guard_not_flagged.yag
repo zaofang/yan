@@ -1,5 +1,5 @@
 # spec: 21.1
-# rows: R1095
+# rows: R1096
 # note: a guard whose result the rest of the body already produces is not special-casing
 # stdout:
 # False True

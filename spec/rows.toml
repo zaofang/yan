@@ -2162,6 +2162,6 @@ topic = "`Ptr.take[T]`: `unsafe`, reads the pointee and leaves it moved-from; `r
 sections = "6.6"
 
 [[entry]]
-rows = "R1095"
+rows = "R1096"
 topic = "W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690)"
 sections = "21.1"

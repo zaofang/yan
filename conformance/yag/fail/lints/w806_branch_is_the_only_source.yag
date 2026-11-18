@@ -1,5 +1,5 @@
 # spec: 21.1
-# rows: R1095
+# rows: R1096
 # expect: W806 at 8:8
 
 pub def double(x: int) -> int:
