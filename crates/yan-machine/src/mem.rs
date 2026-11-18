@@ -4,6 +4,8 @@
 pub enum Byte {
     Uninit,
     Init(u8),
+    /// The value moved out (RFC 0087); a store makes the byte `Init` again.
+    Moved,
 }
 
 pub struct Alloc {
@@ -101,6 +103,15 @@ impl Memory {
         let a = &self.allocs[self.find(addr)?];
         let at = (addr - a.base) as usize;
         a.bytes.get(at..at + n).map(<[Byte]>::to_vec)
+    }
+
+    /// Marks `n` bytes at `addr` moved-from; `None` when they are not inside one live allocation.
+    pub fn mark_moved(&mut self, addr: u64, n: usize) -> Option<()> {
+        let i = self.find(addr)?;
+        let a = &mut self.allocs[i];
+        let at = (addr - a.base) as usize;
+        a.bytes.get_mut(at..at + n)?.fill(Byte::Moved);
+        Some(())
     }
 
     pub fn write(&mut self, addr: u64, bytes: &[Byte]) -> Option<()> {

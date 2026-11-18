@@ -67,11 +67,13 @@ impl Fn<'_, '_> {
     /// local that may have been moved (R871).
     fn drop_owned(&mut self, n: &str) {
         let Some(flag) = self.flags.get(n).and_then(|f| self.names.get(f)) else {
-            return self.drop_name(n);
+            self.drop_name(n);
+            return self.mark_name(n);
         };
         let (set, unset) = self.branch(Operand::Local(flag.locals[0]));
         self.cur = set;
         self.drop_name(n);
+        self.mark_name(n);
         self.goto(unset);
     }
 
