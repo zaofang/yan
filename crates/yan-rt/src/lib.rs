@@ -28,6 +28,8 @@ pub mod csv;
 #[allow(unsafe_code)]
 pub mod csvslots;
 #[allow(unsafe_code)]
+pub mod deadline;
+#[allow(unsafe_code)]
 pub mod dq;
 #[allow(unsafe_code)]
 pub mod envhandler;
