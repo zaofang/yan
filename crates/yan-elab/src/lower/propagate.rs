@@ -82,11 +82,17 @@ impl Lower<'_, '_, '_> {
                     } else {
                         vec![]
                     };
+                    // A `From` that borrows its argument leaves `e` to drop at the end of this arm.
+                    let borrows = path.len() == 1
+                        && l.g
+                            .fns
+                            .get(&path[0])
+                            .is_some_and(|s| s.params.first().is_some_and(|p| p.conv == Conv::Let));
                     let c = y::Call {
                         path: path.clone(),
                         span: at,
                         targs,
-                        args: vec![sink_arg(f)],
+                        args: vec![if borrows { let_arg(f) } else { sink_arg(f) }],
                     };
                     f = l.tmp(&own, Rhs::Call(c), at);
                 }
