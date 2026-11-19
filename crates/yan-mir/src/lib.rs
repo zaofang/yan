@@ -271,6 +271,8 @@ pub enum RtFn {
     ReadAll,
     /// `(handler, Str) -> Str`, a null pointer on failure
     FsRead,
+    /// `(handler, Str) -> list[Path]`, null on failure like `FsRead`
+    FsListDir,
     /// `(dict[str, str]) -> handler`
     FsFake,
     /// `(sink, min level) -> handler`
@@ -970,6 +972,7 @@ impl RtFn {
                 | RtFn::ReadLine
                 | RtFn::ReadAll
                 | RtFn::FsRead
+                | RtFn::FsListDir
                 | RtFn::FsReason
                 | RtFn::ShowI64
                 | RtFn::ShowU64

@@ -923,6 +923,29 @@ impl Machine<'_> {
                     }
                 }
             }
+            RtFn::FsListDir => {
+                let path = self.str_of(a[1].addr())?;
+                let names = match a[0].int() {
+                    0 => yan_rt::abi::fs_list_dir(&path),
+                    h => yan_rt::fshandler::fake_list(
+                        self.fs_fakes[h as usize - 1].keys().map(String::as_str),
+                        &path,
+                    ),
+                };
+                match names {
+                    Ok(names) => {
+                        let ws: Vec<u64> = yan_rt::abi::list_entries(&path, names)
+                            .iter()
+                            .map(|s| self.new_str(s))
+                            .collect();
+                        self.new_list(1, word_bytes(&ws))
+                    }
+                    Err(reason) => {
+                        self.fs_reason = reason;
+                        Val::I(0)
+                    }
+                }
+            }
             RtFn::FsReason => {
                 let reason = self.fs_reason.clone();
                 Val::I(i128::from(self.new_str(&reason)))

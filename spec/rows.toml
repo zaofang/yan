@@ -2215,3 +2215,8 @@ sections = "14.1, 25"
 rows = "R1108"
 topic = "A channel constructor habit (`Chan`, `chan`, `channel`, `make_chan`, `Queue`, `queue.Queue`, `asyncio.Queue`, `sync.Channel`, `nondet.channel`) that names nothing in scope is one E200 naming `Channel[T](capacity)`, with no E017 before it (RFC 0094)"
 sections = "9.5"
+
+[[entry]]
+rows = "R1109"
+topic = "`fs.list_dir(path)` returns `list[Path]` of the directory's entries without `.` and `..`, each joined onto `path`, sorted by name in byte order; failures are `FsError` with reason `not found`, `not a directory` or `NotUnicode`; `fake_fs` directories are implied by its file names; `fs.only` and `fs.sub` attenuate it as they do reads (S0 of #1505, #1737)"
+sections = "17.3"
