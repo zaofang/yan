@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: code reading for #1703 (no study; the facts are cited below)
-- Rows: R1109 (D3); D1 and D2 rows land with their slices
+- Rows: R1110 (D3); D1 and D2 rows land with their slices
 
 ## Summary
 
@@ -67,7 +67,7 @@ checker already accepts it, and (c) is a special case with no principled edge. T
 case that spells it in each position (expression, pattern, argument).
 
 - Decision: accepted as recommended, (a) (lead card, 2026-11-19). The formatter rule (print `T.V` only where it disambiguates) is not in S1: the formatter keeps the written spelling
-- Row: R1109
+- Row: R1110
 
 ### D4: slices
 

@@ -2217,6 +2217,6 @@ topic = "A channel constructor habit (`Chan`, `chan`, `channel`, `make_chan`, `Q
 sections = "9.5"
 
 [[entry]]
-rows = "R1109"
+rows = "R1110"
 topic = "`T.V(args)` is the qualified spelling of variant `V` of sum `T` in an expression, a pattern and an argument, in Yan and Yan Agent; always legal, and the only legal spelling when two sums in scope share the variant name, whose bare form is E200 (RFC 0093 D3, S1 of #1703)"
 sections = "15.3"

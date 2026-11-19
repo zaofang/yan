@@ -1,5 +1,5 @@
 # spec: 15.3
-# rows: R1109
+# rows: R1110
 # note: T.V names a variant in an expression, a pattern and an argument, including a variant name that two sums share
 # stdout:
 # 15
