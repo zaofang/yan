@@ -1165,6 +1165,16 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
             }),
         ),
         (
+            STD_IO_EPRINT,
+            Bind::Cap(|_, a| match a {
+                [Value::Cap(_), Value::Str(s)] => match writeln!(std::io::stderr(), "{s}") {
+                    Ok(()) => Ok(Value::Unit),
+                    Err(e) => unsupported(format!("stderr: {e}")),
+                },
+                _ => bad_args(STD_IO_EPRINT),
+            }),
+        ),
+        (
             STD_IO_READ_LINE,
             Bind::Cap(|_, _| {
                 let mut line = String::new();

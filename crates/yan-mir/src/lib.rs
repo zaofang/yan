@@ -263,6 +263,8 @@ pub enum ArmEvent {
 pub enum RtFn {
     /// `(Str)`
     Print,
+    /// `(Str)`: the text and a newline on stderr
+    Eprint,
     /// `(Str, i64)`: the shown failure of `main` on stderr, then that exit status; does not return.
     FailMain,
     /// `() -> Str`, a null pointer at end of input

@@ -154,6 +154,10 @@ impl Lower<'_, '_, '_> {
                 let (r, t, _) = self.cap_call("io", "print", args, at)?;
                 Ok((r, t))
             }
+            "eprint" => {
+                let (r, t, _) = self.cap_call("io", "eprint", args, at)?;
+                Ok((r, t))
+            }
             "evolve" => {
                 let Some(first) = args.first().filter(|a| a.name.is_none()) else {
                     self.err("E202", at, "`evolve` takes a record first".into());

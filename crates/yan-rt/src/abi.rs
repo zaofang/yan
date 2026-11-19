@@ -28,6 +28,17 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     }
 }
 
+/// `std.io.eprint`: the text and a newline on stderr.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_eprint_str(s: *const String) {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    let _ = writeln!(std::io::stderr(), "{s}");
+}
+
 /// A panic of kind `ptr[..len]` (8.3): reported on stderr, exit status 101.
 ///
 /// # Safety

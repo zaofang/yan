@@ -246,7 +246,7 @@ impl Lower<'_, '_, '_> {
             return self.call_sig(op, &s, Some(&recv), args, at);
         }
         // `print` takes any `Show` value and prints `show(x)` (R655).
-        if path == "std.io.print"
+        if (path == "std.io.print" || path == "std.io.eprint")
             && let [
                 j::Arg {
                     name: None,

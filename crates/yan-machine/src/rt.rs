@@ -499,6 +499,11 @@ impl Machine<'_> {
                     .map_err(|e| Stop::Fault(e.to_string()))?;
                 Val::U
             }
+            RtFn::Eprint => {
+                let s = self.str_of(a[0].addr())?;
+                writeln!(std::io::stderr(), "{s}").map_err(|e| Stop::Fault(e.to_string()))?;
+                Val::U
+            }
             RtFn::FailMain => return Err(Stop::Fail(self.str_of(a[0].addr())?, a[1].int() as i64)),
             RtFn::ShowI64 => Val::I(i128::from(self.new_str(&(a[0].int() as i64).to_string()))),
             RtFn::ShowU64 => Val::I(i128::from(self.new_str(&(a[0].int() as u64).to_string()))),
