@@ -301,8 +301,8 @@ struct Mono<'m> {
     todo: Vec<Todo<'m>>,
     /// The actor thunks made, by kind and shape (`actor.rs`).
     thunks: HashMap<(actor::Thunk, Shape), FuncId>,
-    /// The walks over recursive types made, by walk and type name (`knot.rs`).
-    walks: HashMap<(knot::Walk, String), FuncId>,
+    /// The walks made, by walk and type (`knot.rs`).
+    walks: HashMap<(knot::Walk, Shape), FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
     consts: Vec<&'m y::Const>,

@@ -146,6 +146,18 @@ impl<'a, 'm> Fn<'a, 'm> {
         if !Self::has_heap(s) {
             return;
         }
+        if Self::outlined(s) {
+            self.walk_shape(knot::Walk::Drop, s, v);
+            return;
+        }
+        self.glue_body(s, v);
+    }
+
+    /// `glue` of `s` with its own type expanded and the types it holds called.
+    pub(super) fn glue_body(&mut self, s: &Shape, v: &[Operand]) {
+        if !Self::has_heap(s) {
+            return;
+        }
         match s {
             Shape::Scalar(_) | Shape::Char | Shape::Actor(_) | Shape::Ptr | Shape::Ref(_) => {}
             Shape::Arena => self.free(RtFn::ArenaFree, v[0].clone()),
