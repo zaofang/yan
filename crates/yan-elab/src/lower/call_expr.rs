@@ -13,6 +13,9 @@ impl Lower<'_, '_, '_> {
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
+        if let Some(r) = self.channel_near_miss(f, at) {
+            return Ok(r);
+        }
         let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.value_bound(s));
         match &f.kind {
             j::ExprKind::Index(b, k)

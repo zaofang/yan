@@ -449,6 +449,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1105 | `--ub` weak memory: under a nonzero seed a non-`SeqCst` atomic `load` reads any of the last four stores to its location that coherence and happens-before allow, chosen by the seed; seed 0, read-modify-writes, failed compare-exchanges and `SeqCst` loads read the newest (RFC 0090 D3) | 6.9 |
 | R1106 | `v?` on a `Result[T, E]` value (a local, field or any expression) unwraps `Ok` and fails with the `E` arm, with the same injection and `From` rules as a call's `?` (E310, E313); the value is consumed (RFC 0092 D1, S1 of #1727) | 14.1 |
 | R1107 | `x?` where `x` is neither a fallible call nor a `Result` value is E201 naming the type, not E017 (RFC 0092 D2, S1 of #1727) | 14.1, 25 |
+| R1108 | A channel constructor habit (`Chan`, `chan`, `channel`, `make_chan`, `Queue`, `queue.Queue`, `asyncio.Queue`, `sync.Channel`, `nondet.channel`) that names nothing in scope is one E200 naming `Channel[T](capacity)`, with no E017 before it (RFC 0094) | 9.5 |
 | R1109 | `T.V(args)` is the qualified spelling of variant `V` of sum `T` in an expression, a pattern and an argument, in Yan and Yan Agent; always legal, and the only legal spelling when two sums in scope share the variant name, whose bare form is E200 (RFC 0093 D3, S1 of #1703) | 15.3 |
 
 <!-- /rows -->

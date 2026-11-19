@@ -144,3 +144,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-16 | Capability security review: escapes from `uses` and the ceiling | F1 to F4: #1388 (High), #1389 (High), #1390 (Medium), #1391 (Low); no rows |
 | 2026-11-17 | Module, file and package structure: keep and avoid across 16 ecosystems | RFC 0084; D1 to D12; no rows |
 | 2026-11-17 | Design: one ownership analysis in `yan-check`, Drop/`@linear` partial-move rejection | #1583; D1 to D6, slices 1 to 4; D5 accepted 2026-11-17; no rows |
+| 2026-11-19 | Self-hosting sizing: stages, blockers, sizes, critical path | #851; estimates with stated assumptions A1 to A4; files #1737, #1738, #1739; no calendar date; no rows |

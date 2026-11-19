@@ -138,14 +138,6 @@ const TABLE: &[Habit] = &[
     },
     Habit {
         ext: "yn",
-        lang: "go",
-        codes: &["E200", "E017"],
-        on: |l| l.contains("Chan[") || l.contains("Chan("),
-        text: "`Chan` is not a Yan name: a bounded channel is `let (tx, rx) = Channel[T](capacity)`, \
-               a `Sender` and a `Receiver`",
-    },
-    Habit {
-        ext: "yn",
         lang: "rust",
         codes: &["E017"],
         on: |l| {
@@ -255,19 +247,17 @@ mod selftest {
 
     #[test]
     fn benchmark_gap_hints() {
-        let src = "  with fs = fs.sub(\"n\"):\n  o.push(x)\n  let (a, b) = Chan[int](c)\n  ys?\n";
+        let src = "  with fs = fs.sub(\"n\"):\n  o.push(x)\n  ys?\n";
         let mut ds = vec![
             diag("E100", "a.yn", 1),
             diag("E203", "a.yn", 2),
             diag("E017", "a.yn", 3),
-            diag("E017", "a.yn", 4),
         ];
         annotate(src, &mut ds);
         let t = |i: usize| ds[i].children[0].text.as_str();
         assert!(t(0).contains("no trailing `:`"));
         assert!(t(1).contains("append"));
-        assert!(t(2).contains("Channel[T](capacity)"));
-        assert!(t(3).contains("check(x)?"));
+        assert!(t(2).contains("check(x)?"));
     }
 
     #[test]

@@ -764,10 +764,10 @@ impl Lower<'_, '_, '_> {
             K::Lambda(ps, body) => self.lambda(ps, body, want)?,
             K::Cast(x, j::Type::Named { path, args })
                 if args.is_empty()
-                    && matches!(path.as_slice(), [n] if n == "i64" || n == "f64")
+                    && matches!(path.as_slice(), [n] if n == "i64" || n == "int" || n == "f64")
                     && !self.fixed_local(x) =>
             {
-                let conv = if path[0] == "i64" { "int" } else { "float" };
+                let conv = if path[0] != "f64" { "int" } else { "float" };
                 let arg = j::Arg {
                     name: None,
                     kind: j::ArgKind::Expr((**x).clone()),
