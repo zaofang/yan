@@ -528,47 +528,12 @@ impl Lower<'_, '_, '_> {
             }
             K::Try(x) => {
                 let j::ExprKind::Call(f, args) = &x.kind else {
-                    return unsupported("`?` on a value that is not a call");
+                    return self.propagate_value(x, at);
                 };
                 let (r, t, fail) = self.call_expr(f, args, x.span, None)?;
                 match (fail, r) {
                     (Some(e), Rhs::Call(c)) => {
-                        if self.sig.fail.is_none() {
-                            self.err(
-                                "E310",
-                                at,
-                                format!(
-                                    "`?` passes a `{e}` failure up, but `{}` cannot fail; \
-                                     declare `fail {e}` on it or handle the failure with `else`",
-                                    self.item
-                                ),
-                            );
-                        }
-                        // `?` injects any failure into `Error` with no `From` (R432).
-                        let into_error = e != Ty::Data("Error".into())
-                            && self.sig.fail == Some(Ty::Data("Error".into()))
-                            && self.g.std_records.contains("Error");
-                        let from =
-                            self.sig.fail.as_ref().and_then(|own| {
-                                self.g.froms.get(&(e.to_string(), own.to_string()))
-                            });
-                        let injects =
-                            matches!(&self.sig.fail, Some(Ty::Union(ms)) if ms.contains(&e));
-                        if from.is_some() && injects {
-                            self.err(
-                                "E313",
-                                at,
-                                format!(
-                                    "`?` could inject the `{e}` failure into the union or convert it \
-                                     with `From`; remove the `From` implementation"
-                                ),
-                            );
-                        }
-                        let via = match from {
-                            Some(f) => Some(vec![f.clone()]),
-                            None => into_error
-                                .then(|| vec!["std".into(), "error".into(), "wrap".into()]),
-                        };
+                        let via = self.fail_conversion(&e, at);
                         (
                             Rhs::Propagate {
                                 call: c,

@@ -2200,3 +2200,13 @@ sections = "6.9"
 rows = "R1105"
 topic = "`--ub` weak memory: under a nonzero seed a non-`SeqCst` atomic `load` reads any of the last four stores to its location that coherence and happens-before allow, chosen by the seed; seed 0, read-modify-writes, failed compare-exchanges and `SeqCst` loads read the newest (RFC 0090 D3)"
 sections = "6.9"
+
+[[entry]]
+rows = "R1106"
+topic = "`v?` on a `Result[T, E]` value (a local, field or any expression) unwraps `Ok` and fails with the `E` arm, with the same injection and `From` rules as a call's `?` (E310, E313); the value is consumed (RFC 0092 D1, S1 of #1727)"
+sections = "14.1"
+
+[[entry]]
+rows = "R1107"
+topic = "`x?` where `x` is neither a fallible call nor a `Result` value is E201 naming the type, not E017 (RFC 0092 D2, S1 of #1727)"
+sections = "14.1, 25"

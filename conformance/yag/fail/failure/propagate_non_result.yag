@@ -1,0 +1,11 @@
+# spec: 14.1
+# rows: R1107
+# milestone: M1b
+# note: `x?` on a value that is neither a fallible call nor a `Result` is E201, not E017
+# expect: E201 at 11:12
+
+class A:
+    msg: str
+
+def bad(x: int) -> int fail A:
+    return x?
