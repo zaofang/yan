@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1177,
+   "reasoning": 1034,
+   "out_bytes": 311
+  },
+  "body": {
+   "in": 3548,
+   "out": 1033,
+   "reasoning": 737,
+   "out_bytes": 634
+  }
+ },
+ "final": "-- Spec: append a copy of s to the borrowed list dst, in place.\n-- dst is a var parameter, so the caller passes &xs. s is only borrowed,\n-- so the body must store copy s, not s.\n\nadd_name(var dst: List[str], s: str) =\n  pre dst.len() >= 0\n  post dst.len() >= 1\n  ex add_name(&[\"x\"], \"y\")\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1177,
+    "reasoning": 1034
+   },
+   "out_bytes": 311,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1667,
+    "out": 505,
+    "reasoning": 357
+   },
+   "out_bytes": 316,
+   "ok": false,
+   "report": "E203 task.yn:9:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1881,
+    "out": 528,
+    "reasoning": 380
+   },
+   "out_bytes": 318,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:9:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

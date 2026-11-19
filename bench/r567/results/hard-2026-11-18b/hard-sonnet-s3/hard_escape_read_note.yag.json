@@ -1,0 +1,128 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single non-empty path component: no separators, no NUL, not \".\" or \"..\", not absolute or drive-prefixed.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"\") == False\n    ex is_plain_name(\"..\") == False\n    ex is_plain_name(\"../x\") == False\n    ex is_plain_name(\"a/b\") == False\n    ex is_plain_name(\"a\\\\b\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \"\\0\" or c == \":\":\n            return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`, or \"\" if the name is not a plain single file name, or the file is missing or unreadable. Runs with fs confined to `notes`, so no name can reach outside it.\"\"\"\n    post is_plain_name(name) or out == \"\"\n    if not is_plain_name(name):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read_text(name) else \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpa72pk_ls/work/task.yag:14:8 read_note: `assert read_note(\"\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpa72pk_ls/work/task.yag:15:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpa72pk_ls/work/task.yag:16:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmpa72pk_ls/work/task.yag:17:8 read_note: `assert read_note(\"no-such-note-9f3a.txt\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 643,
+    "reasoning": 280
+   },
+   "out_bytes": 880
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2820,
+    "out": 548,
+    "reasoning": 242
+   },
+   "out_bytes": 769
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3224,
+    "out": 816,
+    "reasoning": 401
+   },
+   "out_bytes": 1074
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 3224,
+   "out": 816,
+   "reasoning": 401,
+   "out_bytes": 1074
+  },
+  "spec": {
+   "in": 4940,
+   "out": 1191,
+   "reasoning": 522,
+   "out_bytes": 1649
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpa72pk_ls/work/task.yag:14:8 read_note: `assert read_note(\"\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpa72pk_ls/work/task.yag:15:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpa72pk_ls/work/task.yag:16:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in sc"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

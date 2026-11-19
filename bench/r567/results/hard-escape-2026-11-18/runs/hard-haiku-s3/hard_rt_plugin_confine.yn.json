@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 1435,
+   "reasoning": 1294,
+   "out_bytes": 295
+  },
+  "body": {
+   "in": 6459,
+   "out": 2460,
+   "reasoning": 1718,
+   "out_bytes": 1668
+  }
+ },
+ "final": "-- Phase 2: implementation. Signatures and contract lines are unchanged.\n\nplugin(path: str) -> str uses fs =\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = plugin(path)\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 1435,
+    "reasoning": 1294
+   },
+   "out_bytes": 295,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1856,
+    "out": 821,
+    "reasoning": 609
+   },
+   "out_bytes": 444,
+   "ok": false,
+   "report": "E100 task.yn:13:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2134,
+    "out": 898,
+    "reasoning": 635
+   },
+   "out_bytes": 589,
+   "ok": false,
+   "report": "E312 task.yn:14:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2469,
+    "out": 741,
+    "reasoning": 474
+   },
+   "out_bytes": 635,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:13:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

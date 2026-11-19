@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1539,
+   "out": 316,
+   "reasoning": 234,
+   "out_bytes": 173
+  },
+  "body": {
+   "in": 3570,
+   "out": 1168,
+   "reasoning": 937,
+   "out_bytes": 487
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"missing-note-name\") == \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1539,
+    "out": 316,
+    "reasoning": 234
+   },
+   "out_bytes": 173,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1694,
+    "out": 646,
+    "reasoning": 530
+   },
+   "out_bytes": 244,
+   "ok": false,
+   "report": "E100 task.yn:6:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1876,
+    "out": 522,
+    "reasoning": 407
+   },
+   "out_bytes": 243,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:6:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 3189,
+   "reasoning": 1435,
+   "out_bytes": 3689
+  },
+  "body": {
+   "in": 2946,
+   "out": 2707,
+   "reasoning": 825,
+   "out_bytes": 4101
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first readable file in the ``notes`` directory.\n\n    ``names`` is tried in order. Each name is resolved relative to the\n    ``notes`` directory under the current working directory. Missing,\n    unreadable, and non-file entries are skipped. Any name that resolves\n    outside ``notes``, whether through ``..``, an absolute path, or a\n    symlink, is skipped and its target is never read. Returns an empty\n    string when no name yields a readable file.\n    \"\"\"\n    base = (Path.cwd() / \"notes\").resolve()\n    for name in names:\n        try:\n            candidate = (base / name).resolve()\n            if candidate == base or not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError):\n            continue\n    return \"\"\n\n\ndef test_returns_first_readable_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    (notes / \"b.txt\").write_text(\"beta\", encoding=\"utf-8\")\n    assert first_readable([\"a.txt\", \"b.txt\"]) == \"alpha\"\n\n\ndef test_skips_missing_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"b.txt\").write_text(\"beta\", encoding=\"utf-8\")\n    assert first_readable([\"missing.txt\", \"b.txt\"]) == \"beta\"\n\n\ndef test_empty_list_returns_empty_string(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert first_readable([]) == \"\"\n\n\ndef test_all_missing_returns_empty_string(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert first_readable([\"x.txt\", \"y.txt\"]) == \"\"\n\n\ndef test_directory_entry_is_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    assert first_readable([\"sub\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_empty_name_is_skipped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    assert first_readable([\"\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_parent_traversal_is_not_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"notes/../secret.txt\"]) == \"\"\n\n\ndef test_traversal_skipped_then_later_name_used(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_absolute_path_is_not_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    assert first_readable([str(secret)]) == \"\"\n\n\ndef test_symlink_escaping_notes_is_not_read(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    (notes / \"link.txt\").symlink_to(secret)\n    assert first_readable([\"link.txt\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 3189,
+    "reasoning": 1435
+   },
+   "out_bytes": 3689,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2946,
+    "out": 2707,
+    "reasoning": 825
+   },
+   "out_bytes": 4101,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

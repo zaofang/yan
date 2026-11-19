@@ -118,7 +118,7 @@ const MIRROR: &str = "type Point = { x: int, y: float }\n\n\
                       \x20 match meta.info(t)\n\
                       \x20   Record(info:) ->\n\
                       \x20     let fields = info.fields.map(f -> FieldInfo(name: f.name + \"2\", ty: f.ty, public: True, annotations: []))\n\
-                      \x20     meta.record_type(RecordInfo(name: \"Mirror\", params: [], fields: fields, annotations: [], layout: Layout(size: 0, align: 1)))\n\
+                      \x20     meta.record_type(RecordInfo(name: \"Mirror\", params: [], fields: fields, annotations: [], layout: None))\n\
                       \x20   _ -> t\n\n";
 
 #[test]
@@ -158,7 +158,7 @@ fn type_functions_reify_sums_and_newtypes_and_chain() {
                \x20 match meta.info(t)\n\
                \x20   Sum(info:) ->\n\
                \x20     let vs = info.variants.map(v -> VariantInfo(name: v.name + \"\\(n)\", fields: v.fields))\n\
-               \x20     meta.sum_type(SumInfo(name: \"S\\(n)\", params: [], variants: vs, annotations: [], layout: Layout(size: 0, align: 1)))\n\
+               \x20     meta.sum_type(SumInfo(name: \"S\\(n)\", params: [], variants: vs, annotations: [], layout: None))\n\
                \x20   _ -> meta.newtype(NewtypeInfo(name: \"N\\(n)\", inner: t, annotations: []))\n\n\
                type Wrapped = wrap(Shape, 1)\n\
                type Id = wrap(int, 2)\n\
@@ -348,7 +348,7 @@ fn info_reports_field_annotations_and_reifiers_keep_them() {
                \x20   _ -> \"other\"\n\n\
                clone_of(t: Type) -> Type =\n\
                \x20 match meta.info(t)\n\
-               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: [], layout: Layout(size: 0, align: 1)))\n\
+               \x20   Record(info:) -> meta.record_type(RecordInfo(name: \"Copy\", params: [], fields: info.fields, annotations: [], layout: None))\n\
                \x20   _ -> t\n\n\
                type Twin = clone_of(Point)\n\n\
                let a: str = #tags(Point)\n\
@@ -415,13 +415,17 @@ fn an_application_inside_a_larger_expression_is_hoisted() {
 }
 
 #[test]
-fn info_reports_layout_of_records_and_sums() {
+fn info_reports_no_layout_for_default_layout() {
     let src = format!(
         "{TYPES}\
+         show(l: Layout?) -> str =\n\
+         \x20 match l\n\
+         \x20   Some(x) -> \"\\(x.size) \\(x.align)\"\n\
+         \x20   None -> \"none\"\n\n\
          lay(t: Type) -> str =\n\
          \x20 match meta.info(t)\n\
-         \x20   Record(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
-         \x20   Sum(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
+         \x20   Record(info:) -> show(info.layout)\n\
+         \x20   Sum(info:) -> show(info.layout)\n\
          \x20   _ -> \"other\"\n\n\
          let a: str = #lay(Point)\n\
          let b: str = #lay(Shape)\n\
@@ -430,19 +434,23 @@ fn info_reports_layout_of_records_and_sums() {
          \x20 io.print(a)\n\
          \x20 io.print(b)\n"
     );
-    assert_eq!(run(&src), "16 8\n24 8\n");
+    assert_eq!(run(&src), "none\nnone\n");
 }
 
 #[test]
-fn info_reports_packed_layout_of_bits_records() {
+fn info_reports_no_layout_for_bits_records_until_l1() {
     let src = "@layout(bits(u16))\n\
                type Reg = { lo: u8, hi: u8 }\n\n\
+               show(l: Layout?) -> str =\n\
+               \x20 match l\n\
+               \x20   Some(x) -> \"\\(x.size) \\(x.align)\"\n\
+               \x20   None -> \"none\"\n\n\
                lay(t: Type) -> str =\n\
                \x20 match meta.info(t)\n\
-               \x20   Record(info:) -> \"\\(info.layout.size) \\(info.layout.align)\"\n\
+               \x20   Record(info:) -> show(info.layout)\n\
                \x20   _ -> \"other\"\n\n\
                let a: str = #lay(Reg)\n\n\
                main() uses io =\n\
                \x20 io.print(a)\n";
-    assert_eq!(run(src), "2 2\n");
+    assert_eq!(run(src), "none\n");
 }

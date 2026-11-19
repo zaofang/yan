@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1466,
+   "out": 1021,
+   "reasoning": 813,
+   "out_bytes": 513
+  },
+  "body": {
+   "in": 1747,
+   "out": 1166,
+   "reasoning": 868,
+   "out_bytes": 754
+  }
+ },
+ "final": "-- Spec phase: config_value returns the value for `key` in `name=value`\n-- per-line text, or \"\" when the key is absent. Pure: no capabilities.\n\nconfig_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  post out.char_count() >= 0\n  ex config_value(\"host=local\\nport=8080\", \"port\") == \"8080\"\n  ex config_value(\"host=local\\nport=8080\", \"user\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2 and parts[0] == key\n      var value = \"\"\n      for i in range(1, parts.len())\n        if i > 1\n          value += \"=\"\n        value += parts[i]\n      return value\n  \"\"\n\ntest_config_value() =\n  assert config_value(\"host=local\\nport=8080\", \"host\") == \"local\"\n  assert config_value(\"\", \"host\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1466,
+    "out": 1021,
+    "reasoning": 813
+   },
+   "out_bytes": 513,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1747,
+    "out": 1166,
+    "reasoning": 868
+   },
+   "out_bytes": 754,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

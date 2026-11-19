@@ -1,0 +1,27 @@
+# spec: 9.4
+# rows: R1111, R788
+# note: sleep and sleep_until stop at the innermost deadline and fail Timeout, under virtual time, on every backend (RFC 0093 S2b-2, #1703)
+# stdout:
+# a
+# timeout Timeout()
+# b
+# PT0.05S
+# until timeout
+# PT0.05S
+
+def nap(ms: int) -> None fail Cancelled | Timeout uses time:
+    time.sleep(Duration.millis(ms))?
+
+pub def main() -> None fail Cancelled | Timeout uses io, time:
+    start = Instant.parse("2000-01-01T00:00:00Z") else Instant.from_unix_seconds(0)
+    with time = virtual(start):
+        m = time.monotonic()
+        with timeout(Duration.millis(50)):
+            nap(10) else e -> io.print("early")
+            io.print("a")
+            nap(200) else e -> io.print(f"timeout {e}")
+            io.print("b")
+        io.print(f"{time.monotonic() - m}")
+        with deadline(m + Duration.millis(5)):
+            time.sleep_until(m + Duration.seconds(1)) else e -> io.print("until timeout")
+        io.print(f"{time.monotonic() - m}")

@@ -12,6 +12,11 @@ impl Fn<'_, '_> {
         if let Some(r) = self.walk_pair(knot::Walk::Eq, s, a, b) {
             return Ok(r);
         }
+        self.eq_body(s, a, b)
+    }
+
+    /// `eq_value` of a type with no key schema, its own type expanded and the types it holds called.
+    pub(super) fn eq_body(&mut self, s: &Shape, a: &[Operand], b: &[Operand]) -> R<Operand> {
         let r = self.local(Ty::Bool);
         let set = |me: &mut Self, v: Operand| me.emit(Inst::Copy { dst: r, src: v });
         set(self, Operand::Bool(true));
@@ -81,6 +86,11 @@ impl Fn<'_, '_> {
         if let Some(o) = self.walk_pair(knot::Walk::Cmp, s, a, b) {
             return Ok(o);
         }
+        self.cmp_body(s, a, b)
+    }
+
+    /// `cmp_value` of a type with no key schema, its own type expanded and the types it holds called.
+    pub(super) fn cmp_body(&mut self, s: &Shape, a: &[Operand], b: &[Operand]) -> R<Operand> {
         let o = self.local(I64);
         let set = |me: &mut Self, v: Operand| me.emit(Inst::Copy { dst: o, src: v });
         set(self, Operand::Int(0));
@@ -163,6 +173,9 @@ impl Fn<'_, '_> {
         a: &[Operand],
         b: &[Operand],
     ) -> Option<Operand> {
+        if Self::outlined(s) {
+            return Some(self.walk_shape(w, s, &[a, b].concat())[0].clone());
+        }
         let (k, mut v) = match s {
             Shape::Named(k) => (k, a.to_vec()),
             Shape::Boxed(k) => (k, self.unbox(k, &a[0])),

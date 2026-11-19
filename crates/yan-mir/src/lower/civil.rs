@@ -325,11 +325,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             for (_, a) in &args {
                 words.extend(self.time_words(a)?);
             }
-            self.civil_raw(op, words)?;
+            let status = self.civil_raw(op, words)?;
             if dst.shape.variant("Ok").is_some() {
-                // `sleep` fails only at a deadline, which native code has none of.
-                let ok = Self::variant_value(&dst.shape, "Ok", vec![Operand::Unit]);
-                self.copy_to(&dst.locals, ok);
+                // Status 5: the sleep reached the enclosing deadline.
+                self.chan_result(&dst, status, |_| vec![Operand::Unit])?;
             } else {
                 let tys = dst.shape.tys();
                 let out: Vec<Operand> = tys

@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 416,
+   "reasoning": 279,
+   "out_bytes": 240
+  },
+  "body": {
+   "in": 5984,
+   "out": 1893,
+   "reasoning": 1127,
+   "out_bytes": 1656
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= cap\n  post out <= xs.len()\n  ex accepted(2, [1, 2, 3]) == 2\n  ex accepted(5, [1, 2]) == 2\n  ex accepted(0, [7]) == 0\n  var n = 0\n  for i in range(0, xs.len())\n    if n >= cap\n      break\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 416,
+    "reasoning": 279
+   },
+   "out_bytes": 240,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1678,
+    "out": 568,
+    "reasoning": 381
+   },
+   "out_bytes": 338,
+   "ok": false,
+   "report": "E017 task.yn:9:12 accepted: `Chan[int](cap)` calling a value: not supported by this toolchain yet\nE200 task.yn:9:12 accepted: `Chan` cannot find `Chan`",
+   "codes": [
+    "E017",
+    "E200"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1974,
+    "out": 775,
+    "reasoning": 504
+   },
+   "out_bytes": 583,
+   "ok": false,
+   "report": "E017 task.yn:9:12 accepted: `nondet.channel(cap)` capability operation `nondet.channel`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2332,
+    "out": 550,
+    "reasoning": 242
+   },
+   "out_bytes": 735,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yn:9:12 accepted: `Chan[int](cap)` calling a value: not supported by this toolchain yet\nE200 ./task.yn:9:12 accepted: `Chan` cannot find `Chan`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

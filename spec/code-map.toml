@@ -97,7 +97,7 @@ E307 = "crates/yan-yn/src/lower.rs"
 E310 = "crates/yan-check/src/lib.rs"
 E311 = "crates/yan-check/src/lib.rs"
 E312 = "crates/yan-check/src/lib.rs"
-E313 = "crates/yan-elab/src/lower/rhs.rs"
+E313 = "crates/yan-elab/src/lower/propagate.rs"
 E314 = "crates/yan-elab/src/desugar.rs"
 E315 = "crates/yan-elab/src/lower/rhs.rs"
 E316 = { unimplemented = "#825" }
@@ -254,3 +254,5 @@ W858 = { unimplemented = "#825" }
 W859 = { unimplemented = "#825" }
 W860 = "crates/yan-db/src/docs.rs"
 W861 = "crates/yan-db/src/docs.rs"
+W862 = "crates/yan-cli/src/main.rs"
+W863 = "crates/yan-elab/src/lower/propagate.rs"

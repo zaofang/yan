@@ -1,0 +1,94 @@
+{
+ "final": "def isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r*r <= n.\"\"\"\n    pre n >= 0\n    post out >= 0 and out * out <= n and (out + 1) * (out + 1) > n\n    ex isqrt(0) == 0\n    ex isqrt(1) == 1\n    ex isqrt(15) == 3\n    ex isqrt(16) == 4\n    lo = 0\n    hi = 3037000500\n    while hi - lo > 1:\n        mid = (lo + hi) // 2\n        if mid * mid <= n:\n            lo = mid\n        else:\n            hi = mid\n    return lo\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 145,
+    "reasoning": 0
+   },
+   "out_bytes": 272
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2278,
+    "out": 653,
+    "reasoning": 433
+   },
+   "out_bytes": 444
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/isqrt_contract",
+ "tokens": {
+  "body": {
+   "in": 2278,
+   "out": 653,
+   "reasoning": 433,
+   "out_bytes": 444
+  },
+  "spec": {
+   "in": 2035,
+   "out": 145,
+   "reasoning": 0,
+   "out_bytes": 272
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

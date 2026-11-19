@@ -1,0 +1,96 @@
+{
+ "final": "def parity(x: int) -> int:\n    \"\"\"Return 0 for even x and 1 for odd x.\"\"\"\n    post out == 0 or out == 1\n    ex parity(4) == 0\n    ex parity(7) == 1\n    ex parity(-3) == 1\n    return x % 2\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity of each element of xs, computed in parallel, in input order.\"\"\"\n    post out.len() == xs.len()\n    post all([out[i] == parity(xs[i]) for i in range(xs.len())])\n    ex parities([3, 4, 7]) == [1, 0, 1]\n    ex parities([]) == []\n    ex parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n    return par [parity(x) for x in xs]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "N18"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2057,
+    "out": 749,
+    "reasoning": 491
+   },
+   "out_bytes": 535
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2413,
+    "out": 632,
+    "reasoning": 359
+   },
+   "out_bytes": 575
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_order",
+ "tokens": {
+  "body": {
+   "in": 2413,
+   "out": 632,
+   "reasoning": 359,
+   "out_bytes": 575
+  },
+  "spec": {
+   "in": 2057,
+   "out": 749,
+   "reasoning": 491,
+   "out_bytes": 535
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

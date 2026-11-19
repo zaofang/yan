@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 1764,
+   "reasoning": 1449,
+   "out_bytes": 746
+  },
+  "body": {
+   "in": 7655,
+   "out": 5348,
+   "reasoning": 3939,
+   "out_bytes": 3326
+  }
+ },
+ "final": "-- Pure helper: true when a relative path climbs above its base directory.\nclimbs(path: str) -> bool =\n  pre path.char_count() >= 0\n  ex climbs(\"../x\") == True\n  ex climbs(\"a/../b\") == False\n  var depth = 0\n  for seg in path.split(\"/\")\n    if seg == \"..\"\n      depth -= 1\n      if depth < 0\n        return True\n    if seg != \"..\" and seg != \"\" and seg != \".\"\n      depth += 1\n  False\n\n-- The untrusted plugin. Reads through the capability it is given.\nplugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin confined to `notes`, so `path` is relative to `notes`.\n-- Anything read outside `notes` comes back as \"\", so the second field is empty.\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.split(\"|\").len() == 2\n  post out.split(\"|\")[1] == \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = plugin(path)\n  result\n\ntest_climbs() =\n  assert climbs(\"../x\") == True\n  assert climbs(\"a/../b\") == False\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 1764,
+    "reasoning": 1449
+   },
+   "out_bytes": 746,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2030,
+    "out": 3336,
+    "reasoning": 2882
+   },
+   "out_bytes": 1054,
+   "ok": false,
+   "report": "E100 task.yn:29:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2550,
+    "out": 1137,
+    "reasoning": 684
+   },
+   "out_bytes": 1053,
+   "ok": false,
+   "report": "E312 task.yn:30:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3075,
+    "out": 875,
+    "reasoning": 373
+   },
+   "out_bytes": 1219,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:29:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

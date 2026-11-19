@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1299,
+   "reasoning": 595,
+   "out_bytes": 1592
+  },
+  "body": {
+   "in": 1862,
+   "out": 756,
+   "reasoning": 0,
+   "out_bytes": 1715
+  }
+ },
+ "final": "import time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, in input order.\n\n    The work is done in parallel on a thread pool, but result i always\n    corresponds to xs[i], regardless of worker count or completion order.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_basic() -> None:\n    assert parities([1, 2, 3, 4, 5]) == [1, 0, 1, 0, 1]\n\n\ndef test_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_single() -> None:\n    assert parities([7]) == [1]\n    assert parities([8]) == [0]\n\n\ndef test_negatives_and_zero() -> None:\n    assert parities([-3, -2, -1, 0]) == [1, 0, 1, 0]\n\n\ndef test_large_ints() -> None:\n    big = 10**30\n    assert parities([big, big + 1, -big - 1]) == [0, 1, 1]\n\n\ndef test_large_input_order() -> None:\n    xs = list(range(-500, 1500))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, 2, 1]\n    parities(xs)\n    assert xs == [3, 2, 1]\n\n\ndef test_order_independent_of_completion_order(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    # Earlier elements finish later, so completion order is scrambled.\n    xs = list(range(40))\n\n    def slow_parity(x: int) -> int:\n        time.sleep((len(xs) - x) * 0.0005)\n        return x % 2\n\n    monkeypatch.setattr(f\"{__name__}.parity\", slow_parity)\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_repeatable() -> None:\n    xs = [5, 8, 13, 21, 34, 55, 89, 144]\n    first = parities(xs)\n    for _ in range(10):\n        assert parities(xs) == first\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1299,
+    "reasoning": 595
+   },
+   "out_bytes": 1592,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1862,
+    "out": 756,
+    "reasoning": 0
+   },
+   "out_bytes": 1715,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

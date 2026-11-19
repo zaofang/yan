@@ -1,0 +1,125 @@
+{
+ "final": "def stays_inside(path: str) -> bool:\n    \"\"\"True when the relative path never climbs above its starting directory.\n\n    Absolute paths, empty-escaping `..` steps, and paths whose depth goes\n    negative at any point (e.g. `sub/../../x`) are rejected. Wandering that\n    returns inside (e.g. `sub/../a.txt`) is accepted.\n    \"\"\"\n    ex stays_inside(\"a.txt\") == True\n    ex stays_inside(\"sub/../a.txt\") == True\n    ex stays_inside(\"..\") == False\n    ex stays_inside(\"/etc/passwd\") == False\n    ex stays_inside(\"sub/../../x\") == False\n    if path.startswith(\"/\") or path.startswith(\"\\\\\"):\n        return False\n    if \"\\\\\" in path:\n        return False\n    depth = 0\n    for seg in path.split(\"/\"):\n        if seg == \"\" or seg == \".\":\n            continue\n        if seg == \"..\":\n            depth -= 1\n            if depth < 0:\n                return False\n        else:\n            depth += 1\n    return True\n\ndef read_public(path: str) -> str uses fs:\n    \"\"\"Text of the file at `path` inside the directory `notes`, or \"\".\n\n    Runs with `fs` confined to `notes` (`with fs = fs.sub(\"notes\")`). Any path\n    that leaves `notes`, and any missing or unreadable file, gives \"\".\n    The effectful function carries no `ex` lines because `fs` is not in\n    scope in examples; its contract is stated with `post`.\n    \"\"\"\n    post stays_inside(path) or out == \"\"\n    if not stays_inside(path):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read_text(path) else \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpu0aq9ari/work/task.yag:21:8 read_public: `assert read_public(\"..\")` capability `fs` is not in scope | in `ex` of `read_public`\n#2 E301 /tmp/tmpu0aq9ari/work/task.yag:22:8 read_public: `assert read_public(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_public`\n#3 E301 /tmp/tmpu0aq9ari/work/task.yag:23:8 read_public: `assert read_public(\"sub/../../x\")` capability `fs` is not in scope | in `ex` of `read_public`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2196,
+    "out": 744,
+    "reasoning": 351
+   },
+   "out_bytes": 943
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2844,
+    "out": 589,
+    "reasoning": 187
+   },
+   "out_bytes": 1004
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3344,
+    "out": 1095,
+    "reasoning": 529
+   },
+   "out_bytes": 1485
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_dotdot_forms",
+ "tokens": {
+  "body": {
+   "in": 3344,
+   "out": 1095,
+   "reasoning": 529,
+   "out_bytes": 1485
+  },
+  "spec": {
+   "in": 5040,
+   "out": 1333,
+   "reasoning": 538,
+   "out_bytes": 1947
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpu0aq9ari/work/task.yag:21:8 read_public: `assert read_public(\"..\")` capability `fs` is not in scope | in `ex` of `read_public`\n#2 E301 /tmp/tmpu0aq9ari/work/task.yag:22:8 read_public: `assert read_public(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_public`\n#3 E301 /tmp/tmpu0aq9ari/work/task.yag:23:8 read_public: `assert read_public(\"sub/../../x\")` capability `"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

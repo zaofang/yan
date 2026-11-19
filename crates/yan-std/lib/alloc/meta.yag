@@ -24,7 +24,7 @@ pub class RecordInfo:
     params: list[Type]
     fields: list[FieldInfo]
     annotations: list[Annotation]
-    layout: Layout
+    layout: Layout | None
 
 @since("1.0")
 pub class VariantInfo:
@@ -37,7 +37,7 @@ pub class SumInfo:
     params: list[Type]
     variants: list[VariantInfo]
     annotations: list[Annotation]
-    layout: Layout
+    layout: Layout | None
 
 @since("1.0")
 pub class NewtypeInfo:

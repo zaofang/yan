@@ -1,0 +1,97 @@
+{
+ "final": "def format_line(level: str, message: str) -> str:\n    \"\"\"Return message tagged with its level as '[level] message'.\"\"\"\n    pre level.char_count() > 0\n    post out == \"[\" + level + \"] \" + message\n    ex format_line(level=\"INFO\", message=\"started\") == \"[INFO] started\"\n    ex format_line(level=\"WARN\", message=\"\") == \"[WARN] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print one log line as '[level] message'. Writes no files.\"\"\"\n    pre level.char_count() > 0\n    io.print(format_line(level=level, message=message))\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2038,
+    "out": 1254,
+    "reasoning": 1062
+   },
+   "out_bytes": 508
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2328,
+    "out": 609,
+    "reasoning": 393
+   },
+   "out_bytes": 588
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 2328,
+   "out": 609,
+   "reasoning": 393,
+   "out_bytes": 588
+  },
+  "spec": {
+   "in": 2038,
+   "out": 1254,
+   "reasoning": 1062,
+   "out_bytes": 508
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

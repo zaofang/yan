@@ -1,0 +1,8 @@
+-- spec: 3.4
+-- rows: R1112
+-- stdout:
+-- 44 200 255
+
+main() =
+  let x = 300
+  io.print("\(wrap_as[u8](x)) \(checked_as[u8](200)) \(checked_as[u8](255))")

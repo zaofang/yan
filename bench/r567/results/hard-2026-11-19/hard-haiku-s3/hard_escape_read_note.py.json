@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2058,
+   "reasoning": 1277,
+   "out_bytes": 1748
+  },
+  "body": {
+   "in": 1954,
+   "out": 1641,
+   "reasoning": 763,
+   "out_bytes": 2016
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR: Path = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of note `name` inside NOTES_DIR.\n\n    Returns \"\" when the file is missing or unreadable. Any name that would\n    resolve outside NOTES_DIR (absolute paths, \"..\", symlinks leaving the\n    directory) also yields \"\" and is never opened.\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        target = (NOTES_DIR / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError):\n        return \"\"\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    return tmp_path\n\n\ndef test_reads_existing_note(workdir: Path) -> None:\n    (workdir / \"notes\" / \"todo.txt\").write_text(\"buy milk\", encoding=\"utf-8\")\n    assert read_note(\"todo.txt\") == \"buy milk\"\n\n\ndef test_missing_note_is_empty(workdir: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_parent_traversal_is_blocked(workdir: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_nested_traversal_is_blocked(workdir: Path) -> None:\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_is_blocked(workdir: Path) -> None:\n    assert read_note(str(workdir / \"secret.txt\")) == \"\"\n\n\ndef test_symlink_escaping_notes_is_blocked(workdir: Path) -> None:\n    (workdir / \"notes\" / \"link.txt\").symlink_to(workdir / \"secret.txt\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_directory_is_empty(workdir: Path) -> None:\n    (workdir / \"notes\" / \"folder\").mkdir()\n    assert read_note(\"folder\") == \"\"\n\n\ndef test_empty_name_is_empty(workdir: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_nul_byte_name_is_empty(workdir: Path) -> None:\n    assert read_note(\"a\\x00b\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2058,
+    "reasoning": 1277
+   },
+   "out_bytes": 1748,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1954,
+    "out": 1641,
+    "reasoning": 763
+   },
+   "out_bytes": 2016,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

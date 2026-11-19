@@ -19,6 +19,7 @@ pub(super) const PTR_IDS: &[registry::Id] = &[
     id::STD_PTR_OFFSET,
     id::STD_PTR_CAST,
     id::STD_PTR_READ,
+    id::STD_PTR_TAKE,
     id::STD_PTR_WRITE,
 ];
 
@@ -76,10 +77,16 @@ impl<'m> Fn<'_, 'm> {
                 let p = self.atom_any(p)?.0;
                 set(self, p);
             }
-            (id::STD_PTR_READ, [(_, p)]) => {
+            (id::STD_PTR_READ | id::STD_PTR_TAKE, [(_, p)]) => {
+                if matches!(c.targs.as_slice(), [y::TArg::Type(t)] if self.types.is_capability(t)) {
+                    self.end(Term::Panic("forged"));
+                }
                 let e = elem(self)?;
                 let p = self.atom_any(p)?.0;
                 let v = self.read(&At::Mem(p[0].clone(), 0), &e);
+                if id == id::STD_PTR_TAKE {
+                    self.mark_moved_at(&p[0], &e);
+                }
                 set(self, v);
             }
             (id::STD_PTR_WRITE, [(_, p), (_, v)]) => {

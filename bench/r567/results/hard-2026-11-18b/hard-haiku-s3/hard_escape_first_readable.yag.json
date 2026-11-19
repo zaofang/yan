@@ -1,0 +1,191 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one path component: no '/', no '\\\\', no NUL, not '.' or '..', not absolute.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret.txt\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    if name.startswith(\"/\") or name.startswith(\"\\\\\"):\n        return False\n    for ch in name.chars():\n        if ch == \"/\" or ch == \"\\\\\" or ch == \"\\0\":\n            return False\n    return True\n\ndef read_note(name: str) -> str | None uses fs:\n    \"\"\"Text of the file notes/name, or None when name is unsafe or the file cannot be read.\"\"\"\n    pre is_plain_name(name)\n    post out is None or is_plain_name(name)\n    if not is_plain_name(name):\n        return None\n    with fs = fs.sub(\"notes\"):\n        return fs.read_text(name) else None\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names readable from the notes directory, or \"\" when none is readable.\n    Every name is confined to notes; unsafe names are skipped.\"\"\"\n    post out == \"\" or out.byte_len() > 0\n    for name in names:\n        if not is_plain_name(name):\n            continue\n        text = read_note(name)\n        if text is not None:\n            return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpuhz_aqc5/work/task.yag:11:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpuhz_aqc5/work/task.yag:17:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpuhz_aqc5/work/task.yag:18:8 first_readable: `assert first_readable([\"../secret.txt\", \"no-such-file.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1698,
+    "reasoning": 1359
+   },
+   "out_bytes": 845
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2754,
+    "out": 1191,
+    "reasoning": 883
+   },
+   "out_bytes": 786
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpuhz_aqc5/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E326 /tmp/tmpuhz_aqc5/work/task.yag:21:18 read_note: `fs.` `fs.sub` attenuates `fs`; `with notes = ...` takes an attenuation of `notes` or a handler written in Yan\n#3 E201 /tmp/tmpuhz_aqc5/work/task.yag:21:18 read_note: `fs.` expected `Notes`, found `Fs`\n#4 E017 /tmp/tmpuhz_aqc5/work/task.yag:22:16 read_note: `notes.` capability operation `notes.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E326",
+      "E201",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3160,
+    "out": 1590,
+    "reasoning": 1099
+   },
+   "out_bytes": 1360
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpuhz_aqc5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpuhz_aqc5/work/task.yag:22:16 task.read_note: `= fs.read_text` expected `Option[Str]`, found Unit",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3946,
+    "out": 953,
+    "reasoning": 462
+   },
+   "out_bytes": 1354
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4582,
+    "out": 1105,
+    "reasoning": 619
+   },
+   "out_bytes": 1332
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 11688,
+   "out": 3648,
+   "reasoning": 2180,
+   "out_bytes": 4046
+  },
+  "spec": {
+   "in": 4893,
+   "out": 2889,
+   "reasoning": 2242,
+   "out_bytes": 1631
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpuhz_aqc5/work/task.yag:11:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpuhz_aqc5/work/task.yag:17:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpuhz_aqc5/work/task.yag:18:8 first_readable: `assert first_readable([\"../secret.txt\""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "E201",
+    "E326",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpuhz_aqc5/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E326 /tmp/tmpuhz_aqc5/work/task.yag:21:18 read_note: `fs.` `fs.sub` attenuates `fs`; `with notes = ...` takes an attenuation of `notes` or a handler written in Yan\n#3 E201 /tmp/tmpuhz_aqc5/work/task.yag:21:18 read_note: `fs.` expected `Notes`, found `Fs`\n#4 E017 /tmp/tmpuhz_aqc5/work/task.yag:22:16 read_note: `notes.` ca"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpuhz_aqc5/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpuhz_aqc5/work/task.yag:22:16 task.read_note: `= fs.read_text` expected `Option[Str]`, found Unit"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 task.yag:21:18 read_note: `fs` expected `Notes`, found `Fs`\nE326 task.yag:21:18 read_note: `fs` `fs.sub` attenuates `fs`; `with notes = ...` takes an attenuation of `notes` or a handler written in Yan\nE017 task.yag:22:16 read_note: `notes` capability operation `notes.read_text`: not supported b"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at read_note task.yag:18:10\n  at first_readable task.yag:31:9\n  at main task.yag:38:20"
+ }
+}

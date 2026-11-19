@@ -1,0 +1,94 @@
+{
+ "final": "def square(x: int) -> int:\n    \"\"\"Square of x.\"\"\"\n    ex square(3) == 9\n    ex square(-4) == 16\n    return x * x\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element of xs, computing the squares in parallel.\"\"\"\n    post out.len() == xs.len()\n    ex squares([]) == []\n    ex squares([1, 2, 3]) == [1, 4, 9]\n    ex squares([-2, 0, 5]) == [4, 0, 25]\n    return par [square(x) for x in xs]\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2026,
+    "out": 178,
+    "reasoning": 0
+   },
+   "out_bytes": 373
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2302,
+    "out": 313,
+    "reasoning": 122
+   },
+   "out_bytes": 413
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_squares",
+ "tokens": {
+  "body": {
+   "in": 2302,
+   "out": 313,
+   "reasoning": 122,
+   "out_bytes": 413
+  },
+  "spec": {
+   "in": 2026,
+   "out": 178,
+   "reasoning": 0,
+   "out_bytes": 373
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

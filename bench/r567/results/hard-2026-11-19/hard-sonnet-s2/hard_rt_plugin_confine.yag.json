@@ -1,0 +1,124 @@
+{
+ "final": "def plugin(path: str) -> str uses fs:\n    \"\"\"Reads path, and also tries to read a file outside its directory.\"\"\"\n    post \"|\" in out\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Runs plugin(path) with fs confined to the directory notes, so any read outside it yields an empty string.\"\"\"\n    post \"|\" in out\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp5k2qlb8y/work/task.yag:3:8 plugin: `assert plugin(\"\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp5k2qlb8y/work/task.yag:8:8 run_plugin: `assert run_plugin(\"\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 142,
+    "reasoning": 0
+   },
+   "out_bytes": 352
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2544,
+    "out": 454,
+    "reasoning": 324
+   },
+   "out_bytes": 338
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2772,
+    "out": 199,
+    "reasoning": 0
+   },
+   "out_bytes": 497
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2772,
+   "out": 199,
+   "reasoning": 0,
+   "out_bytes": 497
+  },
+  "spec": {
+   "in": 4767,
+   "out": 596,
+   "reasoning": 324,
+   "out_bytes": 690
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp5k2qlb8y/work/task.yag:3:8 plugin: `assert plugin(\"\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp5k2qlb8y/work/task.yag:8:8 run_plugin: `assert run_plugin(\"\")` capability `fs` is not in scope | in `ex` of `run_plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

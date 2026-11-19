@@ -75,6 +75,13 @@ pub(super) static BINDS: &[(yan_std::registry::Id, Bind)] = &[
         }),
     ),
     (
+        STD_FS_LIST_DIR,
+        Bind::CapFallible(|it, a| match a {
+            [h, Str(path)] => Ok(fs_list_dir(h, path, it.test)),
+            _ => bad_args(STD_FS_LIST_DIR),
+        }),
+    ),
+    (
         STD_FS_ONLY,
         Bind::Plain(|a| match a {
             [h, read, write] => Ok(Data {
@@ -235,12 +242,56 @@ fn lexical(path: &str) -> Option<Vec<&str>> {
 /// `trusted` is how many leading components of `path` are the outermost grant root. A host read
 /// under a grant opens everything after it without following symlinks.
 fn fs_read(h: &Value, path: &str, test: bool, trusted: Option<usize>) -> Result<Value, Value> {
+    fs_op(h, path, test, trusted, FsOp::Read)
+}
+
+/// `fs.list_dir`: the entry names, sorted and joined onto `path` (R1109).
+fn fs_list_dir(h: &Value, path: &str, test: bool) -> Result<Value, Value> {
+    let List(names) = fs_op(h, path, test, None, FsOp::List)? else {
+        unreachable!("a listing is a list")
+    };
+    let names = names
+        .iter()
+        .map(|n| match n {
+            Str(n) => n.to_string(),
+            _ => unreachable!("an entry name is a str"),
+        })
+        .collect();
+    let entries = yan_rt::abi::list_entries(path, names);
+    Ok(List(entries.into_iter().map(|e| Path(e.into())).collect()))
+}
+
+#[derive(Clone, Copy)]
+enum FsOp {
+    Read,
+    List,
+}
+
+/// A read yields the file's text; a listing the unsorted entry names of the directory.
+fn fs_op(
+    h: &Value,
+    path: &str,
+    test: bool,
+    trusted: Option<usize>,
+    op: FsOp,
+) -> Result<Value, Value> {
     let denied = || fs_error(path, "not granted");
     match h {
-        Dict(files) => files
-            .get(&Key(Str(path.into())))
-            .cloned()
-            .ok_or_else(|| fs_error(path, "not found")),
+        Dict(files) => match op {
+            FsOp::Read => files
+                .get(&Key(Str(path.into())))
+                .cloned()
+                .ok_or_else(|| fs_error(path, "not found")),
+            FsOp::List => {
+                let keys = files.keys().filter_map(|k| match &k.0 {
+                    Str(k) => Some(&**k),
+                    _ => None,
+                });
+                yan_rt::fshandler::fake_list(keys, path)
+                    .map(|names| List(names.into_iter().map(|n| Str(n.into())).collect()))
+                    .map_err(|reason| fs_error(path, &reason))
+            }
+        },
         Data { name, fields } if name == "SubFs" => {
             let Str(dir) = &fields[1].1 else {
                 unreachable!("fs.sub takes a str")
@@ -251,7 +302,7 @@ fn fs_read(h: &Value, path: &str, test: bool, trusted: Option<usize>) -> Result<
                 .unwrap_or_else(|| dir.split('/').filter(|c| !matches!(*c, "" | ".")).collect());
             let lead = if dir.starts_with('/') { "/" } else { "" };
             let joined = format!("{lead}{}", [&root[..], &rel[..]].concat().join("/"));
-            fs_read(&fields[0].1, &joined, test, Some(root.len()))
+            fs_op(&fields[0].1, &joined, test, Some(root.len()), op)
         }
         Data { name, fields } if name == "OnlyFs" => {
             let List(grants) = &fields[1].1 else {
@@ -269,23 +320,35 @@ fn fs_read(h: &Value, path: &str, test: bool, trusted: Option<usize>) -> Result<
                 return Err(denied());
             };
             let resolved = format!("{}{}", if abs { "/" } else { "" }, p.join("/"));
-            fs_read(&fields[0].1, &resolved, test, Some(root.len()))
+            fs_op(&fields[0].1, &resolved, test, Some(root.len()), op)
         }
-        Cap(_) if !test => match trusted {
-            Some(trusted) => {
+        Cap(_) if !test => {
+            let confined = trusted.map(|trusted| {
                 let comps: Vec<&str> = path
                     .split('/')
                     .filter(|c| !matches!(*c, "" | "."))
                     .collect();
                 let base = if path.starts_with('/') { "/" } else { "." };
-                yan_rt::beneath::read_confined(base, &comps, trusted)
+                (base, comps, trusted)
+            });
+            match (op, confined) {
+                (FsOp::Read, Some((base, comps, trusted))) => {
+                    yan_rt::beneath::read_confined(base, &comps, trusted).map(|s| Str(s.into()))
+                }
+                (FsOp::Read, None) => yan_rt::abi::fs_read(path).map(|s| Str(s.into())),
+                (FsOp::List, Some((base, comps, trusted))) => {
+                    yan_rt::beneath::list_confined(base, &comps, trusted).map(names_value)
+                }
+                (FsOp::List, None) => yan_rt::abi::fs_list_dir(path).map(names_value),
             }
-            None => yan_rt::abi::fs_read(path),
+            .map_err(|reason| fs_error(path, &reason))
         }
-        .map(|s| Str(s.into()))
-        .map_err(|reason| fs_error(path, &reason)),
         _ => Err(fs_error(path, "no host fs handler")),
     }
+}
+
+fn names_value(names: Vec<String>) -> Value {
+    List(names.into_iter().map(|n| Str(n.into())).collect())
 }
 
 fn fs_error(path: &str, reason: &str) -> Value {

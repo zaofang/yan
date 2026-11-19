@@ -1,0 +1,116 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 3481,
+   "out": 2397,
+   "reasoning": 1753,
+   "out_bytes": 1622
+  },
+  "body": {
+   "in": 8583,
+   "out": 3981,
+   "reasoning": 2615,
+   "out_bytes": 3527
+  }
+ },
+ "final": "-- A name is plain when it is one non-empty path component.\n-- Separators and parent references are rejected.\nis_plain(name: str) -> bool =\n  post out == False or (name.char_count() > 0 and name != \"..\")\n  ex is_plain(\"a.txt\") == True\n  ex is_plain(\"../secret\") == False\n  if name.char_count() == 0 or name == \"..\" or name == \".\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\n-- Reads one note from inside the notes directory.\n-- A name that is not plain, or a missing or unreadable file, gives None.\nread_note(name: str) -> str? uses fs =\n  post out == None or is_plain(name)\n  ex read_note(\"../secret\") == None\n  if not is_plain(name)\n    return None\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    return text\n\n-- Returns the text of the first readable note, or \"\" when none can be read.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  for name in names\n    let text = read_note(name) else continue\n    return text\n  \"\"\n\ntest_is_plain() =\n  assert is_plain(\"a.txt\")\n  assert is_plain(\"../secret\") == False\n\ntest_first_readable() uses fs =\n  assert first_readable([]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 1536,
+    "reasoning": 1234
+   },
+   "out_bytes": 751,
+   "ok": false,
+   "report": "E200 task.yn:11:11 `fs: fs` cannot find type `fs`",
+   "codes": [
+    "E200"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1923,
+    "out": 861,
+    "reasoning": 519
+   },
+   "out_bytes": 871,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2338,
+    "out": 2132,
+    "reasoning": 1679
+   },
+   "out_bytes": 1164,
+   "ok": false,
+   "report": "E100 task.yn:21:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2857,
+    "out": 918,
+    "reasoning": 466
+   },
+   "out_bytes": 1163,
+   "ok": false,
+   "report": "E315 task.yn:22:12 read_note: `fs.read(name)` the failure of this call is not handled; add `?` or `else`",
+   "codes": [
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3388,
+    "out": 931,
+    "reasoning": 470
+   },
+   "out_bytes": 1200,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:21:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

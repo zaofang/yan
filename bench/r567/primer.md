@@ -8,6 +8,7 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - Strings: no len(s) or s[i]. Use s.char_count(), s.byte_len(), s.chars(). Parse with s.parse_int() and s.parse_float(), which return T | None.
 - Write x.copy() when you store a str or list you only borrowed.
 - int is 64-bit and overflow panics; use bigint for large values. `/` on ints gives float.
+- Sized ints (`uint8`, `int32`, ...) never mix with `int`, and there is no `uint8(x)`: widen with `int(x)`, narrow with `wrap_as[uint8](x)` (modulo) or `sat_as[uint8](x)` (clamp). `bits.rotate_left(x, k)`, `bits.count_ones(x)` take sized ints. `x << k` panics on overflow.
 - `xs.get(i)` and `d.get(k)` return T | None. `xs[i]` is bounds-checked.
 - Concurrency: `par [f(x)? for x in xs]` runs the calls in parallel.
 - When two parameters share a type, callers pass those arguments by keyword unless they are literals or names equal to the parameter.
@@ -15,4 +16,5 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - A `T | None` value (from `.get`, `.parse_int()`, `.parse_float()`) cannot be used in arithmetic or comparisons directly. Unwrap it first: `x else default`, `x else return`, `x else fail E(...)`, or `x?` in a function that fails.
 - An `ex` line states a failure as `ex f(x) == fail E`, never `ex f(x) fail E` or `raises`. Comparisons do not chain (`a < b and b < c`), a comprehension has one `for`, and `chr` and `parse` are fallible: use `?` or `else`.
 - Calling a function whose parameters share a type with positional arguments is error E210. Write `f(a=x, b=y)`; this applies even to variables whose names differ from the parameters.
+- A function that declares `uses` (`fs`, `net`, `nondet`, ...) takes no `ex` lines: an `ex` binds no capability, so calling it there is error E301. Write its `pre`/`post` only. A failing call inside a comprehension is `[f(x)? for x in xs]` or `[f(x) else v for x in xs]`.
 - A function that returns nothing, or only changes a `var` parameter or prints, takes no `ex` lines (an `ex` on it is error E201 or E403); write its `pre`/`post` or nothing. Its behaviour is checked by tests you do not see.

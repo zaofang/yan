@@ -1,0 +1,13 @@
+-- spec: 3.4
+-- rows: R1112
+-- stdout:
+-- 9223372036854775807
+-- before
+-- exit: 101
+
+main() =
+  let a: u64 = 9223372036854775807
+  io.print("\(checked_as[i64](a))")
+  io.print("before")
+  let x: u64 = 9223372036854775808
+  io.print("\(checked_as[i64](x))")

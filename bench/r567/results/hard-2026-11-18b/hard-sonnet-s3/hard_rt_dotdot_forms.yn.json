@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1615,
+   "out": 777,
+   "reasoning": 389,
+   "out_bytes": 910
+  },
+  "body": {
+   "in": 8090,
+   "out": 3280,
+   "reasoning": 1635,
+   "out_bytes": 3961
+  }
+ },
+ "final": "-- True when the path, with \".\" and \"..\" resolved lexically, stays inside its root.\n-- Empty, absolute, and escaping paths are not inside.\ninside(path: str) -> bool =\n  ex inside(\"a.txt\") == True\n  ex inside(\"sub/../a.txt\") == True\n  ex inside(\"..\") == False\n  ex inside(\"/etc/passwd\") == False\n  ex inside(\"sub/../../x\") == False\n  if path.char_count() == 0\n    return False\n  let parts = path.split(\"/\")\n  if parts[0].char_count() == 0\n    return False\n  var depth = 0\n  for part in parts\n    if part == \"\" or part == \".\"\n      continue\n    if part == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n      continue\n    depth += 1\n  True\n\n-- Text of the file `path` under the directory `notes`, or \"\" if the path\n-- escapes `notes`, or the file is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  ex read_public(\"..\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  if not inside(path)\n    return \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(path) else \"\"\n  text\n\ntest_inside() =\n  assert inside(\"sub/../a.txt\")\n  assert not inside(\"..\")\n  assert not inside(\"/etc/passwd\")\n  assert not inside(\"sub/../../x\")\n\ntest_read_public_escape() uses fs =\n  assert read_public(\"../secret\") == \"\"\n  assert read_public(\"/etc/passwd\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 777,
+    "reasoning": 389
+   },
+   "out_bytes": 910,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2076,
+    "out": 1330,
+    "reasoning": 785
+   },
+   "out_bytes": 1308,
+   "ok": false,
+   "report": "E100 task.yn:33:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2687,
+    "out": 1138,
+    "reasoning": 587
+   },
+   "out_bytes": 1329,
+   "ok": false,
+   "report": "E017 task.yn:36:12 read_public: `fs.read_text(path) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3327,
+    "out": 812,
+    "reasoning": 263
+   },
+   "out_bytes": 1324,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:33:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

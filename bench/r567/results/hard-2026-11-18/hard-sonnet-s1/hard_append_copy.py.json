@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2904,
+   "out": 1880,
+   "reasoning": 491,
+   "out_bytes": 3180
+  },
+  "body": {
+   "in": 2608,
+   "out": 804,
+   "reasoning": 88,
+   "out_bytes": 1637
+  }
+ },
+ "final": "from typing import get_type_hints\n\nimport pytest\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append s to the end of dst, modifying the caller's list in place.\n\n    Returns None. Existing elements are left untouched and in order.\n    Duplicates are allowed, and the empty string is appended like any other.\n    \"\"\"\n    dst.append(s)\n\n\ndef test_add_name_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_add_name_appends_at_end() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_returns_none() -> None:\n    assert get_type_hints(add_name)[\"return\"] is type(None)\n    dst: list[str] = []\n    add_name(dst, \"x\")\n    assert dst == [\"x\"]\n\n\ndef test_add_name_mutates_in_place() -> None:\n    dst: list[str] = [\"a\"]\n    alias = dst\n    add_name(dst, \"b\")\n    assert alias is dst\n    assert alias == [\"a\", \"b\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\", \"a\"]\n\n\ndef test_add_name_empty_string() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"\")\n    assert dst == [\"a\", \"\"]\n\n\ndef test_add_name_does_not_affect_other_lists() -> None:\n    first: list[str] = [\"a\"]\n    second: list[str] = [\"a\"]\n    add_name(first, \"b\")\n    assert second == [\"a\"]\n\n\n@pytest.mark.parametrize(\"name\", [\"bob\", \"Zo\u00eb\", \"  spaced  \", \"\u65e5\u672c\"])\ndef test_add_name_stores_value_unchanged(name: str) -> None:\n    dst: list[str] = []\n    add_name(dst, name)\n    assert dst == [name]\n    assert dst[0] == name\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 803,
+    "reasoning": 130
+   },
+   "out_bytes": 1543,
+   "ok": false,
+   "report": "test_task.py:27: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1835,
+    "out": 1077,
+    "reasoning": 361
+   },
+   "out_bytes": 1637,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2608,
+    "out": 804,
+    "reasoning": 88
+   },
+   "out_bytes": 1637,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

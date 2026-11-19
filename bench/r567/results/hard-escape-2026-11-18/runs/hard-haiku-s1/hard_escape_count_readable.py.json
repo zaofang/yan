@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 2617,
+   "reasoning": 1408,
+   "out_bytes": 2544
+  },
+  "body": {
+   "in": 2391,
+   "out": 2492,
+   "reasoning": 1101,
+   "out_bytes": 3118
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR: Path = Path(\"notes\")\n\n\ndef _note_path(name: str) -> Path | None:\n    \"\"\"Return the resolved path of name inside NOTES_DIR, or None if name escapes it.\n\n    Rejects absolute paths, parent-directory traversal, embedded NUL bytes,\n    and symlinks that resolve outside NOTES_DIR.\n    \"\"\"\n    if \"\\x00\" in name:\n        return None\n    try:\n        base = NOTES_DIR.resolve()\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if candidate == base or not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count names that refer to readable regular files inside NOTES_DIR.\n\n    Missing, unreadable, non-file, and out-of-directory names are not counted.\n    Names are untrusted and are never allowed to reach a path outside NOTES_DIR.\n    \"\"\"\n    count = 0\n    for name in names:\n        path = _note_path(name)\n        if path is None or not path.is_file():\n            continue\n        try:\n            with path.open(\"rb\"):\n                pass\n        except OSError:\n            continue\n        count += 1\n    return count\n\n\ndef test_counts_existing_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hi\")\n    (notes / \"b.txt\").write_text(\"\")\n    assert count_readable([\"a.txt\", \"b.txt\", \"missing.txt\"]) == 2\n\n\ndef test_empty_list_gives_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert count_readable([]) == 0\n\n\ndef test_parent_traversal_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"s\")\n    assert count_readable([\"../secret.txt\"]) == 0\n\n\ndef test_absolute_path_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"s\")\n    assert count_readable([str(secret)]) == 0\n\n\ndef test_directory_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"sub\").mkdir()\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_symlink_escaping_notes_not_counted(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"s\")\n    os.symlink(secret, notes / \"link.txt\")\n    assert count_readable([\"link.txt\"]) == 0\n\n\ndef test_nul_byte_name_not_counted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hi\")\n    assert count_readable([\"a.txt\\x00\"]) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 2617,
+    "reasoning": 1408
+   },
+   "out_bytes": 2544,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2391,
+    "out": 2492,
+    "reasoning": 1101
+   },
+   "out_bytes": 3118,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

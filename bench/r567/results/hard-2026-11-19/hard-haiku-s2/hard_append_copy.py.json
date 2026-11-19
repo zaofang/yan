@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2617,
+   "out": 1210,
+   "reasoning": 481,
+   "out_bytes": 1767
+  },
+  "body": {
+   "in": 1948,
+   "out": 441,
+   "reasoning": 93,
+   "out_bytes": 837
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of `s` to the list `dst` in place. Returns nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_list() -> None:\n    names: list[str] = []\n    add_name(names, \"alice\")\n    assert names == [\"alice\"]\n\n\ndef test_add_name_edits_caller_list_in_place() -> None:\n    names: list[str] = [\"bob\"]\n    alias = names\n    add_name(names, \"carol\")\n    assert names == [\"bob\", \"carol\"]\n    assert alias is names\n    assert alias == [\"bob\", \"carol\"]\n\n\ndef test_add_name_accumulates_in_order() -> None:\n    names: list[str] = []\n    add_name(names, \"x\")\n    add_name(names, \"y\")\n    add_name(names, \"x\")\n    assert names == [\"x\", \"y\", \"x\"]\n\n\ndef test_add_name_accepts_empty_string() -> None:\n    names: list[str] = []\n    add_name(names, \"\")\n    assert names == [\"\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 622,
+    "reasoning": 236
+   },
+   "out_bytes": 940,
+   "ok": false,
+   "report": "test_task.py:23: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1548,
+    "out": 588,
+    "reasoning": 245
+   },
+   "out_bytes": 827,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1948,
+    "out": 441,
+    "reasoning": 93
+   },
+   "out_bytes": 837,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3493,
+   "reasoning": 2117,
+   "out_bytes": 3152
+  },
+  "body": {
+   "in": 2558,
+   "out": 3212,
+   "reasoning": 1606,
+   "out_bytes": 3796
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef _note_path(name: str) -> Path | None:\n    \"\"\"Resolve a requested name to a path strictly inside NOTES_DIR.\n\n    Returns None when name is empty, contains a NUL byte, is absolute,\n    or resolves (following symlinks) to a location outside NOTES_DIR.\n    Does not check whether the file exists or is readable.\n    \"\"\"\n    if not name or \"\\x00\" in name or Path(name).anchor:\n        return None\n    base = NOTES_DIR.resolve()\n    try:\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if candidate == base or not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count names that refer to readable regular files inside NOTES_DIR.\n\n    Names are untrusted. Anything that resolves outside NOTES_DIR is never\n    opened. Missing, non-regular, or unreadable entries are not counted.\n    Empty files are counted.\n    \"\"\"\n    count = 0\n    for name in names:\n        path = _note_path(name)\n        if path is None or not path.is_file():\n            continue\n        try:\n            fd = os.open(path, os.O_RDONLY | getattr(os, \"O_NOFOLLOW\", 0))\n        except OSError:\n            continue\n        os.close(fd)\n        count += 1\n    return count\n\n\n@pytest.fixture\ndef notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / \"notes\"\n    d.mkdir()\n    return d\n\n\ndef test_count_empty_list(notes: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_count_existing_files(notes: Path) -> None:\n    (notes / \"a.txt\").write_text(\"hello\")\n    (notes / \"b.txt\").write_text(\"world\")\n    assert count_readable([\"a.txt\", \"b.txt\", \"missing.txt\"]) == 2\n\n\ndef test_empty_file_is_counted(notes: Path) -> None:\n    (notes / \"empty.txt\").write_text(\"\")\n    assert count_readable([\"empty.txt\"]) == 1\n\n\ndef test_directory_is_not_counted(notes: Path) -> None:\n    (notes / \"sub\").mkdir()\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_nested_file_inside_notes_is_counted(notes: Path) -> None:\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"c.txt\").write_text(\"c\")\n    assert count_readable([\"sub/c.txt\"]) == 1\n\n\ndef test_traversal_is_rejected(tmp_path: Path, notes: Path) -> None:\n    (tmp_path / \"secret.txt\").write_text(\"secret\")\n    assert count_readable([\"../secret.txt\", \"sub/../../secret.txt\"]) == 0\n\n\ndef test_absolute_path_is_rejected(tmp_path: Path, notes: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"secret\")\n    assert count_readable([str(secret)]) == 0\n\n\ndef test_symlink_escaping_notes_is_rejected(tmp_path: Path, notes: Path) -> None:\n    outside = tmp_path / \"outside.txt\"\n    outside.write_text(\"secret\")\n    (notes / \"link\").symlink_to(outside)\n    assert count_readable([\"link\"]) == 0\n\n\ndef test_nul_byte_name_is_rejected(notes: Path) -> None:\n    (notes / \"a.txt\").write_text(\"x\")\n    assert count_readable([\"a.txt\\x00.txt\"]) == 0\n\n\n@pytest.mark.skipif(\n    os.name == \"posix\" and os.geteuid() == 0,\n    reason=\"root can read mode-000 files\",\n)\ndef test_unreadable_file_is_not_counted(notes: Path) -> None:\n    f = notes / \"locked.txt\"\n    f.write_text(\"x\")\n    f.chmod(0o000)\n    try:\n        assert count_readable([\"locked.txt\"]) == 0\n    finally:\n        f.chmod(0o644)\n\n\ndef test_note_path_inside_notes(notes: Path) -> None:\n    p = _note_path(\"a.txt\")\n    assert p is not None\n    assert p.name == \"a.txt\"\n\n\ndef test_note_path_rejects_escapes(notes: Path) -> None:\n    assert _note_path(\"../x\") is None\n    assert _note_path(\"/etc/passwd\") is None\n    assert _note_path(\"\") is None\n    assert _note_path(\"a\\x00b\") is None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3493,
+    "reasoning": 2117
+   },
+   "out_bytes": 3152,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2558,
+    "out": 3212,
+    "reasoning": 1606
+   },
+   "out_bytes": 3796,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

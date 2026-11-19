@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1482,
+   "reasoning": 430,
+   "out_bytes": 2519
+  },
+  "body": {
+   "in": 2188,
+   "out": 1446,
+   "reasoning": 305,
+   "out_bytes": 2805
+  }
+ },
+ "final": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` config text, or \"\" if absent.\n\n    The text is split into lines (any line ending, including \"\\\\r\\\\n\").\n    Each line is split at its first \"=\", so values may themselves contain \"=\".\n    Whitespace around the name and around the value is stripped.\n\n    Lines that are blank, start with \"#\" (after stripping), or have no \"=\"\n    are ignored. Key matching is exact and case-sensitive. If the key appears\n    more than once, the first occurrence wins. A key present with nothing\n    after the \"=\" yields \"\", the same as an absent key.\n    \"\"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        if name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_basic_lookup() -> None:\n    assert config_value(\"a=1\\nb=2\\nc=3\", \"b\") == \"2\"\n\n\ndef test_absent_key_returns_empty_string() -> None:\n    assert config_value(\"a=1\\nb=2\", \"z\") == \"\"\n\n\ndef test_empty_text() -> None:\n    assert config_value(\"\", \"a\") == \"\"\n\n\ndef test_whitespace_stripped_around_name_and_value() -> None:\n    assert config_value(\"  name  =  hello world  \\n\", \"name\") == \"hello world\"\n\n\ndef test_value_may_contain_equals() -> None:\n    assert config_value(\"url=http://x/?q=1&r=2\", \"url\") == \"http://x/?q=1&r=2\"\n\n\ndef test_empty_value() -> None:\n    assert config_value(\"a=\\nb=2\", \"a\") == \"\"\n\n\ndef test_comment_lines_ignored() -> None:\n    text = \"# a=1\\n  # a=2\\na=3\"\n    assert config_value(text, \"a\") == \"3\"\n\n\ndef test_comment_only_text_has_no_keys() -> None:\n    assert config_value(\"#a=1\", \"a\") == \"\"\n    assert config_value(\"#a=1\", \"#a\") == \"\"\n\n\ndef test_blank_and_malformed_lines_ignored() -> None:\n    text = \"\\n   \\nnot a pair\\nkey=val\\n\"\n    assert config_value(text, \"key\") == \"val\"\n    assert config_value(text, \"not a pair\") == \"\"\n\n\ndef test_first_occurrence_wins() -> None:\n    assert config_value(\"a=1\\na=2\", \"a\") == \"1\"\n\n\ndef test_key_match_is_exact_and_case_sensitive() -> None:\n    text = \"Name=upper\\nnamesake=other\\nname=lower\"\n    assert config_value(text, \"name\") == \"lower\"\n    assert config_value(text, \"Name\") == \"upper\"\n    assert config_value(text, \"nam\") == \"\"\n\n\ndef test_crlf_line_endings() -> None:\n    assert config_value(\"a=1\\r\\nb=2\\r\\n\", \"b\") == \"2\"\n\n\n@pytest.mark.parametrize(\n    (\"text\", \"key\", \"expected\"),\n    [\n        (\"a=1\", \"a\", \"1\"),\n        (\"a = 1\", \"a\", \"1\"),\n        (\"\\ta\\t=\\t1\\t\", \"a\", \"1\"),\n        (\"x=1\\ny=2\", \"y\", \"2\"),\n        (\"x=1\", \"y\", \"\"),\n    ],\n)\ndef test_parametrized_lookup(text: str, key: str, expected: str) -> None:\n    assert config_value(text, key) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1482,
+    "reasoning": 430
+   },
+   "out_bytes": 2519,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2188,
+    "out": 1446,
+    "reasoning": 305
+   },
+   "out_bytes": 2805,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

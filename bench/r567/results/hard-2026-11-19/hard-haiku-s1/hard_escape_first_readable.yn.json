@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 1497,
+   "reasoning": 1206,
+   "out_bytes": 690
+  },
+  "body": {
+   "in": 2092,
+   "out": 1934,
+   "reasoning": 1519,
+   "out_bytes": 996
+  }
+ },
+ "final": "-- A name is plain when it is one non-empty file name: no path\n-- separators, no \"..\", and not absolute.\nis_plain_name(n: str) -> bool =\n  post out == False or n.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"a/b.txt\") == False\n  ex is_plain_name(\"../x\") == False\n  n.char_count() > 0 and n != \".\" and n.split(\"/\").len() == 1 and n.split(\"\\\\\").len() == 1 and n.split(\":\").len() == 1 and n.split(\"..\").len() == 1\n\n-- Reads one file from inside notes. Missing or unreadable gives None.\nread_note(name: str) -> str? uses fs =\n  pre is_plain_name(name)\n  ex read_note(\"missing.txt\") == None\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    text\n\n-- Returns the text of the first readable name in notes, or \"\".\nfirst_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  for name in names\n    if is_plain_name(name)\n      let text = read_note(name) else continue\n      return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 1497,
+    "reasoning": 1206
+   },
+   "out_bytes": 690,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2092,
+    "out": 1934,
+    "reasoning": 1519
+   },
+   "out_bytes": 996,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

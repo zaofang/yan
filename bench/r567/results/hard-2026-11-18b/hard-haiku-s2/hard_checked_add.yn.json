@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3143,
+   "out": 1394,
+   "reasoning": 1041,
+   "out_bytes": 772
+  },
+  "body": {
+   "in": 1941,
+   "out": 788,
+   "reasoning": 555,
+   "out_bytes": 513
+  }
+ },
+ "final": "-- Phase 2: implementation of checked_add.\n-- Returns the sum of a and b, or None when the sum does not fit in int.\n-- Overflow never panics here: the caller gets None instead.\n\nchecked_add(a: int, b: int) -> int? =\n  ex checked_add(1, 2) == 3\n  ex checked_add(-5, 5) == 0\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775808, -1) == None\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < -9223372036854775807 - 1 - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 890,
+    "reasoning": 714
+   },
+   "out_bytes": 385,
+   "ok": false,
+   "report": "E100 task.yn:5:36 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1691,
+    "out": 504,
+    "reasoning": 327
+   },
+   "out_bytes": 387,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1941,
+    "out": 788,
+    "reasoning": 555
+   },
+   "out_bytes": 513,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

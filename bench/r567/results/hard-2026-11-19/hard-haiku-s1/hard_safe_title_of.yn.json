@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1617,
+   "out": 529,
+   "reasoning": 386,
+   "out_bytes": 340
+  },
+  "body": {
+   "in": 1833,
+   "out": 930,
+   "reasoning": 719,
+   "out_bytes": 503
+  }
+ },
+ "final": "-- Phase 1: spec for title_of. Pure function, so it declares no capabilities.\n-- The page is passed in as a string; the function never fetches it.\n\ntitle_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title</p>\") == \"\"\n  let opened = html.split(\"<title>\")\n  if opened.len() < 2\n    return \"\"\n  let rest = opened.get(1) else return \"\"\n  let closed = rest.split(\"</title>\")\n  closed.get(0) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1617,
+    "out": 529,
+    "reasoning": 386
+   },
+   "out_bytes": 340,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1833,
+    "out": 930,
+    "reasoning": 719
+   },
+   "out_bytes": 503,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

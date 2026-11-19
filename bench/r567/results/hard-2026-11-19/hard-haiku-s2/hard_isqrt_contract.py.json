@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 854,
+   "reasoning": 420,
+   "out_bytes": 906
+  },
+  "body": {
+   "in": 1571,
+   "out": 1083,
+   "reasoning": 492,
+   "out_bytes": 1254
+  }
+ },
+ "final": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest r such that r * r <= n.\n\n    Contract (to be enforced with assert statements in the body):\n      Precondition:  n >= 0.\n      Postcondition: r * r <= n < (r + 1) * (r + 1).\n    \"\"\"\n    assert n >= 0, \"precondition violated: n must be non-negative\"\n    # Invariant: lo * lo <= n < hi * hi\n    lo, hi = 0, n + 1\n    while hi - lo > 1:\n        mid = (lo + hi) // 2\n        if mid * mid <= n:\n            lo = mid\n        else:\n            hi = mid\n    r = lo\n    assert r * r <= n < (r + 1) * (r + 1), \"postcondition violated\"\n    return r\n\n\ndef test_isqrt_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n\n\ndef test_isqrt_perfect_squares() -> None:\n    assert isqrt(4) == 2\n    assert isqrt(9) == 3\n    assert isqrt(16) == 4\n    assert isqrt(10_000) == 100\n\n\ndef test_isqrt_between_squares() -> None:\n    assert isqrt(15) == 3\n    assert isqrt(24) == 4\n    assert isqrt(99) == 9\n\n\ndef test_isqrt_large_value() -> None:\n    n = 10**18 + 7\n    r = isqrt(n)\n    assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_isqrt_rejects_negative() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 854,
+    "reasoning": 420
+   },
+   "out_bytes": 906,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1571,
+    "out": 1083,
+    "reasoning": 492
+   },
+   "out_bytes": 1254,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

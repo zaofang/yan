@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 758,
+   "reasoning": 392,
+   "out_bytes": 997
+  },
+  "body": {
+   "in": 1502,
+   "out": 568,
+   "reasoning": 151,
+   "out_bytes": 1158
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` per-line config text.\n\n    The text is passed in as a string; this function never reads files.\n    Returns an empty string when the key is absent.\n    \"\"\"\n    for line in text.splitlines():\n        name, sep, value = line.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_config_value_returns_matching_value() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_config_value_returns_first_line_value() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"host\") == \"localhost\"\n\n\ndef test_config_value_missing_key_returns_empty_string() -> None:\n    assert config_value(\"host=localhost\", \"port\") == \"\"\n\n\ndef test_config_value_empty_text_returns_empty_string() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_keeps_equals_signs_in_value() -> None:\n    assert config_value(\"expr=a=b\", \"expr\") == \"a=b\"\n\n\ndef test_config_value_does_not_match_key_prefix() -> None:\n    assert config_value(\"portal=1\", \"port\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 758,
+    "reasoning": 392
+   },
+   "out_bytes": 997,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1502,
+    "out": 568,
+    "reasoning": 151
+   },
+   "out_bytes": 1158,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

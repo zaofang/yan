@@ -1,0 +1,55 @@
+-- spec: 5.4
+-- rows: R770
+-- note: drop, copy and == of types that nest records and sums (the Yan Core AST shape) are one out-of-line walk per type, so the native build stays small (#1757)
+-- stdout:
+-- 50 1 True False
+
+type Span = { line: int, col: int }
+
+type Lit = LitInt(s: str) | LitStr(s: str) | LitUnit()
+
+type Atom = AtomName(name: str, span: Span) | AtomLit(lit: Lit, span: Span)
+
+type Ty = TyNamed(path: List[str]) | TyTuple(v: List[Ty]) | TyRefined(name: str, ty: Ty)
+
+type Param = { name: str, ty: Ty }
+
+type StmtKind = StmtRet(a: Atom) | StmtIf(cond: Atom, yes: List[Stmt]) | StmtLet(ty: Ty, a: Atom)
+
+type Stmt = { kind: StmtKind, span: Span }
+
+type FnDef = { name: str, params: List[Param], ret: Ty, body: Option[List[Stmt]] }
+
+type Item = ItemFn(def: FnDef, span: Span) | ItemConst(name: str, ty: Ty, a: Atom)
+
+sp(n: int) -> Span = Span(line: n, col: 1)
+
+ty() -> Ty = TyTuple(v: [TyNamed(path: ["int"]), TyNamed(path: ["str"])])
+
+st(n: int) -> Stmt =
+  let r = StmtRet(a: AtomName(name: "x\(n)", span: sp(n)))
+  Stmt(
+      kind: StmtIf(
+          cond: AtomLit(lit: LitInt(s: "1"), span: sp(n)),
+          yes: [Stmt(kind: r, span: sp(n))],
+      ),
+      span: sp(n),
+  )
+
+mk(n: int) -> Item =
+  let p = Param(name: "a", ty: ty())
+  let fd = FnDef(name: "f", params: [p], ret: ty(), body: Some([st(n), st(n)]))
+  ItemFn(def: fd, span: sp(n))
+
+nparams(i: Item) -> int =
+  match i
+    ItemFn(def, _) -> len(def.params)
+    ItemConst(_, _, _) -> 0
+
+main() uses io =
+  var items: List[Item] = []
+  for i in range(50)
+    items.append(mk(i))
+  let it = items[7]
+  let n = nparams(it)
+  io.print("\(len(items)) \(n) \(it == items[7]) \(it == items[8])")

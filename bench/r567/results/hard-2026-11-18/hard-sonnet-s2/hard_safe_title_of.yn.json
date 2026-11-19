@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 382,
+   "reasoning": 250,
+   "out_bytes": 294
+  },
+  "body": {
+   "in": 3657,
+   "out": 1371,
+   "reasoning": 881,
+   "out_bytes": 1096
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n  ex title_of(\"<p>no title here</p>\") == \"\"\n  ex title_of(\"<title>unclosed\") == \"\"\n  ex title_of(\"<title></title>\") == \"\"\n  let parts = html.split(\"<title>\")\n  if parts.len() < 2\n    return \"\"\n  let rest = parts[1]\n  let pieces = rest.split(\"</title>\")\n  if pieces.len() < 2\n    return \"\"\n  copy pieces[0]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 382,
+    "reasoning": 250
+   },
+   "out_bytes": 294,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1663,
+    "out": 838,
+    "reasoning": 630
+   },
+   "out_bytes": 459,
+   "ok": false,
+   "report": "E413 task.yn:14:3 title_of: `pieces[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 14:3 | fix: pieces[0] -> pieces[0].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1994,
+    "out": 533,
+    "reasoning": 251
+   },
+   "out_bytes": 637,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:14:3 title_of: `pieces[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 14:3 | fix: pieces[0] -> pieces[0].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

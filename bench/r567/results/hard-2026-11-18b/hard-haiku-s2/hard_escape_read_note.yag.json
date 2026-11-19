@@ -1,0 +1,127 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when `name` is a single relative path segment with no escape.\n\n    Rejects empty names, absolute paths, and any `..` or separator\n    that could leave the `notes` directory.\n    \"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret.txt\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"\") == False\n    if name.char_count() == 0:\n        return False\n    if name == \".\" or name == \"..\":\n        return False\n    if \"/\" in name or \"\\\\\" in name or \":\" in name:\n        return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of file `name` inside the `notes` directory.\n\n    `name` is untrusted. Only files inside `notes` are read. A missing or\n    unreadable file, or a name that resolves outside `notes`, gives \"\".\n    Example: read_note(\"no-such-file.txt\") gives \"\" when that file is absent.\n    \"\"\"\n    pre name.char_count() >= 0\n    post out.byte_len() >= 0\n    if not is_plain_name(name):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read_text(name) else \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpmpuz3f59/work/task.yag:9:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpmpuz3f59/work/task.yag:10:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpmpuz3f59/work/task.yag:11:8 read_note: `assert read_note(\"\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 699,
+    "reasoning": 514
+   },
+   "out_bytes": 452
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2560,
+    "out": 962,
+    "reasoning": 641
+   },
+   "out_bytes": 825
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2979,
+    "out": 1356,
+    "reasoning": 930
+   },
+   "out_bytes": 1129
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 2979,
+   "out": 1356,
+   "reasoning": 930,
+   "out_bytes": 1129
+  },
+  "spec": {
+   "in": 4680,
+   "out": 1661,
+   "reasoning": 1155,
+   "out_bytes": 1277
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpmpuz3f59/work/task.yag:9:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpmpuz3f59/work/task.yag:10:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpmpuz3f59/work/task.yag:11:8 read_note: `assert read_note(\"\")` capability `fs` is not i"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

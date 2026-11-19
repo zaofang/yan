@@ -1,0 +1,7 @@
+module edge.err1
+fn f(let x: i64) -> i64 { ret x }
+fn g(let x i64) -> i64 { ret x }
+record R { a: i64 }
+fn h() -> i64 { ret 1 + }
+sum S { }
+newtype N =

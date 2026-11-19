@@ -2019,9 +2019,16 @@ impl Lower<'_> {
             ),
             ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
-            ExprKind::TypeField(..) | ExprKind::Reflect(..) => {
-                return unsupported("type fields and reflection");
+            // `T.V` is the sum `T`'s variant `V` (RFC 0093 D3); it lowers like a field of the type.
+            ExprKind::TypeField(x, n) => {
+                let at = Span {
+                    line: span.end_line,
+                    col: span.end_col.saturating_sub(n.len() as u32),
+                    ..span
+                };
+                K::Attr(b(self.expr(x)?), n.clone(), at)
             }
+            ExprKind::Reflect(..) => return unsupported("reflection"),
             ExprKind::Block(_) | ExprKind::ParFor { .. } => {
                 return unsupported("block and `par for` values");
             }

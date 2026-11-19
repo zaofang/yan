@@ -93,6 +93,37 @@ pub struct Race {
     fences: HashMap<Tid, Fences>,
     /// The one clock every sequentially consistent operation and fence joins and publishes.
     sc: Vec<u32>,
+    /// The last [`HISTORY`] stores of each atomic word, oldest first (RFC 0090 D3).
+    hist: HashMap<u64, History>,
+    /// The newest store of a word each thread has read or written, by modification-order
+    /// position: a later load by that thread may not read an older one (read-read coherence).
+    floor: HashMap<(Tid, u64), u64>,
+    seed: u64,
+    draws: u64,
+}
+
+/// Stores a load may still choose among; older ones are forgotten.
+const HISTORY: usize = 4;
+
+struct Store {
+    value: u64,
+    epoch: Epoch,
+    /// The release clock this store published.
+    sync: Vec<u32>,
+}
+
+#[derive(Default)]
+struct History {
+    /// Modification-order position of `stores[0]`.
+    base: u64,
+    stores: Vec<Store>,
+}
+
+fn splitmix(mut z: u64) -> u64 {
+    z = z.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
 }
 
 fn ordered(clock: &[u32], (t, c): Epoch) -> bool {
@@ -130,8 +161,18 @@ fn join(into: &mut Vec<u32>, from: &[u32]) {
 }
 
 impl Race {
+    #[cfg(test)]
     pub fn new() -> Race {
+        Race::seeded(0)
+    }
+
+    /// The seed fixes which store each load that may read an old one reads (R1101).
+    pub fn seeded(seed: u64) -> Race {
         Race {
+            hist: HashMap::new(),
+            floor: HashMap::new(),
+            seed,
+            draws: 0,
             clocks: vec![vec![1]],
             arm: vec![0],
             cur: 0,
@@ -442,9 +483,28 @@ impl Race {
     /// An atomic access of the 8-byte word at `addr` (D5): the message of the race it makes
     /// with an unordered plain access, if any, and otherwise its release/acquire edges. A
     /// failed compare-exchange is a `Read` under its failure ordering.
+    #[cfg(test)]
     pub fn atomic(&mut self, addr: u64, kind: Kind, order: MemOrder) -> Option<String> {
+        self.atomic_value(addr, kind, order, false, 0, None).err()
+    }
+
+    /// [`Race::atomic`] on a word holding `old` that the access leaves as `new`, if it writes
+    /// one. It returns the word the access reads: for a plain `load` (`stale_ok`) any store
+    /// coherence and happens-before allow, drawn by seed, otherwise `old` (RFC 0090 D3).
+    pub fn atomic_value(
+        &mut self,
+        addr: u64,
+        kind: Kind,
+        order: MemOrder,
+        stale_ok: bool,
+        old: u64,
+        new: Option<u64>,
+    ) -> Result<u64, String> {
         if self.idle() {
-            return None;
+            if new.is_some() {
+                self.hist.remove(&addr);
+            }
+            return Ok(old);
         }
         let cur = self.cur;
         let write = kind != Kind::Read;
@@ -453,7 +513,7 @@ impl Race {
             if let Some(cell) = self.shadow.get(&a)
                 && let Some((prior, t)) = conflict(cell, me, write, true)
             {
-                return Some(format!(
+                return Err(format!(
                     "atomic {} of 8 bytes at {addr:#x} by {} races with an earlier plain {prior} by {}",
                     if write { "write" } else { "read" },
                     self.who(cur),
@@ -468,7 +528,32 @@ impl Race {
             let sc = self.sc.clone();
             join(self.clock_of(cur), &sc);
         }
-        let seen = self.sync.get(&addr).cloned().unwrap_or_default();
+        if new.is_some() && !self.hist.contains_key(&addr) {
+            let sync = self.sync.get(&addr).cloned().unwrap_or_default();
+            let initial = Store {
+                value: old,
+                epoch: (0, 0),
+                sync,
+            };
+            self.hist.insert(
+                addr,
+                History {
+                    base: 0,
+                    stores: vec![initial],
+                },
+            );
+        }
+        let chosen = (stale_ok && kind == Kind::Read && order != MemOrder::SeqCst)
+            .then(|| self.choose(addr))
+            .flatten();
+        let mut value = old;
+        let seen = match &chosen {
+            Some((v, sync)) => {
+                value = *v;
+                sync.clone()
+            }
+            None => self.sync.get(&addr).cloned().unwrap_or_default(),
+        };
         if kind != Kind::Write {
             if acquire {
                 join(self.clock_of(cur), &seen);
@@ -497,16 +582,58 @@ impl Race {
             if kind == Kind::Rmw {
                 join(&mut out, &seen);
             }
+            if let (Some(w), Some(h)) = (new, self.hist.get_mut(&addr)) {
+                h.stores.push(Store {
+                    value: w,
+                    epoch: now,
+                    sync: out.clone(),
+                });
+                if h.stores.len() > HISTORY {
+                    h.stores.remove(0);
+                    h.base += 1;
+                }
+                self.floor
+                    .insert((cur, addr), h.base + h.stores.len() as u64 - 1);
+            }
             self.sync.insert(addr, out);
+        } else if chosen.is_none()
+            && let Some(h) = self.hist.get(&addr)
+        {
+            self.floor
+                .insert((cur, addr), h.base + h.stores.len() as u64 - 1);
         }
         if seq {
             let c = self.clocks[cur].clone();
             join(&mut self.sc, &c);
         }
-        if write && release {
+        if write {
             self.tick(cur);
         }
-        None
+        Ok(value)
+    }
+
+    /// The store a load by the current thread reads: any in the word's history that is not
+    /// older than one the thread has read, and not hidden by a later store that happens before
+    /// the load. `None` when the word has no history, or under seed 0, so the load reads the newest.
+    fn choose(&mut self, addr: u64) -> Option<(u64, Vec<u32>)> {
+        if self.seed == 0 {
+            return None;
+        }
+        let cur = self.cur;
+        let h = self.hist.get(&addr)?;
+        let me = &self.clocks[cur];
+        let floor = self.floor.get(&(cur, addr)).copied().unwrap_or(0);
+        let visible: Vec<usize> = (0..h.stores.len())
+            .filter(|&i| h.base + i as u64 >= floor)
+            .filter(|&i| !h.stores[i + 1..].iter().any(|s| ordered(me, s.epoch)))
+            .collect();
+        self.draws += 1;
+        let pick =
+            visible[(splitmix(self.seed ^ splitmix(self.draws)) % visible.len() as u64) as usize];
+        let s = &h.stores[pick];
+        let out = (s.value, s.sync.clone());
+        self.floor.insert((cur, addr), h.base + pick as u64);
+        Some(out)
     }
 
     /// `fence(order)`: an acquire fence takes the clocks the thread's relaxed loads saw, a
@@ -810,5 +937,70 @@ mod tests {
         assert!(arm(&mut r, 0, |r| r.access(0x20, true)).is_none());
         let out = arm(&mut r, 1, |r| r.atomic(0x20, Kind::Read, Relaxed)).expect("a race");
         assert!(out.contains("plain write"), "{out}");
+    }
+
+    /// What a relaxed load in the second arm reads after the first stored 1 over 0.
+    fn read_after_store(seed: u64, store: MemOrder, load: MemOrder) -> u64 {
+        let mut r = Race::seeded(seed);
+        r.fork();
+        r.enter(0);
+        r.atomic_value(0x20, Kind::Write, store, false, 0, Some(1))
+            .unwrap();
+        r.exit();
+        r.enter(1);
+        let v = r
+            .atomic_value(0x20, Kind::Read, load, true, 1, None)
+            .unwrap();
+        r.exit();
+        v
+    }
+
+    #[test]
+    fn a_seeded_relaxed_load_may_read_the_older_store() {
+        use MemOrder::*;
+        let seen: Vec<u64> = (1..=16)
+            .map(|s| read_after_store(s, Relaxed, Relaxed))
+            .collect();
+        assert!(seen.contains(&0) && seen.contains(&1), "{seen:?}");
+        assert_eq!(
+            read_after_store(0, Relaxed, Relaxed),
+            1,
+            "seed 0 reads the newest"
+        );
+        assert_eq!(
+            read_after_store(3, Relaxed, Relaxed),
+            read_after_store(3, Relaxed, Relaxed)
+        );
+    }
+
+    #[test]
+    fn a_sequentially_consistent_load_reads_the_newest_store() {
+        use MemOrder::*;
+        assert!((1..=16).all(|s| read_after_store(s, SeqCst, SeqCst) == 1));
+    }
+
+    #[test]
+    fn a_load_never_reads_older_than_one_the_thread_has_read() {
+        use MemOrder::*;
+        for seed in 1..=16 {
+            let mut r = Race::seeded(seed);
+            r.fork();
+            r.enter(0);
+            r.atomic_value(0x20, Kind::Write, Relaxed, false, 0, Some(1))
+                .unwrap();
+            r.atomic_value(0x20, Kind::Write, Relaxed, false, 1, Some(2))
+                .unwrap();
+            r.exit();
+            r.enter(1);
+            let mut last = 0;
+            for _ in 0..8 {
+                let v = r
+                    .atomic_value(0x20, Kind::Read, Relaxed, true, 2, None)
+                    .unwrap();
+                assert!(v >= last, "seed {seed}: {v} after {last}");
+                last = v;
+            }
+            r.exit();
+        }
     }
 }

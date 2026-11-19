@@ -1,10 +1,13 @@
 //! Plain `par` on the worker pool (RFC 0086). An arm that is safe for a worker (it reads and
-//! writes only what it owns or shares immutably, calls only such functions, and leaves only by
-//! falling out of its end) is outlined as `g$arm(frame) -> i64` over a heap frame, one word per
+//! writes only what it owns or shares immutably, calls only such functions, and leaves by
+//! falling out of its end or by `?`, `fail` or `return`, D8) is outlined as `g$arm(frame) -> i64` over a heap frame, one word per
 //! local of `g` after the arm code addresses. `PoolBegin` decides at run time: 0 runs the arms
 //! inline as before, 1 stores the locals live into the arms, runs them on workers with
 //! `PoolRun`, and loads the locals they define for the code after the join. An arm that is
-//! not safe keeps the inline path alone.
+//! not safe keeps the inline path alone. An arm that leaves ends at a `Leave` marker and a jump to
+//! the caller's code for the enclosing frame's drops: it stores the locals that code reads in
+//! exit words of its own and returns the code of the exit; `PoolRun` reports the lowest arm's
+//! code and the caller loads those words and jumps there.
 
 use std::collections::HashSet;
 
@@ -100,8 +103,16 @@ fn next_site(f: &Func, tried: &HashSet<BlockId>) -> Option<BlockId> {
     })
 }
 
+/// An arm's `Leave`: `block` jumps to `target`, which is not in the arm.
+struct Exit {
+    arm: usize,
+    block: BlockId,
+    target: BlockId,
+}
+
 struct Region {
     site: BlockId,
+    exits: Vec<Exit>,
     /// Per arm: its blocks, the entry first.
     arms: Vec<Vec<BlockId>>,
     join: BlockId,
@@ -113,6 +124,7 @@ fn region(f: &Func, site: BlockId, safe: &[bool]) -> Option<Region> {
         return None;
     };
     let mut arms = Vec::new();
+    let mut exits = Vec::new();
     loop {
         if first_arm(&f.blocks[entry as usize]) != Some(ArmEvent::Enter(arms.len() as u32)) {
             return None;
@@ -133,6 +145,21 @@ fn region(f: &Func, site: BlockId, safe: &[bool]) -> Option<Region> {
                 _ => false,
             }) {
                 return None;
+            }
+            if blk
+                .insts
+                .iter()
+                .any(|i| matches!(i, Inst::Arm(ArmEvent::Leave)))
+            {
+                let Term::Jump(target) = blk.term else {
+                    return None;
+                };
+                exits.push(Exit {
+                    arm: arms.len(),
+                    block: b,
+                    target,
+                });
+                continue;
             }
             let succ = match &blk.term {
                 Term::Jump(_) | Term::Branch { .. } | Term::Switch { .. } => {
@@ -159,6 +186,7 @@ fn region(f: &Func, site: BlockId, safe: &[bool]) -> Option<Region> {
         if first_arm(&f.blocks[stop as usize]) == Some(ArmEvent::Join) {
             return Some(Region {
                 site,
+                exits,
                 arms,
                 join: stop,
             });
@@ -216,13 +244,41 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
+    // What the code at an exit reads and an arm defines goes in words of its own.
+    let xouts: Vec<Vec<Local>> = r
+        .exits
+        .iter()
+        .map(|x| {
+            let mut v: Vec<Local> = live[x.target as usize]
+                .iter()
+                .copied()
+                .filter(|l| defs[x.arm].contains(l))
+                .collect();
+            v.sort_unstable();
+            v
+        })
+        .collect();
     let tys = f.locals.clone();
     if moved
         .iter()
+        .chain(xouts.iter().flatten())
         .any(|l| tys[*l as usize] != Ty::Unit && !word(tys[*l as usize]))
     {
         return;
     }
+    let mut next_word = (n + f.locals.len()) as u32;
+    let xslots: Vec<Vec<(Local, u32)>> = xouts
+        .iter()
+        .map(|ls| {
+            ls.iter()
+                .filter(|l| tys[**l as usize] != Ty::Unit)
+                .map(|l| {
+                    next_word += 1;
+                    (*l, next_word - 1)
+                })
+                .collect()
+        })
+        .collect();
     let slot = |l: Local| (n as u32) + l;
     let typed = |ls: &[Local]| -> Vec<Local> {
         ls.iter()
@@ -268,7 +324,15 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
                 .for_each(|i| map_inst(i, &mut |l| l + 1));
             map_term(&mut blk.term, &mut |l| l + 1);
             let to = |t: &mut BlockId| *t = if bs.contains(t) { at(*t) } else { exit };
+            let leave = r.exits.iter().position(|x| x.arm == k && x.block == *b);
             match &mut blk.term {
+                Term::Jump(t) if leave.is_some() => {
+                    let at_arm = r.exits[..leave.unwrap()]
+                        .iter()
+                        .filter(|x| x.arm == k)
+                        .count();
+                    *t = bs.len() as BlockId + 2 + at_arm as BlockId;
+                }
                 Term::Jump(t) => to(t),
                 Term::Branch { then, els, .. } => {
                     to(then);
@@ -292,6 +356,22 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
             insts: stores,
             term: Term::Return(vec![Operand::Int(0)]),
         });
+        for (j, x) in r.exits.iter().enumerate().filter(|(_, x)| x.arm == k) {
+            let _ = x;
+            let stores: Vec<Inst> = xslots[j]
+                .iter()
+                .map(|(l, w)| Inst::Store {
+                    ptr: Operand::Local(0),
+                    word: *w,
+                    src: Operand::Local(l + 1),
+                })
+                .collect();
+            a.blocks.push(Block {
+                lines: vec![0; stores.len()],
+                insts: stores,
+                term: Term::Return(vec![Operand::Int(j as i128 + 1)]),
+            });
+        }
         ids.push((funcs + out.len()) as FuncId);
         out.push(a);
     }
@@ -314,7 +394,7 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
             args: vec![Operand::Local(m), Operand::Int(0)],
         },
     ];
-    let words = n + f.locals.len();
+    let words = next_word as usize;
     let mut run_insts = vec![rt(Some(fr), RtFn::Alloc, vec![Operand::Int(words as i128)])];
     for (k, id) in ids.iter().enumerate() {
         let c = new_local(f, Ty::Ptr);
@@ -338,20 +418,33 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
             src: Operand::Local(l),
         });
     }
+    let code = new_local(f, I64);
     run_insts.push(rt(
-        None,
+        Some(code),
         RtFn::PoolRun,
         vec![Operand::Local(fr), Operand::Int(n as i128)],
     ));
-    for l in typed(&all_outs) {
-        run_insts.push(Inst::Load {
-            dst: l,
-            ptr: Operand::Local(fr),
-            word: slot(l),
-        });
+    // Code 0: every arm fell out of its end. Code j + 1: the exit `j` of the lowest arm that left.
+    let loads = |words: Vec<(Local, u32)>| -> Vec<Inst> {
+        words
+            .into_iter()
+            .map(|(l, w)| Inst::Load {
+                dst: l,
+                ptr: Operand::Local(fr),
+                word: w,
+            })
+            .collect()
+    };
+    let mut targets = Vec::new();
+    let mut fall = loads(typed(&all_outs).into_iter().map(|l| (l, slot(l))).collect());
+    fall.push(rt(None, RtFn::EnvFree, vec![Operand::Local(fr)]));
+    targets.push(new_block(f, fall, Term::Jump(r.join)));
+    for (j, x) in r.exits.iter().enumerate() {
+        let mut ex = loads(xslots[j].clone());
+        ex.push(rt(None, RtFn::EnvFree, vec![Operand::Local(fr)]));
+        targets.push(new_block(f, ex, Term::Jump(x.target)));
     }
-    run_insts.push(rt(None, RtFn::EnvFree, vec![Operand::Local(fr)]));
-    let pool = new_block(f, run_insts, Term::Jump(r.join));
+    let pool = new_block(f, run_insts, Term::Switch { on: code, targets });
     let blk = &mut f.blocks[r.site as usize];
     blk.lines.extend(std::iter::repeat_n(0, pre.len()));
     blk.insts.append(&mut pre);

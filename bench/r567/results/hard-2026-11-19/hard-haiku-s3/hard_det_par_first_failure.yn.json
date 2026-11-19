@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1672,
+   "out": 953,
+   "reasoning": 779,
+   "out_bytes": 391
+  },
+  "body": {
+   "in": 1919,
+   "out": 1436,
+   "reasoning": 1190,
+   "out_bytes": 509
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  ex check(2) == 2\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\n-- Runs check on every element in parallel. The result is the failure\n-- from the lowest-index odd element, regardless of which thread finishes first.\nall_even(xs: List[int]) -> List[int] fail Bad =\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1672,
+    "out": 953,
+    "reasoning": 779
+   },
+   "out_bytes": 391,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1919,
+    "out": 1436,
+    "reasoning": 1190
+   },
+   "out_bytes": 509,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

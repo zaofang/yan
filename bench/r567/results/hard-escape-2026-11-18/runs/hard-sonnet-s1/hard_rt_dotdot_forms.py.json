@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2552,
+   "reasoning": 749,
+   "out_bytes": 4217
+  },
+  "body": {
+   "in": 3052,
+   "out": 2677,
+   "reasoning": 671,
+   "out_bytes": 4791
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file `path` inside the directory `notes`.\n\n    `notes` is resolved relative to the current working directory, and `path`\n    is an untrusted request path relative to it.\n\n    - A path that wanders but stays inside `notes` (e.g. \"sub/../a.txt\") is\n      allowed.\n    - A path that leaves `notes` returns \"\": \"..\", \"../x\", \"sub/../../x\",\n      any absolute path (even one that points inside `notes`), and any\n      symlink that resolves to a location outside `notes`. A sibling\n      directory that merely shares the prefix (e.g. \"notes_evil\") counts as\n      outside.\n    - A missing file, a directory, an empty path, a path containing a NUL\n      byte, or an unreadable file returns \"\".\n    - Never raises for bad input and never reads outside `notes`.\n    \"\"\"\n    if not path or \"\\x00\" in path:\n        return \"\"\n    try:\n        if Path(path).is_absolute() or path.startswith((\"/\", \"\\\\\")):\n            return \"\"\n        base = Path(NOTES_DIR).resolve()\n        target = (base / path).resolve()\n        # Raises ValueError if target is not inside base (component-wise,\n        # so \"notes_evil\" is not mistaken for being inside \"notes\").\n        target.relative_to(base)\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    evil = tmp_path / \"notes_evil\"\n    evil.mkdir()\n    (evil / \"x.txt\").write_text(\"EVIL\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_plain_file(root: Path) -> None:\n    assert read_public(\"a.txt\") == \"hello\"\n\n\ndef test_reads_nested_file(root: Path) -> None:\n    assert read_public(\"sub/b.txt\") == \"nested\"\n\n\ndef test_wandering_path_staying_inside_is_ok(root: Path) -> None:\n    assert read_public(\"sub/../a.txt\") == \"hello\"\n    assert read_public(\"./sub/./b.txt\") == \"nested\"\n    assert read_public(\"sub/../sub/b.txt\") == \"nested\"\n\n\ndef test_missing_file_is_empty(root: Path) -> None:\n    assert read_public(\"nope.txt\") == \"\"\n    assert read_public(\"sub/nope.txt\") == \"\"\n    assert read_public(\"nodir/a.txt\") == \"\"\n\n\ndef test_directory_is_empty(root: Path) -> None:\n    assert read_public(\"sub\") == \"\"\n    assert read_public(\"\") == \"\"\n    assert read_public(\".\") == \"\"\n\n\ndef test_parent_traversal_is_empty(root: Path) -> None:\n    assert read_public(\"..\") == \"\"\n    assert read_public(\"../secret.txt\") == \"\"\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n    assert read_public(\"sub/../../../secret.txt\") == \"\"\n    assert read_public(\"./../secret.txt\") == \"\"\n\n\ndef test_sibling_with_shared_prefix_is_empty(root: Path) -> None:\n    assert read_public(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_absolute_path_outside_is_empty(root: Path) -> None:\n    assert read_public(str(root / \"secret.txt\")) == \"\"\n    assert read_public(\"/etc/passwd\") == \"\"\n\n\ndef test_absolute_path_even_inside_is_empty(root: Path) -> None:\n    assert read_public(str((root / NOTES_DIR / \"a.txt\").resolve())) == \"\"\n    assert read_public(\"/a.txt\") == \"\"\n\n\ndef test_nul_byte_is_empty(root: Path) -> None:\n    assert read_public(\"a.txt\\x00\") == \"\"\n    assert read_public(\"a.txt\\x00/../../secret.txt\") == \"\"\n\n\ndef test_symlink_escaping_notes_is_empty(root: Path) -> None:\n    link = root / NOTES_DIR / \"link.txt\"\n    try:\n        link.symlink_to(root / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_symlinked_dir_escaping_notes_is_empty(root: Path) -> None:\n    link = root / NOTES_DIR / \"outdir\"\n    try:\n        link.symlink_to(root / \"notes_evil\", target_is_directory=True)\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert read_public(\"outdir/x.txt\") == \"\"\n\n\ndef test_symlink_staying_inside_is_ok(root: Path) -> None:\n    link = root / NOTES_DIR / \"alias.txt\"\n    try:\n        link.symlink_to(root / NOTES_DIR / \"a.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert read_public(\"alias.txt\") == \"hello\"\n\n\ndef test_unreadable_file_is_empty(root: Path) -> None:\n    f = root / NOTES_DIR / \"locked.txt\"\n    f.write_text(\"hidden\", encoding=\"utf-8\")\n    f.chmod(0)\n    try:\n        assert read_public(\"locked.txt\") in (\"\", \"hidden\")  # root may still read\n    finally:\n        f.chmod(0o644)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2552,
+    "reasoning": 749
+   },
+   "out_bytes": 4217,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3052,
+    "out": 2677,
+    "reasoning": 671
+   },
+   "out_bytes": 4791,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

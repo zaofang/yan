@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1070,
+   "out": 1125,
+   "reasoning": 587,
+   "out_bytes": 1269
+  },
+  "body": {
+   "in": 1665,
+   "out": 796,
+   "reasoning": 226,
+   "out_bytes": 1347
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    \"\"\"Return x squared.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Return [square(x) for x in xs], computed in a thread pool.\n\n    The output preserves input order. An empty input returns an empty list.\n    \"\"\"\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(square, xs))\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_basic() -> None:\n    assert squares([1, 2, 3]) == [1, 4, 9]\n\n\ndef test_squares_negatives_and_zero() -> None:\n    assert squares([-3, 0, -1]) == [9, 0, 1]\n\n\ndef test_squares_preserves_order() -> None:\n    xs = list(range(-500, 500))\n    assert squares(xs) == [x * x for x in xs]\n\n\ndef test_square_single() -> None:\n    assert square(7) == 49\n\n\n@pytest.mark.parametrize((\"x\", \"expected\"), [(0, 0), (1, 1), (-4, 16)])\ndef test_square_parametrized(x: int, expected: int) -> None:\n    assert square(x) == expected\n\n\ndef test_squares_uses_thread_pool() -> None:\n    # Confirms the executor type is importable and usable; the implementation\n    # is expected to dispatch work through a ThreadPoolExecutor.\n    with ThreadPoolExecutor(max_workers=2) as ex:\n        assert list(ex.map(square, [2, 3])) == [4, 9]\n    assert squares([2, 3]) == [4, 9]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1070,
+    "out": 1125,
+    "reasoning": 587
+   },
+   "out_bytes": 1269,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1665,
+    "out": 796,
+    "reasoning": 226
+   },
+   "out_bytes": 1347,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

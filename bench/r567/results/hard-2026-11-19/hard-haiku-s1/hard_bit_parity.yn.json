@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1583,
+   "out": 584,
+   "reasoning": 495,
+   "out_bytes": 194
+  },
+  "body": {
+   "in": 3698,
+   "out": 1301,
+   "reasoning": 1020,
+   "out_bytes": 589
+  }
+ },
+ "final": "-- True when the byte has an odd number of set bits.\nparity(x: u8) -> bool =\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  ex parity(7) == True\n  var n = x\n  var odd = False\n  for i in range(0, 8)\n    if n % 2 == 1\n      odd = not odd\n    n = n // 2\n  odd\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1583,
+    "out": 584,
+    "reasoning": 495
+   },
+   "out_bytes": 194,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1745,
+    "out": 751,
+    "reasoning": 609
+   },
+   "out_bytes": 297,
+   "ok": false,
+   "report": "E201 task.yn:7:15 parity: `(x)` `int` does not take a `u8`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1953,
+    "out": 550,
+    "reasoning": 411
+   },
+   "out_bytes": 292,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yn:7:15 parity: `x` `int` does not take a `u8`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

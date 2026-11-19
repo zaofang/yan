@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 957,
+   "reasoning": 508,
+   "out_bytes": 1075
+  },
+  "body": {
+   "in": 1607,
+   "out": 689,
+   "reasoning": 209,
+   "out_bytes": 1148
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor  # noqa: F401  (used by the implementation in phase 2)\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, in input order.\n\n    Each element is computed with parity() on a thread pool. The result\n    list is positionally aligned with xs, and its contents and order do\n    not depend on how many workers the pool uses.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([7]) == [1]\n    assert parities([0]) == [0]\n\n\ndef test_parities_mixed_signs() -> None:\n    assert parities([-3, -2, -1, 0, 1, 2, 3]) == [1, 0, 1, 0, 1, 0, 1]\n\n\ndef test_parities_preserves_input_order() -> None:\n    xs = list(range(1000))\n    expected = [x % 2 for x in xs]\n    assert parities(xs) == expected\n\n\ndef test_parities_matches_sequential_parity() -> None:\n    xs = [5, 8, 13, 21, 34, 55, 89, 144]\n    assert parities(xs) == [parity(x) for x in xs]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 957,
+    "reasoning": 508
+   },
+   "out_bytes": 1075,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1607,
+    "out": 689,
+    "reasoning": 209
+   },
+   "out_bytes": 1148,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

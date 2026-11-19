@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1018,
+   "reasoning": 358,
+   "out_bytes": 1461
+  },
+  "body": {
+   "in": 1802,
+   "out": 864,
+   "reasoning": 112,
+   "out_bytes": 1691
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count how many elements of xs a bounded queue accepts before it is full.\n\n    A queue with capacity `cap` is created and each element of xs is put\n    in order without blocking. Counting stops at the first put that finds\n    the queue full. Nothing is ever taken out of the queue.\n\n    A capacity of zero or less accepts nothing, even though\n    queue.Queue treats maxsize <= 0 as unbounded.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_exact_capacity() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(4, []) == 0\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [7, 8, 9]) == 1\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(3, [5, 5, 5, 5]) == 3\n\n\n@pytest.mark.parametrize(\"cap\", range(0, 6))\ndef test_equals_min_of_cap_and_length(cap: int) -> None:\n    xs = [1, 2, 3, 4]\n    assert accepted(cap, xs) == min(cap, len(xs))\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3]\n    accepted(2, xs)\n    assert xs == [1, 2, 3]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1018,
+    "reasoning": 358
+   },
+   "out_bytes": 1461,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1802,
+    "out": 864,
+    "reasoning": 112
+   },
+   "out_bytes": 1691,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

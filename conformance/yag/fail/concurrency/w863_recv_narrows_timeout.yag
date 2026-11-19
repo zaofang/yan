@@ -1,0 +1,12 @@
+# spec: 9.4, 17.3
+# rows: R1111
+# note: recv fails Cancelled | Timeout, so `?` into a function that declares only Cancelled warns
+# expect: W863 at 7:9
+
+def first(var rx: Receiver[int]) -> int fail Cancelled:
+    v = rx.recv()?
+    match v:
+        case Some(x):
+            return x
+        case None:
+            return 0

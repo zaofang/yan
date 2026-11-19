@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1057,
+   "out": 651,
+   "reasoning": 283,
+   "out_bytes": 825
+  },
+  "body": {
+   "in": 1482,
+   "out": 477,
+   "reasoning": 96,
+   "out_bytes": 857
+  }
+ },
+ "final": "import pytest\n\n\ndef longest(a: list[int], b: list[int]) -> list[int]:\n    \"\"\"Return the longer of a and b; the first argument wins a tie.\"\"\"\n    return a if len(a) >= len(b) else b\n\n\ndef test_longer_first_list_returned() -> None:\n    assert longest([1, 2, 3], [4]) == [1, 2, 3]\n\n\ndef test_longer_second_list_returned() -> None:\n    assert longest([9], [4, 5, 6]) == [4, 5, 6]\n\n\ndef test_tie_returns_first() -> None:\n    a = [1, 2]\n    b = [3, 4]\n    assert longest(a, b) is a\n\n\ndef test_both_empty_returns_first() -> None:\n    a: list[int] = []\n    b: list[int] = []\n    assert longest(a, b) is a\n\n\ndef test_one_empty() -> None:\n    assert longest([], [7]) == [7]\n    assert longest([7], []) == [7]\n\n\ndef test_returns_original_object_not_copy() -> None:\n    a = [1, 2, 3]\n    b = [4]\n    assert longest(a, b) is a\n    assert longest(b, a) is a\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1057,
+    "out": 651,
+    "reasoning": 283
+   },
+   "out_bytes": 825,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1482,
+    "out": 477,
+    "reasoning": 96
+   },
+   "out_bytes": 857,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/take_longest",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

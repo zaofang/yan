@@ -1,0 +1,10 @@
+# spec: 6.2
+# rows: R1101
+# note: wait returns at once when the word is not the expected value, so no other task is needed
+# stdout:
+# done
+
+def main() -> None fail Cancelled | Timeout uses io, nondet:
+    a = Atomic[int32](3)
+    a.wait(5, LoadOrdering.SeqCst())?
+    print("done")

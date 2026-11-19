@@ -27,6 +27,8 @@ pub enum Done {
     Fail(Vec<i64>),
     Overflow,
     Value,
+    /// A sleep cut short by the enclosing deadline (9.4).
+    Timeout,
 }
 
 const SYNTAX: i64 = 0;
@@ -740,7 +742,16 @@ pub fn wait_until(t: i128) {
     }
 }
 
-fn clock_sleep(h: i64, ns: i128) {
+/// Sleeps `ns` on handler `h`, or until the enclosing deadline when that comes first; whether it
+/// was cut short, which fails `Timeout` (9.4).
+fn clock_sleep(h: i64, ns: i128) -> bool {
+    let now = clock_monotonic(h);
+    let cut = crate::deadline::current().filter(|d| now + ns > *d);
+    sleep_for(h, cut.map_or(ns, |d| d - now));
+    cut.is_some()
+}
+
+fn sleep_for(h: i64, ns: i128) {
     if ns <= 0 {
         return;
     }
@@ -827,15 +838,16 @@ fn run_more(op: &str, a: &[i64], text: &dyn Fn(i64) -> String) -> Done {
             crate::cluster::sweep();
             Done::Ok(words(t).to_vec())
         }
-        "clock.sleep" => {
-            clock_sleep(a[0], join(a[1], a[2]));
+        "clock.sleep" | "clock.sleep_until" => {
+            let ns = join(a[1], a[2]);
+            let ns = if op == "clock.sleep" {
+                ns
+            } else {
+                ns - clock_monotonic(a[0])
+            };
+            let cut = clock_sleep(a[0], ns);
             crate::cluster::sweep();
-            int(0)
-        }
-        "clock.sleep_until" => {
-            clock_sleep(a[0], join(a[1], a[2]) - clock_monotonic(a[0]));
-            crate::cluster::sweep();
-            int(0)
+            if cut { Done::Timeout } else { int(0) }
         }
         "mono.add" => Done::Ok(words(join(a[0], a[1]) + join(a[2], a[3])).to_vec()),
         "mono.sub" | "mono.since" => Done::Ok(words(join(a[0], a[1]) - join(a[2], a[3])).to_vec()),
@@ -977,6 +989,7 @@ pub fn outcome(done: Done, string: impl FnOnce(&str) -> i64) -> (i64, Vec<i64>) 
         Done::Fail(w) => (2, w),
         Done::Overflow => (3, Vec::new()),
         Done::Value => (4, Vec::new()),
+        Done::Timeout => (5, Vec::new()),
     }
 }
 
@@ -1023,4 +1036,22 @@ pub extern "C" fn yan_rt_civil_out_f(i: i64) -> f64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_civil_out(i: i64) -> i64 {
     OUT.with(|o| o.borrow()[i as usize])
+}
+
+#[cfg(test)]
+mod deadline_tests {
+    use super::*;
+
+    #[test]
+    fn a_sleep_past_the_deadline_stops_there_and_times_out() {
+        let at = host_monotonic() + 2_000_000;
+        crate::deadline::yan_rt_deadline_begin(u64::MAX, (at >> 64) as i64, at as i64);
+        let (hi, lo) = (0, 1_000_000_000);
+        let done = run("clock.sleep", &[0, hi, lo], &|_| String::new());
+        crate::deadline::yan_rt_deadline_end();
+        assert!(matches!(done, Done::Timeout));
+        assert!(host_monotonic() < at + 500_000_000);
+        let done = run("clock.sleep", &[0, hi, 1], &|_| String::new());
+        assert!(matches!(done, Done::Ok(_)));
+    }
 }

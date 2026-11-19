@@ -1,0 +1,40 @@
+--- S0 readiness 2: index-based tree with a newtype handle and generic functions over a list arena.
+
+type NodeId = newtype[int]
+
+type Node[T] = { value: T, kids: List[NodeId] }
+
+type Tree[T] = { nodes: List[Node[T]] }
+
+add[T](var t: Tree[T], value: T, parent: NodeId?) -> NodeId uses none =
+  let id = NodeId(len(t.nodes))
+  t.nodes.append(Node(value: value, kids: []))
+  match parent
+    Some(p) -> t.nodes[p.value].kids.append(id.copy())
+    None -> ()
+  id
+
+depth[T](t: Tree[T], id: NodeId) -> int uses none =
+  var best = 0
+  for k in t.nodes[id.value].kids
+    let d = depth(t, k.copy())
+    if d > best
+      best = d
+  best + 1
+
+fold[T, A](t: Tree[T], id: NodeId, init: A, f: (A, T) -> A) -> A uses none =
+  var acc = f(init, t.nodes[id.value].value.copy())
+  for k in t.nodes[id.value].kids
+    acc = fold(t, k.copy(), acc, f)
+  acc
+
+main() uses io =
+  var t: Tree[int] = Tree(nodes: [])
+  let root = add(&t, 1, None)
+  let a = add(&t, 2, Some(root.copy()))
+  let b = add(&t, 3, Some(root.copy()))
+  let c = add(&t, 4, Some(a))
+  io.print("\(b.value) \(c.value)")
+  io.print("\(len(t.nodes)) \(depth(t, root.copy()))")
+  io.print("\(fold(t, root.copy(), 0, (s, v) -> s + v))")
+  io.print("\(fold(t, root, "", (s, v) -> s + str(v)))")

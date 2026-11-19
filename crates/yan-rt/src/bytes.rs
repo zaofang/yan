@@ -142,7 +142,7 @@ pub unsafe extern "C" fn yan_rt_bytes_from_list(l: *const List) -> *mut Vec<u8> 
 /// `b` is a `bytes` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_bytes_free(b: *mut Vec<u8>) {
-    crate::heap::block_freed();
+    crate::heap::block_freed(b as usize);
     // SAFETY: the caller's contract; the block came from `leak`.
     drop(unsafe { Box::from_raw(b) });
 }

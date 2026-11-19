@@ -186,6 +186,22 @@ pub enum Inst {
     },
     /// A boundary of a sequential `par`'s arms, for the machine's race detector; no code.
     Arm(ArmEvent),
+    /// The values at `places` left them (a move, `Rhs::Move`); no code. The machine tracks it
+    /// for `ub(8)` (RFC 0087).
+    Move {
+        places: Vec<Loc>,
+    },
+}
+
+/// A place a value can be moved out of.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Loc {
+    Local(Local),
+    /// Word `word` of the block at `ptr`.
+    Word {
+        ptr: Operand,
+        word: u32,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -213,6 +229,23 @@ pub enum MemOrder {
     SeqCst,
 }
 
+impl MemOrder {
+    /// The operand an `Rt` call carries the ordering as.
+    pub fn code(self) -> i128 {
+        self as i128
+    }
+
+    pub fn from_code(c: i128) -> MemOrder {
+        match c {
+            0 => MemOrder::Relaxed,
+            1 => MemOrder::Acquire,
+            2 => MemOrder::Release,
+            3 => MemOrder::AcqRel,
+            _ => MemOrder::SeqCst,
+        }
+    }
+}
+
 /// Where a `par` forks and joins its arms (`Inst::Arm`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ArmEvent {
@@ -220,6 +253,9 @@ pub enum ArmEvent {
     Enter(u32),
     Exit,
     Join,
+    /// An arm leaves its block (by `?`, `fail` or `return`); a `Jump` to the code that drops the
+    /// names of the enclosing frame follows, the edge `pool` turns into an exit code.
+    Leave,
 }
 
 /// The yan-rt entry points native code calls.
@@ -235,6 +271,8 @@ pub enum RtFn {
     ReadAll,
     /// `(handler, Str) -> Str`, a null pointer on failure
     FsRead,
+    /// `(handler, Str) -> list[Path]`, null on failure like `FsRead`
+    FsListDir,
     /// `(dict[str, str]) -> handler`
     FsFake,
     /// `(sink, min level) -> handler`
@@ -494,6 +532,7 @@ pub enum RtFn {
     Rounded,
     /// `(xs, ys or 0, mode) -> f64`: the exactly rounded sum, or dot product, of float lists.
     DotExact,
+    SumF64,
     /// `(f64, f64) -> f64`
     Copysign,
     /// `(f64) -> bool`
@@ -615,9 +654,17 @@ pub enum RtFn {
     ChanTrySend,
     /// `ChanRecv` that never parks: 4 when open and empty, 3 when closed.
     ChanTryRecv,
+    /// `(Ptr word, expected, order, in_task) -> i64`: `Atomic.wait` on a 32-bit word (RFC 0089);
+    /// 1 when it parked the task, 2 when the task is cancelled, as for `ChanRecv`.
+    FutexWait,
+    /// `(Ptr word, count)`: release up to `count` tasks parked on the word.
+    FutexNotify,
     /// `(Ptr keys, Ptr at, Ptr out, in_task) -> i64`: `select_wait`'s ready arm into `out`; 1, 2
     /// and the actor status as for `ChanRecv`.
     SelectWait,
+    /// `(Ptr chan, Ptr out) -> i64`: on the channel's last end, move the oldest queued element
+    /// into `out` and return 1; else 0.
+    ChanDrain,
     /// `(Ptr chan)`: drop one end.
     ChanDrop,
     /// `ChanDrop` of a `Sender`: the last one closes the channel.
@@ -644,8 +691,10 @@ pub enum RtFn {
     /// `(n) -> i64`: 1 when the plain `par` of `n` arms runs on the pool (`yan_rt::pool`), 0 when
     /// it runs inline.
     PoolBegin,
-    /// `(frame, n)`: run the arms of a plain `par` on the pool and wait for all of them. Words
-    /// `0..n` of `frame` are the arms' code addresses, each `(frame) -> i64`.
+    /// `(frame, n) -> i64`: run the arms of a plain `par` on the pool and wait for all of them.
+    /// Words `0..n` of `frame` are the arms' code addresses, each `(frame) -> i64`: 0 on falling
+    /// out of its end, else the code of the exit it left by. Returns the code of the lowest arm
+    /// that left, 0 when none did.
     PoolRun,
     /// `(state, words, capacity, policy, restart, thunk, code, env) -> actor` (`yan_rt::actor`).
     ActorSpawn,
@@ -683,6 +732,12 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(low, hi, lo) -> low`: open a deadline scope ending at the instant `(hi, lo)`.
+    DeadlineBegin,
+    /// `()`: end the innermost deadline scope.
+    DeadlineEnd,
+    /// `(depth)`: end the deadline scopes past `depth`.
+    DeadlineEndTo,
     /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
     FfiCall,
     /// As `FfiCall`, `-> f64`.
@@ -744,6 +799,12 @@ impl RtFn {
         matches!(
             self,
             Concat
+                | Print
+                | RandSeeded
+                | RandSplit
+                | RandNext
+                | RandF64
+                | RandBelow
                 | ShowI64
                 | ShowU64
                 | ShowF64
@@ -846,6 +907,7 @@ impl RtFn {
                 | Math2
                 | Rounded
                 | DotExact
+                | SumF64
                 | Copysign
                 | IsNan
                 | IsInf
@@ -916,6 +978,7 @@ impl RtFn {
                 | RtFn::ReadLine
                 | RtFn::ReadAll
                 | RtFn::FsRead
+                | RtFn::FsListDir
                 | RtFn::FsReason
                 | RtFn::ShowI64
                 | RtFn::ShowU64
