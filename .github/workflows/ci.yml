@@ -216,7 +216,8 @@ jobs:
       # nextest builds only test targets; yan-cli's build tests need libyan_rt.a (a plain cargo test builds it as a side effect).
       - run: cargo build --locked -p yan-rt
       # nextest does not run doctests.
-      - run: cargo nextest run --locked --no-fail-fast
+      # The native build test is one serial test of about 5 minutes: it runs in the `native` job, in parallel.
+      - run: cargo nextest run --locked --no-fail-fast -E 'not test(=built_programs_match_the_interpreter)'
       - run: cargo test --locked --doc
       - run: uv sync --locked
       - run: uv run python tools/third_party.py --check
@@ -263,6 +264,27 @@ jobs:
             conformance-summary.json
             laws-summary.json
             difftest-summary.json
+
+  # The one slow test of the rust job (every run case built natively and compared with the interpreter), alone so it
+  # overlaps the rest. Same checks as before, split for wall time.
+  native:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-nextest@0.9.100
+      - run: cargo build --locked -p yan-rt
+      - run: cargo nextest run --locked -p yan-cli --test build -E 'test(=built_programs_match_the_interpreter)'
 
   # One run per program: checks that every benchmark still computes its result; times are indicative.
   # Main pushes and the nightly run only.
