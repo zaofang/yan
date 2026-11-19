@@ -6321,6 +6321,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/actor/call_scope_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "9.6"
+   ],
+   "rows": [
+    "R956"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Timeout() after PT1S\n7\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/actor/idle_mail_outside_par.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6706,6 +6722,22 @@
    "flags": [],
    "expect": [],
    "stdout": "111\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_times_out_under_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "9.4"
+   ],
+   "rows": [
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "waiting\ndone\n",
    "exit": 0
   },
   {
