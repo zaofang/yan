@@ -10217,6 +10217,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/sleep_stops_at_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1111",
+    "R788"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\ntimeout Timeout()\nb\nPT0.05S\nuntil timeout\nPT0.05S\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/sorted_dict_basic.yag",
    "kind": "run",
    "milestone": "M1",
@@ -14124,6 +14140,23 @@
    "flags": [],
    "expect": [],
    "stdout": "105\n7\n108\n-2\n-1\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/concurrency/select_stops_at_deadline.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "9.4",
+    "9.5"
+   ],
+   "rows": [
+    "R1111",
+    "R788"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-9\nPT0.1S\n-2\nPT0.15S\n-8\nPT0.16S\n",
    "exit": 0
   },
   {
