@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2164,
+   "reasoning": 985,
+   "out_bytes": 2512
+  },
+  "body": {
+   "in": 2491,
+   "out": 1997,
+   "reasoning": 660,
+   "out_bytes": 2946
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    \"\"\"Return read(path) + '|' + read('notes/../secret.txt').\"\"\"\n    mine = read(path)\n    theirs = read(\"notes/../secret.txt\")\n    return mine + \"|\" + theirs\n\n\ndef make_sandboxed_reader(base: str) -> Callable[[str], str]:\n    \"\"\"Return a reader that reads files relative to base.\n\n    Any path that resolves outside base, or that cannot be read,\n    yields an empty string.\n    \"\"\"\n    base_dir = Path(base).resolve()\n\n    def read(p: str) -> str:\n        target = (base_dir / p).resolve()\n        if not target.is_relative_to(base_dir):\n            return \"\"\n        try:\n            return target.read_text(encoding=\"utf-8\")\n        except OSError:\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run plugin(path, reader) with a reader confined to 'notes'.\n\n    Returns the same value as plugin(path, read), where read(p) gives the\n    text of p relative to 'notes', or '' when p cannot be read inside it.\n    \"\"\"\n    return plugin(path, make_sandboxed_reader(\"notes\"))\n\n\ndef test_sandboxed_reader_reads_inside(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    read = make_sandboxed_reader(\"notes\")\n    assert read(\"a.txt\") == \"hello\"\n\n\ndef test_sandboxed_reader_blocks_parent_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    read = make_sandboxed_reader(\"notes\")\n    assert read(\"../secret.txt\") == \"\"\n    assert read(\"notes/../secret.txt\") == \"\"\n\n\ndef test_sandboxed_reader_blocks_absolute_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"S\", encoding=\"utf-8\")\n    read = make_sandboxed_reader(\"notes\")\n    assert read(str(secret)) == \"\"\n\n\ndef test_sandboxed_reader_missing_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    read = make_sandboxed_reader(\"notes\")\n    assert read(\"nope.txt\") == \"\"\n\n\ndef test_run_plugin_hides_secret(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"x\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    assert run_plugin(\"a.txt\") == \"x|\"\n\n\ndef test_run_plugin_missing_path_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert run_plugin(\"missing.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2164,
+    "reasoning": 985
+   },
+   "out_bytes": 2512,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2491,
+    "out": 1997,
+    "reasoning": 660
+   },
+   "out_bytes": 2946,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3335,
+   "reasoning": 1829,
+   "out_bytes": 3458
+  },
+  "body": {
+   "in": 2688,
+   "out": 2489,
+   "reasoning": 816,
+   "out_bytes": 3922
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef resolve_note(name: str) -> Path | None:\n    \"\"\"Return the absolute path of note `name` inside NOTES_DIR, or None if it escapes.\n\n    Absolute names, names with parent-directory components that leave NOTES_DIR,\n    and symlinks whose target lies outside NOTES_DIR all yield None.\n    The file need not exist.\n    \"\"\"\n    try:\n        base = (Path.cwd() / NOTES_DIR).resolve()\n        candidate = (base / name).resolve()\n    except (OSError, ValueError):\n        return None\n    if candidate.is_relative_to(base):\n        return candidate\n    return None\n\n\ndef load_note(name: str) -> str | None:\n    \"\"\"Return the text of note `name`, or None if it cannot be read.\n\n    None covers: name outside NOTES_DIR, missing file, directory, permission\n    error, or decode error. An empty file returns \"\".\n    \"\"\"\n    path = resolve_note(name)\n    if path is None:\n        return None\n    try:\n        return path.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return None\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` for which load_note returns text.\n\n    Each entry is counted separately, so duplicates count more than once.\n    \"\"\"\n    return sum(1 for n in names if load_note(n) is not None)\n\n\n@pytest.fixture\ndef notes_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_resolve_note_inside(notes_cwd: Path) -> None:\n    result = resolve_note(\"a.txt\")\n    assert result is not None\n    assert result.name == \"a.txt\"\n    assert result.is_relative_to((notes_cwd / \"notes\").resolve())\n\n\ndef test_resolve_note_rejects_traversal(notes_cwd: Path) -> None:\n    assert resolve_note(\"../secret.txt\") is None\n    assert resolve_note(\"sub/../../secret.txt\") is None\n\n\ndef test_resolve_note_rejects_absolute(notes_cwd: Path) -> None:\n    assert resolve_note(\"/etc/passwd\") is None\n\n\ndef test_resolve_note_rejects_symlink_escape(notes_cwd: Path) -> None:\n    outside = notes_cwd / \"secret.txt\"\n    outside.write_text(\"secret\", encoding=\"utf-8\")\n    (notes_cwd / \"notes\" / \"link.txt\").symlink_to(outside)\n    assert resolve_note(\"link.txt\") is None\n\n\ndef test_load_note_reads_text(notes_cwd: Path) -> None:\n    (notes_cwd / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    assert load_note(\"a.txt\") == \"hello\"\n\n\ndef test_load_note_empty_file_is_text(notes_cwd: Path) -> None:\n    (notes_cwd / \"notes\" / \"empty.txt\").write_text(\"\", encoding=\"utf-8\")\n    assert load_note(\"empty.txt\") == \"\"\n\n\ndef test_load_note_missing_is_none(notes_cwd: Path) -> None:\n    assert load_note(\"missing.txt\") is None\n\n\ndef test_load_note_directory_is_none(notes_cwd: Path) -> None:\n    (notes_cwd / \"notes\" / \"sub\").mkdir()\n    assert load_note(\"sub\") is None\n\n\ndef test_load_note_traversal_never_reads_outside(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    assert load_note(\"../secret.txt\") is None\n\n\ndef test_count_readable_mixed(notes_cwd: Path) -> None:\n    notes = notes_cwd / \"notes\"\n    (notes / \"a.txt\").write_text(\"x\", encoding=\"utf-8\")\n    (notes / \"empty.txt\").write_text(\"\", encoding=\"utf-8\")\n    (notes / \"sub\").mkdir()\n    assert count_readable([\"a.txt\", \"empty.txt\", \"missing.txt\", \"sub\"]) == 2\n\n\ndef test_count_readable_ignores_traversal(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    assert count_readable([\"../secret.txt\", \"/etc/passwd\"]) == 0\n\n\ndef test_count_readable_counts_duplicates(notes_cwd: Path) -> None:\n    (notes_cwd / \"notes\" / \"a.txt\").write_text(\"x\", encoding=\"utf-8\")\n    assert count_readable([\"a.txt\", \"a.txt\"]) == 2\n\n\ndef test_count_readable_empty_list(notes_cwd: Path) -> None:\n    assert count_readable([]) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3335,
+    "reasoning": 1829
+   },
+   "out_bytes": 3458,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2688,
+    "out": 2489,
+    "reasoning": 816
+   },
+   "out_bytes": 3922,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

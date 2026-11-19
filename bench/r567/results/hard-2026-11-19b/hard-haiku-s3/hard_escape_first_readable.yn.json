@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1951,
+   "out": 1109,
+   "reasoning": 843,
+   "out_bytes": 667
+  },
+  "body": {
+   "in": 5220,
+   "out": 4492,
+   "reasoning": 3350,
+   "out_bytes": 2861
+  }
+ },
+ "final": "-- Phase 2: bodies. Contracts and signatures are unchanged from Phase 1.\n\n-- A file name is plain when it is non-empty and names one entry\n-- inside the directory: no path separators, no parent references.\nis_plain_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"sub/a.txt\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  if name.split(\"/\").len() != 1 or name.split(\"\\\\\").len() != 1\n    return False\n  True\n\n-- Scans names from index i and returns the text of the first readable\n-- plain name, or \"\" when none can be read.\nscan_names(names: List[str], i: int) -> str uses fs =\n  if i >= names.len()\n    return \"\"\n  if not is_plain_name(names[i])\n    return scan_names(names, i + 1)\n  let text = fs.read(names[i]) else return scan_names(names, i + 1)\n  text\n\n-- Returns the text of the first readable name inside `notes`,\n-- or \"\" when none can be read. Names that are not plain are skipped.\nfirst_readable(names: List[str]) -> str uses fs =\n  pre names.len() >= 0\n  post out.char_count() >= 0\n  var found = \"\"\n  with fs = fs.sub(\"notes\")\n    found = scan_names(names, 0)\n  found\n\ntest_plain_names() =\n  assert is_plain_name(\"a.txt\") == True\n  assert is_plain_name(\"../secret\") == False\n  assert is_plain_name(\"\") == False\n  assert is_plain_name(\".\") == False\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1951,
+    "out": 1109,
+    "reasoning": 843
+   },
+   "out_bytes": 667,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2290,
+    "out": 3423,
+    "reasoning": 2858
+   },
+   "out_bytes": 1414,
+   "ok": false,
+   "report": "E312 task.yn:34:5 first_readable: `scan_names(names, 0)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2930,
+    "out": 1069,
+    "reasoning": 492
+   },
+   "out_bytes": 1447,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E312 task.yn:34:5 first_readable: `scan_names(names, 0)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

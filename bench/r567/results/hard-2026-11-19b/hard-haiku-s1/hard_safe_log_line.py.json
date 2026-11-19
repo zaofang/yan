@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1075,
+   "out": 948,
+   "reasoning": 431,
+   "out_bytes": 1216
+  },
+  "body": {
+   "in": 1649,
+   "out": 605,
+   "reasoning": 77,
+   "out_bytes": 1242
+  }
+ },
+ "final": "import builtins\nfrom typing import NoReturn\n\nimport pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print one log line to stdout in the form ``[level] message``.\n\n    Console output only: this function must not open, create, or write\n    any file.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_prints_formatted_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"service started\")\n    assert capsys.readouterr().out == \"[INFO] service started\\n\"\n\n\ndef test_log_line_preserves_level_case(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"warn\", \"disk at 90%\")\n    assert capsys.readouterr().out == \"[warn] disk at 90%\\n\"\n\n\ndef test_log_line_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_log_line_does_not_touch_filesystem(\n    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]\n) -> None:\n    def _no_open(*args: object, **kwargs: object) -> NoReturn:\n        raise AssertionError(\"log_line must not open files\")\n\n    monkeypatch.setattr(builtins, \"open\", _no_open)\n    log_line(\"ERROR\", \"boom\")\n    assert capsys.readouterr().out == \"[ERROR] boom\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 948,
+    "reasoning": 431
+   },
+   "out_bytes": 1216,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1649,
+    "out": 605,
+    "reasoning": 77
+   },
+   "out_bytes": 1242,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

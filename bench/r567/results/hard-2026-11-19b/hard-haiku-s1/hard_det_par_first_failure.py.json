@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1879,
+   "reasoning": 1271,
+   "out_bytes": 1460
+  },
+  "body": {
+   "in": 1818,
+   "out": 1399,
+   "reasoning": 657,
+   "out_bytes": 1833
+  }
+ },
+ "final": "import sys\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even; raise Bad(x) if it is odd.\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element in a thread pool and return the results in input order.\n\n    If any element is odd, raise Bad for the odd element with the lowest index,\n    regardless of which worker thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Reading results in index order means the first exception raised\n        # belongs to the lowest-index bad element, independent of timing.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_on_odd() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 4])\n    assert info.value.n == 3\n\n\ndef test_all_even_reports_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 4, 5])\n    assert info.value.n == 3\n\n\ndef test_all_even_lowest_index_wins_when_it_finishes_last(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        # The odd value at index 1 is delayed so it finishes after index 2.\n        if x == 3:\n            time.sleep(0.2)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 5])\n    assert info.value.n == 3\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1879,
+    "reasoning": 1271
+   },
+   "out_bytes": 1460,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1818,
+    "out": 1399,
+    "reasoning": 657
+   },
+   "out_bytes": 1833,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

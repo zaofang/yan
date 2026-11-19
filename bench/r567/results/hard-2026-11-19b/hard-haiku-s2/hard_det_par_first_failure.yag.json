@@ -1,0 +1,187 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even; otherwise fail Bad carrying x as n.\"\"\"\n    post out % 2 == 0\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel and return them unchanged when all are even.\n    When some element is odd, fail with the Bad of the lowest-index odd element,\n    regardless of which parallel call finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([]) == []\n    results: list[int] = par [check(x) else -1 for x in xs]\n    for x, r in zip(xs, results):\n        if r == -1:\n            fail Bad(n=x)\n    out: list[int] = []\n    for r in results:\n        out.append(r)\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmp0ygbw2f9/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmp0ygbw2f9/work/task.yag:16:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2355,
+    "out": 1078,
+    "reasoning": 800
+   },
+   "out_bytes": 643
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2813,
+    "out": 667,
+    "reasoning": 379
+   },
+   "out_bytes": 653
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp0ygbw2f9/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E201 /tmp/tmp0ygbw2f9/work/task.yag:21:34 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp0ygbw2f9/work/task.yag:23:12 all_even: `r is` a `int` is never `None`\n#4 E201 /tmp/tmp0ygbw2f9/work/task.yag:27:20 all_even: `r else` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3199,
+    "out": 1477,
+    "reasoning": 1078
+   },
+   "out_bytes": 926
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp0ygbw2f9/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp0ygbw2f9/work/task.yag:21:52 all_even: `None for` expected `int`, found `None` | note: a sized integer (`uint8`, `int32`, ...) never mixes with `int` or another width in arithmetic, bit operators or comparison: widen it with `int(x)` first, and narrow the result with `checked_as[uint8](r)`, `wrap_as[uint8](r)` or `sat_as[uint8](r)`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3845,
+    "out": 1308,
+    "reasoning": 902
+   },
+   "out_bytes": 944
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4495,
+    "out": 1163,
+    "reasoning": 766
+   },
+   "out_bytes": 914
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 11539,
+   "out": 3948,
+   "reasoning": 2746,
+   "out_bytes": 2784
+  },
+  "spec": {
+   "in": 5168,
+   "out": 1745,
+   "reasoning": 1179,
+   "out_bytes": 1296
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmp0ygbw2f9/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmp0ygbw2f9/work/task.yag:16:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp0ygbw2f9/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E201 /tmp/tmp0ygbw2f9/work/task.yag:21:34 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp0ygbw2f9/work/task.yag:23:12 all_even: `r is` a `int` is never `None`\n#4 E201 /tmp/tmp0ygbw2f9/work/task.yag:27:20 all_even: `r else` `else` needs an optional or a fallible call, found `int`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp0ygbw2f9/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp0ygbw2f9/work/task.yag:21:52 all_even: `None for` expected `int`, found `None` | note: a sized integer (`uint8`, `int32`, ...) never mixes with `int` or another width in arithmetic, bit operators or comparison: widen it with `int(x)` first, and narrow the result with `checked_as[uint8](r)`, `wrap_as[uint8](r"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:21:34 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:23:12 all_even: `r` a `int` is never `None`\nE201 ./task.yag:27:20 all_even: `r` `else` needs an optional or a fallible call, found `int`\n0 of 0 tests passed\nE201 ./task.yag:21:34 all_even: `None` expected `int`, foun"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2008,
+   "out": 1539,
+   "reasoning": 1254,
+   "out_bytes": 685
+  },
+  "body": {
+   "in": 5242,
+   "out": 3389,
+   "reasoning": 2499,
+   "out_bytes": 2167
+  }
+ },
+ "final": "-- Returns True when the request path stays inside the notes directory.\n-- Rejects absolute paths, any path that climbs out with \"..\", and the empty path.\ninside_notes(path: str) -> bool =\n  ex inside_notes(\"sub/../a.txt\") == True\n  ex inside_notes(\"../x\") == False\n  ex inside_notes(\"sub/../../x\") == False\n  ex inside_notes(\"/etc/passwd\") == False\n  ex inside_notes(\"\") == False\n  let parts = path.split(\"/\")\n  -- An empty first component means a leading \"/\" or an empty path.\n  if parts[0] == \"\"\n    return False\n  var depth = 0\n  for p in parts\n    if p == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    if p != \"..\" and p != \".\" and p != \"\"\n      depth += 1\n  True\n\n-- Returns the text of notes/path, or \"\" when the path leaves notes\n-- or the file is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  ex read_public(\"missing-file-zzz\") == \"\"\n  ex read_public(\"../secret\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  if not inside_notes(path)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(path) else \"\"\n    text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2008,
+    "out": 1539,
+    "reasoning": 1254
+   },
+   "out_bytes": 685,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2366,
+    "out": 2407,
+    "reasoning": 1960
+   },
+   "out_bytes": 1086,
+   "ok": false,
+   "report": "E100 task.yn:32:37 `-> \"` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2876,
+    "out": 982,
+    "reasoning": 539
+   },
+   "out_bytes": 1081,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:32:37 `->` unexpected token; expected end of line"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

@@ -1,0 +1,117 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 4007,
+   "out": 1942,
+   "reasoning": 1413,
+   "out_bytes": 1252
+  },
+  "body": {
+   "in": 9834,
+   "out": 3636,
+   "reasoning": 2133,
+   "out_bytes": 3538
+  }
+ },
+ "final": "-- Phase 1: spec for title_of. It is pure and declares no capabilities, so it cannot use net.\n\n-- Index of the first occurrence of needle in hay at or after start, if any.\n-- The post clause on out was dropped: int? does not implement Ord, so it cannot be compared with >=.\nfind(hay: str, needle: str, start: int) -> int? =\n  pre start >= 0\n  ex find(\"abcabc\", \"bc\", 2) == 4\n  ex find(\"abc\", \"z\", 0) == None\n  let h: List[char] = hay.chars().collect()\n  let n: List[char] = needle.chars().collect()\n  var i = start\n  while i + n.len() <= h.len()\n    var ok = True\n    for j in range(0, n.len())\n      if h[i + j] != n[j]\n        ok = False\n        break\n    if ok\n      return i\n    i += 1\n  None\n\n-- Text between the first <title> and the following </title>, or \"\" if absent.\ntitle_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title</p>\") == \"\"\n  let h: List[char] = html.chars().collect()\n  let open_at = find(hay: html, needle: \"<title>\", start: 0) else return \"\"\n  let close_at = find(hay: html, needle: \"</title>\", start: open_at + 7) else return \"\"\n  var s = \"\"\n  for k in range(open_at + 7, close_at)\n    s = \"\\(s)\\(h[k])\"\n  s\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1840,
+    "out": 1369,
+    "reasoning": 1105
+   },
+   "out_bytes": 625,
+   "ok": false,
+   "report": "E100 task.yn:4:48 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2167,
+    "out": 573,
+    "reasoning": 308
+   },
+   "out_bytes": 627,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2505,
+    "out": 1654,
+    "reasoning": 1203
+   },
+   "out_bytes": 1055,
+   "ok": false,
+   "report": "E221 task.yn:6:23 find: `out >= start` `int?` does not implement `Ord`\nE221 task.yn:6:23 find: `out >= start` `int?` does not implement `Ord`\nE201 task.yn:15:10 find: `h[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 task.yn:15:22 find: `n[j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE210 task.yn:29:19 title_of: `= find(html, \"<title>\", 0)` pass `hay` by keyword: another parameter has type `str`\nE210 task.yn:30:20 title_of: `= find(html, \"</title>\", open + 7)` pass `hay` by keyword: another parameter has type `str`\nE201 task.yn:33:16 title_of: `h[k]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first",
+   "codes": [
+    "E201",
+    "E210",
+    "E221"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3321,
+    "out": 1275,
+    "reasoning": 749
+   },
+   "out_bytes": 1240,
+   "ok": false,
+   "report": "E201 task.yn:9:22 find: `hay.chars().collect()` expected `List[str]`, found `List[char]`\nE201 task.yn:10:22 find: `needle.chars().collect()` expected `List[str]`, found `List[char]`\nE201 task.yn:28:22 title_of: `html.chars().collect()` expected `List[str]`, found `List[char]`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 4008,
+    "out": 707,
+    "reasoning": 181
+   },
+   "out_bytes": 1243,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E221 ./task.yn:6:23 find: `out >= start` `int?` does not implement `Ord`\nE221 ./task.yn:6:23 find: `out >= start` `int?` does not implement `Ord`\nE201 ./task.yn:15:10 find: `h[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 ./task.yn:15:22 find: `n[j]` an"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

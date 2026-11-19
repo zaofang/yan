@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1806,
+   "out": 354,
+   "reasoning": 272,
+   "out_bytes": 167
+  },
+  "body": {
+   "in": 1961,
+   "out": 95,
+   "reasoning": 0,
+   "out_bytes": 183
+  }
+ },
+ "final": "parity(x: u8) -> bool =\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  ex parity(7) == True\n  ex parity(255) == False\n  bits.count_ones(x) % 2 == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1806,
+    "out": 354,
+    "reasoning": 272
+   },
+   "out_bytes": 167,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1961,
+    "out": 95,
+    "reasoning": 0
+   },
+   "out_bytes": 183,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

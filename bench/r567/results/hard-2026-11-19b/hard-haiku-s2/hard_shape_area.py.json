@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1143,
+   "out": 841,
+   "reasoning": 434,
+   "out_bytes": 893
+  },
+  "body": {
+   "in": 1607,
+   "out": 789,
+   "reasoning": 287,
+   "out_bytes": 1159
+  }
+ },
+ "final": "from dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\nShape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down to an int.\n\n    Rect: w * h. Square: side * side. Tri: b * h / 2, floored.\n    \"\"\"\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n        case _:\n            raise TypeError(f\"unsupported shape: {type(s).__name__}\")\n\n\ndef test_rect() -> None:\n    assert area(Rect(2, 5)) == 10\n    assert area(Rect(0, 7)) == 0\n\n\ndef test_square() -> None:\n    assert area(Square(4)) == 16\n    assert area(Square(0)) == 0\n\n\ndef test_tri_even_product() -> None:\n    assert area(Tri(4, 5)) == 10\n\n\ndef test_tri_odd_product_rounds_down() -> None:\n    assert area(Tri(3, 3)) == 4\n    assert area(Tri(1, 1)) == 0\n\n\ndef test_unsupported_shape_raises() -> None:\n    with pytest.raises(TypeError):\n        area(\"not a shape\")  # type: ignore[arg-type]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1143,
+    "out": 841,
+    "reasoning": 434
+   },
+   "out_bytes": 893,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1607,
+    "out": 789,
+    "reasoning": 287
+   },
+   "out_bytes": 1159,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

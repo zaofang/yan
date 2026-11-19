@@ -1,0 +1,193 @@
+{
+ "final": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel of ints with capacity cap and try to send each element of xs without blocking. Return how many sends were accepted before the channel was full, stopping at the first refused send.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= cap\n    post out <= xs.len()\n    ch: Channel[int] = Channel.new(cap)\n    n = 0\n    for x in xs:\n        if not ch.try_send(x):\n            break\n        n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2307,
+    "out": 577,
+    "reasoning": 383
+   },
+   "out_bytes": 530
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:5 `ch:` cannot find type `chan`\n#3 E200 /tmp/tmpimzvs3m7/work/task.yag:7:21 accepted: `chan.` cannot find `chan`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2599,
+    "out": 486,
+    "reasoning": 296
+   },
+   "out_bytes": 493
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:5 `ch:` cannot find type `channel`\n#3 E200 /tmp/tmpimzvs3m7/work/task.yag:7:24 accepted: `channel.` cannot find `channel`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2967,
+    "out": 712,
+    "reasoning": 522
+   },
+   "out_bytes": 499
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:10 accepted: `sync` cannot find `sync`\n#3 E017 /tmp/tmpimzvs3m7/work/task.yag:7:10 accepted: `sync` calling a value: not supported by this toolchain yet",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3335,
+    "out": 801,
+    "reasoning": 614
+   },
+   "out_bytes": 491
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpimzvs3m7/work/task.yag:7:5 accepted: `ch:` type `Channel`: not supported by this toolchain yet",
+   "round": 3,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3709,
+    "out": 910,
+    "reasoning": 718
+   },
+   "out_bytes": 499
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "body_failed",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 12610,
+   "out": 2909,
+   "reasoning": 2150,
+   "out_bytes": 1982
+  },
+  "spec": {
+   "in": 2307,
+   "out": 577,
+   "reasoning": 383,
+   "out_bytes": 530
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:5 `ch:` cannot find type `chan`\n#3 E200 /tmp/tmpimzvs3m7/work/task.yag:7:21 accepted: `chan.` cannot find `chan`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:5 `ch:` cannot find type `channel`\n#3 E200 /tmp/tmpimzvs3m7/work/task.yag:7:24 accepted: `channel.` cannot find `channel`"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E017",
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /tmp/tmpimzvs3m7/work/task.yag:7:10 accepted: `sync` cannot find `sync`\n#3 E017 /tmp/tmpimzvs3m7/work/task.yag:7:10 accepted: `sync` calling a value: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpimzvs3m7/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpimzvs3m7/work/task.yag:7:5 accepted: `ch:` type `Channel`: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yag:7:5 `ch` cannot find type `chan`\nE200 ./task.yag:7:21 accepted: `chan` cannot find `chan` | maybe: chan -> cap\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yag:7:5 accepted: `ch` type `Channel`: not supported by this toolchain yet\n0 of 0 tests passed"
+ }
+}

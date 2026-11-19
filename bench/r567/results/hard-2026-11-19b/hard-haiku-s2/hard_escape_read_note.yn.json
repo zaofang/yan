@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1932,
+   "out": 793,
+   "reasoning": 653,
+   "out_bytes": 319
+  },
+  "body": {
+   "in": 4612,
+   "out": 2176,
+   "reasoning": 1659,
+   "out_bytes": 1214
+  }
+ },
+ "final": "-- Phase 2: bodies for reading a note from untrusted names.\n-- Only reads inside `notes`; missing or unreadable files give \"\".\n\nread_note(name: str) -> str uses fs =\n  pre name.char_count() >= 0\n  post out.char_count() >= 0\n  ex read_note(\"missing.txt\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  if name.char_count() == 0\n    return \"\"\n  -- Reject any path separator or parent reference outright.\n  if name.split(\"/\").len() > 1 or name.split(\"\\\\\").len() > 1 or name.split(\"..\").len() > 1\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else err -> \"\"\n    return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1932,
+    "out": 793,
+    "reasoning": 653
+   },
+   "out_bytes": 319,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2145,
+    "out": 1230,
+    "reasoning": 971
+   },
+   "out_bytes": 606,
+   "ok": false,
+   "report": "E100 task.yn:15:37 `-> \"` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2467,
+    "out": 946,
+    "reasoning": 688
+   },
+   "out_bytes": 608,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:15:37 `->` unexpected token; expected end of line"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

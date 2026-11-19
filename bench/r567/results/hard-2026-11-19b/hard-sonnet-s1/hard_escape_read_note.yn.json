@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1932,
+   "out": 443,
+   "reasoning": 345,
+   "out_bytes": 206
+  },
+  "body": {
+   "in": 2103,
+   "out": 444,
+   "reasoning": 320,
+   "out_bytes": 258
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret.txt\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"missing-note-name\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1932,
+    "out": 443,
+    "reasoning": 345
+   },
+   "out_bytes": 206,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2103,
+    "out": 444,
+    "reasoning": 320
+   },
+   "out_bytes": 258,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

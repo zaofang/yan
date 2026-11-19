@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1833,
+   "out": 1243,
+   "reasoning": 1025,
+   "out_bytes": 457
+  },
+  "body": {
+   "in": 2124,
+   "out": 789,
+   "reasoning": 545,
+   "out_bytes": 502
+  }
+ },
+ "final": "-- Spec: append a copy of s to the borrowed list dst, editing it in place.\n\n-- Pure model of the effect: the list after appending s.\nappended(xs: List[str], s: str) -> List[str] =\n  pre xs.len() >= 0\n  post out.len() == xs.len() + 1\n  ex appended([], \"a\") == [\"a\"]\n  ex appended([\"a\"], \"b\") == [\"a\", \"b\"]\n  var r: List[str] = copy xs\n  r.append(copy s)\n  r\n\nadd_name(var dst: List[str], s: str) =\n  pre dst.len() >= 0\n  post dst.len() >= 1\n  ex appended([], \"a\") == [\"a\"]\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1833,
+    "out": 1243,
+    "reasoning": 1025
+   },
+   "out_bytes": 457,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2124,
+    "out": 789,
+    "reasoning": 545
+   },
+   "out_bytes": 502,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

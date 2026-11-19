@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1834,
+   "out": 730,
+   "reasoning": 594,
+   "out_bytes": 300
+  },
+  "body": {
+   "in": 2043,
+   "out": 669,
+   "reasoning": 500,
+   "out_bytes": 353
+  }
+ },
+ "final": "-- Phase 2: arbitrary-precision factorial.\n-- n is an int (it is the index, not the result), and the result is a bigint\n-- so that factorials past 20! do not overflow the checked 64-bit int.\n\nfact(n: int) -> bigint =\n  pre n >= 0\n  ex fact(0) == 1\n  ex fact(5) == 120\n  var acc = bigint(1)\n  for i in range(1, n + 1)\n    acc *= bigint(i)\n  acc\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1834,
+    "out": 730,
+    "reasoning": 594
+   },
+   "out_bytes": 300,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2043,
+    "out": 669,
+    "reasoning": 500
+   },
+   "out_bytes": 353,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/factorial_big",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

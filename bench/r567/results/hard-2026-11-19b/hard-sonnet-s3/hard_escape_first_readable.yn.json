@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1951,
+   "out": 463,
+   "reasoning": 370,
+   "out_bytes": 191
+  },
+  "body": {
+   "in": 4520,
+   "out": 1585,
+   "reasoning": 1309,
+   "out_bytes": 621
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret.txt\"]) == \"\"\n  ex first_readable([\"/etc/passwd\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let t = fs.read(name) else continue\n      return t\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1951,
+    "out": 463,
+    "reasoning": 370
+   },
+   "out_bytes": 191,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2117,
+    "out": 886,
+    "reasoning": 741
+   },
+   "out_bytes": 332,
+   "ok": false,
+   "report": "E201 task.yn:7:34 first_readable: `else None` expected `str`, found `()`\nE201 task.yn:8:15 first_readable: `= None` cannot compare `str` with `()`\nE201 task.yn:9:17 first_readable: `r else` `else` needs an optional or a fallible call, found `str`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2403,
+    "out": 699,
+    "reasoning": 568
+   },
+   "out_bytes": 289,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 task.yn:7:34 first_readable: `None` expected `str`, found `()`\nE201 task.yn:8:15 first_readable: `None` cannot compare `str` with `()`\nE201 task.yn:9:17 first_readable: `r` `else` needs an optional or a fallible call, found `str`"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

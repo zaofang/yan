@@ -1,0 +1,94 @@
+{
+ "final": "type Expr = Num(v: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr)\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an arithmetic expression tree: Num yields its value, Add sums its\n    two subtrees, and Mul multiplies them.\"\"\"\n    ex eval_expr(Num(v=7)) == 7\n    ex eval_expr(Add(l=Num(v=2), r=Mul(l=Num(v=3), r=Num(v=4)))) == 14\n    ex eval_expr(Mul(l=Add(l=Num(v=1), r=Num(v=2)), r=Num(v=-5))) == -15\n    match e:\n        case Num(v=v):\n            return v\n        case Add(l=l, r=r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l=l, r=r):\n            return eval_expr(l) * eval_expr(r)\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2317,
+    "out": 791,
+    "reasoning": 542
+   },
+   "out_bytes": 426
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2664,
+    "out": 695,
+    "reasoning": 362
+   },
+   "out_bytes": 625
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/expr_eval",
+ "tokens": {
+  "body": {
+   "in": 2664,
+   "out": 695,
+   "reasoning": 362,
+   "out_bytes": 625
+  },
+  "spec": {
+   "in": 2317,
+   "out": 791,
+   "reasoning": 542,
+   "out_bytes": 426
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

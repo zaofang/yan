@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2615,
+   "reasoning": 1052,
+   "out_bytes": 3552
+  },
+  "body": {
+   "in": 2875,
+   "out": 2140,
+   "reasoning": 445,
+   "out_bytes": 3994
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` with a confined reader and return its result.\n\n    `read(p)` returns the text of `p` interpreted relative to the `notes`\n    directory (in the current working directory). It returns \"\" whenever `p`\n    cannot be read inside `notes`: the resolved location lies outside `notes`\n    (`..` escapes, absolute paths, symlinks pointing out), or the target is\n    missing, is not a regular file, or cannot be read.\n    \"\"\"\n    root = Path(\"notes\").resolve()\n\n    def read(p: str) -> str:\n        try:\n            if Path(p).is_absolute():\n                return \"\"\n            target = (root / p).resolve()\n            if not target.is_relative_to(root):\n                return \"\"\n            if not target.is_file():\n                return \"\"\n            return target.read_text()\n        except (OSError, ValueError):\n            return \"\"\n\n    return plugin(path, read)\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"alpha\")\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"b.txt\").write_text(\"beta\")\n    (tmp_path / \"secret.txt\").write_text(\"TOPSECRET\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    # The plugin's own probe 'notes/../secret.txt' is taken relative to notes,\n    # i.e. notes/secret.txt, which does not exist -> empty.\n    assert run_plugin(\"a.txt\") == \"alpha|\"\n\n\ndef test_reads_nested_file(sandbox: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"beta|\"\n\n\ndef test_dotdot_that_stays_inside_is_allowed(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../a.txt\") == \"alpha|\"\n\n\ndef test_outside_secret_never_leaks(sandbox: Path) -> None:\n    result = run_plugin(\"a.txt\")\n    assert \"TOPSECRET\" not in result\n\n\ndef test_parent_escape_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n\n\ndef test_deep_escape_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(str(sandbox / \"secret.txt\")) == \"|\"\n\n\ndef test_absolute_path_to_file_inside_notes_gives_empty(sandbox: Path) -> None:\n    # Paths are relative to notes; an absolute path is not such a path.\n    assert run_plugin(str(sandbox / \"notes\" / \"a.txt\")) == \"|\"\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n    assert run_plugin(\".\") == \"|\"\n\n\ndef test_empty_path_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"\") == \"|\"\n\n\ndef test_symlink_escaping_notes_gives_empty(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_symlink_staying_inside_notes_is_readable(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"alias.txt\"\n    try:\n        link.symlink_to(sandbox / \"notes\" / \"a.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"alias.txt\") == \"alpha|\"\n\n\ndef test_probe_resolves_relative_to_notes(sandbox: Path) -> None:\n    # 'notes/../secret.txt' relative to notes is notes/secret.txt, which is\n    # inside notes, so it is readable if it exists there. The real\n    # secret.txt outside notes is still not reachable.\n    (sandbox / \"notes\" / \"secret.txt\").write_text(\"inner\")\n    assert run_plugin(\"a.txt\") == \"alpha|inner\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2615,
+    "reasoning": 1052
+   },
+   "out_bytes": 3552,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2875,
+    "out": 2140,
+    "reasoning": 445
+   },
+   "out_bytes": 3994,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

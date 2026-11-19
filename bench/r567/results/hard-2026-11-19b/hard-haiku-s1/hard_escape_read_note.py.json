@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2370,
+   "reasoning": 1187,
+   "out_bytes": 2729
+  },
+  "body": {
+   "in": 2356,
+   "out": 2129,
+   "reasoning": 815,
+   "out_bytes": 3116
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = \"notes\"\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file ``name`` inside the ``notes`` directory.\n\n    ``notes`` is resolved relative to the current working directory. Only\n    regular files that resolve to a location inside ``notes`` are read.\n    Any name that escapes the directory (``..`` segments, absolute paths,\n    symlinks pointing outside, NUL bytes) is refused. A missing, unreadable,\n    or refused file yields an empty string.\n    \"\"\"\n    try:\n        if \"\\x00\" in name:\n            return \"\"\n        base = Path(NOTES_DIR).resolve()\n        target = (base / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, RuntimeError, ValueError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Create ``notes/`` under a temporary cwd, with a secret file beside it.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    root = tmp_path / NOTES_DIR\n    root.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    return root\n\n\ndef test_reads_existing_note(notes_root: Path) -> None:\n    (notes_root / \"todo.txt\").write_text(\"buy milk\", encoding=\"utf-8\")\n    assert read_note(\"todo.txt\") == \"buy milk\"\n\n\ndef test_reads_note_in_subdirectory(notes_root: Path) -> None:\n    (notes_root / \"work\").mkdir()\n    (notes_root / \"work\" / \"plan.txt\").write_text(\"ship it\", encoding=\"utf-8\")\n    assert read_note(\"work/plan.txt\") == \"ship it\"\n\n\ndef test_missing_file_is_empty(notes_root: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_is_empty(notes_root: Path) -> None:\n    (notes_root / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n\n\ndef test_empty_name_is_empty(notes_root: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\n@pytest.mark.parametrize(\n    \"name\",\n    [\n        \"../secret.txt\",\n        \"sub/../../secret.txt\",\n        \"./../secret.txt\",\n        \"..\",\n        \"../notes/../secret.txt\",\n    ],\n)\ndef test_parent_traversal_is_refused(notes_root: Path, name: str) -> None:\n    assert read_note(name) == \"\"\n\n\ndef test_absolute_path_outside_is_refused(notes_root: Path, tmp_path: Path) -> None:\n    absolute = str((tmp_path / \"secret.txt\").resolve())\n    assert read_note(absolute) == \"\"\n\n\ndef test_nul_byte_is_refused(notes_root: Path) -> None:\n    (notes_root / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n\n\ndef test_symlink_pointing_outside_is_refused(notes_root: Path, tmp_path: Path) -> None:\n    (notes_root / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_inside_notes_is_followed(notes_root: Path) -> None:\n    (notes_root / \"real.txt\").write_text(\"inside\", encoding=\"utf-8\")\n    (notes_root / \"alias.txt\").symlink_to(notes_root / \"real.txt\")\n    assert read_note(\"alias.txt\") == \"inside\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2370,
+    "reasoning": 1187
+   },
+   "out_bytes": 2729,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2356,
+    "out": 2129,
+    "reasoning": 815
+   },
+   "out_bytes": 3116,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

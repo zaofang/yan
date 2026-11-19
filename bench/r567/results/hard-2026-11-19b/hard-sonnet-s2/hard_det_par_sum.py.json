@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1522,
+   "reasoning": 672,
+   "out_bytes": 1950
+  },
+  "body": {
+   "in": 2000,
+   "out": 893,
+   "reasoning": 0,
+   "out_bytes": 2054
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Return the sum of x*x over every element of xs.\n\n    The squares are computed in parallel with a thread pool, using\n    `square`. The result is exact (integer arithmetic) and does not\n    depend on the number of workers or on the order in which tasks\n    finish. An empty list gives 0. The input list is not modified.\n    \"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor() as pool:\n        return sum(pool.map(square, xs))\n\n\ndef test_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_single() -> None:\n    assert sum_squares([7]) == 49\n    assert sum_squares([0]) == 0\n\n\ndef test_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_negatives() -> None:\n    assert sum_squares([-1, -2, -3]) == 14\n    assert sum_squares([-5, 5]) == 50\n\n\ndef test_large_ints_exact() -> None:\n    big = 10**12\n    assert sum_squares([big, -big, 1]) == 2 * big * big + 1\n\n\ndef test_matches_sequential_on_large_input() -> None:\n    xs = list(range(-5000, 5000))\n    assert sum_squares(xs) == sum(x * x for x in xs)\n\n\ndef test_repeated_calls_are_identical() -> None:\n    xs = [(i * 7919) % 1009 - 500 for i in range(2000)]\n    expected = sum(x * x for x in xs)\n    results = {sum_squares(xs) for _ in range(20)}\n    assert results == {expected}\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, -1, 4, 1, -5]\n    copy = list(xs)\n    sum_squares(xs)\n    assert xs == copy\n\n\ndef test_duplicates_and_order_irrelevant() -> None:\n    xs = [2, 2, 3, -3, 1]\n    assert sum_squares(xs) == 27\n    assert sum_squares(list(reversed(xs))) == 27\n    assert sum_squares(sorted(xs)) == 27\n\n\ndef test_concurrent_callers_agree() -> None:\n    xs = list(range(1, 501))\n    expected = sum(x * x for x in xs)\n    with ThreadPoolExecutor(max_workers=8) as pool:\n        futures = [pool.submit(sum_squares, xs) for _ in range(16)]\n        assert [f.result() for f in futures] == [expected] * 16\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1522,
+    "reasoning": 672
+   },
+   "out_bytes": 1950,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2000,
+    "out": 893,
+    "reasoning": 0
+   },
+   "out_bytes": 2054,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

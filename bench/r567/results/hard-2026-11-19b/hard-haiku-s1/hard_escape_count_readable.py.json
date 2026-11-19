@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 2745,
+   "reasoning": 1715,
+   "out_bytes": 2279
+  },
+  "body": {
+   "in": 2212,
+   "out": 2610,
+   "reasoning": 1325,
+   "out_bytes": 2981
+  }
+ },
+ "final": "import os\nimport stat\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR: str = \"notes\"\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Return how many entries of names are readable regular files inside NOTES_DIR.\n\n    Each name is a file name relative to NOTES_DIR. Names that are missing,\n    unreadable, directories, or that resolve outside NOTES_DIR (via \"..\",\n    absolute paths, or symlinks) are not counted and never read from.\n    \"\"\"\n    base = Path(NOTES_DIR).resolve()\n    nofollow = getattr(os, \"O_NOFOLLOW\", 0)\n    count = 0\n    for name in names:\n        if \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n        except (OSError, RuntimeError, ValueError):\n            continue\n        if candidate == base or not candidate.is_relative_to(base):\n            continue\n        try:\n            fd = os.open(candidate, os.O_RDONLY | nofollow)\n        except OSError:\n            continue\n        try:\n            if stat.S_ISREG(os.fstat(fd).st_mode):\n                count += 1\n        except OSError:\n            pass\n        finally:\n            os.close(fd)\n    return count\n\n\n@pytest.fixture\ndef notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / NOTES_DIR\n    d.mkdir()\n    return d\n\n\ndef test_counts_readable_files(notes_dir: Path) -> None:\n    (notes_dir / \"a.txt\").write_text(\"alpha\")\n    (notes_dir / \"b.txt\").write_text(\"beta\")\n    assert count_readable([\"a.txt\", \"b.txt\", \"missing.txt\"]) == 2\n\n\ndef test_empty_list_gives_zero(notes_dir: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_directory_is_not_counted(notes_dir: Path) -> None:\n    (notes_dir / \"sub\").mkdir()\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_parent_traversal_not_counted(tmp_path: Path, notes_dir: Path) -> None:\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    assert count_readable([\"../secret.txt\", \"../notes/../secret.txt\"]) == 0\n\n\ndef test_absolute_path_not_counted(tmp_path: Path, notes_dir: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\")\n    assert count_readable([str(secret)]) == 0\n\n\ndef test_symlink_escaping_notes_not_counted(tmp_path: Path, notes_dir: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\")\n    os.symlink(secret, notes_dir / \"link.txt\")\n    assert count_readable([\"link.txt\"]) == 0\n\n\ndef test_nul_byte_in_name_does_not_raise(notes_dir: Path) -> None:\n    (notes_dir / \"a.txt\").write_text(\"alpha\")\n    assert count_readable([\"a\\x00.txt\", \"a.txt\"]) == 1\n\n\ndef test_unreadable_file_not_counted(notes_dir: Path) -> None:\n    if hasattr(os, \"geteuid\") and os.geteuid() == 0:\n        pytest.skip(\"root can read mode-000 files\")\n    locked = notes_dir / \"locked.txt\"\n    locked.write_text(\"hidden\")\n    locked.chmod(0o000)\n    try:\n        assert count_readable([\"locked.txt\"]) == 0\n    finally:\n        locked.chmod(0o644)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 2745,
+    "reasoning": 1715
+   },
+   "out_bytes": 2279,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2212,
+    "out": 2610,
+    "reasoning": 1325
+   },
+   "out_bytes": 2981,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

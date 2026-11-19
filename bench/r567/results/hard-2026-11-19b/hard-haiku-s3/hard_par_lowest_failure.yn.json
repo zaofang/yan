@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1911,
+   "out": 906,
+   "reasoning": 772,
+   "out_bytes": 261
+  },
+  "body": {
+   "in": 4646,
+   "out": 2129,
+   "reasoning": 1654,
+   "out_bytes": 868
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  post out == x\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  post out.len() == xs.len()\n  ex all_even([]) == []\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n  let r = all_even([2, 3, 5]) else err -> [err.n]\n  assert r == [3]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1911,
+    "out": 906,
+    "reasoning": 772
+   },
+   "out_bytes": 261,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2118,
+    "out": 1112,
+    "reasoning": 879
+   },
+   "out_bytes": 421,
+   "ok": false,
+   "report": "E315 task.yn:15:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 task.yn:16:3 all_even: `ys?` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail\nE201 task.yn:20:33 test_all_even: `Bad(n: 3)` expected `List[int]`, found `Bad`",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2528,
+    "out": 1017,
+    "reasoning": 775
+   },
+   "out_bytes": 447,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E315 ./task.yn:15:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 ./task.yn:16:3 all_even: `ys` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail\nE201 ./task.yn:20:33 test_all_even: `Bad(n: 3)` expected `List[int]`, fo"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

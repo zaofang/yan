@@ -1,0 +1,127 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a non-empty relative path with no \"..\" segment, no leading \"/\", no backslash and no NUL, so it stays inside the notes directory.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"../secret\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"..\\\\x\") == False\n    if name.byte_len() < 1:\n        return False\n    if name.startswith(\"/\"):\n        return False\n    if \"\\\\\" in name:\n        return False\n    if \"\\0\" in name:\n        return False\n    for seg in name.split(\"/\"):\n        if seg == \"..\":\n            return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are files in the directory `notes` and have non-empty readable content. Unsafe names are skipped, and a missing or unreadable file reads as \"\" and is not counted. All reads happen inside `with fs = fs.sub(\"notes\"):`, so no name can reach outside `notes`.\"\"\"\n    pre names.len() >= 0\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text = fs.read_text(name) else \"\"\n            if text.byte_len() > 0:\n                n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2387,
+    "out": 1008,
+    "reasoning": 645
+   },
+   "out_bytes": 908
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpt7g5t0jb/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpt7g5t0jb/work/task.yag:10:8 is_safe_name: `name =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2848,
+    "out": 995,
+    "reasoning": 475
+   },
+   "out_bytes": 1406
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3507,
+    "out": 840,
+    "reasoning": 306
+   },
+   "out_bytes": 1424
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 6355,
+   "out": 1835,
+   "reasoning": 781,
+   "out_bytes": 2830
+  },
+  "spec": {
+   "in": 2387,
+   "out": 1008,
+   "reasoning": 645,
+   "out_bytes": 908
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpt7g5t0jb/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpt7g5t0jb/work/task.yag:10:8 is_safe_name: `name =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ }
+}

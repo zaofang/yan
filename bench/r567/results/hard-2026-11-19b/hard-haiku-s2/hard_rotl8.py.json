@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 1121,
+   "reasoning": 630,
+   "out_bytes": 983
+  },
+  "body": {
+   "in": 1639,
+   "out": 714,
+   "reasoning": 201,
+   "out_bytes": 1024
+  }
+ },
+ "final": "\"\"\"8-bit left rotation: rotl8(x, k) rotates x left by k bits within 8 bits.\"\"\"\n\nBITS: int = 8\nMASK: int = 0xFF\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits.\n\n    Requires 0 <= x <= 255 and 0 <= k <= 7. Bits shifted out of the\n    high end wrap around into the low end. The result is in 0..255.\n    \"\"\"\n    return ((x << k) | (x >> (BITS - k))) & MASK\n\n\ndef test_rotl8_zero_shift_is_identity() -> None:\n    assert rotl8(0xA5, 0) == 0xA5\n\n\ndef test_rotl8_single_bit_wraps_from_high_to_low() -> None:\n    assert rotl8(0b1000_0001, 1) == 0b0000_0011\n\n\ndef test_rotl8_high_bit_moves_to_bit_zero() -> None:\n    assert rotl8(0x80, 1) == 0x01\n\n\ndef test_rotl8_nibble_swap() -> None:\n    assert rotl8(0x12, 4) == 0x21\n\n\ndef test_rotl8_all_ones_is_fixed_point() -> None:\n    for k in range(8):\n        assert rotl8(0xFF, k) == 0xFF\n\n\ndef test_rotl8_result_stays_in_byte_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= MASK\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 1121,
+    "reasoning": 630
+   },
+   "out_bytes": 983,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1639,
+    "out": 714,
+    "reasoning": 201
+   },
+   "out_bytes": 1024,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

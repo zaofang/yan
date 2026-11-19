@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1850,
+   "out": 770,
+   "reasoning": 640,
+   "out_bytes": 224
+  },
+  "body": {
+   "in": 6902,
+   "out": 3034,
+   "reasoning": 2484,
+   "out_bytes": 964
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 1\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(3, [1, 2, 3, 4]) == 3\n  ex accepted(5, [1, 2]) == 2\n  ex accepted(2, []) == 0\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else return n\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1850,
+    "out": 770,
+    "reasoning": 640
+   },
+   "out_bytes": 224,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2053,
+    "out": 1011,
+    "reasoning": 826
+   },
+   "out_bytes": 324,
+   "ok": false,
+   "report": "E100 task.yn:11:27 `-> return` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2301,
+    "out": 1278,
+    "reasoning": 1094
+   },
+   "out_bytes": 321,
+   "ok": false,
+   "report": "E100 task.yn:11:27 `-> break` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2548,
+    "out": 745,
+    "reasoning": 564
+   },
+   "out_bytes": 319,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E100 ./task.yn:11:27 `->` unexpected token; expected end of line\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

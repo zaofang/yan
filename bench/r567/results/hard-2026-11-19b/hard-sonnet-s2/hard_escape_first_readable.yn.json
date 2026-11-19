@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1951,
+   "out": 540,
+   "reasoning": 326,
+   "out_bytes": 512
+  },
+  "body": {
+   "in": 2238,
+   "out": 1168,
+   "reasoning": 799,
+   "out_bytes": 918
+  }
+ },
+ "final": "-- Reads one name confined to `notes`. Returns None when the file is\n-- missing or unreadable, or when the name tries to leave `notes`.\nread_in_notes(name: str) -> str? uses fs =\n  ex read_in_notes(\"../secret\") == None\n  ex read_in_notes(\"/etc/passwd\") == None\n  -- Defence in depth: reject absolute paths, parent references and\n  -- backslashes before the confined fs is even consulted.\n  let parts = name.split(\"/\")\n  if parts[0] == \"\" or name.split(\"..\").len() > 1 or name.split(\"\\\\\").len() > 1\n    return None\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    return text\n\n-- Text of the first name in `names` that can be read from `notes`,\n-- or \"\" when none can.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\"]) == \"\"\n  for n in names\n    let r = read_in_notes(n)\n    if r != None\n      return r else \"\"\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1951,
+    "out": 540,
+    "reasoning": 326
+   },
+   "out_bytes": 512,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2238,
+    "out": 1168,
+    "reasoning": 799
+   },
+   "out_bytes": 918,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

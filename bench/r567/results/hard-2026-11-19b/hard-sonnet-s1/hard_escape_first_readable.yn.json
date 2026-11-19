@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1951,
+   "out": 646,
+   "reasoning": 570,
+   "out_bytes": 159
+  },
+  "body": {
+   "in": 2100,
+   "out": 707,
+   "reasoning": 593,
+   "out_bytes": 257
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\", \"/etc/passwd\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let t = fs.read(name) else continue\n      return t\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1951,
+    "out": 646,
+    "reasoning": 570
+   },
+   "out_bytes": 159,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2100,
+    "out": 707,
+    "reasoning": 593
+   },
+   "out_bytes": 257,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

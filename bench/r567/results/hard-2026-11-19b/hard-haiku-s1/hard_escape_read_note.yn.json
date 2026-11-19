@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1932,
+   "out": 1474,
+   "reasoning": 1184,
+   "out_bytes": 709
+  },
+  "body": {
+   "in": 5023,
+   "out": 2003,
+   "reasoning": 1264,
+   "out_bytes": 1786
+  }
+ },
+ "final": "-- Names come from untrusted requests, so only plain file names are allowed.\nis_plain_name(name: str) -> bool =\n  post not out or (name != \"\" and name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1)\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  ex is_plain_name(\"\") == False\n  name != \"\" and name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- Returns the text of notes/name, or \"\" if the name is unsafe, missing, or unreadable.\n-- Only the notes directory is visible through fs; no name may reach a file outside it.\nread_note(name: str) -> str uses fs =\n  post is_plain_name(name) or out == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  ex read_note(\"missing.txt\") == \"\"\n  if not is_plain_name(name)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else err -> \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1932,
+    "out": 1474,
+    "reasoning": 1184
+   },
+   "out_bytes": 709,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2295,
+    "out": 1326,
+    "reasoning": 956
+   },
+   "out_bytes": 892,
+   "ok": false,
+   "report": "E100 task.yn:18:26 `-> \"` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2728,
+    "out": 677,
+    "reasoning": 308
+   },
+   "out_bytes": 894,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:18:26 `->` unexpected token; expected end of line"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

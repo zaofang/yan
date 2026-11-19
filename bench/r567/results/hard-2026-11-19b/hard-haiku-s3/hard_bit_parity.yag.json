@@ -1,0 +1,94 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when the byte has an odd number of set bits.\"\"\"\n    post out == (bits.count_ones(x) % 2 == 1)\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(7) == True\n    ex parity(255) == False\n    return bits.count_ones(x) % 2 == 1\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2264,
+    "out": 634,
+    "reasoning": 520
+   },
+   "out_bytes": 258
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2476,
+    "out": 475,
+    "reasoning": 345
+   },
+   "out_bytes": 289
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 2476,
+   "out": 475,
+   "reasoning": 345,
+   "out_bytes": 289
+  },
+  "spec": {
+   "in": 2264,
+   "out": 634,
+   "reasoning": 520,
+   "out_bytes": 258
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

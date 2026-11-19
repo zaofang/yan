@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 1244,
+   "reasoning": 579,
+   "out_bytes": 1362
+  },
+  "body": {
+   "in": 1813,
+   "out": 901,
+   "reasoning": 213,
+   "out_bytes": 1400
+  }
+ },
+ "final": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits (0 <= k <= 7).\n\n    Bits shifted out of the high end wrap around to the low end.\n    x must be in 0..255 and k in 0..7. The result is in 0..255.\n    \"\"\"\n    return ((x << k) | (x >> (8 - k))) & 0xFF\n\n\ndef test_rotl8_zero_shift_is_identity() -> None:\n    for x in range(256):\n        assert rotl8(x, 0) == x\n\n\ndef test_rotl8_single_bit_wraps_to_low_end() -> None:\n    assert rotl8(0b1000_0001, 1) == 0b0000_0011\n\n\ndef test_rotl8_high_bit_moves_to_bit_zero() -> None:\n    assert rotl8(0x80, 1) == 0x01\n\n\ndef test_rotl8_seven_bits_from_lowest() -> None:\n    assert rotl8(0x01, 7) == 0x80\n\n\ndef test_rotl8_nibble_swap() -> None:\n    assert rotl8(0xAB, 4) == 0xBA\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"k\", \"expected\"),\n    [\n        (0x00, 3, 0x00),\n        (0xFF, 5, 0xFF),\n        (0x12, 1, 0x24),\n        (0x96, 2, 0x5A),\n    ],\n)\ndef test_rotl8_examples(x: int, k: int, expected: int) -> None:\n    assert rotl8(x, k) == expected\n\n\ndef test_rotl8_result_stays_in_byte_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= 255\n\n\ndef test_rotl8_composition_adds_shifts_mod_8() -> None:\n    for x in range(256):\n        for a in range(8):\n            for b in range(8):\n                assert rotl8(rotl8(x, a), b) == rotl8(x, (a + b) % 8)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 1244,
+    "reasoning": 579
+   },
+   "out_bytes": 1362,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1813,
+    "out": 901,
+    "reasoning": 213
+   },
+   "out_bytes": 1400,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

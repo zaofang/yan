@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1559,
+   "reasoning": 1072,
+   "out_bytes": 1063
+  },
+  "body": {
+   "in": 1615,
+   "out": 902,
+   "reasoning": 404,
+   "out_bytes": 1085
+  }
+ },
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs, chosen from seed.\n\n    The same (xs, seed) pair always returns the same element.\n    No randomness is used.\n    \"\"\"\n    return xs[seed % len(xs)]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [10, 20, 30]\n    for seed in range(20):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_same_seed_same_element() -> None:\n    xs = [4, 8, 15, 16, 23, 42]\n    for seed in range(10):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_same_seed_across_equal_lists() -> None:\n    assert pick([1, 2, 3, 4], 7) == pick([1, 2, 3, 4], 7)\n\n\ndef test_pick_single_element() -> None:\n    assert pick([7], 0) == 7\n    assert pick([7], -5) == 7\n    assert pick([7], 12345) == 7\n\n\ndef test_pick_negative_seed_is_deterministic() -> None:\n    xs = [5, 6, 7, 8]\n    assert pick(xs, -3) == pick(xs, -3)\n    assert pick(xs, -3) in xs\n\n\ndef test_pick_varies_with_seed() -> None:\n    xs = list(range(10))\n    results = {pick(xs, seed) for seed in range(10)}\n    assert len(results) > 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1559,
+    "reasoning": 1072
+   },
+   "out_bytes": 1063,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 902,
+    "reasoning": 404
+   },
+   "out_bytes": 1085,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

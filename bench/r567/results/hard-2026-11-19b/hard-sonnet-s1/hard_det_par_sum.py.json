@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1905,
+   "reasoning": 692,
+   "out_bytes": 2715
+  },
+  "body": {
+   "in": 2363,
+   "out": 1335,
+   "reasoning": 0,
+   "out_bytes": 3012
+  }
+ },
+ "final": "import pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares_with(xs: list[int], workers: int) -> int:\n    \"\"\"Sum of square(x) for every x in xs, with the squares computed in a\n    thread pool of `workers` threads.\n\n    The result is identical for every worker count. Returns 0 for an empty\n    list. Does not modify xs. Raises ValueError if workers < 1, even when xs\n    is empty.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        squares = list(pool.map(square, xs))\n    return sum(squares)\n\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Sum of the squares of every element of xs, computed in parallel with\n    a thread pool using a default worker count.\n\n    Equal to sum_squares_with(xs, w) for any valid w. Returns 0 for an\n    empty list.\n    \"\"\"\n    return sum_squares_with(xs, 4)\n\n\nWORKER_COUNTS = [1, 2, 3, 4, 8, 64]\n\n\ndef reference(xs: list[int]) -> int:\n    return sum(x * x for x in xs)\n\n\ndef test_square_given() -> None:\n    assert square(-3) == 9\n    assert square(0) == 0\n\n\ndef test_sum_squares_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single_and_negatives() -> None:\n    assert sum_squares([-5]) == 25\n    assert sum_squares([-1, 1, -2, 2]) == 10\n\n\ndef test_sum_squares_big_ints() -> None:\n    big = 10**20\n    assert sum_squares([big, -big]) == 2 * big * big\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_same_result_every_worker_count(workers: int) -> None:\n    xs = list(range(-50, 51)) + [7, 7, 7, 1000]\n    assert sum_squares_with(xs, workers) == reference(xs)\n    assert sum_squares_with(xs, workers) == sum_squares(xs)\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_empty_every_worker_count(workers: int) -> None:\n    assert sum_squares_with([], workers) == 0\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_fewer_items_than_workers(workers: int) -> None:\n    assert sum_squares_with([3, 4], workers) == 25\n\n\ndef test_large_input_all_worker_counts_agree() -> None:\n    xs = [(i * 37) % 101 - 50 for i in range(5000)]\n    expected = reference(xs)\n    results = {sum_squares_with(xs, w) for w in WORKER_COUNTS}\n    assert results == {expected}\n    assert sum_squares(xs) == expected\n\n\ndef test_order_does_not_matter() -> None:\n    xs = [5, -3, 8, 0, 2, 2]\n    assert sum_squares_with(xs, 4) == sum_squares_with(xs[::-1], 4)\n\n\ndef test_input_not_mutated() -> None:\n    xs = [3, -1, 2]\n    copy = list(xs)\n    sum_squares_with(xs, 3)\n    sum_squares(xs)\n    assert xs == copy\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_worker_count(workers: int) -> None:\n    with pytest.raises(ValueError):\n        sum_squares_with([1, 2, 3], workers)\n    with pytest.raises(ValueError):\n        sum_squares_with([], workers)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1905,
+    "reasoning": 692
+   },
+   "out_bytes": 2715,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2363,
+    "out": 1335,
+    "reasoning": 0
+   },
+   "out_bytes": 3012,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

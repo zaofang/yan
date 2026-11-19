@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 2658,
+   "reasoning": 753,
+   "out_bytes": 4390
+  },
+  "body": {
+   "in": 3097,
+   "out": 2866,
+   "reasoning": 773,
+   "out_bytes": 5000
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first file in `names` readable from `notes`.\n\n    Each name is resolved relative to the directory `notes` in the current\n    working directory. Names are untrusted: any name that would reach a file\n    outside `notes` (via \"..\", an absolute path, a symlink, etc.) is treated\n    as unreadable. Missing, unreadable, non-file, or undecodable entries are\n    skipped. Returns \"\" when no name yields a readable file.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n    except (OSError, RuntimeError):\n        return \"\"\n    for name in names:\n        if not name or \"\\x00\" in name:\n            continue\n        try:\n            if Path(name).is_absolute():\n                continue\n            candidate = (base / name).resolve()\n            if candidate == base or not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError, RuntimeError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef work(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    root = tmp_path / \"work\"\n    (root / \"notes\").mkdir(parents=True)\n    (root / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    (root / \"notes2\").mkdir()\n    (root / \"notes2\" / \"x.txt\").write_text(\"SIBLING\", encoding=\"utf-8\")\n    monkeypatch.chdir(root)\n    return root\n\n\ndef test_returns_first_readable(work: Path) -> None:\n    (work / \"notes\" / \"b.txt\").write_text(\"bee\", encoding=\"utf-8\")\n    (work / \"notes\" / \"c.txt\").write_text(\"sea\", encoding=\"utf-8\")\n    assert first_readable([\"a.txt\", \"b.txt\", \"c.txt\"]) == \"bee\"\n\n\ndef test_none_readable_and_empty_list(work: Path) -> None:\n    assert first_readable([\"nope.txt\", \"also-nope.txt\"]) == \"\"\n    assert first_readable([]) == \"\"\n\n\ndef test_parent_traversal_rejected(work: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n\n\ndef test_traversal_skipped_then_next_name_used(work: Path) -> None:\n    (work / \"notes\" / \"ok.txt\").write_text(\"fine\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\", \"ok.txt\"]) == \"fine\"\n\n\ndef test_absolute_path_rejected(work: Path) -> None:\n    assert first_readable([str(work / \"secret.txt\")]) == \"\"\n    inside = work / \"notes\" / \"in.txt\"\n    inside.write_text(\"inside\", encoding=\"utf-8\")\n    assert first_readable([str(work / \"secret.txt\"), \"in.txt\"]) == \"inside\"\n\n\ndef test_sibling_directory_with_same_prefix_rejected(work: Path) -> None:\n    assert first_readable([\"../notes2/x.txt\"]) == \"\"\n\n\ndef test_symlink_escape_rejected(work: Path) -> None:\n    link = work / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(work / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert first_readable([\"link.txt\"]) == \"\"\n\n\ndef test_symlink_inside_notes_is_fine_or_empty_but_never_outside(work: Path) -> None:\n    target = work / \"notes\" / \"real.txt\"\n    target.write_text(\"real\", encoding=\"utf-8\")\n    link = work / \"notes\" / \"alias.txt\"\n    try:\n        link.symlink_to(target)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert first_readable([\"alias.txt\"]) in (\"real\", \"\")\n\n\ndef test_directory_is_skipped(work: Path) -> None:\n    (work / \"notes\" / \"sub\").mkdir()\n    (work / \"notes\" / \"f.txt\").write_text(\"file\", encoding=\"utf-8\")\n    assert first_readable([\"sub\", \"f.txt\"]) == \"file\"\n    assert first_readable([\"sub\"]) == \"\"\n\n\ndef test_empty_and_dot_names(work: Path) -> None:\n    assert first_readable([\"\", \".\", \"..\"]) == \"\"\n\n\ndef test_nul_byte_name_is_skipped(work: Path) -> None:\n    (work / \"notes\" / \"g.txt\").write_text(\"gee\", encoding=\"utf-8\")\n    assert first_readable([\"bad\\x00name\", \"g.txt\"]) == \"gee\"\n\n\ndef test_undecodable_file_is_skipped(work: Path) -> None:\n    (work / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\xfa\")\n    (work / \"notes\" / \"t.txt\").write_text(\"text\", encoding=\"utf-8\")\n    assert first_readable([\"bin.dat\", \"t.txt\"]) == \"text\"\n\n\ndef test_file_in_subdirectory_of_notes(work: Path) -> None:\n    (work / \"notes\" / \"sub\").mkdir()\n    (work / \"notes\" / \"sub\" / \"x.txt\").write_text(\"deep\", encoding=\"utf-8\")\n    assert first_readable([\"sub/x.txt\"]) == \"deep\"\n\n\n@pytest.mark.skipif(os.name == \"nt\", reason=\"permission bits are POSIX-specific\")\ndef test_unreadable_permissions_skipped(work: Path) -> None:\n    locked = work / \"notes\" / \"locked.txt\"\n    locked.write_text(\"locked\", encoding=\"utf-8\")\n    locked.chmod(0)\n    (work / \"notes\" / \"open.txt\").write_text(\"open\", encoding=\"utf-8\")\n    try:\n        if os.access(locked, os.R_OK):\n            pytest.skip(\"running with privileges that bypass permissions\")\n        assert first_readable([\"locked.txt\", \"open.txt\"]) == \"open\"\n    finally:\n        locked.chmod(0o644)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 2658,
+    "reasoning": 753
+   },
+   "out_bytes": 4390,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3097,
+    "out": 2866,
+    "reasoning": 773
+   },
+   "out_bytes": 5000,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,126 @@
+{
+ "final": "def run_plugin(path: str) -> str uses fs:\n    \"\"\"Run `plugin(path)` with `fs` confined to the directory `notes`.\n\n    `path` is relative to `notes`. Any read outside `notes`, such as\n    `notes/../secret.txt`, yields an empty string.\n    \"\"\"\n    post \"|\" in out\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n\ndef plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2481,
+    "out": 522,
+    "reasoning": 328
+   },
+   "out_bytes": 487
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpfv_v3wt6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpfv_v3wt6/work/task.yag:9:16 run_plugin: `return plugin(path)` cannot find function `plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2773,
+    "out": 139,
+    "reasoning": 0
+   },
+   "out_bytes": 331
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3052,
+    "out": 345,
+    "reasoning": 136
+   },
+   "out_bytes": 486
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 5825,
+   "out": 484,
+   "reasoning": 136,
+   "out_bytes": 817
+  },
+  "spec": {
+   "in": 2481,
+   "out": 522,
+   "reasoning": 328,
+   "out_bytes": 487
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpfv_v3wt6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmpfv_v3wt6/work/task.yag:9:16 run_plugin: `return plugin(path)` cannot find function `plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E200 task.yag:9:16 run_plugin: `plugin` cannot find function `plugin`"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

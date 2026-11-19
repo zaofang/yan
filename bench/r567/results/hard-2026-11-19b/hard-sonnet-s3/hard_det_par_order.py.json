@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 872,
+   "reasoning": 253,
+   "out_bytes": 1387
+  },
+  "body": {
+   "in": 1777,
+   "out": 650,
+   "reasoning": 0,
+   "out_bytes": 1460
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel on a\n    thread pool. Results are in input order, regardless of worker count\n    or task completion order.\"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative_and_zero() -> None:\n    assert parities([-3, -2, 0, -1]) == [1, 0, 0, 1]\n\n\ndef test_parities_large_ints() -> None:\n    big = 10**30\n    assert parities([big, big + 1, -big - 1]) == [0, 1, 1]\n\n\ndef test_parities_preserves_order_large_input() -> None:\n    xs = list(range(-500, 1500))\n    assert parities(xs) == [parity(x) for x in xs]\n\n\ndef test_parities_order_non_uniform_pattern() -> None:\n    xs = [1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1]\n    assert parities(xs) == xs\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    parities(xs)\n    assert xs == [5, 6, 7]\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [0, 1]\n    out = parities(xs)\n    assert out is not xs\n    assert out == [0, 1]\n\n\ndef test_parities_repeatable() -> None:\n    xs = list(range(200))\n    first = parities(xs)\n    assert all(parities(xs) == first for _ in range(5))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 872,
+    "reasoning": 253
+   },
+   "out_bytes": 1387,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1777,
+    "out": 650,
+    "reasoning": 0
+   },
+   "out_bytes": 1460,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

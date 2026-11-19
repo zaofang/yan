@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1268,
+   "reasoning": 678,
+   "out_bytes": 1384
+  },
+  "body": {
+   "in": 1800,
+   "out": 1351,
+   "reasoning": 617,
+   "out_bytes": 1782
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    n: int\n\n    def __init__(self, n: int) -> None:\n        \"\"\"Carry the offending value in n.\"\"\"\n        super().__init__(n)\n        self.n = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even; raise Bad(x) if it is odd.\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element in a thread pool and return the results in order.\n\n    If any element is odd, raise the Bad for the lowest-index odd element,\n    regardless of which worker thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in index order: the first result() that raises is the\n        # lowest-index failure, independent of completion order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_odd() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([2, 3, 4])\n    assert exc.value.n == 3\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([4, 7, 9, 2, 5])\n    assert exc.value.n == 7\n\n\ndef test_all_even_large_input_lowest_index_bad() -> None:\n    xs = [2] * 1000\n    xs[600] = 601\n    xs[100] = 101\n    xs[900] = 901\n    with pytest.raises(Bad) as exc:\n        all_even(xs)\n    assert exc.value.n == 101\n\n\ndef test_check_even() -> None:\n    assert check(4) == 4\n\n\ndef test_check_odd_raises() -> None:\n    with pytest.raises(Bad) as exc:\n        check(5)\n    assert exc.value.n == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1268,
+    "reasoning": 678
+   },
+   "out_bytes": 1384,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1800,
+    "out": 1351,
+    "reasoning": 617
+   },
+   "out_bytes": 1782,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

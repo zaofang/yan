@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2158,
+   "reasoning": 603,
+   "out_bytes": 3307
+  },
+  "body": {
+   "in": 2804,
+   "out": 2312,
+   "reasoning": 589,
+   "out_bytes": 3785
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR: str = \"notes\"\n\n\ndef safe_target(path: str) -> Path | None:\n    \"\"\"Resolve a request path to a file inside NOTES_DIR.\n\n    Returns the resolved path when it names a location inside NOTES_DIR\n    (after normalizing `..` segments and following symlinks), or None when\n    the path is absolute, escapes NOTES_DIR, or is otherwise unusable.\n    \"\"\"\n    if \"\\x00\" in path:\n        return None\n    request = Path(path)\n    if request.is_absolute():\n        return None\n    base = Path(NOTES_DIR).resolve()\n    candidate = (base / request).resolve()\n    if candidate == base or not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file at `path` inside the NOTES_DIR directory.\n\n    Returns an empty string when the path escapes NOTES_DIR (via `..`,\n    an absolute path, or a symlink pointing outside), or when the file is\n    missing or unreadable. Paths that wander but stay inside NOTES_DIR\n    (e.g. \"sub/../a.txt\") are read normally.\n    \"\"\"\n    target = safe_target(path)\n    if target is None:\n        return \"\"\n    try:\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\ndef test_reads_file_inside_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    assert read_public(\"a.txt\") == \"hello\"\n\n\ndef test_reads_nested_path_that_stays_inside(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"inside\", encoding=\"utf-8\")\n    assert read_public(\"sub/../a.txt\") == \"inside\"\n\n\ndef test_missing_file_returns_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert read_public(\"nope.txt\") == \"\"\n\n\ndef test_directory_returns_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    assert read_public(\"sub\") == \"\"\n\n\ndef test_parent_traversal_returns_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    assert read_public(\"../secret.txt\") == \"\"\n\n\ndef test_deep_escape_returns_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"x\").write_text(\"outside\", encoding=\"utf-8\")\n    assert read_public(\"sub/../../x\") == \"\"\n\n\ndef test_absolute_path_returns_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    outside = tmp_path / \"outside.txt\"\n    outside.write_text(\"outside\", encoding=\"utf-8\")\n    assert read_public(str(outside.resolve())) == \"\"\n\n\ndef test_symlink_escaping_notes_returns_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    (tmp_path / \"notes\" / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_safe_target_rejects_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert safe_target(\"../secret.txt\") is None\n    assert safe_target(\"/etc/passwd\") is None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2158,
+    "reasoning": 603
+   },
+   "out_bytes": 3307,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2804,
+    "out": 2312,
+    "reasoning": 589
+   },
+   "out_bytes": 3785,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

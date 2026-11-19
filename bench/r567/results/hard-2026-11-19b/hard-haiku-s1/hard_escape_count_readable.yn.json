@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1941,
+   "out": 2206,
+   "reasoning": 1812,
+   "out_bytes": 960
+  },
+  "body": {
+   "in": 2408,
+   "out": 1739,
+   "reasoning": 1237,
+   "out_bytes": 1224
+  }
+ },
+ "final": "-- Names come from untrusted requests. A name counts only if it is\n-- a single plain file name with no path separators or dot-dot parts.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  if name == \"\" or name == \".\" or name == \"..\"\n    return False\n  if name.split(\"/\").len() > 1\n    return False\n  True\n\n-- Reads notes/<name>. The body narrows fs to \"notes\" with\n-- `with fs = fs.sub(\"notes\")`, so nothing outside that directory is reachable.\n-- A missing, unreadable, or non-plain name gives \"\".\nread_note(name: str) -> str uses fs =\n  post out == \"\" or is_plain_name(name)\n  ex read_note(\"missing.txt\") == \"\"\n  ex read_note(\"../x\") == \"\"\n  if is_plain_name(name) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else err -> \"\"\n\n-- Counts names whose note can be read. A file that is read but is\n-- empty is not distinguishable from a failed read here, so this\n-- counts names with a non-empty note.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../x\"]) == 0\n  var n = 0\n  for name in names\n    if read_note(name) != \"\"\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1941,
+    "out": 2206,
+    "reasoning": 1812
+   },
+   "out_bytes": 960,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2408,
+    "out": 1739,
+    "reasoning": 1237
+   },
+   "out_bytes": 1224,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}
