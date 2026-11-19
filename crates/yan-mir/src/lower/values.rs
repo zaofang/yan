@@ -622,12 +622,21 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mine = self.sig(self.me as FuncId).ret.clone();
         let theirs = match self.callee(c)? {
             Some(func) => self.sig(func).ret.clone(),
-            // `fs.read` fails with the `FsError` the caller propagates; its lowering checks that.
-            None if registry::id(&c.path.join(".")) == Some(id::STD_FS_READ) => {
+            // `fs.read` and `fs.list_dir` fail with the `FsError` the caller propagates; their
+            // lowering checks that.
+            None if matches!(
+                registry::id(&c.path.join(".")),
+                Some(id::STD_FS_READ | id::STD_FS_LIST_DIR)
+            ) =>
+            {
                 let Some((_, _, mine_e)) = mine.variant("Err") else {
                     return unsupported("`?` outside a failing function");
                 };
-                result(Shape::Str, mine_e[0].1.clone())
+                let ok = match registry::id(&c.path.join(".")) {
+                    Some(id::STD_FS_LIST_DIR) => Shape::List(Box::new(Shape::Path)),
+                    _ => Shape::Str,
+                };
+                result(ok, mine_e[0].1.clone())
             }
             None => match self.intrinsic_result(c)? {
                 Some(s) => s,

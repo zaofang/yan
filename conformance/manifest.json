@@ -9027,6 +9027,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/fs_list_dir.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1109"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "d/a.txt\nd/b\nd/c.txt\n/r/x\n3\nnot found\nnot a directory\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/fstring_numeric_specs.yag",
    "kind": "run",
    "milestone": "M1",
@@ -13831,6 +13846,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/collections/u8_to_int.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R656"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "98 122\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/concurrency/mutex_get_mut_into_inner.yn",
    "kind": "run",
    "milestone": "M3",
@@ -14195,6 +14225,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3628800\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/std_fs_list_dir.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1109"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "d/a.txt\nd/b\nd/c.txt\nnot found\n",
    "exit": 0
   },
   {

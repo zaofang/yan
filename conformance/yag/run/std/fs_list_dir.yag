@@ -1,0 +1,25 @@
+# spec: 17.3
+# rows: R1109
+# note: fs.list_dir sorts entries by name, joins them onto the path and implies fake directories
+# stdout:
+# d/a.txt
+# d/b
+# d/c.txt
+# /r/x
+# 3
+# not found
+# not a directory
+
+def count(p: str) -> str fail FsError uses fs:
+    xs = fs.list_dir(p)?
+    return f"{len(xs)}"
+
+pub def main() uses fs, io:
+    with fs = fake_fs({"d/c.txt": "c", "d/b/y": "y", "d/a.txt": "a", "/r/x/z": "z"}):
+        for p in fs.list_dir("d") else []:
+            io.print(p.text())
+        for p in fs.list_dir("/r/") else []:
+            io.print(p.text())
+        io.print(count("d") else "x")
+        io.print(count("e") else err -> err.reason)
+        io.print(count("d/a.txt") else err -> err.reason)
