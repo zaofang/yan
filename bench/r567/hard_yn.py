@@ -337,7 +337,7 @@ _ROWS = [
         "safety",
         "An untrusted plugin reads a file for the caller and, while it is at it, tries to read a file it was not given. Run it so that it can read only below the directory `notes`: whatever it asks for, it gets an empty string for anything outside. "
         + YN_SUB
-        + '\n\nGiven:\n\nplugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`).',
+        + '\n\nGiven:\n\nplugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`). Inside the confined block every path the plugin gives `fs`, including the literal in its body, is resolved relative to `notes`.',
         'main() uses io, fs =\n  for n in ["a.txt", "../secret.txt", "sub/b.txt", "link"]\n    io.print("<\\(run_plugin(n))>")\n',
         'plugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  with fs = fs.sub("notes")\n    return plugin(path)\n  ""\n',
     ),
