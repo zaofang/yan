@@ -11,6 +11,7 @@ mod co;
 pub mod ffi;
 mod layout;
 mod lower;
+mod mnemonic;
 mod pool;
 mod tasks;
 
