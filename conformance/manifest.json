@@ -1856,6 +1856,25 @@
    ]
   },
   {
+   "path": "yag/fail/failure/propagate_non_result.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R1107"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 11,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/generics/derive_argument.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -7315,6 +7334,21 @@
    "expect": [],
    "stdout": "start\n",
    "exit": 1
+  },
+  {
+   "path": "yag/run/failure/propagate_result_value.yag",
+   "kind": "run",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R1106"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5 -1 9 -2\n",
+   "exit": 0
   },
   {
    "path": "yag/run/generics/generic_fail_types.yag",

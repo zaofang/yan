@@ -43,6 +43,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod propagate;
 mod ptr;
 mod pyfid;
 pub(crate) mod reentrant;

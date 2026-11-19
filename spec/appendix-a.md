@@ -447,6 +447,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1096 | W806 on an `if` branch is kept only when the function's `ex` lines stop holding with the condition replaced by `False`; lookups keep the old rule (RFC 0091 D1, #1690) | 21.1 |
 | R1104 | `yan run --ub --seed N` fixes the seed of the checked machine's nondeterministic choices (default 0); one seed, one run (RFC 0090 D3) | 6.9 |
 | R1105 | `--ub` weak memory: under a nonzero seed a non-`SeqCst` atomic `load` reads any of the last four stores to its location that coherence and happens-before allow, chosen by the seed; seed 0, read-modify-writes, failed compare-exchanges and `SeqCst` loads read the newest (RFC 0090 D3) | 6.9 |
+| R1106 | `v?` on a `Result[T, E]` value (a local, field or any expression) unwraps `Ok` and fails with the `E` arm, with the same injection and `From` rules as a call's `?` (E310, E313); the value is consumed (RFC 0092 D1, S1 of #1727) | 14.1 |
+| R1107 | `x?` where `x` is neither a fallible call nor a `Result` value is E201 naming the type, not E017 (RFC 0092 D2, S1 of #1727) | 14.1, 25 |
 
 <!-- /rows -->
 
