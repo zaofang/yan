@@ -120,3 +120,4 @@ conformance case in the same PR set.
 | [0094](0094-chan-constructor-spelling.md) | Channel constructor spelling and the near-miss diagnostic | accepted | pending |
 | [0095](0095-handler-bound-examples-and-par-for-statements.md) | Handler-bound `ex` lines and `par for` statements | accepted | pending |
 | [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | accepted | pending |
+| [0097](0097-mir-text-format.md) | Canonical MIR text: printer, parser, validator | draft | |
