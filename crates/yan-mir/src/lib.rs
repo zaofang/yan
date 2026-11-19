@@ -732,6 +732,12 @@ pub enum RtFn {
     SupEnd,
     /// `(depth)`: end the scopes past `depth`.
     SupEndTo,
+    /// `(low, hi, lo) -> low`: open a deadline scope ending at the instant `(hi, lo)`.
+    DeadlineBegin,
+    /// `()`: end the innermost deadline scope.
+    DeadlineEnd,
+    /// `(depth)`: end the deadline scopes past `depth`.
+    DeadlineEndTo,
     /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
     FfiCall,
     /// As `FfiCall`, `-> f64`.

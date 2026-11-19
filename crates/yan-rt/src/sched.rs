@@ -21,6 +21,8 @@ struct Task {
     timer: Option<i128>,
     /// The PCT priority (R999); unused without a `pct` scheduler.
     prio: i64,
+    /// The deadline scopes the task has open while it is not running.
+    deadlines: Vec<i128>,
 }
 
 struct Block {
@@ -31,6 +33,8 @@ struct Block {
     /// The block whose task was running when this one began.
     parent: Option<usize>,
     cancelled: bool,
+    /// The deadline scopes of the enclosing task, restored when the block returns to it.
+    outer: Vec<i128>,
     /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
     kept: Option<(usize, u64)>,
 }
@@ -161,14 +165,18 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             Some(p) => p.priorities(n as usize),
             None => vec![0; n as usize],
         };
+        let outer = crate::deadline::snapshot();
+        let inherited: Vec<i128> = outer.last().copied().into_iter().collect();
         let b = Block {
             tasks: prios
                 .into_iter()
                 .map(|prio| Task {
                     prio,
+                    deadlines: inherited.clone(),
                     ..Task::default()
                 })
                 .collect(),
+            outer,
             running: None,
             can_yield: can_yield != 0,
             parent: st.cur,
@@ -236,6 +244,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         let timer = st.park_timer.take();
         let b = block(st, h);
         if let Some(i) = b.running.take() {
+            b.tasks[i].deadlines = crate::deadline::take();
             b.tasks[i].timer = timer;
             let prev = b.tasks[i].park.take();
             if let Some(now) = parked {
@@ -265,6 +274,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         let parent = b.parent;
         let Some(first) = b.tasks.iter().position(|t| !t.done) else {
             let n = b.tasks.len() as u64;
+            crate::deadline::install(b.outer.clone());
             st.cur = parent;
             return n;
         };
@@ -288,6 +298,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         // (RFC 0056 D4), and the parked tasks retry.
         if pick.is_none() && crate::actor::idle_ready() {
             let n = b.tasks.len() as u64;
+            crate::deadline::install(b.outer.clone());
             st.cur = parent;
             return n + 2;
         }
@@ -295,6 +306,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             Some(i) => (i, false),
             None if b.can_yield && !inherited => {
                 let n = b.tasks.len() as u64;
+                crate::deadline::install(b.outer.clone());
                 st.park = Some(NESTED);
                 st.cur = parent;
                 return n + 1;
@@ -311,6 +323,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             ),
         };
         b.running = Some(i);
+        crate::deadline::install(std::mem::take(&mut b.tasks[i].deadlines));
         st.force = forced.then_some(h as usize);
         st.cur = Some(h as usize);
         i as u64
@@ -330,6 +343,7 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
         if st.force == Some(h as usize) {
             st.force = None;
         }
+        crate::deadline::install(b.outer);
         st.park = None;
         st.cur = b.parent;
     });

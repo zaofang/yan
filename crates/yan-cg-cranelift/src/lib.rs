@@ -23,8 +23,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{AtomicOp, Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler, futex,
-    loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, deadline, dq, envhandler, ffi,
+    fshandler, futex, loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -922,6 +922,9 @@ const RT: &[RtFn] = &[
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
+    RtFn::DeadlineBegin,
+    RtFn::DeadlineEnd,
+    RtFn::DeadlineEndTo,
     RtFn::FfiCall,
     RtFn::FfiCallF64,
 ];
@@ -2510,6 +2513,24 @@ fn rt_fn(
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",
             actor::yan_rt_sup_end_to as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::DeadlineBegin => (
+            "yan_rt_deadline_begin",
+            deadline::yan_rt_deadline_begin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DeadlineEnd => (
+            "yan_rt_deadline_end",
+            deadline::yan_rt_deadline_end as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::DeadlineEndTo => (
+            "yan_rt_deadline_end_to",
+            deadline::yan_rt_deadline_end_to as *const u8,
             &[I64],
             None,
         ),

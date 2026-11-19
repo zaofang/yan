@@ -89,13 +89,20 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     pub(super) fn jump(&mut self, name: &str, args: &[y::Atom]) -> R<()> {
-        let found = self.scopes.iter().rev().find_map(|s| match s {
-            Scope::Jps { jps, cont, at } => jps
-                .iter()
-                .find(|(n, ..)| n == name)
-                .map(|(_, b, ps, ss)| (*b, ps.clone(), ss.clone(), *cont, *at)),
-            Scope::Loop { .. } => None,
-        });
+        let mut open = 0;
+        let mut found = None;
+        for s in self.scopes.iter().rev() {
+            match s {
+                Scope::Jps { jps, cont, at } => {
+                    if let Some((_, b, ps, ss)) = jps.iter().find(|(n, ..)| n == name) {
+                        found = Some((*b, ps.clone(), ss.clone(), *cont, *at));
+                        break;
+                    }
+                }
+                Scope::Deadline => open += 1,
+                Scope::Loop { .. } => {}
+            }
+        }
         let Some((target, params, shapes, cont, at)) = found else {
             return unsupported(format!("jump to `{name}`"));
         };
@@ -125,11 +132,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 src: Operand::Int(at),
             });
         }
+        for _ in 0..open {
+            self.end_deadline();
+        }
         self.end(Term::Jump(target));
         Ok(())
     }
 
     pub(super) fn leave(&mut self, label: &str, brk: bool) -> R<()> {
+        let open = self
+            .scopes
+            .iter()
+            .rev()
+            .take_while(|s| !matches!(s, Scope::Loop { label: l, .. } if l == label))
+            .filter(|s| matches!(s, Scope::Deadline))
+            .count();
         let to = self.scopes.iter().rev().find_map(|s| match s {
             Scope::Loop {
                 label: l,
@@ -140,6 +157,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         });
         match to {
             Some(b) => {
+                for _ in 0..open {
+                    self.end_deadline();
+                }
                 if !brk {
                     self.back_edge();
                 }
@@ -355,6 +375,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 if self.sup_depth.is_some() {
                     return unsupported("`become` in a function with `with supervisor`");
                 }
+                if self.deadline_depth.is_some() {
+                    return unsupported("`become` in a function with `with deadline`");
+                }
                 let name = c.path.join(".");
                 let Some(func) = self.callee(c)? else {
                     return unsupported(format!("`become` of `{name}`"));
@@ -531,7 +554,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             // The scheduler `pct` built is already installed.
             K::With { name, body, .. } if name == "sched" => self.block(body),
             K::With { .. } => unsupported("`with`"),
-            K::Deadline { .. } => unsupported("`deadline`"),
+            K::Deadline { at, body } => self.with_deadline(at, body),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),
