@@ -1,0 +1,42 @@
+-- spec: 9.4, 9.5
+-- rows: R1111, R788
+-- note: a select outside its timer arm fails Timeout at the enclosing deadline, or takes the earlier timer arm (RFC 0093 S2b-2, #1703)
+-- stdout:
+-- -9
+-- PT0.1S
+-- -2
+-- PT0.15S
+-- -8
+-- PT0.16S
+
+pick(var a: Receiver[int], timer: Duration) -> int fail Cancelled | Timeout uses nondet, time =
+  select
+    a.recv() is Some(v) -> v
+    after(timer) -> 0 - 2
+
+pickn(var a: Receiver[int], var b: Receiver[int]) -> int fail Cancelled | Timeout uses nondet =
+  select
+    a.recv() is Some(v) -> v
+    b.recv() is Some(v) -> v + 100
+
+main() fail Cancelled | Timeout uses io, nondet, time =
+  let (ta, ra) = Channel[int](2)
+  var x = ra
+  var sa = ta
+  let (tb, rb) = Channel[int](2)
+  var y = rb
+  var sb = tb
+  with time = virtual(Instant.from_unix_seconds(0))
+    let m = time.monotonic()
+    with timeout(100ms)
+      let r = pick(&x, 1s) else (0 - 9)
+      io.print("\(r)")
+      io.print("\(time.monotonic() - m)")
+    with timeout(100ms)
+      let r = pick(&x, 50ms)?
+      io.print("\(r)")
+      io.print("\(time.monotonic() - m)")
+    with timeout(10ms)
+      let r = pickn(&x, &y) else (0 - 8)
+      io.print("\(r)")
+      io.print("\(time.monotonic() - m)")
