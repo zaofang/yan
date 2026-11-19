@@ -664,6 +664,7 @@ const RT: &[RtFn] = &[
     RtFn::ReadLine,
     RtFn::ReadAll,
     RtFn::FsRead,
+    RtFn::FsListDir,
     RtFn::FsFake,
     RtFn::LogNew,
     RtFn::LogSpan,
@@ -963,6 +964,12 @@ fn rt_fn(
         RtFn::FsRead => (
             "yan_rt_fs_read_with",
             fshandler::yan_rt_fs_read_with as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::FsListDir => (
+            "yan_rt_fs_list_dir_with",
+            fshandler::yan_rt_fs_list_dir_with as *const u8,
             &[I64, I64],
             Some(I64),
         ),
