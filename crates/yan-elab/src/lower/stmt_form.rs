@@ -74,10 +74,18 @@ impl Lower<'_, '_, '_> {
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
+                    let hint = if t == self.sig.ret {
+                        "; a block (`with`, `if`, `for`) does not yield the function's value: `return` it"
+                    } else {
+                        ""
+                    };
                     self.err(
                         "E312",
                         at,
-                        format!("a result of type `{t}` is discarded", t = self.ty_text(&t)),
+                        format!(
+                            "a result of type `{t}` is discarded{hint}",
+                            t = self.ty_text(&t)
+                        ),
                     );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {

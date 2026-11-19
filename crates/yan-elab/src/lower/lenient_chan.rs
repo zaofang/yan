@@ -3,20 +3,7 @@
 
 use super::*;
 
-const CHANNEL_HINT: &str = "channels are built with `Channel[T](capacity)`, which returns \
-                            `(Sender[T], Receiver[T])`";
-
-const HABIT_NAMES: [&str; 7] = [
-    "Chan",
-    "chan",
-    "channel",
-    "make_chan",
-    "Queue",
-    "sync.Channel",
-    "nondet.channel",
-];
-
-const HABIT_PATHS: [&str; 3] = ["queue.Queue", "asyncio.Queue", "queue.SimpleQueue"];
+use crate::chan_names::{CHANNEL_HINT, HABIT_NAMES, HABIT_PATHS};
 
 impl Lower<'_, '_, '_> {
     fn defined(&self, n: &str) -> bool {

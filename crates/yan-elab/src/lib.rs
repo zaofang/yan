@@ -8,6 +8,7 @@ mod access;
 mod accuracy;
 mod affine;
 mod bounds;
+mod chan_names;
 mod cli;
 mod consttime;
 mod copy_out;
@@ -645,6 +646,15 @@ impl Globals {
                                 .is_some_and(|r| r.starts_with('_'))
                         }) =>
                     {
+                        Ty::Err
+                    }
+                    (n, _) if chan_names::is_habit(n) => {
+                        cx.err(
+                            "E200",
+                            span,
+                            "",
+                            format!("cannot find type `{n}`: {}", chan_names::CHANNEL_HINT),
+                        );
                         Ty::Err
                     }
                     (n, _)

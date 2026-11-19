@@ -1,8 +1,8 @@
 # 0097: Canonical MIR text
 
-- Status: draft
+- Status: accepted
 - Research: #1513 (S3a), RFC 0082 D7 (R1048), `docs/research/2026-11-19-self-hosting-sizing.md`
-- Rows: filled in when accepted
+- Rows: pending (numbered with S1)
 
 ## Summary
 
@@ -23,7 +23,7 @@ Options:
 
 Recommended: A. It is diffable, it keeps the parser a hand-written recursive descent that the Yan port can mirror, and `print . parse . print` fixed-point testing is straightforward.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D2: is the text the interface or a dump
@@ -35,7 +35,7 @@ Options:
 
 Recommended: A, with the `mir <version>` header so a stale reader fails loudly (practice 13) instead of misparsing.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D3: naming and numbering
@@ -48,7 +48,7 @@ Options:
 
 Recommended: C. Ids stay the identity (the in-memory ids, so Cranelift sees identical programs from memory and from text, #1513 acceptance 2), and the name on the item is for readers and for diagnostics; the parser checks ids are dense and in order.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: C (lead, 2026-11-19)
 - Row:
 
 ### D4: types and layout in the text
@@ -61,7 +61,7 @@ Options:
 
 Recommended: A. This needs MIR to hold layouts as first-class data; see D6.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D5: instruction vocabulary and intrinsic spelling
@@ -73,7 +73,7 @@ Options:
 
 Recommended: A. The printer and parser share the table so they cannot disagree (practice 12). `Par`, `Suspend`, `TaskEnd` and `Unwind` exist only before the task transform: the printer accepts them, the validator rejects them in the post-transform form that backends read.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D6: closing D7's visibility gaps
@@ -88,7 +88,7 @@ Options:
 
 Recommended: A. The gap issue is the acceptance record; no fact moves into the text without existing in MIR first.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D7: validator and its codes
@@ -100,7 +100,7 @@ Options:
 
 Recommended: A, in a new `yan-mir` module (practice 5), run by `yan view --as mir --check` and in CI over the corpus.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ### D8: acceptance and order of slices
@@ -112,7 +112,7 @@ The corpus check is print, parse, print is a fixed point for every runnable conf
 
 Recommended: A.
 
-- Decision: (lead's answer)
+- Decision: accepted as recommended: A (lead, 2026-11-19)
 - Row:
 
 ## Spec changes
