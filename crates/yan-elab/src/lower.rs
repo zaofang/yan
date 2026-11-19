@@ -35,6 +35,7 @@ mod fallback;
 mod fmtspec;
 mod generic_sum;
 mod last_use;
+mod lenient_chan;
 mod lenient_names;
 mod lenient_py;
 pub(crate) use lenient_names::MATH_FREE;
