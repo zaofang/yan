@@ -1,8 +1,8 @@
 # 0094: Channel constructor spelling and the near-miss diagnostic
 
-- Status: draft
+- Status: accepted
 - Research: R567 hard rerun, #1727 item 2 (`bench/r567/results/hard-2026-11-18b/`, `hard-sonnet-s3/hard_channel_capacity.*`)
-- Rows: none yet
+- Rows: pending
 
 ## Summary
 
@@ -20,14 +20,14 @@ Options:
 
 Recommended: B. It keeps one name and meets R807 (a real function exists; the error names it). Habit names in the table: `Chan`, `chan`, `channel`, `make_chan`, `Queue`, `queue.Queue`, `asyncio.Queue`, `sync.Channel`, `nondet.channel`.
 
-- Decision:
+- Decision: accepted as recommended: B, typed E200 naming `Channel[T](capacity)`, one spelling (lead, 2026-11-19)
 - Row:
 
 ### D2: the E017 before the E200
 
 `Chan[int](cap)` ends in `E017 calling a value` because the callee `Index(Name, T)` is not a known constructor, and only afterwards in E200 for the unresolved name. The E017 is noise: the callee root did not resolve. Recommended: when the callee's root name is unresolved, report only the E200 with the D1 hint and no E017. Genuine calls of a non-function value (for example `x(1)` with `x: int`) keep their present diagnostic; whether that one becomes a typed code is a separate question and is not decided here.
 
-- Decision:
+- Decision: accepted as recommended: only the E200 is reported when the callee root is unresolved (lead, 2026-11-19)
 - Row:
 
 ### D3: hint scope, fixed table or generic near-name search
@@ -36,14 +36,14 @@ Options: (a) a fixed table of habit names per feature, as `lenient_py.rs` has to
 
 Recommended: (a) now, deterministic and testable as spec rows; file (b) as a separate RFC because it changes every E200 message and the conformance catalogue at once. Deferred, not dropped: a gap issue records it.
 
-- Decision:
+- Decision: accepted as recommended: fixed habit-name table now; generic near-name search deferred to its own RFC (lead, 2026-11-19)
 - Row:
 
 ### D4: replace the name-keyed special case with an ordinary generic call
 
 `Channel[T](cap)` and `Atomic[T](v)` are lowered by matching the callee name in `call_expr.rs`; the target `std.chan.Channel` is already an ordinary std function taking a type argument. Long term, one resolution path (explicit type arguments on any std generic constructor) is more correct and would let the next constructor (for example a pool or a barrier) work without a new match arm. It changes no surface behavior. Recommended: not in this RFC's slice; file it as a numbered item in a gap issue (practice 9) and decide it with the next constructor that needs it.
 
-- Decision:
+- Decision: accepted as recommended: not in slice 1; filed as a numbered item in a gap issue (lead, 2026-11-19)
 - Row:
 
 ## Spec changes
