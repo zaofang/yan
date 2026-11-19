@@ -148,7 +148,11 @@ pub unsafe extern "C" fn yan_rt_futex_wait(
     let word = unsafe { &*p.cast::<std::sync::atomic::AtomicU32>() };
     let equal = word.load(SeqCst) == expected as u32;
     if equal && crate::pool::on_worker() {
-        return wait_os(p, expected as u32, None);
+        let end = crate::deadline::current().map(|d| {
+            let left = u64::try_from(d - crate::civil::mono_now()).unwrap_or(0);
+            Instant::now() + Duration::from_nanos(left)
+        });
+        return wait_os(p, expected as u32, end);
     }
     wait(p as usize, equal, in_task != 0)
 }
