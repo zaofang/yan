@@ -30,7 +30,21 @@ Each program runs on interpreter and native with identical output and `live: 0`.
 
 ## Yan Core reader (#1505)
 
-Slice 1, `core_lex.yn`: the lexer of `yan-core`, token for token, positions in bytes. `core_lex_check.sh` compares its
-output on interpreter and native with `crates/yan-core/examples/lex_dump.rs` over `conformance/yir` and `lex_edge/`.
-Parser and printer follow in slices 2 and 3. `main` is declared first in the file: see the order-dependent native
-failure filed under #449.
+The reader is split into files that the check scripts concatenate, `main` file first: `use .sibling` is E017, and a
+program whose `main` follows the helpers fails natively (#1744), so each main goes first.
+
+Slice 1, `core_lex.yn` (library) and `core_lex_main.yn`: the lexer of `yan-core`, token for token, positions in bytes.
+`core_lex_check.sh` compares its output on interpreter and native with `crates/yan-core/examples/lex_dump.rs` over
+`conformance/yir` and `lex_edge/`.
+
+Slice 2, `core_parse.yn` (AST and parser) and `core_parse_main.yn` (S-expression dump): the AST of `ast.rs` and the
+parser of `parser.rs`, including error recovery and diagnostics. `core_parse_check.sh` compares the dump on interpreter
+and native with `crates/yan-core/examples/parse_dump.rs` over `conformance/yir`, `lex_edge/` and `parse_edge/`
+(every grammar form, and one file per error family), and requires `live: 0`.
+
+The Yan AST keeps statement lists, types, right-hand sides and functions in `Pools` and refers to them by index.
+Natively a type is expanded inline at every use and its drop and copy glue with it; the nested tree needed more than
+10 GB to build, the pooled one 1.1 GB. Struct values are moved out of a `let` parameter or a field only after a
+`.copy()`: the compiler does not reject the move and the native binary frees twice.
+
+The printer follows as slice 3.

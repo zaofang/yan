@@ -4,10 +4,11 @@
 set -euo pipefail
 files=$(find conformance/yir selfhost/s0/lex_edge -name '*.yir' | sort)
 tmp=$(mktemp -d)
+cat selfhost/s0/core_lex_main.yn selfhost/s0/core_lex.yn > "$tmp/core_lex.yn"
 cargo build --release --locked -p yan-core --example lex_dump
 target/release/examples/lex_dump $files > "$tmp/rust.out"
-target/release/yan run selfhost/s0/core_lex.yn -- $files > "$tmp/interp.out"
-target/release/yan build selfhost/s0/core_lex.yn -o "$tmp/core_lex"
+target/release/yan run "$tmp/core_lex.yn" -- $files > "$tmp/interp.out"
+target/release/yan build "$tmp/core_lex.yn" -o "$tmp/core_lex"
 YAN_REPORT_LIVE=1 "$tmp/core_lex" $files > "$tmp/native.out" 2> "$tmp/native.err"
 grep -q '^live: 0' "$tmp/native.err"
 cmp "$tmp/rust.out" "$tmp/interp.out"

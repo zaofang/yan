@@ -1,0 +1,259 @@
+--- Prints the AST of each file named on the command line as S-expressions, in the format of
+--- crates/yan-core/examples/parse_dump.rs. Needs core_lex.yn and core_parse.yn after it in the same program.
+
+main() uses io, fs, env =
+  for path in env.args()
+    io.print("file \(path)")
+    let src = fs.read(path) else ""
+    let r = parse(src)
+    for d in r.diags
+      io.print("diag \(d.code) \(d_span(d.span)) \(q(d.item)) \(q(d.quote)) \(d.message)")
+    match r.module
+      Some(m) -> emit(m)
+      None -> ()
+
+emit(m: Module) uses io =
+  for h in m.header
+    io.print("header \(q(h))")
+  io.print("module \(".".join(m.path))")
+  for i in m.items
+    io.print(d_item(m.pools, i))
+
+q(s: str) -> str uses none = "\"" + esc(s) + "\""
+
+d_span(s: Span) -> str uses none = "\(s.line):\(s.col)-\(s.end_line):\(s.end_col)"
+
+d_bool(b: bool) -> str uses none = if b then "T" else "F"
+
+node(tag: str, parts: List[str]) -> str uses none =
+  if len(parts) == 0
+    return tag
+  "(" + tag + " " + " ".join(parts) + ")"
+
+dl[T](v: List[T], f: (T) -> str) -> str uses none =
+  var out: List[str] = []
+  for x in v
+    out.append(f(x))
+  "[" + " ".join(out) + "]"
+
+dopt[T](o: Option[T], f: (T) -> str) -> str uses none =
+  match o
+    Some(x) -> "(some " + f(x) + ")"
+    None -> "~"
+
+d_names(v: List[str]) -> str uses none = dl(v, (s) -> s)
+
+d_path(v: List[str]) -> str uses none = ".".join(v)
+
+d_lit(l: Lit) -> str uses none =
+  match l
+    LitInt(s) -> node("int", [s])
+    LitFloat(s) -> node("float", [s])
+    LitStr(s) -> node("str", [q(s)])
+    LitChar(s) -> node("char", [q(s)])
+    LitBool(b) -> node("bool", [d_bool(b)])
+    LitUnit() -> "unit"
+
+d_atom(a: Atom) -> str uses none =
+  match a
+    AtomName(n, s) -> node("name", [n, d_span(s)])
+    AtomLit(l, s) -> node("lit", [d_lit(l), d_span(s)])
+
+d_call(pl: Pools, c: Call) -> str uses none =
+  node("call", [d_path(c.path), d_span(c.span), dl(c.targs, (t) -> d_targ(pl, t)), dl(c.args, (a) -> d_arg(a))])
+
+d_expr(pl: Pools, e: Expr) -> str uses none =
+  match e
+    ExprAtom(a) -> d_atom(a)
+    ExprCall(c) -> d_call(pl, c)
+
+d_arg(a: Arg) -> str uses none =
+  match a
+    ArgVal(cv, x, s) -> node("arg", [cv, d_atom(x), d_span(s)])
+    ArgCap(n, s) -> node("cap", [n, d_span(s)])
+
+d_targ(pl: Pools, t: TArg) -> str uses none =
+  match t
+    TargTy(x) -> d_ty(pl, x)
+    TargNat(n) -> node("nat", [n])
+
+d_named(pl: Pools, n: Named) -> str uses none =
+  node("named", [d_path(n.path), dl(n.args, (t) -> d_targ(pl, t))])
+
+d_capset(c: CapSet) -> str uses none =
+  match c
+    CapNone() -> "none"
+    CapNames(v) -> node("names", [d_names(v)])
+
+d_fn_type(pl: Pools, f: FnType) -> str uses none =
+  node("fntype", [dl(f.params, (c) -> "(" + c.conv + " " + d_ty(pl, c.ty) + ")"), d_ty(pl, f.ret), dopt(f.caps, (c) -> d_capset(c)), dopt(f.failty, (t) -> d_ty(pl, t))])
+
+d_ty(pl: Pools, id: int) -> str uses none = d_ty_val(pl, pl.tys[id])
+
+d_ty_val(pl: Pools, t: Ty) -> str uses none =
+  match t
+    TyNamed(n) -> d_named(pl, n)
+    TyTuple(v) -> node("tuple", [dl(v, (x) -> d_ty(pl, x))])
+    TyDyn(n) -> node("dyn", [d_named(pl, n)])
+    TyFn(f) -> d_fn_type(pl, f)
+    TyRefined(n, inner, pred) -> node("refined", [n, d_ty(pl, inner), d_expr(pl, pred)])
+    TyUnion(v) -> node("union", [dl(v, (x) -> d_ty(pl, x))])
+
+d_const(c: ConstVal) -> str uses none =
+  match c
+    ConstLit(l) -> d_lit(l)
+    ConstPath(pth, fs) -> node("cpath", [d_path(pth), dopt(fs, (f) -> dl(f, (x) -> "(" + x.name + " " + d_const(x.value) + ")"))])
+    ConstList(v) -> node("clist", [dl(v, (x) -> d_const(x))])
+    ConstTuple(v) -> node("ctuple", [dl(v, (x) -> d_const(x))])
+    ConstCall(pth, args) -> node("ccall", [d_path(pth), dl(args, (a) -> d_attr_arg(a))])
+
+d_attr_arg(a: AttrArg) -> str uses none =
+  node("attrarg", [dopt(a.name, (n) -> n), d_const(a.value)])
+
+d_attr(a: Attr) -> str uses none =
+  node("attr", [a.name, dopt(a.args, (v) -> dl(v, (x) -> d_attr_arg(x)))])
+
+d_tparam(t: TParam) -> str uses none =
+  node("tparam", [d_bool(t.is_comptime), t.name, t.kind, dl(t.bounds, (b) -> d_path(b))])
+
+d_param(pl: Pools, p: Param) -> str uses none =
+  match p
+    ParValue(ct, cv, n, t) -> node("param", [d_bool(ct), cv, n, d_ty(pl, t)])
+    ParCap(n, t) -> node("capparam", [n, d_named(pl, t)])
+
+d_contract(pl: Pools, c: Contract) -> str uses none =
+  match c
+    CtReq(e) -> node("requires", [d_expr(pl, e)])
+    CtEns(e) -> node("ensures", [d_expr(pl, e)])
+    CtDec(v) -> node("decreases", [dl(v, (x) -> d_expr(pl, x))])
+    CtEx(e) -> node("example", [d_expr(pl, e)])
+    CtCost(steps, alloc) -> node("cost", [dopt(steps, (e) -> d_expr(pl, e)), dopt(alloc, (e) -> d_expr(pl, e))])
+
+d_block(pl: Pools, id: int) -> str uses none = dl(pl.blocks[id], (s) -> d_stmt(pl, s))
+
+d_fn_def(pl: Pools, id: int) -> str uses none = d_fn_def_val(pl, pl.fns[id])
+
+d_fn_def_val(pl: Pools, f: FnDef) -> str uses none =
+  node("fndef", [f.vis, d_bool(f.is_unsafe), d_path(f.path), d_span(f.name_span), dl(f.tparams, (t) -> d_tparam(t)), dl(f.params, (p) -> d_param(pl, p)), d_ty(pl, f.ret), d_names(f.froms), dopt(f.failty, (t) -> d_ty(pl, t)), dl(f.contracts, (c) -> d_contract(pl, c)), dopt(f.body, (b) -> d_block(pl, b))])
+
+d_field(pl: Pools, f: Field) -> str uses none =
+  node("field", [dl(f.attrs, (a) -> d_attr(a)), f.vis, f.name, d_ty(pl, f.ty), dopt(f.dflt, (c) -> d_const(c))])
+
+d_ext_param(pl: Pools, p: ExtParam) -> str uses none =
+  match p
+    ExtValue(n, t) -> node("xvalue", [n, d_ty(pl, t)])
+    ExtCallback(n, esc_flag, t) -> node("xcallback", [n, d_bool(esc_flag), d_fn_type(pl, t)])
+
+d_ext_item(pl: Pools, x: ExtItem) -> str uses none =
+  match x
+    ExtFn(attrs, is_safe, n, params, variadic, ret, froms, uses_none, nonblocking) -> node("xfn", [dl(attrs, (a) -> d_attr(a)), d_bool(is_safe), n, dl(params, (p) -> d_ext_param(pl, p)), d_bool(variadic), d_ty(pl, ret), d_names(froms), d_bool(uses_none), d_bool(nonblocking)])
+    ExtType(n, dropfn) -> node("xtype", [n, d_path(dropfn)])
+    ExtStatic(is_safe, n, t) -> node("xstatic", [d_bool(is_safe), n, d_ty(pl, t)])
+
+d_item_kind(pl: Pools, k: ItemKind) -> str uses none =
+  match k
+    ItemFn(kw, args, def) -> d_item_fn(pl, kw, args, def)
+    ItemRecord(v, pth, tps, fs) -> node("record", [v, d_path(pth), dl(tps, (t) -> d_tparam(t)), dl(fs, (f) -> d_field(pl, f))])
+    ItemSum(v, pth, tps, vs) -> node("sum", [v, d_path(pth), dl(tps, (t) -> d_tparam(t)), dl(vs, (x) -> node("variant", [x.name, dopt(x.fields, (f) -> dl(f, (y) -> d_field(pl, y)))]))])
+    ItemNewtype(v, pth, tps, t, pred) -> node("newtype", [v, d_path(pth), dl(tps, (x) -> d_tparam(x)), d_ty(pl, t), dopt(pred, (e) -> d_expr(pl, e))])
+    ItemTrait(v, pth, tps, assoc, sigs, derived) -> node("trait", [v, d_path(pth), dl(tps, (x) -> d_tparam(x)), d_names(assoc), dl(sigs, (f) -> d_fn_def(pl, f)), dopt(derived, (b) -> d_block(pl, b))])
+    ItemImpl(is_unsafe, tr, for_ty, assoc, fns) -> node("impl", [d_bool(is_unsafe), d_named(pl, tr), d_ty(pl, for_ty), dl(assoc, (a) -> "(" + a.name + " " + d_ty(pl, a.ty) + ")"), dl(fns, (f) -> d_fn_def(pl, f))])
+    ItemConst(v, pth, t, value) -> node("const", [v, d_path(pth), d_ty(pl, t), d_const(value)])
+    ItemTest(pth, body) -> node("test", [d_path(pth), d_block(pl, body)])
+    ItemExtern(abi, lib, link, items) -> node("extern", [q(abi), lib, dopt(link, (s) -> q(s)), dl(items, (x) -> d_ext_item(pl, x))])
+
+d_item_fn(pl: Pools, kw: str, args: List[TArg], def: int) -> str uses none =
+  if kw == "inst"
+    return node("inst", [dl(args, (t) -> d_targ(pl, t)), d_fn_def(pl, def)])
+  node(kw, [d_fn_def(pl, def)])
+
+d_item(pl: Pools, i: Item) -> str uses none =
+  node("item", [dl(i.attrs, (a) -> d_attr(a)), d_item_kind(pl, i.kind), d_span(i.span)])
+
+d_place(p: Place) -> str uses none =
+  node("place", [p.root, d_span(p.root_span), dl(p.projs, (x) -> d_proj(x))])
+
+d_proj(x: Proj) -> str uses none =
+  match x
+    ProjField(n, s) -> node("field", [n, d_span(s)])
+    ProjIndex(a) -> node("index", [d_atom(a)])
+
+d_ctor(pl: Pools, c: Ctor) -> str uses none =
+  match c
+    CtorNamed(pth, ta, fs) -> node("ctor", [d_path(pth), dl(ta, (t) -> d_targ(pl, t)), dl(fs, (f) -> "(" + f.name + " " + d_atom(f.a) + ")")])
+    CtorTuple(v) -> node("tupctor", [dl(v, (a) -> d_atom(a))])
+
+d_rhs(pl: Pools, id: int) -> str uses none = d_rhs_val(pl, pl.rhss[id])
+
+d_rhs_val(pl: Pools, r: Rhs) -> str uses none =
+  match r
+    RhsAtom(a) -> d_atom(a)
+    RhsCall(c) -> d_call(pl, c)
+    RhsProp(c, via, drops) -> node("propagate", [d_call(pl, c), dopt(via, (v) -> d_path(v)), d_names(drops)])
+    RhsTry(c) -> node("try", [d_call(pl, c)])
+    RhsRest(root, moved) -> node("rest", [root, dl(moved, (m) -> d_names(m))])
+    RhsCtor(c) -> d_ctor(pl, c)
+    RhsProj(pl) -> node("proj", [d_place(pl)])
+    RhsCopy(pl) -> node("copy", [d_place(pl)])
+    RhsMove(pl) -> node("move", [d_place(pl)])
+    RhsClosure(c) -> node("closure", [dl(c.captures, (x) -> "(" + x.conv + " " + x.name + " " + d_span(x.span) + ")"), dl(c.params, (p) -> d_param(pl, p)), d_ty(pl, c.ret), dopt(c.caps, (x) -> d_capset(x)), dopt(c.failty, (t) -> d_ty(pl, t)), d_block(pl, c.body)])
+
+d_pat(p: Pat) -> str uses none =
+  match p
+    PatWild() -> "wild"
+    PatLit(l) -> node("plit", [d_lit(l)])
+    PatBind(n) -> node("bind", [n])
+    PatCtor(pth, fs) -> node("pctor", [d_path(pth), dopt(fs, (c) -> "(" + dl(c.fields, (f) -> "(" + f.name + " " + d_pat(f.pat) + ")") + " " + d_bool(c.rest) + ")")])
+    PatTuple(v) -> node("ptuple", [dl(v, (x) -> d_pat(x))])
+    PatOr(v) -> node("por", [dl(v, (x) -> d_pat(x))])
+    PatRange(lo, hi) -> node("prange", [d_lit(lo), d_lit(hi)])
+    PatSlice(elems, rest, rest_name) -> node("pslice", [dl(elems, (x) -> d_pat(x)), d_slice_rest(rest, rest_name)])
+
+d_slice_rest(rest: int, rest_name: str) -> str uses none =
+  if rest == 0
+    return "~"
+  if rest == 1
+    return "(some ~)"
+  "(some (some " + rest_name + "))"
+
+d_asm(o: AsmOperand) -> str uses none =
+  match o
+    AsmOpReg(dir, reg, value) -> node("reg", [dir, d_asm_reg(reg), d_atom(value)])
+    AsmOpClobber(s) -> node("clobber_abi", [q(s)])
+    AsmOpOptions(v) -> node("options", [d_names(v)])
+
+d_asm_reg(r: AsmReg) -> str uses none =
+  match r
+    RegClass(n) -> node("class", [n])
+    RegExplicit(s) -> node("explicit", [q(s)])
+
+d_stmt(pl: Pools, s: Stmt) -> str uses none =
+  node("stmt", [d_stmt_kind(pl, s.kind), d_span(s.span)])
+
+d_stmt_kind(pl: Pools, k: StmtKind) -> str uses none =
+  match k
+    StmtLet(mutable, pt, pat_span, t, rhs, rhs_span) -> node("let", [d_bool(mutable), d_pat(pt), d_span(pat_span), d_ty(pl, t), d_rhs(pl, rhs), d_span(rhs_span)])
+    StmtAssign(place, rhs, rhs_span) -> node("assign", [d_place(place), d_rhs(pl, rhs), d_span(rhs_span)])
+    StmtIf(cond, yes, no) -> node("if", [d_atom(cond), d_block(pl, yes), dopt(no, (b) -> d_block(pl, b))])
+    StmtMatch(scrutinee, arms) -> node("match", [d_atom(scrutinee), dl(arms, (a) -> "(" + d_pat(a.pat) + " " + d_block(pl, a.body) + ")")])
+    StmtLoop(lb, invariants, decs, body) -> node("loop", [lb, dl(invariants, (e) -> d_expr(pl, e)), dl(decs, (e) -> d_expr(pl, e)), d_block(pl, body)])
+    StmtBreak(lb, value) -> node("break", [lb, dopt(value, (a) -> d_atom(a))])
+    StmtContinue(lb) -> node("continue", [lb])
+    StmtJp(n, ps, body) -> node("jp", [n, dl(ps, (p) -> d_param(pl, p)), d_block(pl, body)])
+    StmtJump(n, args) -> node("jump", [n, dl(args, (a) -> d_atom(a))])
+    StmtRet(a) -> node("ret", [d_atom(a)])
+    StmtFail(a) -> node("fail", [d_atom(a)])
+    StmtYield(a) -> node("yield", [d_atom(a)])
+    StmtBecome(c) -> node("become", [d_call(pl, c)])
+    StmtWith(n, is_dyn, handler, body) -> node("with", [n, d_bool(is_dyn), d_atom(handler), d_block(pl, body)])
+    StmtDeadline(at, body) -> node("deadline", [d_atom(at), d_block(pl, body)])
+    StmtPar(concurrent, blocks) -> node("par", [d_bool(concurrent), dl(blocks, (b) -> d_block(pl, b))])
+    StmtComptimeFor(n, t, iter, body) -> node("comptime_for", [n, d_ty(pl, t), d_atom(iter), d_block(pl, body)])
+    StmtComptimeIf(cond, yes, no) -> node("comptime_if", [d_atom(cond), d_block(pl, yes), dopt(no, (b) -> d_block(pl, b))])
+    StmtAssert(e) -> node("assert", [d_expr(pl, e)])
+    StmtUnreachable() -> "unreachable"
+    StmtUnsafe(body) -> node("unsafe", [d_block(pl, body)])
+    StmtAsm(template, operands) -> node("asm", [q(template), dl(operands, (o) -> d_asm(o))])
+    StmtDrop(n) -> node("drop", [n])
+    StmtReuse(n, c) -> node("reuse", [n, d_ctor(pl, c)])
+    StmtRhs(r) -> node("rhs", [d_rhs(pl, r)])
