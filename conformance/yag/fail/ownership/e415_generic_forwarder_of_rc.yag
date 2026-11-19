@@ -1,5 +1,6 @@
 # spec: 6.4
 # note: a generic function that sends a value of its type parameter is checked at each instantiation
+# expect: W863 at 6:5
 # expect: E415 at 9:5
 
 def fwd[T](var tx: Sender[T], v: T) -> None fail Cancelled:
