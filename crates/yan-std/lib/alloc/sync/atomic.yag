@@ -63,6 +63,18 @@ pub def fetch_max[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
 @since("1.0")
 pub def fetch_min[T](self: Atomic[T], v: T, o: Ordering) -> T: ...
 
+@since("1.0")
+pub def fetch_update[T](self: Atomic[T], set_order: Ordering, fetch_order: LoadOrdering, f: Callable[[T], T | None]) -> Result[T, T]:
+    cur = self.load(fetch_order)
+    while True:
+        next = f(cur.copy()) else return Err(cur.copy())
+        r = self.compare_exchange_weak(cur.copy(), next, set_order, fetch_order)
+        match r:
+            case Ok(prev):
+                return Ok(prev)
+            case Err(seen):
+                cur = seen.copy()
+
 @intrinsic
 @since("1.0")
 pub def into_inner[T](take self: Atomic[T]) -> T: ...
