@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1610,
+   "out": 407,
+   "reasoning": 294,
+   "out_bytes": 171
+  },
+  "body": {
+   "in": 6140,
+   "out": 2353,
+   "reasoning": 1692,
+   "out_bytes": 1209
+  }
+ },
+ "final": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0 and k <= 7\n  post k > 0 or out == x\n  ex rotl8(129, 1) == 3\n  ex rotl8(1, 7) == 128\n  ex rotl8(5, 0) == 5\n  if k == 0\n    return x\n  let masks: List[u8] = [255, 127, 63, 31, 15, 7, 3, 1]\n  let low = (x & masks[k]) << k\n  let high = x >> (8 - k)\n  low | high\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1610,
+    "out": 407,
+    "reasoning": 294
+   },
+   "out_bytes": 171,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1796,
+    "out": 771,
+    "reasoning": 618
+   },
+   "out_bytes": 234,
+   "ok": false,
+   "report": "E203 task.yn:7:13 rotl8: `to_int` `u8` has no method `to_int`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2018,
+    "out": 496,
+    "reasoning": 290
+   },
+   "out_bytes": 372,
+   "ok": false,
+   "report": "E201 task.yn:7:15 rotl8: `(x)` `int` does not take a `u8`\nE200 task.yn:9:3 rotl8: `u8(r)` cannot find function `u8`",
+   "codes": [
+    "E200",
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2326,
+    "out": 1086,
+    "reasoning": 784
+   },
+   "out_bytes": 603,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E203 ./task.yn:7:13 rotl8: `to_int` `u8` has no method `to_int`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

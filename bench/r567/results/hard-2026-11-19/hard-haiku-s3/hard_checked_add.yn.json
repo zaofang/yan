@@ -1,0 +1,113 @@
+{
+ "status": "green",
+ "rounds_to_green": 4,
+ "tokens": {
+  "spec": {
+   "in": 1611,
+   "out": 746,
+   "reasoning": 647,
+   "out_bytes": 197
+  },
+  "body": {
+   "in": 9847,
+   "out": 3306,
+   "reasoning": 2169,
+   "out_bytes": 2451
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post out == None or out == a + b\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < -9223372036854775807 - 1 - b\n    return None\n  a + b\n\ntest_checked_add() =\n  assert checked_add(1, 2) == 3\n  assert checked_add(9223372036854775807, 1) == None\n  assert checked_add(-9223372036854775807 - 1, -1) == None\n  assert checked_add(-9223372036854775807 - 1, 1) == -9223372036854775807\n  assert checked_add(9223372036854775807, -1) == 9223372036854775806\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1611,
+    "out": 746,
+    "reasoning": 647
+   },
+   "out_bytes": 197,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1782,
+    "out": 829,
+    "reasoning": 538
+   },
+   "out_bytes": 623,
+   "ok": false,
+   "report": "E201 task.yn:2:30 checked_add: `(out)` `bigint` does not take a `int?`\nE201 task.yn:2:30 checked_add: `(out)` `bigint` does not take a `int?`\nE201 task.yn:2:30 checked_add: `(out)` `bigint` does not take a `int?`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2215,
+    "out": 872,
+    "reasoning": 578
+   },
+   "out_bytes": 630,
+   "ok": false,
+   "report": "E401 task.yn:6:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:30\nE401 task.yn:8:5 task.checked_add: `return None` `_out24` is used after `_out24.Some.value` was moved out of it | moved at 2:30\nE401 task.yn:9:3 task.checked_add: `a + b` `_t37` is used after `_t37.Some.value` was moved out of it | moved at 2:30",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2712,
+    "out": 844,
+    "reasoning": 568
+   },
+   "out_bytes": 599,
+   "ok": false,
+   "report": "FAIL task.test_checked_add (proposed) failed: assert failed at task.yn:15: `checked_add(-9223372036854775807 - 1, 1) == -9223372036854775806`; left is -9223372036854775807, right is -9223372036854775806 | repro: yan test --only task.test_checked_add\n0 of 1 tests passed",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 3138,
+    "out": 761,
+    "reasoning": 485
+   },
+   "out_bytes": 599,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E201 ./task.yn:2:30 checked_add: `out` `bigint` does not take a `int?`\nE201 ./task.yn:2:30 checked_add: `out` `bigint` does not take a `int?`\nE201 ./task.yn:2:30 checked_add: `out` `bigint` does not take a `int?`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

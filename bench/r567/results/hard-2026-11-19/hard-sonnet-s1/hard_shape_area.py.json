@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1143,
+   "out": 586,
+   "reasoning": 0,
+   "out_bytes": 1223
+  },
+  "body": {
+   "in": 1786,
+   "out": 648,
+   "reasoning": 0,
+   "out_bytes": 1403
+  }
+ },
+ "final": "from dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\nShape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down to an int.\n\n    Rect: w * h. Square: side * side. Tri: b * h / 2, floored.\n    \"\"\"\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n\n\ndef test_area_rect() -> None:\n    assert area(Rect(3, 4)) == 12\n    assert area(Rect(1, 1)) == 1\n\n\ndef test_area_square() -> None:\n    assert area(Square(5)) == 25\n    assert area(Square(1)) == 1\n\n\ndef test_area_tri_even() -> None:\n    assert area(Tri(4, 3)) == 6\n    assert area(Tri(10, 10)) == 50\n\n\ndef test_area_tri_rounds_down() -> None:\n    assert area(Tri(3, 3)) == 4\n    assert area(Tri(1, 1)) == 0\n    assert area(Tri(5, 7)) == 17\n\n\ndef test_area_zero() -> None:\n    assert area(Rect(0, 5)) == 0\n    assert area(Square(0)) == 0\n    assert area(Tri(0, 9)) == 0\n\n\n@pytest.mark.parametrize(\n    (\"shape\", \"expected\"),\n    [\n        (Rect(2, 3), 6),\n        (Square(4), 16),\n        (Tri(6, 5), 15),\n        (Tri(7, 5), 17),\n    ],\n)\ndef test_area_parametrized(shape: Shape, expected: int) -> None:\n    assert area(shape) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1143,
+    "out": 586,
+    "reasoning": 0
+   },
+   "out_bytes": 1223,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1786,
+    "out": 648,
+    "reasoning": 0
+   },
+   "out_bytes": 1403,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 3300,
+   "reasoning": 1462,
+   "out_bytes": 4085
+  },
+  "body": {
+   "in": 3150,
+   "out": 2376,
+   "reasoning": 412,
+   "out_bytes": 4480
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` with a sandboxed reader and return its result.\n\n    `read(p)` resolves `p` relative to the directory `notes` (under the current\n    working directory) and returns the file's text (UTF-8). It returns \"\" when\n    the resolved file lies outside `notes` (via \"..\", an absolute path, a\n    symlink, or a sibling directory sharing the \"notes\" prefix), does not\n    exist, or cannot be read (e.g. it is a directory).\n    \"\"\"\n    root = Path(\"notes\").resolve()\n\n    def read(p: str) -> str:\n        try:\n            if Path(p).is_absolute():\n                return \"\"\n            target = (root / p).resolve()\n            if not target.is_relative_to(root):\n                return \"\"\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError):\n            return \"\"\n\n    return plugin(path, read)\n\n\nSECRET = \"TOPSECRET\"\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(SECRET, encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_reads_file_in_subdirectory(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    (sandbox / \"notes\" / \"sub\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert run_plugin(\"sub/b.txt\") == \"B|\"\n\n\ndef test_dotdot_that_stays_inside_is_allowed(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert run_plugin(\"sub/../a.txt\") == \"A|\"\n\n\ndef test_plugins_own_secret_probe_gets_nothing(sandbox: Path) -> None:\n    result = run_plugin(\"missing.txt\")\n    assert result == \"|\"\n    assert SECRET not in result\n\n\ndef test_parent_traversal_gives_empty(sandbox: Path) -> None:\n    result = run_plugin(\"../secret.txt\")\n    assert result == \"|\"\n    assert SECRET not in result\n\n\ndef test_deep_parent_traversal_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    assert run_plugin(\"sub/../../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(str(sandbox / \"secret.txt\")) == \"|\"\n\n\ndef test_absolute_path_inside_notes_is_not_relative_to_notes(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    # Paths are interpreted relative to notes; an absolute path is not one.\n    assert run_plugin(str(sandbox / \"notes\" / \"a.txt\")) == \"|\"\n\n\ndef test_sibling_directory_with_notes_prefix_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes2\").mkdir()\n    (sandbox / \"notes2\" / \"x.txt\").write_text(\"X\", encoding=\"utf-8\")\n    assert run_plugin(\"../notes2/x.txt\") == \"|\"\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_probe_path_is_resolved_relative_to_notes(sandbox: Path) -> None:\n    # 'notes/../secret.txt' relative to notes is notes/secret.txt, which is\n    # inside notes; the real secret.txt next to notes must stay unreachable.\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (sandbox / \"notes\" / \"secret.txt\").write_text(\"INSIDE\", encoding=\"utf-8\")\n    result = run_plugin(\"a.txt\")\n    assert result == \"A|INSIDE\"\n    assert SECRET not in result\n\n\ndef test_symlink_escaping_notes_gives_empty(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    result = run_plugin(\"link.txt\")\n    assert result == \"|\"\n    assert SECRET not in result\n\n\ndef test_symlinked_directory_escaping_notes_gives_empty(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"out\"\n    try:\n        link.symlink_to(sandbox, target_is_directory=True)\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"out/secret.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 3300,
+    "reasoning": 1462
+   },
+   "out_bytes": 4085,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3150,
+    "out": 2376,
+    "reasoning": 412
+   },
+   "out_bytes": 4480,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

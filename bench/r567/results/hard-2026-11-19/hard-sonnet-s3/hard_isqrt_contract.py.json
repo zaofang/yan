@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 1028,
+   "reasoning": 229,
+   "out_bytes": 1609
+  },
+  "body": {
+   "in": 1936,
+   "out": 953,
+   "reasoning": 0,
+   "out_bytes": 1995
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the integer square root of n: the largest r with r*r <= n.\n\n    Contract (to be stated with assert statements in the body):\n    - Precondition: n >= 0.\n    - Postcondition: the result r satisfies r*r <= n < (r+1)*(r+1).\n    \"\"\"\n    assert n >= 0, \"n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Newton's method on integers, starting from a power of two >= sqrt(n).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n    assert isqrt(15) == 3\n    assert isqrt(16) == 4\n\n\n@pytest.mark.parametrize(\"r\", [0, 1, 2, 3, 10, 99, 1000, 123456789])\ndef test_perfect_squares(r: int) -> None:\n    assert isqrt(r * r) == r\n\n\n@pytest.mark.parametrize(\"r\", [1, 2, 3, 10, 99, 1000, 123456789])\ndef test_around_perfect_squares(r: int) -> None:\n    assert isqrt(r * r - 1) == r - 1\n    assert isqrt(r * r + 1) == r\n    assert isqrt((r + 1) * (r + 1) - 1) == r\n\n\ndef test_large_values() -> None:\n    assert isqrt(10**40) == 10**20\n    assert isqrt(10**40 - 1) == 10**20 - 1\n    assert isqrt(10**40 + 1) == 10**20\n    assert isqrt(2**200) == 2**100\n\n\ndef test_postcondition_property() -> None:\n    for n in range(0, 2000):\n        r = isqrt(n)\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_matches_math_isqrt() -> None:\n    for n in [0, 1, 5, 17, 10**6, 10**6 + 1, 2**64, 2**64 - 1, 3**100]:\n        assert isqrt(n) == math.isqrt(n)\n\n\n@pytest.mark.parametrize(\"n\", [-1, -2, -100, -(10**30)])\ndef test_negative_violates_precondition(n: int) -> None:\n    with pytest.raises(AssertionError):\n        isqrt(n)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 1028,
+    "reasoning": 229
+   },
+   "out_bytes": 1609,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1936,
+    "out": 953,
+    "reasoning": 0
+   },
+   "out_bytes": 1995,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

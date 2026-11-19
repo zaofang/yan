@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2257,
+   "reasoning": 1380,
+   "out_bytes": 1926
+  },
+  "body": {
+   "in": 2189,
+   "out": 1718,
+   "reasoning": 711,
+   "out_bytes": 2288
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\nNOTES_DIR: str = \"notes\"\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef make_reader(base: str) -> Callable[[str], str]:\n    \"\"\"Return a reader that returns the text of `p` relative to `base`.\n\n    Paths that resolve outside `base` (via `..`, absolute paths, or symlinks)\n    and paths that cannot be read yield an empty string.\n    \"\"\"\n    root: Path = Path(base).resolve()\n\n    def read(p: str) -> str:\n        target: Path = (root / p).resolve()\n        if not target.is_relative_to(root):\n            return \"\"\n        try:\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, UnicodeDecodeError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` where `read` is confined to the `notes` directory.\n\n    Returns the plugin's result, with empty strings for any read that falls\n    outside `notes` or cannot be read.\n    \"\"\"\n    return plugin(path, make_reader(NOTES_DIR))\n\n\ndef test_plugin_gets_inner_and_empty_outside(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_run_plugin_missing_file_is_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    assert run_plugin(\"missing.txt\") == \"|\"\n\n\ndef test_reader_blocks_traversal(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    reader = make_reader(\"notes\")\n    assert reader(\"a.txt\") == \"A\"\n    assert reader(\"../secret.txt\") == \"\"\n    assert reader(\"notes/../secret.txt\") == \"\"\n    assert reader(str(tmp_path / \"secret.txt\")) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2257,
+    "reasoning": 1380
+   },
+   "out_bytes": 1926,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2189,
+    "out": 1718,
+    "reasoning": 711
+   },
+   "out_bytes": 2288,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

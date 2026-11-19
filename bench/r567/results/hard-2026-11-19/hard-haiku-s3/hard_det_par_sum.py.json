@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1545,
+   "reasoning": 1052,
+   "out_bytes": 1149
+  },
+  "body": {
+   "in": 1643,
+   "out": 836,
+   "reasoning": 277,
+   "out_bytes": 1309
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int], *, workers: int = 4) -> int:\n    \"\"\"Return the sum of square(x) for every x in xs.\n\n    The squares are computed on a ThreadPoolExecutor with `workers` threads.\n    The result does not depend on `workers`.\n    Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return sum(pool.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(-3) == 9\n    assert square(0) == 0\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 4, 8, 16])\ndef test_sum_squares_same_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-50, 1000))\n    expected = sum(x * x for x in xs)\n    assert sum_squares(xs, workers=workers) == expected\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single_element() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_sum_squares_default_workers() -> None:\n    xs = [1, 2, 3]\n    assert sum_squares(xs) == 14\n\n\ndef test_sum_squares_rejects_nonpositive_workers() -> None:\n    with pytest.raises(ValueError):\n        sum_squares([1, 2], workers=0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1545,
+    "reasoning": 1052
+   },
+   "out_bytes": 1149,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1643,
+    "out": 836,
+    "reasoning": 277
+   },
+   "out_bytes": 1309,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1180,
+   "reasoning": 590,
+   "out_bytes": 1579
+  },
+  "body": {
+   "in": 1726,
+   "out": 1007,
+   "reasoning": 328,
+   "out_bytes": 1865
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value bound to ``key`` in ``name=value`` config text.\n\n    ``text`` is parsed line by line. Each line is split on the first ``=``;\n    whitespace around the name and the value is stripped. Blank lines and\n    lines whose first non-space character is ``#`` are ignored, as are lines\n    with no ``=``. Returns an empty string when ``key`` is not present.\n    The function takes its input only from ``text`` and never reads files.\n    \"\"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        if name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_config_value_basic() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_config_value_missing_key_returns_empty() -> None:\n    assert config_value(\"host=localhost\", \"port\") == \"\"\n\n\ndef test_config_value_empty_text() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_strips_whitespace() -> None:\n    assert config_value(\"  host  =  localhost  \", \"host\") == \"localhost\"\n\n\ndef test_config_value_splits_on_first_equals() -> None:\n    assert config_value(\"expr=a=b=c\", \"expr\") == \"a=b=c\"\n\n\ndef test_config_value_ignores_comments_and_blank_lines() -> None:\n    text = \"# port=1\\n\\n   \\nport=2\"\n    assert config_value(text, \"port\") == \"2\"\n\n\ndef test_config_value_ignores_lines_without_equals() -> None:\n    assert config_value(\"just some text\\nname=x\", \"name\") == \"x\"\n    assert config_value(\"just some text\", \"just some text\") == \"\"\n\n\ndef test_config_value_key_match_is_exact() -> None:\n    assert config_value(\"hostname=a\", \"host\") == \"\"\n    assert config_value(\"Host=a\", \"host\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1180,
+    "reasoning": 590
+   },
+   "out_bytes": 1579,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1726,
+    "out": 1007,
+    "reasoning": 328
+   },
+   "out_bytes": 1865,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
