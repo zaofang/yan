@@ -534,6 +534,9 @@ impl Lower<'_, '_, '_> {
                 match (fail, r) {
                     (Some(e), Rhs::Call(c)) => {
                         let via = self.fail_conversion(&e, at);
+                        if via.is_none() && c.path.first().is_some_and(|m| m == "std") {
+                            self.std_failure_injects(&e, at);
+                        }
                         (
                             Rhs::Propagate {
                                 call: c,

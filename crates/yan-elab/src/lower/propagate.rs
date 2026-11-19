@@ -43,6 +43,34 @@ impl Lower<'_, '_, '_> {
         }
     }
 
+    /// W863: a std call's declared failure `e` is not all in this function's fail type. The Yan
+    /// Core checker reports E310 for user calls but does not see std signatures, so a blocking
+    /// operation declaring `Cancelled | Timeout` would otherwise pass a function declaring
+    /// `Cancelled` and fail `Timeout` at run time (R1112).
+    pub(super) fn std_failure_injects(&mut self, e: &Ty, at: Span) {
+        let Some(own) = self.sig.fail.clone() else {
+            return;
+        };
+        let member = |m: &Ty| match &own {
+            Ty::Union(ms) => ms.contains(m),
+            t => t == m,
+        };
+        let covered = match e {
+            Ty::Union(ms) => ms.iter().all(member),
+            Ty::Err => true,
+            m => member(m),
+        };
+        if !covered {
+            let item = self.item.clone();
+            self.cx.warn(
+                "W863",
+                at,
+                &item,
+                format!("`?` passes a `{e}` failure up, but `fail {own}` does not include all of it"),
+            );
+        }
+    }
+
     /// `v?` for a `Result[T, E]` value `v`: `match v { Ok(x) => x, Err(e) => fail e }`, with the
     /// same conversion of `e` as a call's `?`.
     pub(super) fn propagate_value(&mut self, x: &j::Expr, at: Span) -> R<(Rhs, Ty)> {
