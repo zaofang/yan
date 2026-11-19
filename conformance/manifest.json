@@ -7804,6 +7804,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/match/qualified_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1110"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/match/qualified_variant_pattern.yag",
    "kind": "run",
    "milestone": "M1",
@@ -13831,6 +13846,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/collections/u8_to_int.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R656"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "98 122\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/concurrency/mutex_get_mut_into_inner.yn",
    "kind": "run",
    "milestone": "M3",
@@ -14153,6 +14183,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/qualified_variant.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1110"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
    "exit": 0
   },
   {

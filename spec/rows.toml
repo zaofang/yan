@@ -2217,6 +2217,11 @@ topic = "A channel constructor habit (`Chan`, `chan`, `channel`, `make_chan`, `Q
 sections = "9.5"
 
 [[entry]]
+rows = "R1110"
+topic = "`T.V(args)` is the qualified spelling of variant `V` of sum `T` in an expression, a pattern and an argument, in Yan and Yan Agent; always legal, and the only legal spelling when two sums in scope share the variant name, whose bare form is E200 (RFC 0093 D3, S1 of #1703)"
+sections = "15.3"
+
+[[entry]]
 rows = "R1109"
 topic = "`fs.list_dir(path)` returns `list[Path]` of the directory's entries without `.` and `..`, each joined onto `path`, sorted by name in byte order; failures are `FsError` with reason `not found`, `not a directory` or `NotUnicode`; `fake_fs` directories are implied by its file names; `fs.only` and `fs.sub` attenuate it as they do reads (S0 of #1505, #1737)"
 sections = "17.3"

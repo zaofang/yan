@@ -1,8 +1,8 @@
 # 0093: `Atomic.wait` on pool workers, native deadline scopes and `Type.Variant()` paths
 
-- Status: draft
+- Status: accepted
 - Research: code reading for #1703 (no study; the facts are cited below)
-- Rows: none until accepted (CASE WITH ROW)
+- Rows: R1110 (D3); D1 and D2 rows land with their slices
 
 ## Summary
 
@@ -33,8 +33,8 @@ sweeps are clean, because D6's matrix can already check (c) (a result that is th
 interleaving) and (b) needs a deterministic definition of which arm a `wait` may block on. (a) is the
 deferral option and is cheap to revive.
 
-- Decision:
-- Row: numbered at acceptance
+- Decision: accepted as recommended, (c) first then (b) behind INNOV-2 (lead card, 2026-11-19)
+- Row: with S3
 
 ### D2: native deadline scopes, and what `wait` returns under one
 
@@ -50,8 +50,8 @@ the same reading to agree. Virtual time under a `clock` handler (9.6) must drive
 the machine and interpreter; native uses the monotonic clock. This is the larger slice and gets its
 own issue; (c) is the interim and is what native does today.
 
-- Decision:
-- Row: numbered at acceptance
+- Decision: accepted as recommended, (a) a scope stack in `yan-rt` (lead card, 2026-11-19)
+- Row: with S2
 
 ### D3: `Type.Variant()` as a spelling
 
@@ -66,8 +66,8 @@ sum's variants are namespaced by it in every sum-typed language that Yan's users
 checker already accepts it, and (c) is a special case with no principled edge. The row lands with a
 case that spells it in each position (expression, pattern, argument).
 
-- Decision:
-- Row: numbered at acceptance
+- Decision: accepted as recommended, (a) (lead card, 2026-11-19). The formatter rule (print `T.V` only where it disambiguates) is not in S1: the formatter keeps the written spelling
+- Row: R1110
 
 ### D4: slices
 
@@ -76,8 +76,8 @@ S1 D3 (small, no backend work, unblocks nothing but the row). S2 D2 scope stack 
 S3 D1 (c), then (b) behind INNOV-2. #1703 closes with S2 and S3; the deferral options keep a
 revival path.
 
-- Decision:
-- Row: numbered at acceptance
+- Decision: accepted as recommended (lead card, 2026-11-19). S1 landed with D3: Yan parses `T.V` patterns and lowers `T.V` expressions
+- Row: none
 
 ## Spec changes
 
