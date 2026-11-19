@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1067,
+   "out": 852,
+   "reasoning": 210,
+   "out_bytes": 1339
+  },
+  "body": {
+   "in": 1766,
+   "out": 826,
+   "reasoning": 150,
+   "out_bytes": 1426
+  }
+ },
+ "final": "from typing import Final\n\nimport pytest\n\nINT64_MIN: Final[int] = -(2**63)\nINT64_MAX: Final[int] = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Return a + b, or None if the sum does not fit in a signed 64-bit integer.\n\n    The valid range is INT64_MIN through INT64_MAX inclusive.\n    \"\"\"\n    total = a + b\n    if INT64_MIN <= total <= INT64_MAX:\n        return total\n    return None\n\n\ndef test_checked_add_small_values() -> None:\n    assert checked_add(2, 3) == 5\n    assert checked_add(-7, 4) == -3\n    assert checked_add(0, 0) == 0\n\n\ndef test_checked_add_mixed_signs_no_overflow() -> None:\n    assert checked_add(INT64_MAX, -1) == INT64_MAX - 1\n    assert checked_add(INT64_MIN, 1) == INT64_MIN + 1\n\n\ndef test_checked_add_exact_boundaries_fit() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n\n\ndef test_checked_add_positive_overflow_returns_none() -> None:\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n    assert checked_add(2**62, 2**62) is None\n\n\ndef test_checked_add_negative_overflow_returns_none() -> None:\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n    assert checked_add(-(2**62), -(2**62) - 1) is None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1067,
+    "out": 852,
+    "reasoning": 210
+   },
+   "out_bytes": 1339,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1766,
+    "out": 826,
+    "reasoning": 150
+   },
+   "out_bytes": 1426,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

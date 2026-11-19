@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1941,
+   "out": 687,
+   "reasoning": 423,
+   "out_bytes": 611
+  },
+  "body": {
+   "in": 2278,
+   "out": 1215,
+   "reasoning": 871,
+   "out_bytes": 825
+  }
+ },
+ "final": "-- True when `name` can be read as a file inside `notes`.\n-- Missing, unreadable or escaping names (e.g. \"../x\", \"/etc/passwd\") are not readable.\n-- The read happens only under `fs.sub(\"notes\")`, so no name can reach outside it.\nis_readable(name: str) -> bool uses fs =\n  ex is_readable(\"../secret\") == False\n  ex is_readable(\"/etc/passwd\") == False\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return False\n    return True\n  False\n\n-- Counts the names that are readable files inside `notes`.\n-- Confinement to `notes` is done inside `is_readable`.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret\", \"/etc/passwd\"]) == 0\n  var n = 0\n  for name in names\n    if is_readable(name)\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1941,
+    "out": 687,
+    "reasoning": 423
+   },
+   "out_bytes": 611,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2278,
+    "out": 1215,
+    "reasoning": 871
+   },
+   "out_bytes": 825,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

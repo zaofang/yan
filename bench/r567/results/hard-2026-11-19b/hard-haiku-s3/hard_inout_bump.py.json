@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2551,
+   "out": 1105,
+   "reasoning": 470,
+   "out_bytes": 1314
+  },
+  "body": {
+   "in": 1845,
+   "out": 501,
+   "reasoning": 187,
+   "out_bytes": 652
+  }
+ },
+ "final": "def bump_all(xs: list[int], by: int) -> None:\n    \"\"\"Add `by` to every element of `xs` in place.\n\n    The caller's list is mutated; nothing is returned.\n    \"\"\"\n    for i in range(len(xs)):\n        xs[i] += by\n\n\ndef test_bump_all_mutates_in_place() -> None:\n    xs = [1, 2, 3]\n    alias = xs\n    bump_all(xs, 10)\n    assert xs == [11, 12, 13]\n    assert alias is xs\n\n\ndef test_bump_all_empty_list() -> None:\n    xs: list[int] = []\n    bump_all(xs, 5)\n    assert xs == []\n\n\ndef test_bump_all_negative_and_zero() -> None:\n    xs = [4, -2, 0]\n    bump_all(xs, -3)\n    assert xs == [1, -5, -3]\n    bump_all(xs, 0)\n    assert xs == [1, -5, -3]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1059,
+    "out": 563,
+    "reasoning": 224
+   },
+   "out_bytes": 703,
+   "ok": false,
+   "report": "test_task.py:19: error: \"bump_all\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1492,
+    "out": 542,
+    "reasoning": 246
+   },
+   "out_bytes": 611,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1845,
+    "out": 501,
+    "reasoning": 187
+   },
+   "out_bytes": 652,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

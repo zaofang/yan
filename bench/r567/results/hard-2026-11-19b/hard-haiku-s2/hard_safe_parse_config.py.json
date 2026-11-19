@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1170,
+   "reasoning": 431,
+   "out_bytes": 1854
+  },
+  "body": {
+   "in": 1875,
+   "out": 1111,
+   "reasoning": 283,
+   "out_bytes": 2140
+  }
+ },
+ "final": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in per-line `name=value` config text.\n\n    Each line holds one `name=value` pair. Surrounding whitespace around the\n    name and the value is ignored. Blank lines and lines starting with `#`\n    (after stripping) are skipped. Only the first `=` separates name from\n    value, so values may contain `=`. Returns an empty string when the key\n    is absent. The function never reads files; `text` is the entire input.\n    \"\"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        if name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_returns_value_for_present_key() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_returns_empty_string_for_absent_key() -> None:\n    assert config_value(\"host=localhost\", \"port\") == \"\"\n\n\ndef test_returns_empty_string_for_empty_text() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_strips_whitespace_around_name_and_value() -> None:\n    assert config_value(\"  host  =   localhost  \\n\", \"host\") == \"localhost\"\n\n\ndef test_skips_comment_and_blank_lines() -> None:\n    text = \"# host=wrong\\n\\n   \\nhost=right\\n\"\n    assert config_value(text, \"host\") == \"right\"\n\n\ndef test_key_must_match_exactly() -> None:\n    text = \"ab=1\\na=2\"\n    assert config_value(text, \"a\") == \"2\"\n    assert config_value(text, \"b\") == \"\"\n\n\ndef test_value_may_contain_equals_sign() -> None:\n    assert config_value(\"expr=a=b=c\", \"expr\") == \"a=b=c\"\n\n\ndef test_line_without_equals_is_not_a_match() -> None:\n    assert config_value(\"flagonly\\nname=x\", \"flagonly\") == \"\"\n\n\n@pytest.mark.parametrize(\n    (\"text\", \"key\", \"expected\"),\n    [\n        (\"k=v\", \"k\", \"v\"),\n        (\"k=\", \"k\", \"\"),\n        (\"#k=v\", \"k\", \"\"),\n        (\"x=1\\ny=2\\nz=3\", \"y\", \"2\"),\n    ],\n)\ndef test_parametrized_cases(text: str, key: str, expected: str) -> None:\n    assert config_value(text, key) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1170,
+    "reasoning": 431
+   },
+   "out_bytes": 1854,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1875,
+    "out": 1111,
+    "reasoning": 283
+   },
+   "out_bytes": 2140,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 931,
+   "reasoning": 580,
+   "out_bytes": 916
+  },
+  "body": {
+   "in": 1487,
+   "out": 642,
+   "reasoning": 248,
+   "out_bytes": 1061
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in per-line `name=value` config text.\n\n    Each line holds one `name=value` pair. Splits on the first '='.\n    Returns an empty string when the key is absent. Does not read files.\n    \"\"\"\n    for line in text.splitlines():\n        name, sep, value = line.partition(\"=\")\n        if sep and name == key:\n            return value\n    return \"\"\n\n\ndef test_config_value_returns_present_value() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_config_value_returns_empty_string_when_absent() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"user\") == \"\"\n\n\ndef test_config_value_returns_empty_string_for_empty_text() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_splits_on_first_equals() -> None:\n    assert config_value(\"expr=a=b=c\", \"expr\") == \"a=b=c\"\n\n\ndef test_config_value_first_match_wins_on_duplicate_keys() -> None:\n    assert config_value(\"mode=fast\\nmode=slow\", \"mode\") == \"fast\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 931,
+    "reasoning": 580
+   },
+   "out_bytes": 916,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1487,
+    "out": 642,
+    "reasoning": 248
+   },
+   "out_bytes": 1061,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

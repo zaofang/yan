@@ -1,0 +1,92 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1739,
+   "reasoning": 548,
+   "out_bytes": 2751
+  },
+  "body": {
+   "in": 11223,
+   "out": 5848,
+   "reasoning": 1823,
+   "out_bytes": 9533
+  }
+ },
+ "final": "import sys\nimport threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    check finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as ex:\n        futures = [ex.submit(check, x) for x in xs]\n        # Results are read in index order, so the first exception raised\n        # belongs to the lowest-index bad element.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_ok_preserves_order() -> None:\n    xs = [8, 2, 6, 4, 0, -2]\n    assert all_even(xs) == xs\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 6])\n    assert ei.value.n == 7\n\n\ndef test_all_even_negative_odd() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, -3])\n    assert ei.value.n == -3\n\n\ndef test_all_even_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 1, 3])\n    assert ei.value.n == 9\n\n\ndef test_all_even_lowest_index_even_if_finishes_last(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    real_check = check\n\n    def slow_check(x: int) -> int:\n        if x == 3:\n            time.sleep(0.3)  # earliest bad element finishes last\n        return real_check(x)\n\n    monkeypatch.setitem(sys.modules[__name__].__dict__, \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5, 7])\n    assert ei.value.n == 3\n\n\ndef test_all_even_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    real_check = check\n    barrier = threading.Barrier(3, timeout=5)\n\n    def rendezvous_check(x: int) -> int:\n        barrier.wait()  # only passes if 3 checks run concurrently\n        return real_check(x)\n\n    monkeypatch.setitem(\n        sys.modules[__name__].__dict__, \"check\", rendezvous_check\n    )\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_all_even_uses_multiple_threads(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    real_check = check\n    seen: set[int] = set()\n    lock = threading.Lock()\n    barrier = threading.Barrier(2, timeout=5)\n\n    def recording_check(x: int) -> int:\n        barrier.wait()\n        with lock:\n            seen.add(threading.get_ident())\n        return real_check(x)\n\n    monkeypatch.setitem(\n        sys.modules[__name__].__dict__, \"check\", recording_check\n    )\n    all_even([2, 4])\n    assert len(seen) == 2\n    assert threading.get_ident() not in seen\n\n\ndef test_executor_is_importable() -> None:\n    # Sanity check that the thread pool primitive used by the task exists.\n    with ThreadPoolExecutor(max_workers=1) as ex:\n        assert ex.submit(check, 2).result() == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1739,
+    "reasoning": 548
+   },
+   "out_bytes": 2751,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2416,
+    "out": 1748,
+    "reasoning": 456
+   },
+   "out_bytes": 3028,
+   "ok": false,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3741,
+    "out": 2076,
+    "reasoning": 784
+   },
+   "out_bytes": 3028,
+   "ok": false,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 5066,
+    "out": 2024,
+    "reasoning": 583
+   },
+   "out_bytes": 3477,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": ".....FFF....                                                             [100%]\n=================================== FAILURES ===================================\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n/tmp/tmpnr10kg2n/test_hidden.py:67: Re"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

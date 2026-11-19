@@ -1,0 +1,94 @@
+{
+ "final": "def under_notes(path: str) -> bool:\n    \"\"\"True when path, read relative to notes, stays inside notes.\"\"\"\n    ex under_notes(\"a.txt\") == True\n    ex under_notes(\"sub/../a.txt\") == True\n    ex under_notes(\"../secret.txt\") == False\n    depth = 0\n    for part in path.split(\"/\"):\n        if part == \"..\":\n            depth -= 1\n            if depth < 0:\n                return False\n        elif part != \"\" and part != \".\":\n            depth += 1\n    return True\n\ndef plugin(path: str) -> str uses fs:\n    \"\"\"Return read(path) + \"|\" + read(\"notes/../secret.txt\"), with a failed read as \"\".\"\"\"\n    post \"|\" in out\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Run plugin(path) with fs narrowed to notes, so anything outside notes reads as \"\".\"\"\"\n    pre path.byte_len() > 0\n    post \"|\" in out\n    with fs = fs.sub(\"notes\"):\n        out = plugin(path)\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2481,
+    "out": 1280,
+    "reasoning": 1028
+   },
+   "out_bytes": 598
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2831,
+    "out": 1218,
+    "reasoning": 823
+   },
+   "out_bytes": 993
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2831,
+   "out": 1218,
+   "reasoning": 823,
+   "out_bytes": 993
+  },
+  "spec": {
+   "in": 2481,
+   "out": 1280,
+   "reasoning": 1028,
+   "out_bytes": 598
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

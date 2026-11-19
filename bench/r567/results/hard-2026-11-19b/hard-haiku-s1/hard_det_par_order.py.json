@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1161,
+   "reasoning": 667,
+   "out_bytes": 1164
+  },
+  "body": {
+   "in": 1652,
+   "out": 707,
+   "reasoning": 147,
+   "out_bytes": 1329
+  }
+ },
+ "final": "import pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    \"\"\"Return 0 if x is even and 1 if x is odd.\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity of each element of xs, in input order.\n\n    Each element is computed with parity() on a thread pool. The result\n    order matches the input order and does not depend on the number of\n    workers used.\n    \"\"\"\n    if not xs:\n        return []\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parity() -> None:\n    assert parity(0) == 0\n    assert parity(7) == 1\n    assert parity(-3) == 1\n\n\ndef test_parities_small() -> None:\n    assert parities([5, 2, 7, 8]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, 0]) == [1, 0, 0]\n\n\ndef test_parities_preserves_order_on_large_input() -> None:\n    xs = list(range(10_000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [3, 4, 5]\n    parities(xs)\n    assert xs == [3, 4, 5]\n\n\n@pytest.mark.parametrize(\"n\", [1, 2, 3, 17])\ndef test_parities_length_matches_input(n: int) -> None:\n    xs = list(range(n))\n    assert len(parities(xs)) == n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1161,
+    "reasoning": 667
+   },
+   "out_bytes": 1164,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1652,
+    "out": 707,
+    "reasoning": 147
+   },
+   "out_bytes": 1329,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

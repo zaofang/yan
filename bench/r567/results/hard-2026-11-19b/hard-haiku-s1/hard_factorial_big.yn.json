@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1834,
+   "out": 633,
+   "reasoning": 565,
+   "out_bytes": 115
+  },
+  "body": {
+   "in": 4116,
+   "out": 1015,
+   "reasoning": 812,
+   "out_bytes": 348
+  }
+ },
+ "final": "fact(n: int) -> bigint =\n  pre n >= 0\n  post out >= 1\n  ex fact(0) == 1\n  ex fact(5) == 120\n  var r: bigint = bigint(1)\n  for i in range(2, n + 1)\n    r = r * bigint(i)\n  r\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1834,
+    "out": 633,
+    "reasoning": 565
+   },
+   "out_bytes": 115,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1975,
+    "out": 622,
+    "reasoning": 525
+   },
+   "out_bytes": 166,
+   "ok": false,
+   "report": "E201 task.yn:8:9 fact: `r * i` `*` between `BigInt` and `int`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2141,
+    "out": 393,
+    "reasoning": 287
+   },
+   "out_bytes": 182,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/factorial_big",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:8:9 fact: `r * i` `*` between `BigInt` and `int`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

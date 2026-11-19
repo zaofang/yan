@@ -1,0 +1,94 @@
+{
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Sum of a and b, or None when the exact sum does not fit in a 64-bit signed int.\"\"\"\n    ex checked_add(1, 2) == 3\n    ex checked_add(-5, 5) == 0\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(9223372036854775807, -1) == 9223372036854775806\n    ex checked_add(-9223372036854775807, -2) is None\n    ex checked_add(-9223372036854775807, -1) == -9223372036854775808\n    hi = 9223372036854775807\n    lo = -9223372036854775807 - 1\n    if b > 0 and a > hi - b:\n        return None\n    if b < 0 and a < lo - b:\n        return None\n    return a + b\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2292,
+    "out": 553,
+    "reasoning": 347
+   },
+   "out_bytes": 456
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2596,
+    "out": 710,
+    "reasoning": 432
+   },
+   "out_bytes": 626
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/checked_add",
+ "tokens": {
+  "body": {
+   "in": 2596,
+   "out": 710,
+   "reasoning": 432,
+   "out_bytes": 626
+  },
+  "spec": {
+   "in": 2292,
+   "out": 553,
+   "reasoning": 347,
+   "out_bytes": 456
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

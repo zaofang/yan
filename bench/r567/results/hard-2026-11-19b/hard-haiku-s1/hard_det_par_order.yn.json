@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1854,
+   "out": 502,
+   "reasoning": 386,
+   "out_bytes": 223
+  },
+  "body": {
+   "in": 2043,
+   "out": 398,
+   "reasoning": 265,
+   "out_bytes": 255
+  }
+ },
+ "final": "-- Phase 1: spec for parallel parity.\n\nparity(x: int) -> int = x % 2\n\nparities(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex parities([3, 4, 5]) == [1, 0, 1]\n  ex parities([]) == []\n  let ys = par for x in xs\n    parity(x)\n  ys\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1854,
+    "out": 502,
+    "reasoning": 386
+   },
+   "out_bytes": 223,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2043,
+    "out": 398,
+    "reasoning": 265
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

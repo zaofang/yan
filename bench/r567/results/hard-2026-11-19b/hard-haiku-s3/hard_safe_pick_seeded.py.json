@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1097,
+   "reasoning": 661,
+   "out_bytes": 960
+  },
+  "body": {
+   "in": 1564,
+   "out": 1040,
+   "reasoning": 430,
+   "out_bytes": 1253
+  }
+ },
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs, chosen deterministically from seed.\n\n    The same (xs, seed) pair always yields the same element. No randomness is used.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"pick() requires a non-empty list\")\n    mask = 0xFFFFFFFFFFFFFFFF\n    z = (seed + 0x9E3779B97F4A7C15) & mask\n    z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & mask\n    z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & mask\n    z ^= z >> 31\n    return xs[z % len(xs)]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [4, 8, 15, 16, 23, 42]\n    for seed in range(50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_same_seed_same_result() -> None:\n    xs = [4, 8, 15, 16, 23, 42]\n    for seed in range(50):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_is_stable_across_equal_lists() -> None:\n    xs = [1, 2, 3, 5, 8, 13]\n    ys = list(xs)\n    for seed in range(50):\n        assert pick(xs, seed) == pick(ys, seed)\n\n\ndef test_pick_singleton() -> None:\n    for seed in range(20):\n        assert pick([7], seed) == 7\n\n\ndef test_pick_negative_seed_is_accepted() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, -1) in xs\n    assert pick(xs, -1) == pick(xs, -1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1097,
+    "reasoning": 661
+   },
+   "out_bytes": 960,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1564,
+    "out": 1040,
+    "reasoning": 430
+   },
+   "out_bytes": 1253,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

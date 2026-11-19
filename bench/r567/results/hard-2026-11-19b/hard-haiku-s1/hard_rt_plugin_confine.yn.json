@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2035,
+   "out": 1666,
+   "reasoning": 1418,
+   "out_bytes": 527
+  },
+  "body": {
+   "in": 5134,
+   "out": 2201,
+   "reasoning": 1500,
+   "out_bytes": 1479
+  }
+ },
+ "final": "-- Phase 1: spec only. Bodies are left as `unreachable`.\n-- The ex lines assume notes/missing.txt and notes/secret.txt do not exist.\n-- Under fs.sub(\"notes\"), the plugin's \"notes/../secret.txt\" resolves to\n-- notes/secret.txt, which is inside the sandbox.\n\nplugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n\ntest_run_plugin_outside() uses fs =\n  assert run_plugin(\"../secret.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2035,
+    "out": 1666,
+    "reasoning": 1418
+   },
+   "out_bytes": 527,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2356,
+    "out": 839,
+    "reasoning": 489
+   },
+   "out_bytes": 736,
+   "ok": false,
+   "report": "E312 task.yn:18:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2778,
+    "out": 1362,
+    "reasoning": 1011
+   },
+   "out_bytes": 743,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:18:5 run_plugin: `plugin(path)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

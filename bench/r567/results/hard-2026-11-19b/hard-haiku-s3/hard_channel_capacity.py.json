@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 918,
+   "reasoning": 547,
+   "out_bytes": 868
+  },
+  "body": {
+   "in": 1513,
+   "out": 772,
+   "reasoning": 345,
+   "out_bytes": 1025
+  }
+ },
+ "final": "import pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Return how many items of xs are accepted by a bounded queue.\n\n    The queue holds at most ``cap`` integers (``cap`` >= 0). Each element of\n    ``xs`` is offered in order with a non-blocking put. Acceptance stops at the\n    first put that finds the queue full, and the number of accepted puts up to\n    that point is returned. With ``cap == 0`` nothing is accepted.\n    \"\"\"\n    queue: list[int] = []\n    count = 0\n    for x in xs:\n        if len(queue) >= cap:\n            break\n        queue.append(x)\n        count += 1\n    return count\n\n\ndef test_accepted_stops_when_full() -> None:\n    assert accepted(2, [1, 2, 3]) == 2\n\n\ndef test_accepted_all_fit() -> None:\n    assert accepted(5, [1, 2]) == 2\n\n\ndef test_accepted_empty_input() -> None:\n    assert accepted(3, []) == 0\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_accepted_exact_capacity() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 918,
+    "reasoning": 547
+   },
+   "out_bytes": 868,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1513,
+    "out": 772,
+    "reasoning": 345
+   },
+   "out_bytes": 1025,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

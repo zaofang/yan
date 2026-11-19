@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1850,
+   "out": 741,
+   "reasoning": 629,
+   "out_bytes": 195
+  },
+  "body": {
+   "in": 4298,
+   "out": 2707,
+   "reasoning": 2379,
+   "out_bytes": 581
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 1\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(2, [1, 2, 3]) == 2\n  ex accepted(5, [1, 2]) == 2\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else return n\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1850,
+    "out": 741,
+    "reasoning": 629
+   },
+   "out_bytes": 195,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2035,
+    "out": 961,
+    "reasoning": 796
+   },
+   "out_bytes": 291,
+   "ok": false,
+   "report": "E100 task.yn:10:27 `-> break` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2263,
+    "out": 1746,
+    "reasoning": 1583
+   },
+   "out_bytes": 290,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E100 ./task.yn:10:27 `->` unexpected token; expected end of line\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

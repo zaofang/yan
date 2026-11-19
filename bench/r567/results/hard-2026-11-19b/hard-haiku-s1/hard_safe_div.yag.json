@@ -1,0 +1,171 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer quotient of a divided by b. Fails with DivZero carrying a when b is 0.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(9, 3) == 3\n    ex safe_div(7, 0) == fail DivZero(a=7)\n    return (fail DivZero(a=a)) if b == 0 else a // b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2304,
+    "out": 993,
+    "reasoning": 850
+   },
+   "out_bytes": 281
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpq51oieb6/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2545,
+    "out": 830,
+    "reasoning": 664
+   },
+   "out_bytes": 332
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: safe_div. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 1,
+   "tools": [],
+   "usage": {
+    "in": 2844,
+    "out": 1031,
+    "reasoning": 891
+   },
+   "out_bytes": 289
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpq51oieb6/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3071,
+    "out": 445,
+    "reasoning": 279
+   },
+   "out_bytes": 332
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpq51oieb6/work/task.yag:9:12 safe_div: `return Err(DivZero(a=a))` `Err(...)` without an expected type: not supported by this toolchain yet",
+   "round": 3,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3370,
+    "out": 1520,
+    "reasoning": 1355
+   },
+   "out_bytes": 326
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "body_failed",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 11830,
+   "out": 3826,
+   "reasoning": 3189,
+   "out_bytes": 1279
+  },
+  "spec": {
+   "in": 2304,
+   "out": 993,
+   "reasoning": 850,
+   "out_bytes": 281
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpq51oieb6/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpq51oieb6/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpq51oieb6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpq51oieb6/work/task.yag:9:12 safe_div: `return Err(DivZero(a=a))` `Err(...)` without an expected type: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yag:9:13 safe_div: `fail` `Err(...)` without an expected type: not supported by this toolchain yet\n0 of 0 tests passed"
+ }
+}

@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1819,
+   "out": 1816,
+   "reasoning": 1676,
+   "out_bytes": 246
+  },
+  "body": {
+   "in": 2032,
+   "out": 949,
+   "reasoning": 770,
+   "out_bytes": 316
+  }
+ },
+ "final": "sum_of(xs: List[int]) -> int =\n  post out >= 0 or xs.len() > 0\n  ex sum_of([1, 2, 3]) == 6\n  var t = 0\n  for x in xs\n    t += x\n  t\n\nbump_all(var xs: List[int], by: int) -> int =\n  pre by >= 0\n  post out == xs.len()\n  ex bump_all([1, 2, 3], 10) == 3\n  var n = 0\n  for var x in xs\n    x += by\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1819,
+    "out": 1816,
+    "reasoning": 1676
+   },
+   "out_bytes": 246,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2032,
+    "out": 949,
+    "reasoning": 770
+   },
+   "out_bytes": 316,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E312 ./task.yn:21:3 test_hidden_0: `bump_all(&v, 10)` a result of type `int` is discarded\nE312 ./task.yn:26:3 test_hidden_1: `bump_all(&v, 1)` a result of type `int` is discarded\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E312 ./task.yn:21:3 test_hidden_0: `bump_all(&v, 10)` a result of type `int` is discarded\nE312 ./task.yn:26:3 test_hidden_1: `bump_all(&v, 1)` a result of type `int` is discarded\n0 of 0 tests passed"
+ }
+}

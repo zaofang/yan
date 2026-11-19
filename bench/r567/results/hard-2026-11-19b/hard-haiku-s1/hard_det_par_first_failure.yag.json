@@ -1,0 +1,218 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even, otherwise fail with Bad carrying x.\"\"\"\n    ex check(4) == 4\n    ex check(3) == fail Bad(n=3)\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef probe(x: int) -> int | None:\n    \"\"\"Return check(x) when it succeeds, or None when it fails.\"\"\"\n    v = check(x) else return\n    return v\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Return the checked list, or fail with the failure of the lowest-index bad element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([4, 3, 1]) == fail Bad(n=3)\n    oks = par [probe(x) for x in xs]\n    out: list[int] = []\n    for i in range(xs.len()):\n        slot = oks.get(i) else fail Bad(n=xs[i])\n        v = slot else fail Bad(n=xs[i])\n        out.append(v)\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpr2u1wo5v/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpr2u1wo5v/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2355,
+    "out": 1080,
+    "reasoning": 843
+   },
+   "out_bytes": 542
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2772,
+    "out": 603,
+    "reasoning": 356
+   },
+   "out_bytes": 552
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpr2u1wo5v/work/task.yag:17:30 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmpr2u1wo5v/work/task.yag:20:13 all_even: `oks[i]` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3117,
+    "out": 1250,
+    "reasoning": 906
+   },
+   "out_bytes": 770
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpr2u1wo5v/work/task.yag:20:13 task.all_even: `oks[i]` `oks` is used after `oks.Some.value` was moved out of it | moved at 20:13",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E401"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3658,
+    "out": 1310,
+    "reasoning": 914
+   },
+   "out_bytes": 903
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpr2u1wo5v/work/task.yag:21:20 all_even: `(v)` expected `int`, found `int | None`",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4212,
+    "out": 885,
+    "reasoning": 487
+   },
+   "out_bytes": 907
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "FAIL task.all_even#ex2 (proposed) failed: panic(match): no arm matched the value | repro: yan test --only task.all_even#ex2\n3 of 4 tests passed",
+   "round": 3,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [
+      "task.all_even#ex2"
+     ],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4746,
+    "out": 1027,
+    "reasoning": 608
+   },
+   "out_bytes": 950
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "body_failed",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 15733,
+   "out": 4472,
+   "reasoning": 2915,
+   "out_bytes": 3530
+  },
+  "spec": {
+   "in": 5127,
+   "out": 1683,
+   "reasoning": 1199,
+   "out_bytes": 1094
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpr2u1wo5v/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpr2u1wo5v/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpr2u1wo5v/work/task.yag:17:30 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmpr2u1wo5v/work/task.yag:20:13 all_even: `oks[i]` `else` needs an optional or a fallible call, found `int`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E401",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpr2u1wo5v/work/task.yag:20:13 task.all_even: `oks[i]` `oks` is used after `oks.Some.value` was moved out of it | moved at 20:13"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpr2u1wo5v/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpr2u1wo5v/work/task.yag:21:20 all_even: `(v)` expected `int`, found `int | None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:17:30 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:13 all_even: `oks` `else` needs an optional or a fallible call, found `int`\n0 of 0 tests passed\nE201 ./task.yag:17:30 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:13 all_even: `oks` `else` need"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 1,
+  "ok": false
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 2064,
+   "reasoning": 915,
+   "out_bytes": 2683
+  },
+  "body": {
+   "in": 2359,
+   "out": 1619,
+   "reasoning": 363,
+   "out_bytes": 2982
+  }
+ },
+ "final": "import threading\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as ex:\n        futures = [ex.submit(check, x) for x in xs]\n        # Collect in input order: the first future that raised is the\n        # lowest-index bad element, whatever order the threads finished in.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_ok() -> None:\n    assert all_even([2, 4, 6, 0, -8]) == [2, 4, 6, 0, -8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_bad_wins() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 5, 6, 7, 9])\n    assert ei.value.n == 5\n\n\ndef test_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 3, 1])\n    assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_later_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    later_failed = threading.Event()\n\n    def racing_check(x: int) -> int:\n        if x == 1:\n            # Index 0: fail only after the later bad element has already failed.\n            later_failed.wait(timeout=2)\n            raise Bad(x)\n        if x == 3:\n            later_failed.set()\n            raise Bad(x)\n        return x\n\n    monkeypatch.setitem(globals(), \"check\", racing_check)\n    with pytest.raises(Bad) as ei:\n        all_even([1, 2, 3])\n    assert ei.value.n == 1\n\n\ndef test_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(3, timeout=2)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()  # only passes if 3 calls are running concurrently\n        return x\n\n    monkeypatch.setitem(globals(), \"check\", barrier_check)\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_uses_worker_threads(monkeypatch: pytest.MonkeyPatch) -> None:\n    main = threading.get_ident()\n    seen: list[int] = []\n\n    def recording_check(x: int) -> int:\n        seen.append(threading.get_ident())\n        return x\n\n    monkeypatch.setitem(globals(), \"check\", recording_check)\n    assert all_even([2, 4]) == [2, 4]\n    assert len(seen) == 2\n    assert all(t != main for t in seen)\n\n\ndef test_pool_type_available() -> None:\n    # Sanity check that the thread pool the task refers to is importable.\n    with ThreadPoolExecutor(max_workers=1) as ex:\n        assert ex.submit(check, 2).result() == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 2064,
+    "reasoning": 915
+   },
+   "out_bytes": 2683,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2359,
+    "out": 1619,
+    "reasoning": 363
+   },
+   "out_bytes": 2982,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

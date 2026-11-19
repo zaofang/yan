@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1053,
+   "out": 537,
+   "reasoning": 369,
+   "out_bytes": 417
+  },
+  "body": {
+   "in": 1278,
+   "out": 183,
+   "reasoning": 0,
+   "out_bytes": 447
+  }
+ },
+ "final": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"True when the byte (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    return bin(x).count(\"1\") % 2 == 1\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"expected\"),\n    [\n        (0, False),\n        (1, True),\n        (3, False),\n        (7, True),\n        (128, True),\n        (255, False),\n    ],\n)\ndef test_parity(x: int, expected: bool) -> None:\n    assert parity(x) is expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1053,
+    "out": 537,
+    "reasoning": 369
+   },
+   "out_bytes": 417,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1278,
+    "out": 183,
+    "reasoning": 0
+   },
+   "out_bytes": 447,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1075,
+   "out": 849,
+   "reasoning": 403,
+   "out_bytes": 1084
+  },
+  "body": {
+   "in": 1578,
+   "out": 534,
+   "reasoning": 77,
+   "out_bytes": 1110
+  }
+ },
+ "final": "import builtins\n\nimport pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print one log line to standard output as ``[level] message``.\n\n    Writes only to the console. Never opens or writes any file.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_prints_formatted_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"service started\")\n    captured = capsys.readouterr()\n    assert captured.out == \"[INFO] service started\\n\"\n    assert captured.err == \"\"\n\n\ndef test_log_line_uses_level_in_brackets(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"ERROR\", \"disk full\")\n    assert capsys.readouterr().out == \"[ERROR] disk full\\n\"\n\n\ndef test_log_line_does_not_touch_file_system(\n    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]\n) -> None:\n    def forbidden_open(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"log_line must not open files\")\n\n    monkeypatch.setattr(builtins, \"open\", forbidden_open)\n    log_line(\"WARN\", \"low memory\")\n    assert capsys.readouterr().out == \"[WARN] low memory\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 849,
+    "reasoning": 403
+   },
+   "out_bytes": 1084,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1578,
+    "out": 534,
+    "reasoning": 77
+   },
+   "out_bytes": 1110,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

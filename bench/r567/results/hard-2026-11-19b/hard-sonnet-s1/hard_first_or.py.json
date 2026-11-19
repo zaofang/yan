@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1050,
+   "out": 271,
+   "reasoning": 0,
+   "out_bytes": 627
+  },
+  "body": {
+   "in": 1378,
+   "out": 285,
+   "reasoning": 0,
+   "out_bytes": 670
+  }
+ },
+ "final": "def first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element of xs, or default if xs is empty.\"\"\"\n    if xs:\n        return xs[0]\n    return default\n\n\ndef test_first_or_nonempty() -> None:\n    assert first_or([7, 8, 9], 0) == 7\n    assert first_or([5], -1) == 5\n\n\ndef test_first_or_empty() -> None:\n    assert first_or([], 42) == 42\n    assert first_or([], -1) == -1\n\n\ndef test_first_or_falsy_first_element() -> None:\n    # A first element of 0 must be returned, not replaced by the default.\n    assert first_or([0, 1], 99) == 0\n\n\ndef test_first_or_does_not_mutate() -> None:\n    xs = [3, 4]\n    first_or(xs, 0)\n    assert xs == [3, 4]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1050,
+    "out": 271,
+    "reasoning": 0
+   },
+   "out_bytes": 627,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1378,
+    "out": 285,
+    "reasoning": 0
+   },
+   "out_bytes": 670,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

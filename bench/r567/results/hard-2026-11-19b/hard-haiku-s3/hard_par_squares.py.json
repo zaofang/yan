@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1070,
+   "out": 902,
+   "reasoning": 544,
+   "out_bytes": 851
+  },
+  "body": {
+   "in": 1485,
+   "out": 613,
+   "reasoning": 204,
+   "out_bytes": 972
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Return [square(x) for x in xs], computing each element in a thread pool.\n\n    The result preserves the order of xs. An empty input returns an empty list.\n    \"\"\"\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(3) == 9\n    assert square(-4) == 16\n\n\ndef test_squares_basic() -> None:\n    assert squares([1, 2, 3]) == [1, 4, 9]\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_negatives_and_zero() -> None:\n    assert squares([-2, 0, 5]) == [4, 0, 25]\n\n\ndef test_squares_preserves_order() -> None:\n    xs = list(range(1000))\n    assert squares(xs) == [x * x for x in xs]\n\n\ndef test_squares_returns_new_list() -> None:\n    xs = [1, 2]\n    out = squares(xs)\n    assert out is not xs\n    assert xs == [1, 2]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1070,
+    "out": 902,
+    "reasoning": 544
+   },
+   "out_bytes": 851,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1485,
+    "out": 613,
+    "reasoning": 204
+   },
+   "out_bytes": 972,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

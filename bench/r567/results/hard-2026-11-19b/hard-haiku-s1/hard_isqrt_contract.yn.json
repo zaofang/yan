@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1836,
+   "out": 1156,
+   "reasoning": 1012,
+   "out_bytes": 257
+  },
+  "body": {
+   "in": 2053,
+   "out": 763,
+   "reasoning": 591,
+   "out_bytes": 300
+  }
+ },
+ "final": "-- Integer square root: the largest r with r * r <= n.\n\nisqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and out + 1 > n // (out + 1)\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var r = 0\n  while r + 1 <= n // (r + 1)\n    r += 1\n  r\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1836,
+    "out": 1156,
+    "reasoning": 1012
+   },
+   "out_bytes": 257,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2053,
+    "out": 763,
+    "reasoning": 591
+   },
+   "out_bytes": 300,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}
