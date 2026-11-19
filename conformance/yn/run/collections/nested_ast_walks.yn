@@ -1,0 +1,115 @@
+-- spec: 5.4
+-- rows: R770
+-- note: drop, copy and == of types that nest records and sums (the Yan Core AST shape) are one out-of-line walk per type, so the native build stays small (#1757)
+-- stdout:
+-- 50 50 1 True
+
+type Span = { line: int, col: int, end_line: int, end_col: int }
+
+type Lit = LitInt(s: str) | LitFloat(s: str) | LitStr(s: str) | LitChar(s: str) | LitBool(b: bool) | LitUnit()
+
+type TArg = TargTy(t: Ty) | TargNat(n: str)
+
+type Named = { path: List[str], args: List[TArg] }
+
+type CapSet = CapNone() | CapNames(names: List[str])
+
+type ConvTy = { conv: str, ty: Ty }
+
+type FnType = { params: List[ConvTy], ret: Ty, caps: Option[CapSet], failty: Option[Ty] }
+
+type Ty = TyNamed(n: Named) | TyTuple(v: List[Ty]) | TyDyn(n: Named) | TyFn(f: FnType) | TyRefined(name: str, ty: Ty, pred: Expr) | TyUnion(v: List[Ty])
+
+type Atom = AtomName(name: str, span: Span) | AtomLit(lit: Lit, span: Span)
+
+type Arg = ArgVal(conv: str, atom: Atom, span: Span) | ArgCap(name: str, span: Span)
+
+type Call = { path: List[str], span: Span, targs: List[TArg], args: List[Arg] }
+
+type Expr = ExprAtom(a: Atom) | ExprCall(c: Call)
+
+type AttrArg = { name: Option[str], value: ConstVal }
+
+type CField = { name: str, value: ConstVal }
+
+type ConstVal = ConstLit(l: Lit) | ConstPath(path: List[str], fields: Option[List[CField]]) | ConstList(v: List[ConstVal]) | ConstTuple(v: List[ConstVal]) | ConstCall(path: List[str], args: List[AttrArg])
+
+type Attr = { name: str, args: Option[List[AttrArg]] }
+
+type TParam = { is_comptime: bool, name: str, kind: str, bounds: List[List[str]] }
+
+type Param = ParValue(is_comptime: bool, conv: str, name: str, ty: Ty) | ParCap(name: str, ty: Named)
+
+type Contract = CtReq(e: Expr) | CtEns(e: Expr) | CtDec(v: List[Expr]) | CtEx(e: Expr) | CtCost(steps: Option[Expr], alloc: Option[Expr])
+
+type Field = { attrs: List[Attr], vis: str, name: str, ty: Ty, dflt: Option[ConstVal] }
+
+type Variant = { name: str, fields: Option[List[Field]] }
+
+type FnDef = { vis: str, is_unsafe: bool, path: List[str], name_span: Span, tparams: List[TParam], params: List[Param], ret: Ty, froms: List[str], failty: Option[Ty], contracts: List[Contract], body: Option[List[Stmt]] }
+
+type AssocTy = { name: str, ty: Ty }
+
+type ExtParam = ExtValue(name: str, ty: Ty) | ExtCallback(name: str, escaping: bool, ty: FnType)
+
+type ExtItem = ExtFn(attrs: List[Attr], is_safe: bool, name: str, params: List[ExtParam], variadic: bool, ret: Ty, froms: List[str], uses_none: bool, nonblocking: bool) | ExtType(name: str, dropfn: List[str]) | ExtStatic(is_safe: bool, name: str, ty: Ty)
+
+type ItemKind = ItemFn(kw: str, args: List[TArg], def: FnDef) | ItemRecord(vis: str, path: List[str], tparams: List[TParam], fields: List[Field]) | ItemSum(vis: str, path: List[str], tparams: List[TParam], variants: List[Variant]) | ItemNewtype(vis: str, path: List[str], tparams: List[TParam], ty: Ty, pred: Option[Expr]) | ItemTrait(vis: str, path: List[str], tparams: List[TParam], assoc: List[str], sigs: List[FnDef], derived: Option[FnDef]) | ItemImpl(is_unsafe: bool, trait_ref: Named, for_ty: Ty, assoc: List[AssocTy], fns: List[FnDef]) | ItemConst(vis: str, path: List[str], ty: Ty, value: ConstVal) | ItemTest(path: List[str], body: List[Stmt]) | ItemExtern(abi: str, lib: str, link: Option[str], items: List[ExtItem])
+
+type Item = { attrs: List[Attr], kind: ItemKind, span: Span }
+
+type Pools = { blocks: List[List[Stmt]], tys: List[Ty], rhss: List[Rhs], fns: List[FnDef] }
+
+type Module = { header: List[str], path: List[str], items: List[Item], pools: Pools }
+
+type Proj = ProjField(name: str, span: Span) | ProjIndex(a: Atom)
+
+type Place = { root: str, root_span: Span, projs: List[Proj] }
+
+type Ctor = CtorNamed(path: List[str], targs: List[TArg], fields: List[CtorField]) | CtorTuple(v: List[Atom])
+
+type CtorField = { name: str, a: Atom }
+
+type Capture = { conv: str, name: str, span: Span }
+
+type Closure = { captures: List[Capture], params: List[Param], ret: Ty, caps: Option[CapSet], failty: Option[Ty], body: List[Stmt] }
+
+type Rhs = RhsAtom(a: Atom) | RhsCall(c: Call) | RhsProp(call: Call, via: Option[List[str]], drops: List[str]) | RhsTry(c: Call) | RhsRest(root: str, moved: List[List[str]]) | RhsCtor(c: Ctor) | RhsProj(pl: Place) | RhsCopy(pl: Place) | RhsMove(pl: Place) | RhsClosure(c: Closure)
+
+type FieldPat = { name: str, pat: Pat }
+
+type CtorPat = { fields: List[FieldPat], rest: bool }
+
+type Pat = PatWild() | PatLit(l: Lit) | PatBind(name: str) | PatCtor(path: List[str], fields: Option[CtorPat]) | PatTuple(v: List[Pat]) | PatOr(v: List[Pat]) | PatRange(lo: Lit, hi: Lit) | PatSlice(elems: List[Pat], rest: int, rest_name: str)
+
+type AsmReg = RegClass(name: str) | RegExplicit(s: str)
+
+type AsmOperand = AsmOpReg(dir: str, reg: AsmReg, value: Atom) | AsmOpClobber(s: str) | AsmOpOptions(names: List[str])
+
+type Arm = { pat: Pat, body: List[Stmt] }
+
+type Stmt = { kind: StmtKind, span: Span }
+
+type StmtKind = StmtLet(mutable: bool, pat: Pat, pat_span: Span, ty: Ty, rhs: Rhs, rhs_span: Span) | StmtAssign(place: Place, rhs: Rhs, rhs_span: Span) | StmtIf(cond: Atom, yes: List[Stmt], no: Option[List[Stmt]]) | StmtMatch(scrutinee: Atom, arms: List[Arm]) | StmtLoop(label: str, invariants: List[Expr], decs: List[Expr], body: List[Stmt]) | StmtBreak(label: str, value: Option[Atom]) | StmtContinue(label: str) | StmtJp(name: str, params: List[Param], body: List[Stmt]) | StmtJump(name: str, args: List[Atom]) | StmtRet(a: Atom) | StmtFail(a: Atom) | StmtYield(a: Atom) | StmtBecome(c: Call) | StmtWith(name: str, is_dyn: bool, handler: Atom, body: List[Stmt]) | StmtDeadline(at: Atom, body: List[Stmt]) | StmtPar(concurrent: bool, blocks: List[List[Stmt]]) | StmtComptimeFor(name: str, ty: Ty, iter: Atom, body: List[Stmt]) | StmtComptimeIf(cond: Atom, yes: List[Stmt], no: Option[List[Stmt]]) | StmtAssert(e: Expr) | StmtUnreachable() | StmtUnsafe(body: List[Stmt]) | StmtAsm(template: str, operands: List[AsmOperand]) | StmtDrop(name: str) | StmtReuse(name: str, ctor: Ctor) | StmtRhs(rhs: Rhs)
+
+
+type Module = { header: List[str], path: List[str], items: List[Item] }
+type Parsed = { module: Option[Module], diags: List[str] }
+
+sp(n: int) -> Span = Span(line: n, col: 1, end_line: n, end_col: 2)
+
+ty() -> Ty = TyNamed(n: Named(path: ["int"], args: []))
+
+st(n: int) -> Stmt = Stmt(kind: StmtRet(a: AtomName(name: "x\(n)", span: sp(n))), span: sp(n))
+
+mk(n: int) -> Item =
+  let fd = FnDef(vis: "pub", is_unsafe: False, path: ["f"], name_span: sp(n), tparams: [], params: [ParValue(is_comptime: False, conv: "let", name: "a", ty: ty())], ret: ty(), froms: [], failty: None, contracts: [], body: Some([st(n), st(n)]))
+  Item(attrs: [Attr(name: "a", args: None)], kind: ItemFn(kw: "fn", args: [TargTy(t: ty())], def: fd), span: sp(n))
+
+main() uses io =
+  var items: List[Item] = []
+  for i in range(50)
+    items.append(mk(i))
+  let it = items.copy()
+  let n = len(it[7].attrs)
+  io.print("\(len(items)) \(len(it)) \(n) \(it == items)")

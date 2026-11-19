@@ -13830,6 +13830,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/collections/nested_ast_walks.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "5.4"
+   ],
+   "rows": [
+    "R770"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "50 50 1 True\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/collections/ref_temp_method.yn",
    "kind": "run",
    "milestone": "M3",
