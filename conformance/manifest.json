@@ -1015,8 +1015,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 5
+    },
+    {
      "code": "E323",
-     "line": 15,
+     "line": 16,
      "col": 5
     }
    ]
@@ -1035,8 +1040,18 @@
    "expect": [
     {
      "code": "E323",
-     "line": 9,
+     "line": 11,
      "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 11,
+     "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 12,
+     "col": 5
     }
    ]
   },
@@ -1055,12 +1070,17 @@
    "expect": [
     {
      "code": "E323",
-     "line": 9,
+     "line": 10,
+     "col": 5
+    },
+    {
+     "code": "W863",
+     "line": 10,
      "col": 5
     },
     {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 13
     }
    ]
@@ -1288,8 +1308,18 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 11,
+     "col": 9
+    },
+    {
      "code": "E713",
-     "line": 10,
+     "line": 12,
+     "col": 13
+    },
+    {
+     "code": "W863",
+     "line": 12,
      "col": 13
     }
    ]
@@ -1309,8 +1339,13 @@
    "expect": [
     {
      "code": "E715",
-     "line": 10,
+     "line": 11,
      "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 12,
+     "col": 5
     }
    ]
   },
@@ -1368,6 +1403,26 @@
      "code": "W818",
      "line": 6,
      "col": 25
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/w863_recv_narrows_timeout.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "17.3"
+   ],
+   "rows": [
+    "R1111"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W863",
+     "line": 7,
+     "col": 9
     }
    ]
   },
@@ -4235,8 +4290,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 6,
+     "line": 7,
      "col": 13
     }
    ]
@@ -4253,8 +4313,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 12,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 11,
+     "line": 12,
      "col": 13
     }
    ]
@@ -4270,8 +4335,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 5
     }
    ]
@@ -4289,8 +4359,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 7,
+     "line": 8,
      "col": 13
     }
    ]
@@ -4306,8 +4381,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 6,
+     "line": 7,
      "col": 13
     }
    ]
@@ -4359,8 +4439,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 10,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 13
     }
    ]
@@ -7040,6 +7125,22 @@
    "flags": [],
    "expect": [],
    "stdout": "one\ntwo\n4 9 [0, 1, 4, 9, 16]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/recv_times_out_under_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "17.3"
+   ],
+   "rows": [
+    "R1111"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n3\n",
    "exit": 0
   },
   {
@@ -12980,8 +13081,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 3
+    },
+    {
      "code": "E415",
-     "line": 7,
+     "line": 8,
      "col": 11
     }
    ]
