@@ -1150,7 +1150,7 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 
 /// The std function and result type of `op` between time values (17.5).
 /// The builtin functions `builtin` lowers, offered as near names (R651).
-const BUILTINS: [&str; 28] = [
+const BUILTINS: [&str; 29] = [
     "len",
     "sorted",
     "int",
@@ -1163,6 +1163,7 @@ const BUILTINS: [&str; 28] = [
     "min",
     "max",
     "print",
+    "eprint",
     "evolve",
     "range",
     "deque",

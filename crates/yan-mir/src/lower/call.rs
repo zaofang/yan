@@ -353,6 +353,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                     args: vec![s],
                 });
             }
+            (id::STD_IO_EPRINT, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::Eprint,
+                    args: vec![s],
+                });
+            }
             (id::STD_FS_READ | id::STD_FS_LIST_DIR, [(_, path)]) => {
                 let (name, f) = match id {
                     id::STD_FS_READ => ("fs.read", RtFn::FsRead),

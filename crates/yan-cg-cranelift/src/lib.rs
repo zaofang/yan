@@ -660,6 +660,7 @@ fn signature(f: &Func, m: &impl Module) -> Signature {
 
 const RT: &[RtFn] = &[
     RtFn::Print,
+    RtFn::Eprint,
     RtFn::FailMain,
     RtFn::ReadLine,
     RtFn::ReadAll,
@@ -943,6 +944,12 @@ fn rt_fn(
         RtFn::Print => (
             "yan_rt_print_str",
             abi::yan_rt_print_str as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::Eprint => (
+            "yan_rt_eprint_str",
+            abi::yan_rt_eprint_str as *const u8,
             &[I64],
             None,
         ),
