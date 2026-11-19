@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1591,
+   "out": 951,
+   "reasoning": 842,
+   "out_bytes": 215
+  },
+  "body": {
+   "in": 1773,
+   "out": 474,
+   "reasoning": 350,
+   "out_bytes": 241
+  }
+ },
+ "final": "shout_line(s: str) -> str =\n  pre s.char_count() >= 0\n  post out.char_count() == s.char_count()\n  ex shout_line(\"hi\") == \"HI\"\n  s.upper()\n\nshout(xs: List[str]) uses io =\n  pre xs.len() >= 0\n  for s in xs\n    io.print(shout_line(s))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1591,
+    "out": 951,
+    "reasoning": 842
+   },
+   "out_bytes": 215,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1773,
+    "out": 474,
+    "reasoning": 350
+   },
+   "out_bytes": 241,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 2373,
+   "reasoning": 1728,
+   "out_bytes": 1519
+  },
+  "body": {
+   "in": 1795,
+   "out": 1255,
+   "reasoning": 523,
+   "out_bytes": 1730
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int], workers: int = 4) -> int:\n    \"\"\"Return the sum of square(x) for every x in xs.\n\n    The squares are computed on a thread pool with `workers` threads.\n    The result must be identical for every valid worker count.\n    `workers` is keyword-friendly and defaults to 4, so the call\n    sum_squares(xs) matches the required signature.\n    Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return sum(pool.map(square, xs))\n\n\ndef test_matches_serial_sum() -> None:\n    xs = list(range(-50, 51))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 4, 8, 16])\ndef test_same_result_at_every_worker_count(workers: int) -> None:\n    xs = [(i * 7919) % 1000 - 500 for i in range(2000)]\n    expected = sum(square(x) for x in xs)\n    assert sum_squares(xs, workers=workers) == expected\n\n\ndef test_more_workers_than_items() -> None:\n    assert sum_squares([1, 2], workers=8) == 5\n\n\ndef test_empty_list_is_zero() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_single_negative_element() -> None:\n    assert sum_squares([-3]) == 9\n\n\ndef test_large_values_are_exact() -> None:\n    assert sum_squares([10**12]) == 10**24\n\n\ndef test_order_does_not_change_result() -> None:\n    xs = [5, -2, 9, 0, 7, -4]\n    assert sum_squares(xs, workers=3) == sum_squares(list(reversed(xs)), workers=3)\n\n\ndef test_rejects_nonpositive_workers() -> None:\n    with pytest.raises(ValueError):\n        sum_squares([1], workers=0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 2373,
+    "reasoning": 1728
+   },
+   "out_bytes": 1519,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1795,
+    "out": 1255,
+    "reasoning": 523
+   },
+   "out_bytes": 1730,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

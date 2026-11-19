@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1625,
+   "out": 360,
+   "reasoning": 268,
+   "out_bytes": 182
+  },
+  "body": {
+   "in": 3862,
+   "out": 1105,
+   "reasoning": 723,
+   "out_bytes": 931
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\\nb=2\", \"c\") == \"\"\n  ex config_value(\"\", \"a\") == \"\"\n  for line in text.split(\"\\n\")\n    var name = \"\"\n    var val = \"\"\n    var seen = False\n    for c in line.chars()\n      if seen\n        val = \"\\(val)\\(c)\"\n      else\n        if c == \"=\"\n          seen = True\n        else\n          name = \"\\(name)\\(c)\"\n    if seen\n      if name == key\n        return val\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1625,
+    "out": 360,
+    "reasoning": 268
+   },
+   "out_bytes": 182,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1790,
+    "out": 703,
+    "reasoning": 521
+   },
+   "out_bytes": 455,
+   "ok": false,
+   "report": "E201 task.yn:11:16 config_value: `val += c` `+` between `str` and `char`\nE201 task.yn:16:19 config_value: `name += c` `+` between `str` and `char`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2072,
+    "out": 402,
+    "reasoning": 202
+   },
+   "out_bytes": 476,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:11:16 config_value: `c` `+` between `str` and `char`\nE201 ./task.yn:16:19 config_value: `c` `+` between `str` and `char`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

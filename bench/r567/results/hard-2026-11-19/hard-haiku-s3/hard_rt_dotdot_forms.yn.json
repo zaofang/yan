@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1785,
+   "out": 1088,
+   "reasoning": 709,
+   "out_bytes": 907
+  },
+  "body": {
+   "in": 2237,
+   "out": 2000,
+   "reasoning": 1478,
+   "out_bytes": 1269
+  }
+ },
+ "final": "-- Declarations and contracts for read_public. Bodies implement the spec.\n\n-- True when a relative path, after resolving \".\" and \"sub/..\",\n-- stays inside the base directory and is not absolute.\ninside_notes(path: str) -> bool =\n  pre path.char_count() >= 0\n  post out == True or out == False\n  ex inside_notes(\"a.txt\") == True\n  ex inside_notes(\"sub/../a.txt\") == True\n  ex inside_notes(\"../x\") == False\n  ex inside_notes(\"/etc/passwd\") == False\n  ex inside_notes(\"sub/../../x\") == False\n  let parts = path.split(\"/\")\n  if parts.len() > 1 and parts[0] == \"\"\n    return False\n  var depth = 0\n  for part in parts\n    if part == \"\" or part == \".\"\n      continue\n    if part == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    else\n      depth += 1\n  True\n\n-- Returns the text of notes/path, or \"\" if the path escapes notes\n-- or the file is missing or unreadable. Reads only through fs\n-- confined to the notes directory.\nread_public(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 0\n  ex read_public(\"missing.txt\") == \"\"\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  var out = \"\"\n  if inside_notes(path)\n    with fs = fs.sub(\"notes\")\n      out = fs.read(path) else \"\"\n  out\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1785,
+    "out": 1088,
+    "reasoning": 709
+   },
+   "out_bytes": 907,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2237,
+    "out": 2000,
+    "reasoning": 1478
+   },
+   "out_bytes": 1269,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

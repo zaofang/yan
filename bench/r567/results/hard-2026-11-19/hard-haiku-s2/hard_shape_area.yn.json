@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1635,
+   "out": 972,
+   "reasoning": 773,
+   "out_bytes": 351
+  },
+  "body": {
+   "in": 1907,
+   "out": 820,
+   "reasoning": 508,
+   "out_bytes": 538
+  }
+ },
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\nnon_negative(s: Shape) -> bool =\n  ex non_negative(Tri(b: 0, h: 5)) == True\n  match s\n    Rect(w:, h:) -> w >= 0 and h >= 0\n    Square(side:) -> side >= 0\n    Tri(b:, h:) -> b >= 0 and h >= 0\n\narea(s: Shape) -> int =\n  pre non_negative(s)\n  post out >= 0\n  ex area(Rect(w: 2, h: 3)) == 6\n  ex area(Square(side: 4)) == 16\n  ex area(Tri(b: 3, h: 3)) == 4\n  match s\n    Rect(w:, h:) -> w * h\n    Square(side:) -> side * side\n    Tri(b:, h:) -> b * h // 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1635,
+    "out": 972,
+    "reasoning": 773
+   },
+   "out_bytes": 351,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1907,
+    "out": 820,
+    "reasoning": 508
+   },
+   "out_bytes": 538,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

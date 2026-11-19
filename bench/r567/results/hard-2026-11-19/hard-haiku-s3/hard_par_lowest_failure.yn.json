@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1688,
+   "out": 590,
+   "reasoning": 461,
+   "out_bytes": 241
+  },
+  "body": {
+   "in": 4078,
+   "out": 1192,
+   "reasoning": 825,
+   "out_bytes": 657
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1688,
+    "out": 590,
+    "reasoning": 461
+   },
+   "out_bytes": 241,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1890,
+    "out": 754,
+    "reasoning": 588
+   },
+   "out_bytes": 298,
+   "ok": false,
+   "report": "E315 task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 task.yn:15:3 all_even: `ys?` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2188,
+    "out": 438,
+    "reasoning": 237
+   },
+   "out_bytes": 359,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E315 ./task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 ./task.yn:15:3 all_even: `ys` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

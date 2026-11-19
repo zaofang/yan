@@ -1,0 +1,96 @@
+{
+ "final": "# No ex lines: log_line returns nothing and only prints, so ex lines are not allowed on it.\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print \"[level] message\" to standard output as one line. Touches no files; the fs capability is not granted.\"\"\"\n    pre level.char_count() > 0\n    io.print(\"[\" + level + \"] \" + message)\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2038,
+    "out": 694,
+    "reasoning": 579
+   },
+   "out_bytes": 315
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2251,
+    "out": 326,
+    "reasoning": 198
+   },
+   "out_bytes": 350
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 2251,
+   "out": 326,
+   "reasoning": 198,
+   "out_bytes": 350
+  },
+  "spec": {
+   "in": 2038,
+   "out": 694,
+   "reasoning": 579,
+   "out_bytes": 315
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

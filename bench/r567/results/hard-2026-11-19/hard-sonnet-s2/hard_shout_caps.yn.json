@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1591,
+   "out": 524,
+   "reasoning": 429,
+   "out_bytes": 189
+  },
+  "body": {
+   "in": 1759,
+   "out": 110,
+   "reasoning": 0,
+   "out_bytes": 215
+  }
+ },
+ "final": "upper_line(s: str) -> str =\n  post out.char_count() == s.char_count()\n  ex upper_line(\"ab\") == \"AB\"\n  s.upper()\n\nshout(xs: List[str]) uses io =\n  pre xs.len() >= 0\n  for s in xs\n    io.print(upper_line(s))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1591,
+    "out": 524,
+    "reasoning": 429
+   },
+   "out_bytes": 189,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1759,
+    "out": 110,
+    "reasoning": 0
+   },
+   "out_bytes": 215,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

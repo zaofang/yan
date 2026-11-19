@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2822,
+   "out": 1939,
+   "reasoning": 767,
+   "out_bytes": 2756
+  },
+  "body": {
+   "in": 2397,
+   "out": 723,
+   "reasoning": 119,
+   "out_bytes": 1415
+  }
+ },
+ "final": "import builtins\nfrom typing import NoReturn\n\nimport pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print a log line formatted as ``[level] message`` to standard output.\n\n    Performs no file-system access; output goes only to the console.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_prints_formatted_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"service started\")\n    assert capsys.readouterr().out == \"[INFO] service started\\n\"\n\n\ndef test_log_line_preserves_message_spacing(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"WARN\", \"  disk  low \")\n    assert capsys.readouterr().out == \"[WARN]   disk  low \\n\"\n\n\ndef test_log_line_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_log_line_prints_error_level(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"ERROR\", \"boom\")\n    assert capsys.readouterr().out == \"[ERROR] boom\\n\"\n\n\ndef test_log_line_does_not_open_files(\n    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]\n) -> None:\n    def _forbidden(*args: object, **kwargs: object) -> NoReturn:\n        raise AssertionError(\"file access attempted\")\n\n    monkeypatch.setattr(builtins, \"open\", _forbidden)\n    log_line(\"INFO\", \"console only\")\n    assert capsys.readouterr().out == \"[INFO] console only\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 1008,
+    "reasoning": 429
+   },
+   "out_bytes": 1367,
+   "ok": false,
+   "report": "test_task.py:31: error: \"log_line\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1747,
+    "out": 931,
+    "reasoning": 338
+   },
+   "out_bytes": 1389,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2397,
+    "out": 723,
+    "reasoning": 119
+   },
+   "out_bytes": 1415,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

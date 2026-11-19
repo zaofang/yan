@@ -1,0 +1,157 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even, otherwise fail with Bad carrying x.\"\"\"\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element in parallel. Return xs when all are even, otherwise fail with the Bad of the lowest-index odd element, regardless of completion order.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4]) == [2, 4]\n    ex all_even([4, 1, 3]) == Err(Bad(n=1))\n    flags: list[int] = par [check(x) else -1 for x in xs]\n    for i in range(xs.len()):\n        if flags[i] == -1:\n            fail Bad(n=xs[i])\n    return xs.copy()\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1255,
+    "reasoning": 1015
+   },
+   "out_bytes": 536
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp84xzxr03/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp84xzxr03/work/task.yag:17:32 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp84xzxr03/work/task.yag:19:12 all_even: `flags[i]` a `int` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2435,
+    "out": 1302,
+    "reasoning": 975
+   },
+   "out_bytes": 733
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp84xzxr03/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp84xzxr03/work/task.yag:17:50 all_even: `None for` expected `int`, found `None`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2944,
+    "out": 913,
+    "reasoning": 579
+   },
+   "out_bytes": 751
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3407,
+    "out": 910,
+    "reasoning": 575
+   },
+   "out_bytes": 740
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 8786,
+   "out": 3125,
+   "reasoning": 2129,
+   "out_bytes": 2224
+  },
+  "spec": {
+   "in": 2097,
+   "out": 1255,
+   "reasoning": 1015,
+   "out_bytes": 536
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp84xzxr03/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp84xzxr03/work/task.yag:17:32 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp84xzxr03/work/task.yag:19:12 all_even: `flags[i]` a `int` is never `None`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp84xzxr03/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp84xzxr03/work/task.yag:17:50 all_even: `None for` expected `int`, found `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:17:32 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:19:12 all_even: `flags` a `int` is never `None`\n0 of 0 tests passed\nE201 ./task.yag:17:32 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:19:12 all_even: `flags` a `int` is never `None`\n0 of 0 tests pas"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

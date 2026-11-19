@@ -1,0 +1,94 @@
+{
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape in whole units, rounded down. Dimensions are non-negative.\"\"\"\n    post out >= 0\n    ex area(Rect(w=3, h=4)) == 12\n    ex area(Square(side=5)) == 25\n    ex area(Tri(b=3, h=5)) == 7\n    ex area(Tri(b=0, h=9)) == 0\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=n):\n            return n * n\n        case Tri(b=b, h=h):\n            return b * h // 2\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2057,
+    "out": 952,
+    "reasoning": 766
+   },
+   "out_bytes": 357
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2341,
+    "out": 656,
+    "reasoning": 408
+   },
+   "out_bytes": 528
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shape_area",
+ "tokens": {
+  "body": {
+   "in": 2341,
+   "out": 656,
+   "reasoning": 408,
+   "out_bytes": 528
+  },
+  "spec": {
+   "in": 2057,
+   "out": 952,
+   "reasoning": 766,
+   "out_bytes": 357
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

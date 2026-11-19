@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1718,
+   "out": 1966,
+   "reasoning": 1669,
+   "out_bytes": 775
+  },
+  "body": {
+   "in": 2088,
+   "out": 1607,
+   "reasoning": 1170,
+   "out_bytes": 1141
+  }
+ },
+ "final": "-- Names are untrusted. Every file access goes through `fs` narrowed to \"notes\",\n-- so a name can never reach a file outside that directory.\n\n-- True only for a plain file name: non-empty, no path separators, no \"..\".\nsafe_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"../secret\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  if name.split(\"..\").len() > 1\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\n-- True when the name is safe and its file under notes/ can be read.\n-- A missing or unreadable file gives False here (it reads as \"\").\nis_readable(name: str) -> bool uses fs =\n  pre safe_name(name)\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return False\n    True\n\n-- Number of names in `names` that are readable files under notes/.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  var n = 0\n  for name in names\n    if safe_name(name)\n      if is_readable(name)\n        n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 1966,
+    "reasoning": 1669
+   },
+   "out_bytes": 775,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2088,
+    "out": 1607,
+    "reasoning": 1170
+   },
+   "out_bytes": 1141,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

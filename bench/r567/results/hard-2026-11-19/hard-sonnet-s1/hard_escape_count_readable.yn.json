@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1718,
+   "out": 690,
+   "reasoning": 474,
+   "out_bytes": 473
+  },
+  "body": {
+   "in": 2007,
+   "out": 1177,
+   "reasoning": 808,
+   "out_bytes": 849
+  }
+ },
+ "final": "safe_name(name: str) -> bool =\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"../secret\") == False\n  ex safe_name(\"/etc/passwd\") == False\n  ex safe_name(\"\") == False\n  var ok = True\n  for c in name.chars()\n    if c == \"\\\\\" or c == \":\"\n      ok = False\n  for part in name.split(\"/\")\n    if part == \"\" or part == \".\" or part == \"..\"\n      ok = False\n  ok\n\nis_readable(name: str) -> bool uses fs =\n  ex is_readable(\"../secret\") == False\n  var result = False\n  if safe_name(name)\n    with fs = fs.sub(\"notes\")\n      let text = fs.read(name) else \"\"\n      result = text.char_count() > 0\n  result\n\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0 and out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret\", \"/etc/passwd\"]) == 0\n  var n = 0\n  for name in names\n    if is_readable(name)\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 690,
+    "reasoning": 474
+   },
+   "out_bytes": 473,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2007,
+    "out": 1177,
+    "reasoning": 808
+   },
+   "out_bytes": 849,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ }
+}
