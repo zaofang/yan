@@ -7995,6 +7995,70 @@
    "exit": 0
   },
   {
+   "path": "yag/run/numbers/checked_as_in_range.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200 300 2147483647 255\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/numbers/checked_as_narrowing_boundary.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/numbers/checked_as_negative_unsigned.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/numbers/checked_as_overflow.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
    "path": "yag/run/numbers/div_zero_panics.yag",
    "kind": "run",
    "milestone": "M1",
@@ -14247,6 +14311,51 @@
    "expect": [],
    "stdout": "none\nnone\n",
    "exit": 0
+  },
+  {
+   "path": "yn/run/numbers/checked_as_in_range.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "44 200 255\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/numbers/checked_as_overflow.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yn/run/numbers/checked_as_u64_boundary.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "9223372036854775807\nbefore\n",
+   "exit": 101
   },
   {
    "path": "yn/run/numbers/checked_cast.yn",

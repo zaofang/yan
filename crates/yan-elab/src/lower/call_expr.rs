@@ -20,7 +20,7 @@ impl Lower<'_, '_, '_> {
         match &f.kind {
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Name(c) = &b.kind
-                    && matches!(c.as_str(), "wrap_as" | "sat_as" | "trunc_as")
+                    && matches!(c.as_str(), "wrap_as" | "sat_as" | "checked_as" | "trunc_as")
                     && !self.value_bound(c)
                     && !self.g.fns.contains_key(c) =>
             {
