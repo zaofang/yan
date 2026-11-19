@@ -14,9 +14,11 @@ mod lower;
 mod mnemonic;
 mod pool;
 mod tasks;
+mod text;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
+pub use text::VERSION as TEXT_VERSION;
 
 pub type Local = u32;
 pub type BlockId = u32;
