@@ -8,6 +8,7 @@ You write Yan Agent, a typed Python 3.12 dialect. Differences from Python:
 - Strings: no len(s) or s[i]. Use s.char_count(), s.byte_len(), s.chars(). Parse with s.parse_int() and s.parse_float(), which return T | None.
 - Write x.copy() when you store a str or list you only borrowed.
 - int is 64-bit and overflow panics; use bigint for large values. `/` on ints gives float.
+- Sized ints (`uint8`, `int32`, ...) never mix with `int`, and there is no `uint8(x)`: widen with `int(x)`, narrow with `wrap_as[uint8](x)` (modulo) or `sat_as[uint8](x)` (clamp). `bits.rotate_left(x, k)`, `bits.count_ones(x)` take sized ints. `x << k` panics on overflow.
 - `xs.get(i)` and `d.get(k)` return T | None. `xs[i]` is bounds-checked.
 - Concurrency: `par [f(x)? for x in xs]` runs the calls in parallel.
 - When two parameters share a type, callers pass those arguments by keyword unless they are literals or names equal to the parameter.
