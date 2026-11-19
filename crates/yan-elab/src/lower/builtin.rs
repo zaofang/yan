@@ -60,6 +60,17 @@ impl Lower<'_, '_, '_> {
                     ("bigint", Ty::Int) => ("std.prelude.bigint", vec![], Ty::BigInt),
                     ("bigint", Ty::BigInt) => return Ok((Rhs::Atom(a), t)),
                     ("int", Ty::Int) | ("float", Ty::Float) => return Ok((Rhs::Atom(a), t)),
+                    ("int", Ty::Fixed(f)) if is_integer(&t) && *f != "i128" && *f != "u128" => {
+                        return Ok((
+                            Rhs::Call(call(
+                                &format!("checked_as_{f}_i64"),
+                                vec![],
+                                vec![let_arg(a)],
+                                at,
+                            )),
+                            Ty::Int,
+                        ));
+                    }
                     ("int", Ty::Float) => ("std.prelude.int", vec![], Ty::Int),
                     ("int", Ty::Str) if !self.cx.strict => {
                         self.lenient("N51", at, "`int(s)` normalized to `std.text.int_of(s)`");
