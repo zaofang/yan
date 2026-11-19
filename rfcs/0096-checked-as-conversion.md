@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: #1747 (R567 hard rerun 2026-11-19, `hard_rotl8`, `hard_bit_parity`), #1765 (habit hints; "yag has no checked narrowing" left for a decision)
-- Rows: pending
+- Rows: R1112
 
 ## Summary
 
@@ -22,7 +22,7 @@ Options:
 Recommended: A. One fact, one representation (practice 12): the checked conversion keeps one implementation, reached by `as` in Yan and by `checked_as[T]` in Yan Agent, and the three policies sit side by side with the same call shape.
 
 - Decision: accepted as recommended: A, `checked_as[T](x)` in both surfaces (lead, 2026-11-19)
-- Row:
+- Row: R1112
 
 ### D2: failure mode and semantics
 
@@ -36,7 +36,7 @@ Options:
 Recommended: A for `checked_as`. Tension recorded openly: `checked_*` arithmetic returns `Option`, `checked_as` traps. The name follows the conversion family (spec 3.4, `as` "is checked"), not the arithmetic one. The failable form is D3.
 
 - Decision: accepted as recommended: A, panic with kind `overflow` (lead, 2026-11-19)
-- Row:
+- Row: R1112
 
 ### D3: the failable conversion, deferred
 

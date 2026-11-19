@@ -2230,3 +2230,8 @@ sections = "17.3"
 rows = "R1111"
 topic = "Every blocking std operation (`recv`, `send`, `sleep`, `sleep_until`, `Atomic.wait`, `select_wait`) declares `fail Cancelled | Timeout`, so a backend that lacks deadline scopes is still typed the same; `?` on such a call in a function whose fail type lacks a member is W863 (RFC 0093 D2, S2a of #1703)"
 sections = "9.4, 17.3"
+
+[[entry]]
+rows = "R1112"
+topic = "`checked_as[T](x)` is `x as T` as a call: the value unchanged when it fits `T`, else a panic with kind `overflow`; source and target any integer of at most 64 bits, widening never fails (RFC 0096 D1, D2, #1768)"
+sections = "3.4, 14.1"
