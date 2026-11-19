@@ -117,3 +117,4 @@ conformance case in the same PR set.
 | [0091](0091-w806-validity-guards.md) | W806 flags a validity guard only when removing it changes the `ex` result | accepted | pending |
 | [0092](0092-try-on-reified-result.md) | `?` on a reified `Result` value | draft | |
 | [0093](0093-wait-on-workers-deadlines-and-variant-paths.md) | `Atomic.wait` on pool workers, native deadline scopes and `Type.Variant()` paths | draft | |
+| [0094](0094-chan-constructor-spelling.md) | Channel constructor spelling and the near-miss diagnostic | draft | |
