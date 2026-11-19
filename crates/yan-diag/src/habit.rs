@@ -100,6 +100,41 @@ const TABLE: &[Habit] = &[
     Habit {
         ext: "yag",
         lang: "python",
+        codes: &["E301"],
+        on: |l| l.trim_start().starts_with("ex "),
+        text: "an `ex` line binds no capability, so it cannot call a function that declares \
+               `uses`: give that function `pre` and `post` lines and no `ex`; tests you do not see \
+               cover its behaviour",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E315"],
+        on: |l| l.contains('[') && l.contains(" for ") && l.contains(" in "),
+        text: "Python raises a callee's error from a comprehension implicitly; Yan Agent does not. \
+               Write `[f(x)? for x in xs]` (this function must declare the same `fail E`, and the \
+               lowest index fails first), or `[f(x) else v for x in xs]` to substitute a value",
+    },
+    Habit {
+        ext: "yn",
+        lang: "python",
+        codes: &["E201", "E315", "E709"],
+        on: |l| l.contains(".try_send("),
+        text: "`try_send` returns no bool: it fails `Full` and needs `uses nondet`. Write \
+               `tx.try_send(x) else _ -> stop` as a statement, where `stop` is what to do when \
+               the channel is full",
+    },
+    Habit {
+        ext: "yn",
+        lang: "python",
+        codes: &["E017"],
+        on: |l| l.trim_start().starts_with("par for "),
+        text: "a `par for` takes a binding for now: write `let ys = par for x in xs` with the body \
+               indented under it as an expression; results come back in input order",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
         codes: &["E315"],
         on: |_| true,
         text: "Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to \
@@ -258,6 +293,23 @@ mod selftest {
         assert!(t(0).contains("no trailing `:`"));
         assert!(t(1).contains("append"));
         assert!(t(2).contains("check(x)?"));
+    }
+
+    #[test]
+    fn r567_hard_gap_hints() {
+        let src = "    ex f(1) == 2\n    return [check(x) for x in xs]\n    if tx.try_send(x)\n  par for x in xs:\n";
+        let mut ds = vec![
+            diag("E301", "a.yag", 1),
+            diag("E315", "a.yag", 2),
+            diag("E201", "a.yn", 3),
+            diag("E017", "a.yn", 4),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("binds no capability"));
+        assert!(t(1).contains("[f(x)? for x in xs]"));
+        assert!(t(2).contains("try_send"));
+        assert!(t(3).contains("let ys = par for"));
     }
 
     #[test]

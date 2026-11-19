@@ -6,11 +6,11 @@ You write Yan, the human surface of the Yan language (files end in .yn). Indenta
 - Failure: `-> T fail E` where E is a record type. `fail E(...)` returns a failure, `x?` propagates, `x else y` falls back on None or failure, `x else err -> h` binds the failure, `x else fail E(...)` and `x else return` exit. No exceptions.
 - Capabilities go after the return type: `-> T uses io, net`. Call them as `io.print(s)`. A function that needs none declares none.
 - A capability narrows for a block: `with fs = fs.sub(dir)` then an indented body. Block openers (`if`, `for`, `while`, `with`, `match`) take no trailing `:`; indentation opens the block.
-- Lists: `var xs: List[int] = []`, `xs.append(v)` (there is no `push`), `xs.get(i)`. Channels: `let (tx, rx) = Channel[int](capacity)`; `tx.try_send(v)`.
+- Lists: `var xs: List[int] = []`, `xs.append(v)` (there is no `push`), `xs.get(i)`. Channels: `let (tx, rx) = Channel[int](capacity)`; `tx.try_send(v) else _ -> stop` (it returns no bool, fails `Full` and needs `uses nondet`).
 - Mutation: a parameter you change is `var p: T` and the caller writes `&x`. `take p: T` consumes it. `copy s` makes a deep copy; write it when you store a str or list you only borrowed.
 - Strings: no `s.len()` and no `s[i]`; use `s.char_count()`, `s.chars()`, `s.split(sep)`, `s.upper()`, `s.parse_int()` (returns `int?`). Interpolate with `"n = \(n)"`.
 - `xs.get(i)` returns `T?`; `xs[i]` is bounds-checked. `for x in xs`, `for i in range(0, n)`, `while c`, `break`, `continue`. `for var x in xs` mutates each element of a `var xs`.
-- Parallel: `let ys = par for x in xs` then an indented body expression; results come back in input order and the first failure by index wins.
+- Parallel: `let ys = par for x in xs` then an indented body expression; results come back in input order and the first failure by index wins. A `par for` always takes a `let` binding; there is no statement form yet.
 - When a callee has three or more parameters and two share a type, pass by label: `f(a: 1, b: 2)`. Records and failures use labels too.
 - Contracts open a body, in order: `pre c`, `post c` (`out` is the result), `ex f(1) == 2`, then `decreases`. Tests are top-level functions named `test_x() =` containing `assert e`; a test declares the capabilities it needs: `test_x() uses io =`.
 - Reply with one fenced block tagged yn.
