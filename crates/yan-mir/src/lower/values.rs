@@ -312,21 +312,26 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("a channel operation without its failure");
         };
         let e = &efs[0].1;
-        let err = match e {
-            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Vec::new(),
-            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
-                Self::variant_value(e, "Cancelled", Vec::new())
-            }
-            _ => return unsupported("a channel failure without `Cancelled`"),
-        };
-        let err = Self::variant_value(&dst.shape, "Err", err);
-        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(2)]);
-        let (c, o) = self.branch(cancelled);
         let join = self.block_new();
-        self.cur = c;
-        self.copy_to(&dst.locals, err);
-        self.goto(join);
-        self.cur = o;
+        for (name, status) in [("Cancelled", 2), ("Timeout", 5)] {
+            let v = match e {
+                Shape::Rec(n, fs) if n == name && fs.is_empty() => Vec::new(),
+                Shape::Sum(_, _) if e.variant(name).is_some() => {
+                    Self::variant_value(e, name, Vec::new())
+                }
+                _ if name == "Cancelled" => {
+                    return unsupported("a channel failure without `Cancelled`");
+                }
+                _ => continue,
+            };
+            let err = Self::variant_value(&dst.shape, "Err", v);
+            let hit = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(status)]);
+            let (c, o) = self.branch(hit);
+            self.cur = c;
+            self.copy_to(&dst.locals, err);
+            self.goto(join);
+            self.cur = o;
+        }
         if closed {
             let Some((_, _, ofs)) = dst.shape.variant("Ok") else {
                 return unsupported("a receive without its value");
@@ -736,7 +741,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                         ("None".into(), vec![]),
                     ],
                 );
-                result(option, cancelled())
+                result(option, failure_union(&["Cancelled", "Timeout"]))
             }),
             Some(id::STD_PRELUDE_SELECT_WAIT) => Some(result(
                 Shape::Scalar(I64),
@@ -762,12 +767,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 _ => None,
             },
-            Some(
-                id::STD_CHAN_SENDER_SEND
-                | id::STD_SYNC_ATOMIC_WAIT
-                | id::STD_TIME_SLEEP
-                | id::STD_TIME_SLEEP_UNTIL,
-            ) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            Some(id::STD_CHAN_SENDER_SEND) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
+            Some(id::STD_SYNC_ATOMIC_WAIT | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
+                Some(result(Shape::Scalar(Ty::Unit), cancelled()))
+            }
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {
                 Some(y::TArg::Type(f)) => Some(result(Shape::Scalar(Ty::Unit), self.shape(f)?)),
                 _ => None,
