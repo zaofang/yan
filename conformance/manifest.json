@@ -2167,6 +2167,25 @@
    ]
   },
   {
+   "path": "yag/fail/lenient/e200_queue_channel_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 9
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lenient/e200_type_hint.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -11186,6 +11205,25 @@
      "code": "E307",
      "line": 7,
      "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/concurrency/e200_chan_near_miss.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 18
     }
    ]
   },

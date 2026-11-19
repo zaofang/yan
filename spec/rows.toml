@@ -2210,3 +2210,8 @@ sections = "14.1"
 rows = "R1107"
 topic = "`x?` where `x` is neither a fallible call nor a `Result` value is E201 naming the type, not E017 (RFC 0092 D2, S1 of #1727)"
 sections = "14.1, 25"
+
+[[entry]]
+rows = "R1108"
+topic = "A channel constructor habit (`Chan`, `chan`, `channel`, `make_chan`, `Queue`, `queue.Queue`, `asyncio.Queue`, `sync.Channel`, `nondet.channel`) that names nothing in scope is one E200 naming `Channel[T](capacity)`, with no E017 before it (RFC 0094)"
+sections = "9.5"
