@@ -1,0 +1,33 @@
+# spec: 15.3
+# rows: R1108
+# note: T.V names a variant in an expression, a pattern and an argument, including a variant name that two sums share
+# stdout:
+# 15
+# 25
+# 5
+
+type Shape = Circle(r: int) | Square(s: int)
+
+type Tri = Square(s: int) | Tri(a: int)
+
+def area(s: Shape) -> int:
+    match s:
+        case Shape.Circle(r):
+            return r * 3
+        case Shape.Square(w):
+            return w * w
+
+def tri(t: Tri) -> int:
+    match t:
+        case Tri.Square(w):
+            return w
+        case Tri.Tri(a):
+            return a
+
+def main() uses io:
+    a = Shape.Circle(2)
+    b = Shape.Square(3)
+    c = Tri.Square(4)
+    io.print(area(a) + area(b))
+    io.print(area(Shape.Square(5)))
+    io.print(tri(c) + tri(Tri.Tri(1)))

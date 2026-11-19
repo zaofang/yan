@@ -1,0 +1,27 @@
+-- spec: 15.3
+-- rows: R1108
+-- note: T.V names a variant in an expression, a pattern and an argument, including a variant name that two sums share
+-- stdout:
+-- 15
+-- 25
+-- 5
+
+type Shape = Circle(r: int) | Square(s: int)
+
+type Tri = Square(s: int) | Tri(a: int)
+
+area(s: Shape) -> int =
+  match s
+    Shape.Circle(r) -> r * 3
+    Shape.Square(w) -> w * w
+
+tri(t: Tri) -> int =
+  match t
+    Tri.Square(w) -> w
+    Tri.Tri(a) -> a
+
+main() uses io =
+  let b = Shape.Square(3)
+  io.print("\(area(b) + area(Shape.Circle(2)))")
+  io.print("\(area(Shape.Square(5)))")
+  io.print("\(tri(Tri.Square(4)) + tri(Tri.Tri(1)))")

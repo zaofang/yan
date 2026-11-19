@@ -7785,6 +7785,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/match/qualified_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/match/qualified_variant_pattern.yag",
    "kind": "run",
    "milestone": "M1",
@@ -14100,6 +14115,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/qualified_variant.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
    "exit": 0
   },
   {
