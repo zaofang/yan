@@ -47,4 +47,7 @@ Natively a type is expanded inline at every use and its drop and copy glue with 
 10 GB to build, the pooled one 1.1 GB. Struct values are moved out of a `let` parameter or a field only after a
 `.copy()`: the compiler does not reject the move and the native binary frees twice.
 
-The printer follows as slice 3.
+Slice 3, `core_print.yn` (printer) and `core_print_main.yn`: the canonical printer of `printer.rs`. `core_print_check.sh`
+compares the printed text of every file the parser check covers, on interpreter and native, with
+`crates/yan-core/examples/print_dump.rs` (the Rust printer), byte for byte, and requires `live: 0`. A `diag` line
+(code, line, column) precedes the text of a file that has parse diagnostics.
