@@ -368,7 +368,7 @@ def run_one(task: taskset.Task, arm: str, a: argparse.Namespace) -> dict:
     rec.update(
         schema=SCHEMA, task=task.id, suite=task.suite, arm=arm, model=a.model, shots=a.shots,
         decoding=a.decoding, tokenizer=TOKENIZER, impossible=task.impossible,
-        category=task.category, primer=(a.primer_yn if arm == "yn" else a.primer).name,
+        category=task.category, first_draft=first, primer=(a.primer_yn if arm == "yn" else a.primer).name,
         cases=task.n_tests,
         hidden_first=hid(first) if first else None,
         hidden_final=hid(rec["final"]) if rec.get("final") else None,
