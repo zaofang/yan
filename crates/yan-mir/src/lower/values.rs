@@ -788,6 +788,11 @@ impl<'a, 'm> Fn<'a, 'm> {
         if e == f {
             return Ok(ev);
         }
+        if let (Shape::Sum(en, evs), Shape::Rec(fname, _)) = (e, f)
+            && en == "Union"
+        {
+            return self.narrow_err(ev, evs, fname, f);
+        }
         let Shape::Sum(fu, fvs) = f else {
             return unsupported("`?` across error types");
         };
@@ -818,7 +823,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         let join = self.block_new();
         for (tag, name, payload) in members {
             if f.variant(&name).is_none() {
-                return unsupported("`?` across error types");
+                // W863: the failure is not in the declared fail type; it cannot propagate.
+                let Some(t) = tag else {
+                    return unsupported("`?` across error types");
+                };
+                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(t)]);
+                let (this, next) = self.branch(is);
+                self.cur = this;
+                self.finish(Term::Panic("a failure outside the declared fail type"));
+                self.cur = next;
+                continue;
             }
             let next = match tag {
                 Some(t) => {
@@ -842,6 +856,36 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.cur = join;
         Ok(Self::ops(&out))
+    }
+
+    /// The failure `ev` of the union `evs` as the single failure type `f` named `fname`: its
+    /// member of that name, and a panic for any other member (W863).
+    fn narrow_err(
+        &mut self,
+        ev: Vec<Operand>,
+        evs: &[(String, Vec<(String, Shape)>)],
+        fname: &str,
+        f: &Shape,
+    ) -> R<Vec<Operand>> {
+        let Some(tag) = evs.iter().position(|(n, _)| n == fname) else {
+            return unsupported("`?` across error types");
+        };
+        let at = 1 + evs[..tag]
+            .iter()
+            .flat_map(|(_, fs)| fs)
+            .map(|(_, s)| s.width())
+            .sum::<usize>();
+        let w = f.width();
+        let is = self.scalar_op(
+            ScalarOp::Eq,
+            I64,
+            vec![ev[0].clone(), Operand::Int(tag as i128)],
+        );
+        let (this, other) = self.branch(is);
+        self.cur = other;
+        self.finish(Term::Panic("a failure outside the declared fail type"));
+        self.cur = this;
+        Ok(ev[at..at + w].to_vec())
     }
 
     /// Lift `c` to its own function; its value is that code and a block of the captures.
