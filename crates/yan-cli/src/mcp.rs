@@ -469,6 +469,8 @@ fn spec_check(
         .into_iter()
         .filter(|d| d.code != "H701")
         .collect();
+    // The IDE annotated the augmented source, where an `ex` line reads as an `assert`.
+    yan_diag::habit::annotate(text, &mut diags);
     if diags.iter().any(|d| d.severity == Severity::Error) {
         return Ok(diags);
     }
