@@ -1,0 +1,263 @@
+--- S0 Yan Core reader, slice 1 (#1505): the lexer of crates/yan-core/src/lexer.rs, ported.
+--- Prints the token stream of each file named on the command line in the format of
+--- crates/yan-core/examples/lex_dump.rs. Positions are bytes, as in Rust; the source is read as chars.
+
+main() uses io, fs, env =
+  for path in env.args()
+    io.print("file \(path)")
+    let src = fs.read(path) else ""
+    let l = lex(src) else e ->
+      io.print("error \(e.code) \(span(line: e.line, col: e.col, end_line: e.end_line, end_col: e.end_col, start: e.start, end: e.end)) \(e.message)")
+      continue
+    for h in l.header
+      io.print("header \(esc(h))")
+    for t in l.tokens
+      io.print("\(t.kind) \"\(esc(t.text))\" \(span(line: t.line, col: t.col, end_line: t.end_line, end_col: t.end_col, start: t.start, end: t.end))")
+
+type Token = { kind: str, text: str, line: int, col: int, end_line: int, end_col: int, start: int, end: int }
+
+type LexError = { code: str, message: str, line: int, col: int, end_line: int, end_col: int, start: int, end: int }
+
+type Lexed = { header: List[str], tokens: List[Token] }
+
+type Cursor = { cs: List[char], pos: int, byte: int, line: int, col: int }
+
+puncts() -> List[str] uses none =
+  ["...", "..=", "..", "->", "=>", "<=", "(", ")", "[", "]", "{", "}", ",", ":", ".", "=", "?", "@", "|", "+"]
+
+is_alpha(c: char) -> bool uses none =
+  let o = ord(c)
+  (o >= 65 and o <= 90) or (o >= 97 and o <= 122)
+
+is_digit(c: char) -> bool uses none =
+  let o = ord(c)
+  o >= 48 and o <= 57
+
+is_hex(c: char) -> bool uses none =
+  let o = ord(c)
+  is_digit(c) or (o >= 97 and o <= 102) or (o >= 65 and o <= 70)
+
+is_name_start(c: char) -> bool uses none = is_alpha(c) or c == "_"
+
+is_name_char(c: char) -> bool uses none = is_alpha(c) or is_digit(c) or c == "_"
+
+utf8_len(c: char) -> int uses none =
+  let o = ord(c)
+  if o < 128
+    return 1
+  if o < 2048
+    return 2
+  if o < 65536
+    return 3
+  4
+
+has(cur: Cursor, k: int) -> bool uses none = cur.pos + k < len(cur.cs)
+
+at(cur: Cursor, k: int) -> char uses none = cur.cs[cur.pos + k].copy()
+
+is_at(cur: Cursor, k: int, c: char) -> bool uses none = has(cur, k) and at(cur, k) == c
+
+skip(var cur: Cursor) uses none =
+  let c = at(cur, 0)
+  cur.pos += 1
+  if c == "\n"
+    cur.line += 1
+    cur.col = 1
+    cur.byte += 1
+  else
+    cur.col += utf8_len(c)
+    cur.byte += utf8_len(c)
+
+bump(var cur: Cursor) -> char uses none =
+  let c = at(cur, 0)
+  skip(&cur)
+  c
+
+slice(cs: List[char], from: int, to: int) -> str uses none =
+  var out = ""
+  for i in range(from, to)
+    out = out + cs[i].to_str()
+  out
+
+starts_with(cur: Cursor, p: str) -> bool uses none =
+  let pc: List[char] = p.chars().collect()
+  for i in range(len(pc))
+    if not is_at(cur, i, pc[i].copy())
+      return False
+  True
+
+lex_error(cur: Cursor, line: int, col: int, start: int, c: char, code: str, message: str) -> LexError uses none =
+  LexError(code: code, message: message, line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: max(cur.byte, start + utf8_len(c)))
+
+--- Returns the char of an escape, whose backslash is already consumed.
+escape(var cur: Cursor) -> char fail str =
+  if not has(cur, 0)
+    fail "unclosed escape"
+  let c = bump(&cur)
+  if c == "n"
+    return "\n"
+  if c == "r"
+    return "\r"
+  if c == "t"
+    return "\t"
+  if c == "0"
+    return chr(0) else fail "unclosed escape"
+  if c == "\\" or c == "\"" or c == "'"
+    return c
+  if c == "u" and is_at(cur, 0, "{")
+    skip(&cur)
+    let from_pos = cur.pos
+    while has(cur, 0) and is_hex(at(cur, 0))
+      skip(&cur)
+    let hex = slice(cur.cs, from: from_pos, to: cur.pos)
+    if not has(cur, 0) or bump(&cur) != "}"
+      fail "expected `}` after a \\u escape"
+    var n = 0
+    for h in hex.chars()
+      n = n * 16 + hex_value(h)
+      if n > 1114111
+        fail "`\\u{\(hex)}` is not a Unicode scalar value"
+    if hex == ""
+      fail "`\\u{\(hex)}` is not a Unicode scalar value"
+    return chr(n) else fail "`\\u{\(hex)}` is not a Unicode scalar value"
+  fail "unknown escape `\\\(c)`"
+
+hex_value(c: char) -> int uses none =
+  let o = ord(c)
+  if o >= 97
+    return o - 87
+  if o >= 65
+    return o - 55
+  o - 48
+
+--- Lexes a number whose first char is a digit, or `-` followed by a digit.
+number(var cur: Cursor) -> Token uses none =
+  let start = cur.pos
+  let (line, col, sbyte) = (cur.line, cur.col, cur.byte)
+  if at(cur, 0) == "-"
+    skip(&cur)
+  var float = False
+  if at(cur, 0) == "0" and has(cur, 1) and (at(cur, 1) == "x" or at(cur, 1) == "o" or at(cur, 1) == "b")
+    skip(&cur)
+    skip(&cur)
+    while has(cur, 0) and (is_hex(at(cur, 0)) or at(cur, 0) == "_")
+      skip(&cur)
+  else
+    while has(cur, 0) and (is_digit(at(cur, 0)) or at(cur, 0) == "_")
+      skip(&cur)
+    if is_at(cur, 0, ".") and has(cur, 1) and is_digit(at(cur, 1))
+      float = True
+      skip(&cur)
+      while has(cur, 0) and (is_digit(at(cur, 0)) or at(cur, 0) == "_")
+        skip(&cur)
+    if is_at(cur, 0, "e") or is_at(cur, 0, "E")
+      let signed = is_at(cur, 1, "+") or is_at(cur, 1, "-")
+      let k = 1 + (if signed then 1 else 0)
+      if has(cur, k) and is_digit(at(cur, k))
+        float = True
+        skip(&cur)
+        if signed
+          skip(&cur)
+        while has(cur, 0) and (is_digit(at(cur, 0)) or at(cur, 0) == "_")
+          skip(&cur)
+  let kind = if float then "float" else "int"
+  Token(kind: kind, text: slice(cur.cs, from: start, to: cur.pos), line: line, col: col, end_line: cur.line, end_col: cur.col, start: sbyte, end: cur.byte)
+
+lex(src: str) -> Lexed fail LexError =
+  var cur = Cursor(cs: src.chars().collect(), pos: 0, byte: 0, line: 1, col: 1)
+  var header: List[str] = []
+  var tokens: List[Token] = []
+  loop
+    while has(cur, 0) and at(cur, 0).is_space()
+      skip(&cur)
+    let (line, col, start, from) = (cur.line, cur.col, cur.byte, cur.pos)
+    if not has(cur, 0)
+      tokens.append(Token(kind: "eof", text: "", line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: start))
+      return Lexed(header: header, tokens: tokens)
+    let c = at(cur, 0)
+    if c == "-" and is_at(cur, 1, "-")
+      while has(cur, 0) and at(cur, 0) != "\n"
+        skip(&cur)
+      if len(tokens) == 0
+        header.append(slice(cur.cs, from: from, to: cur.pos).rstrip())
+      continue
+    if is_name_start(c)
+      while has(cur, 0) and is_name_char(at(cur, 0))
+        skip(&cur)
+      tokens.append(Token(kind: "name", text: slice(cur.cs, from: from, to: cur.pos), line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+      continue
+    if is_digit(c) or (c == "-" and has(cur, 1) and is_digit(at(cur, 1)))
+      tokens.append(number(&cur))
+      continue
+    if c == "\""
+      skip(&cur)
+      var s = ""
+      loop
+        if not has(cur, 0)
+          fail lex_error(cur, line, col, start, c, "E102", message: "unclosed string")
+        let ch = bump(&cur)
+        if ch == "\n"
+          fail lex_error(cur, line, col, start, c, "E102", message: "unclosed string")
+        if ch == "\""
+          break
+        if ch == "\\"
+          let e = escape(&cur) else err ->
+            fail lex_error(cur, line, col, start, c, "E100", message: err)
+          s = s + e.to_str()
+        else
+          s = s + ch.to_str()
+      tokens.append(Token(kind: "str", text: s, line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+      continue
+    if c == "'"
+      skip(&cur)
+      if is_at(cur, 0, "\\")
+        skip(&cur)
+        let e = escape(&cur) else err ->
+          fail lex_error(cur, line, col, start, c, "E100", message: err)
+        if not has(cur, 0) or bump(&cur) != "'"
+          fail lex_error(cur, line, col, start, c, "E102", message: "unclosed character literal")
+        tokens.append(Token(kind: "char", text: e.to_str(), line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+      else if has(cur, 0) and is_at(cur, 1, "'")
+        let ch = bump(&cur)
+        skip(&cur)
+        tokens.append(Token(kind: "char", text: ch.to_str(), line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+      else if has(cur, 0) and is_name_start(at(cur, 0))
+        let from_pos = cur.pos
+        while has(cur, 0) and is_name_char(at(cur, 0))
+          skip(&cur)
+        tokens.append(Token(kind: "label", text: slice(cur.cs, from: from_pos, to: cur.pos), line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+      else
+        fail lex_error(cur, line, col, start, c, "E100", message: "expected a label or a character literal")
+      continue
+    var matched = ""
+    for p in puncts()
+      if matched == "" and starts_with(cur, p)
+        matched = p.copy()
+    if matched == ""
+      skip(&cur)
+      fail lex_error(cur, line, col, start, c, "E100", message: "unexpected character `\(c)`")
+    for _ in range(matched.char_count())
+      skip(&cur)
+    tokens.append(Token(kind: "punct", text: matched, line: line, col: col, end_line: cur.line, end_col: cur.col, start: start, end: cur.byte))
+
+esc(s: str) -> str uses none =
+  var out = ""
+  for c in s.chars()
+    if c == "\\"
+      out = out + "\\\\"
+    else if c == "\""
+      out = out + "\\\""
+    else if c == "\n"
+      out = out + "\\n"
+    else if c == "\r"
+      out = out + "\\r"
+    else if c == "\t"
+      out = out + "\\t"
+    else if ord(c) == 0
+      out = out + "\\0"
+    else
+      out = out + c.to_str()
+  out
+
+span(line: int, col: int, end_line: int, end_col: int, start: int, end: int) -> str uses none =
+  "\(line):\(col)-\(end_line):\(end_col) \(start)..\(end)"

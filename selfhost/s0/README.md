@@ -26,5 +26,11 @@ Each program runs on interpreter and native with identical output and `live: 0`.
 | 4 char classification, string building | `text.yn` |
 | 5 `Result` through layers, `inout` sink; 6 traits, closures, constants | `layers.yn` |
 
-Not yet doable (reported on #1505): `Set` and generic sums native, `Bytes` iteration, `fs.list_dir` in `.yn`,
-and the Yan Core reader itself.
+`Set`, generic sums, `Bytes` iteration, `u8` to `int` and `fs.list_dir` now work on both backends (rechecked 2026-11-19).
+
+## Yan Core reader (#1505)
+
+Slice 1, `core_lex.yn`: the lexer of `yan-core`, token for token, positions in bytes. `core_lex_check.sh` compares its
+output on interpreter and native with `crates/yan-core/examples/lex_dump.rs` over `conformance/yir` and `lex_edge/`.
+Parser and printer follow in slices 2 and 3. `main` is declared first in the file: see the order-dependent native
+failure filed under #449.
