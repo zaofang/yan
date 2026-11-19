@@ -51,3 +51,10 @@ Slice 3, `core_print.yn` (printer) and `core_print_main.yn`: the canonical print
 compares the printed text of every file the parser check covers, on interpreter and native, with
 `crates/yan-core/examples/print_dump.rs` (the Rust printer), byte for byte, and requires `live: 0`. A `diag` line
 (code, line, column) precedes the text of a file that has parse diagnostics.
+
+Slice 4, `core_main.yn` (driver): each argument is a `.yir` file or a directory, walked with `fs.list_dir` (sorted by entry
+name). Every file is read with `fs`, lexed, parsed and printed in the `print_dump.rs` format, then the printed text is
+parsed and printed again; a file whose second print differs, or whose printed text has diagnostics, fails the run with
+the list of files. `core_main_check.sh` runs it over `conformance/yir`, `lex_edge/` and `parse_edge/` (75 files) on
+interpreter and native, requires `live: 0` and a clean round trip, and compares the output byte for byte with the Rust
+printer on the same file list. `io.eprint` is E017 in `.yn`, so failures are reported through the failing `main`.
