@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2715,
+   "reasoning": 1832,
+   "out_bytes": 2010
+  },
+  "body": {
+   "in": 2132,
+   "out": 1836,
+   "reasoning": 802,
+   "out_bytes": 2429
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR: Path = Path(\"notes\")\n\n\ndef _resolve_inside(path: str) -> Path | None:\n    \"\"\"Return the resolved file path under NOTES_DIR, or None if it would leave NOTES_DIR.\"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        candidate = (base / path).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file at `path` inside NOTES_DIR.\n\n    Returns \"\" when the file is missing, unreadable, or the path resolves\n    outside NOTES_DIR (via \"..\", an absolute path, or a symlink).\n    \"\"\"\n    target = _resolve_inside(path)\n    if target is None:\n        return \"\"\n    try:\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\n@pytest.fixture\ndef layout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Chdir into tmp_path with notes/a.txt, notes/sub/, and a secret outside notes.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(layout: Path) -> None:\n    assert read_public(\"a.txt\") == \"alpha\"\n\n\ndef test_nested_path_that_returns_inside_notes(layout: Path) -> None:\n    assert read_public(\"sub/../a.txt\") == \"alpha\"\n\n\ndef test_missing_file_gives_empty_string(layout: Path) -> None:\n    assert read_public(\"missing.txt\") == \"\"\n\n\ndef test_directory_gives_empty_string(layout: Path) -> None:\n    assert read_public(\"sub\") == \"\"\n\n\ndef test_parent_traversal_is_blocked(layout: Path) -> None:\n    assert read_public(\"..\") == \"\"\n    assert read_public(\"../secret.txt\") == \"\"\n\n\ndef test_deep_traversal_is_blocked(layout: Path) -> None:\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_is_blocked(layout: Path) -> None:\n    assert read_public(str(layout / \"secret.txt\")) == \"\"\n\n\ndef test_symlink_pointing_outside_is_blocked(layout: Path) -> None:\n    (layout / \"notes\" / \"link.txt\").symlink_to(layout / \"secret.txt\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_null_byte_in_name_is_blocked(layout: Path) -> None:\n    assert read_public(\"a.txt\\x00\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2715,
+    "reasoning": 1832
+   },
+   "out_bytes": 2010,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2132,
+    "out": 1836,
+    "reasoning": 802
+   },
+   "out_bytes": 2429,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

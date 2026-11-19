@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1439,
+   "out": 1410,
+   "reasoning": 1170,
+   "out_bytes": 491
+  },
+  "body": {
+   "in": 1752,
+   "out": 1376,
+   "reasoning": 967,
+   "out_bytes": 774
+  }
+ },
+ "final": "-- Spec helper: the pure meaning of swapping the ends of a list.\nfirst_last_swapped(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex first_last_swapped([1, 2, 3]) == [3, 2, 1]\n  ex first_last_swapped([5, 9]) == [9, 5]\n  ex first_last_swapped([7]) == [7]\n  ex first_last_swapped([]) == []\n  if xs.len() < 2\n    return copy xs\n  var ys = copy xs\n  swap_ends(&ys)\n  ys\n\n-- Swaps the first and last elements of xs in place.\n-- Empty and one-element lists are unchanged.\nswap_ends(var xs: List[int]) =\n  pre xs.len() >= 0\n  if xs.len() < 2\n    return\n  let last = xs.len() - 1\n  let t = xs[0]\n  xs[0] = xs[last]\n  xs[last] = t\n\ntest_swap_ends() =\n  var a = [1, 2, 3]\n  swap_ends(&a)\n  assert a == [3, 2, 1]\n  var b = [7]\n  swap_ends(&b)\n  assert b == [7]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1439,
+    "out": 1410,
+    "reasoning": 1170
+   },
+   "out_bytes": 491,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1752,
+    "out": 1376,
+    "reasoning": 967
+   },
+   "out_bytes": 774,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

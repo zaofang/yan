@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1615,
+   "out": 1151,
+   "reasoning": 864,
+   "out_bytes": 655
+  },
+  "body": {
+   "in": 4454,
+   "out": 2430,
+   "reasoning": 1555,
+   "out_bytes": 2043
+  }
+ },
+ "final": "-- True when the path stays inside the notes directory:\n-- no \"..\", no absolute path, nothing that climbs out.\nsafe_path(path: str) -> bool =\n  pre path.char_count() >= 0\n  ex safe_path(\"a.txt\") == True\n  ex safe_path(\"sub/../a.txt\") == True\n  ex safe_path(\"../x.txt\") == False\n  ex safe_path(\"/etc/passwd\") == False\n  ex safe_path(\"sub/../../x\") == False\n  var depth = 0\n  let parts = path.split(\"/\")\n  for i in range(0, parts.len())\n    let p = parts[i]\n    if i == 0 and p == \"\"\n      return False\n    if p == \"\" or p == \".\"\n      continue\n    if p == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    else\n      depth += 1\n  True\n\n-- Text of notes/path, or \"\" when the path escapes notes or the file\n-- is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  post safe_path(path) or out == \"\"\n  ex read_public(\"missing-file-xyz.txt\") == \"\"\n  ex read_public(\"../secret.txt\") == \"\"\n  if not safe_path(path)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(path) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 1151,
+    "reasoning": 864
+   },
+   "out_bytes": 655,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1975,
+    "out": 1724,
+    "reasoning": 1286
+   },
+   "out_bytes": 1022,
+   "ok": false,
+   "report": "E100 task.yn:34:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2479,
+    "out": 706,
+    "reasoning": 269
+   },
+   "out_bytes": 1021,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:34:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

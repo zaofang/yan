@@ -1,0 +1,126 @@
+{
+ "final": "def settings(keys: list[str], values: list[str]) -> list[str]:\n    \"\"\"Overlay keys[i] = values[i] on the defaults mode=fast and level=3. Return mode, level, then the other keys' values in the order given.\"\"\"\n    pre keys.len() == values.len()\n    post out.len() >= 2\n    ex settings(keys=[], values=[]) == [\"fast\", \"3\"]\n    ex settings(keys=[\"mode\", \"color\"], values=[\"slow\", \"red\"]) == [\"slow\", \"3\", \"red\"]\n    ex settings(keys=[\"level\", \"level\"], values=[\"1\", \"2\"]) == [\"fast\", \"2\"]\n    out_map: dict[str, str] = {\"mode\": \"fast\", \"level\": \"3\"}\n    for i in range(keys.len()):\n        out_map[keys[i]] = values[i]\n    mode = out_map.get(\"mode\") else \"fast\"\n    level = out_map.get(\"level\") else \"3\"\n    result: list[str] = [mode, level]\n    seen: dict[str, bool] = {}\n    for k in keys:\n        if k != \"mode\" and k != \"level\" and k not in seen:\n            seen[k] = True\n            result.append(out_map.get(k) else \"\")\n    return result\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2082,
+    "out": 1273,
+    "reasoning": 1053
+   },
+   "out_bytes": 503
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpe7qcw2b6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpe7qcw2b6/work/task.yag:14:17 task.settings: `in out_map.` `_t22` is used after `_t22._1` was moved out of it | moved at 16:13",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E401"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2400,
+    "out": 1088,
+    "reasoning": 722
+   },
+   "out_bytes": 869
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2922,
+    "out": 1107,
+    "reasoning": 705
+   },
+   "out_bytes": 952
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/tempt_merge_defaults",
+ "tokens": {
+  "body": {
+   "in": 5322,
+   "out": 2195,
+   "reasoning": 1427,
+   "out_bytes": 1821
+  },
+  "spec": {
+   "in": 2082,
+   "out": 1273,
+   "reasoning": 1053,
+   "out_bytes": 503
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E401",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpe7qcw2b6/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpe7qcw2b6/work/task.yag:14:17 task.settings: `in out_map.` `_t22` is used after `_t22._1` was moved out of it | moved at 16:13"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E401 ./task.yag:14:17 task.settings: `in out_map.` `_t22` is used after `_t22._1` was moved out of it | moved at 16:13\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

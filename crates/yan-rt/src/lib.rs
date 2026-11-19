@@ -28,6 +28,8 @@ pub mod csv;
 #[allow(unsafe_code)]
 pub mod csvslots;
 #[allow(unsafe_code)]
+pub mod deadline;
+#[allow(unsafe_code)]
 pub mod dq;
 #[allow(unsafe_code)]
 pub mod envhandler;
@@ -36,6 +38,8 @@ pub mod ffi;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;
+#[allow(unsafe_code)]
+pub mod futex;
 #[allow(unsafe_code)]
 pub mod heap;
 pub mod json;

@@ -1,0 +1,11 @@
+# spec: 17.3
+# stdout:
+# 2 True False
+
+def main() uses io:
+    s: set[str] = set()
+    for w in ["b", "a", "b", "c"]:
+        s.add(w.copy())
+    s.discard("a")
+    s.discard("zz")
+    io.print(f"{len(s)} {'b' in s} {'a' in s}")

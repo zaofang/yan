@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1466,
+   "out": 825,
+   "reasoning": 675,
+   "out_bytes": 363
+  },
+  "body": {
+   "in": 3732,
+   "out": 1870,
+   "reasoning": 1379,
+   "out_bytes": 1217
+  }
+ },
+ "final": "-- Spec: look up `key` in `name=value` per-line config text.\n-- Absent key yields \"\". Pure: no capabilities declared.\n\nconfig_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  post out.char_count() <= text.char_count()\n  ex config_value(\"host=local\\nport=80\", \"port\") == \"80\"\n  ex config_value(\"host=local\", \"missing\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts[0] == key\n      var v = \"\"\n      var i = 0\n      for p in parts\n        if i == 1\n          v = copy p\n        else if i > 1\n          v = v + \"=\" + p\n        i += 1\n      return v\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1466,
+    "out": 825,
+    "reasoning": 675
+   },
+   "out_bytes": 363,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1689,
+    "out": 1151,
+    "reasoning": 906
+   },
+   "out_bytes": 606,
+   "ok": false,
+   "report": "E413 task.yn:16:15 config_value: `= p` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 14:7 | fix: p -> p.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2043,
+    "out": 719,
+    "reasoning": 473
+   },
+   "out_bytes": 611,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:16:15 config_value: `p` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 14:7 | fix: p -> p.copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

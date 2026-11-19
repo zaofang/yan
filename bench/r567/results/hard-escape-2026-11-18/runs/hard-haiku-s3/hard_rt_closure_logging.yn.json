@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1484,
+   "out": 1618,
+   "reasoning": 1423,
+   "out_bytes": 447
+  },
+  "body": {
+   "in": 1752,
+   "out": 553,
+   "reasoning": 352,
+   "out_bytes": 449
+  }
+ },
+ "final": "-- Spec for the wrap helper. Bodies are placeholders until Phase 2.\n\n-- A sample job the caller supplies. Its result is \"hi\".\nhello() -> str =\n  ex hello() == \"hi\"\n  \"hi\"\n\n-- Wraps the job's result as \"start:\" + result + \":end\".\n-- Uses no capabilities. Any capability the job needs is held by the caller's closure.\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(hello) == \"start:hi:end\"\n  \"start:\\(job()):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1484,
+    "out": 1618,
+    "reasoning": 1423
+   },
+   "out_bytes": 447,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1752,
+    "out": 553,
+    "reasoning": 352
+   },
+   "out_bytes": 449,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

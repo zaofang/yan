@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 1873,
+   "reasoning": 840,
+   "out_bytes": 2177
+  },
+  "body": {
+   "in": 2206,
+   "out": 1797,
+   "reasoning": 641,
+   "out_bytes": 2529
+  }
+ },
+ "final": "import os\nimport sys\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final[Path] = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of `name` inside NOTES_DIR.\n\n    `name` is untrusted. Only regular files inside NOTES_DIR are read;\n    absolute paths, `..` traversal, and symlinks that resolve outside\n    NOTES_DIR are refused. A missing, unreadable, or non-file target\n    yields an empty string.\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        target = (base / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError, UnicodeDecodeError):\n        return \"\"\n\n\ndef test_reads_file_inside_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    assert read_note(\"a.txt\") == \"hi\"\n\n\ndef test_missing_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_name_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    assert read_note(\"sub\") == \"\"\n\n\ndef test_parent_traversal_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_absolute_path_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"secret\", encoding=\"utf-8\")\n    assert read_note(str(secret.resolve())) == \"\"\n\n\n@pytest.mark.skipif(sys.platform == \"win32\", reason=\"symlinks need extra privileges on Windows\")\ndef test_symlink_escaping_notes_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"secret\", encoding=\"utf-8\")\n    os.symlink(secret, notes / \"link.txt\")\n    assert read_note(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 1873,
+    "reasoning": 840
+   },
+   "out_bytes": 2177,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2206,
+    "out": 1797,
+    "reasoning": 641
+   },
+   "out_bytes": 2529,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

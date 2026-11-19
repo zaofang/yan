@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1608,
+   "out": 635,
+   "reasoning": 510,
+   "out_bytes": 291
+  },
+  "body": {
+   "in": 1806,
+   "out": 328,
+   "reasoning": 160,
+   "out_bytes": 374
+  }
+ },
+ "final": "-- Whole years from a birth year to a given current year.\n-- The current year is a parameter, so no clock (time) capability is declared.\n\nage_at(born: int, now: int) -> int =\n  pre now >= born\n  post out >= 0\n  ex age_at(1990, 2024) == 34\n  ex age_at(2000, 2000) == 0\n  now - born\n\ntest_age_at() =\n  assert age_at(1990, 2024) == 34\n  assert age_at(2000, 2000) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1608,
+    "out": 635,
+    "reasoning": 510
+   },
+   "out_bytes": 291,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1806,
+    "out": 328,
+    "reasoning": 160
+   },
+   "out_bytes": 374,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

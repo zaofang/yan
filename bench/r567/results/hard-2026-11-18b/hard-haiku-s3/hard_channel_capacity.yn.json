@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 1521,
+   "reasoning": 1191,
+   "out_bytes": 697
+  },
+  "body": {
+   "in": 1871,
+   "out": 1166,
+   "reasoning": 750,
+   "out_bytes": 857
+  }
+ },
+ "final": "type Chan = { cap: int, len: int }\n\n-- A fresh channel holding no elements.\nmake_chan(cap: int) -> Chan =\n  pre cap >= 0\n  post out.cap == cap\n  post out.len == 0\n  ex make_chan(2).cap == 2\n  Chan(cap: cap, len: 0)\n\n-- Attempts a non-blocking send. True if accepted, False if the channel was full.\ntry_send(var ch: Chan, v: int) -> bool uses nondet =\n  pre ch.len >= 0\n  pre ch.len <= ch.cap\n  post ch.len <= ch.cap\n  if ch.len < ch.cap\n    ch.len += 1\n    True\n  else\n    False\n\n-- Sends each element of xs in order, stopping at the first refused send.\n-- Returns how many sends were accepted.\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(0, [1, 2]) == 0\n  var ch = make_chan(cap)\n  var n = 0\n  for x in xs\n    if try_send(&ch, x)\n      n += 1\n    else\n      break\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 1521,
+    "reasoning": 1191
+   },
+   "out_bytes": 697,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1871,
+    "out": 1166,
+    "reasoning": 750
+   },
+   "out_bytes": 857,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

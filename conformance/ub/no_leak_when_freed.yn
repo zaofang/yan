@@ -1,0 +1,11 @@
+-- spec: 6.9
+-- rows: R1098, R1100
+-- note: a list freed at scope end and a string literal are not leaks
+-- ub: none
+-- warn: none
+
+main() =
+  let xs = [[1], [2]]
+  let s = "literal"
+  assert xs.len() == 2
+  assert s.byte_len() == 7

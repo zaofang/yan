@@ -1,0 +1,15 @@
+-- spec: 6.6, 6.7
+-- rows: R1092, R1094
+-- note: a store re-initialises a taken place; a sibling word stays readable
+-- ub: none
+
+type Pt = { x: int, y: int }
+
+main() =
+  let xs = [Pt(x: 1, y: 2)]
+  let p = xs.as_ptr()
+  unsafe
+    let a = p.take()
+    assert a.x == 1
+    p.write(Pt(x: 3, y: 4))
+    assert p.read().y == 4

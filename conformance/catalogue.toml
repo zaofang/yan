@@ -261,6 +261,8 @@ W858 = { section = "7.7", status = "active", meaning = "relaxed float block with
 W859 = { section = "7.7", status = "active", meaning = "with fast_math: nested in a relaxed scope (R822)" }
 W860 = { section = "18.9", status = "active", meaning = "an Args:, Attributes: or Variants: entry names no parameter, field or variant (R848)" }
 W861 = { section = "18.9", status = "active", meaning = "off by default, on in yan.toml: a public parameter, field or variant without a doc (R848)" }
+W862 = { section = "6.9", status = "active", meaning = "`yan run --ub`: an allocation still live when `main` returns (R1095)" }
+W863 = { section = "9.4", status = "active", meaning = "`?` on a std blocking call whose failure `Cancelled | Timeout` is not covered by the function's fail type (R1111)" }
 
 [sections]
 "3.1" = "Kinds"

@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2718,
+   "out": 2017,
+   "reasoning": 1082,
+   "out_bytes": 2568
+  },
+  "body": {
+   "in": 2157,
+   "out": 816,
+   "reasoning": 304,
+   "out_bytes": 1431
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value bound to ``key`` in ``name=value`` config text.\n\n    ``text`` is parsed line by line. Each line binds one name to one value,\n    split on the first ``=``. Whitespace around the name and the value is\n    ignored. If ``key`` does not appear, return an empty string. This\n    function must not read files; all input comes from ``text``.\n    \"\"\"\n    for line in text.splitlines():\n        name, sep, value = line.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_config_value_returns_bound_value() -> None:\n    assert config_value(\"host=example.com\\nport=8080\", \"host\") == \"example.com\"\n    assert config_value(\"host=example.com\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_config_value_missing_key_returns_empty_string() -> None:\n    assert config_value(\"host=example.com\", \"port\") == \"\"\n\n\ndef test_config_value_empty_text_returns_empty_string() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_strips_whitespace_around_name_and_value() -> None:\n    assert config_value(\"  host  =  example.com  \", \"host\") == \"example.com\"\n\n\ndef test_config_value_splits_on_first_equals_sign() -> None:\n    assert config_value(\"expr=a=b\", \"expr\") == \"a=b\"\n\n\ndef test_config_value_does_not_match_partial_names() -> None:\n    assert config_value(\"hostname=example.com\", \"host\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1319,
+    "reasoning": 845
+   },
+   "out_bytes": 1298,
+   "ok": false,
+   "report": "test_task.py:1: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1639,
+    "out": 698,
+    "reasoning": 237
+   },
+   "out_bytes": 1270,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2157,
+    "out": 816,
+    "reasoning": 304
+   },
+   "out_bytes": 1431,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,17 @@
+--- Prints the token stream of each file named on the command line in the format of
+--- crates/yan-core/examples/lex_dump.rs. Needs core_lex.yn after it in the same program.
+
+main() uses io, fs, env =
+  for path in env.args()
+    io.print("file \(path)")
+    let src = fs.read(path) else ""
+    let l = lex(src) else e ->
+      io.print("error \(e.code) \(span(line: e.line, col: e.col, end_line: e.end_line, end_col: e.end_col, start: e.start, end: e.end)) \(e.message)")
+      continue
+    for h in l.header
+      io.print("header \(esc(h))")
+    for t in l.tokens
+      io.print("\(t.kind) \"\(esc(t.text))\" \(span(line: t.line, col: t.col, end_line: t.end_line, end_col: t.end_col, start: t.start, end: t.end))")
+
+span(line: int, col: int, end_line: int, end_col: int, start: int, end: int) -> str uses none =
+  "\(line):\(col)-\(end_line):\(end_col) \(start)..\(end)"

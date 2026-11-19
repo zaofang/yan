@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 3811,
+   "out": 1769,
+   "reasoning": 1100,
+   "out_bytes": 1591
+  },
+  "body": {
+   "in": 5572,
+   "out": 2470,
+   "reasoning": 1520,
+   "out_bytes": 2319
+  }
+ },
+ "final": "-- Names come from untrusted requests. A safe name is one plain file\n-- name: non-empty, with no path separator, no \"..\", and no leading dot.\nis_safe_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_safe_name(\"notes.txt\") == True\n  ex is_safe_name(\"../secret\") == False\n  ex is_safe_name(\"sub/a.txt\") == False\n  if name.char_count() == 0\n    return False\n  if name.split(\"/\").len() > 1\n    return False\n  if name.split(\"\\\\\").len() > 1\n    return False\n  if name.split(\"..\").len() > 1\n    return False\n  if name.split(\".\")[0] == \"\"\n    return False\n  True\n\n-- Returns the text of `notes/name`, read through a capability confined to\n-- the `notes` directory. A missing, unreadable, or unsafe name yields \"\".\nread_note(name: str) -> str uses fs =\n  post is_safe_name(name) or out == \"\"\n  ex read_note(\"no-such-file.txt\") == \"\"\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"a/../../secret\") == \"\"\n  if is_safe_name(name) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else \"\"\n    text\n\ntest_read_note_unsafe_is_empty() uses fs =\n  assert read_note(\"../secret\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1709,
+    "out": 1058,
+    "reasoning": 726
+   },
+   "out_bytes": 790,
+   "ok": false,
+   "report": "E100 task.yn:4:21 `if` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2102,
+    "out": 711,
+    "reasoning": 374
+   },
+   "out_bytes": 801,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2512,
+    "out": 1436,
+    "reasoning": 956
+   },
+   "out_bytes": 1180,
+   "ok": false,
+   "report": "E201 task.yn:19:12 is_safe_name: `= c` expected `str`, found `char`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3060,
+    "out": 1034,
+    "reasoning": 564
+   },
+   "out_bytes": 1139,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E201 task.yn:19:12 is_safe_name: `c` expected `str`, found `char`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2284,
+   "reasoning": 998,
+   "out_bytes": 2679
+  },
+  "body": {
+   "in": 2459,
+   "out": 2091,
+   "reasoning": 700,
+   "out_bytes": 2968
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside NOTES_DIR.\n\n    NOTES_DIR is relative to the current working directory. `name` is\n    untrusted: only regular files that resolve to a location inside\n    NOTES_DIR are read. A missing, unreadable, non-file, or outside-directory\n    name yields \"\".\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        target = (base / name).resolve()\n        if not target.is_relative_to(base) or not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, UnicodeDecodeError):\n        return \"\"\n\n\ndef test_reads_plain_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_nested_file_inside_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    assert read_note(\"sub/b.txt\") == \"nested\"\n\n\ndef test_missing_file_gives_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_name_gives_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"dir\").mkdir(parents=True)\n    assert read_note(\"dir\") == \"\"\n\n\ndef test_parent_traversal_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_nested_traversal_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(str(secret.resolve())) == \"\"\n\n\ndef test_symlink_escaping_notes_blocked(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    (tmp_path / \"notes\" / \"link.txt\").symlink_to(secret)\n    assert read_note(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2284,
+    "reasoning": 998
+   },
+   "out_bytes": 2679,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2459,
+    "out": 2091,
+    "reasoning": 700
+   },
+   "out_bytes": 2968,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

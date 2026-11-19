@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 1168,
+   "reasoning": 948,
+   "out_bytes": 418
+  },
+  "body": {
+   "in": 3971,
+   "out": 2653,
+   "reasoning": 1883,
+   "out_bytes": 1445
+  }
+ },
+ "final": "type Chan = { cap: int, items: List[int] }\n\nmake_chan(cap: int) -> Chan =\n  pre cap >= 0\n  post out.cap == cap\n  ex make_chan(3).cap == 3\n  Chan(cap: cap, items: [])\n\ntry_send(var ch: Chan, v: int) -> bool uses nondet =\n  post ch.items.len() <= ch.cap\n  if ch.items.len() >= ch.cap\n    return False\n  ch.items = ch.items + [v]\n  True\n\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(0, [1, 2, 3]) == 0\n  var ch = make_chan(cap)\n  var n = 0\n  for x in xs\n    if try_send(&ch, x)\n      n += 1\n    else\n      break\n  n\n\ntest_accepted() =\n  assert accepted(0, [1, 2, 3]) == 0\n  assert accepted(2, [1, 2, 3]) == 2\n  assert accepted(5, [1, 2]) == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 1168,
+    "reasoning": 948
+   },
+   "out_bytes": 418,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1761,
+    "out": 1500,
+    "reasoning": 1117
+   },
+   "out_bytes": 718,
+   "ok": false,
+   "report": "E203 task.yn:13:12 try_send: `push` `List[int]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2210,
+    "out": 1153,
+    "reasoning": 766
+   },
+   "out_bytes": 727,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E203 ./task.yn:13:12 try_send: `push` `List[int]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

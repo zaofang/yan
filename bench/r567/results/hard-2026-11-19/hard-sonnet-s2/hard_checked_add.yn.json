@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1611,
+   "out": 460,
+   "reasoning": 348,
+   "out_bytes": 218
+  },
+  "body": {
+   "in": 1796,
+   "out": 723,
+   "reasoning": 542,
+   "out_bytes": 363
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  ex checked_add(1, 2) == 3\n  ex checked_add(-5, 5) == 0\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  let hi = 9223372036854775807\n  let lo = -9223372036854775807 - 1\n  if b > 0 and a > hi - b\n    return None\n  if b < 0 and a < lo - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1611,
+    "out": 460,
+    "reasoning": 348
+   },
+   "out_bytes": 218,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1796,
+    "out": 723,
+    "reasoning": 542
+   },
+   "out_bytes": 363,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

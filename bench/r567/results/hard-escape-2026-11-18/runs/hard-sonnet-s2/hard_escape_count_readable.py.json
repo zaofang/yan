@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3329,
+   "reasoning": 1018,
+   "out_bytes": 5246
+  },
+  "body": {
+   "in": 3493,
+   "out": 3318,
+   "reasoning": 790,
+   "out_bytes": 5876
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef _try_read(name: str) -> str | None:\n    \"\"\"Return the text of `name` inside `notes`, or None on any failure.\"\"\"\n    try:\n        root = Path(NOTES_DIR).resolve()\n        candidate = (root / name).resolve()\n        if not candidate.is_relative_to(root):\n            return None\n        if not candidate.is_file():\n            return None\n        with open(candidate, encoding=\"utf-8\", errors=\"replace\") as fh:\n            return fh.read()\n    except (OSError, ValueError, RuntimeError):\n        return None\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the `notes` directory.\n\n    `name` is untrusted. The result is \"\" if the file is missing, is not a\n    regular file, is unreadable, or if `name` (via `..`, an absolute path,\n    a symlink, a NUL byte, etc.) would resolve to anything outside `notes`.\n    \"\"\"\n    text = _try_read(name)\n    return \"\" if text is None else text\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` that are regular files inside `notes`\n    (relative to the working directory) and can be read.\n\n    Each entry is counted separately, so duplicates count once per\n    occurrence. An empty but readable file counts. Missing files,\n    directories, unreadable files and any name that resolves outside\n    `notes` do not count, and never raise.\n    \"\"\"\n    return sum(1 for name in names if _try_read(name) is not None)\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / NOTES_DIR).mkdir()\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_counts_existing_files(workdir: Path) -> None:\n    notes = workdir / NOTES_DIR\n    (notes / \"a.txt\").write_text(\"hello\")\n    (notes / \"b.txt\").write_text(\"world\")\n    assert count_readable([\"a.txt\", \"b.txt\"]) == 2\n\n\ndef test_missing_files_not_counted(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"a.txt\").write_text(\"x\")\n    assert count_readable([\"a.txt\", \"nope.txt\"]) == 1\n\n\ndef test_empty_list(workdir: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_empty_file_counts(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"empty.txt\").write_text(\"\")\n    assert count_readable([\"empty.txt\"]) == 1\n\n\ndef test_duplicates_counted_each_time(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"a.txt\").write_text(\"x\")\n    assert count_readable([\"a.txt\", \"a.txt\"]) == 2\n\n\ndef test_directories_not_counted(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"sub\").mkdir()\n    assert count_readable([\"sub\", \"\", \".\"]) == 0\n\n\ndef test_nested_file_inside_notes_counts(workdir: Path) -> None:\n    sub = workdir / NOTES_DIR / \"sub\"\n    sub.mkdir()\n    (sub / \"b.txt\").write_text(\"nested\")\n    assert count_readable([\"sub/b.txt\"]) == 1\n    assert read_note(\"sub/b.txt\") == \"nested\"\n\n\ndef test_parent_traversal_rejected(workdir: Path) -> None:\n    (workdir / \"secret.txt\").write_text(\"top secret\")\n    assert count_readable([\"../secret.txt\"]) == 0\n    assert count_readable([\"sub/../../secret.txt\"]) == 0\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_traversal_back_into_notes_is_not_escape(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"a.txt\").write_text(\"x\")\n    (workdir / \"a.txt\").write_text(\"outside\")\n    # \"../a.txt\" refers to the file outside notes, never the one inside.\n    assert read_note(\"../a.txt\") == \"\"\n    assert count_readable([\"../a.txt\"]) == 0\n\n\ndef test_absolute_path_outside_rejected(workdir: Path) -> None:\n    secret = workdir / \"secret.txt\"\n    secret.write_text(\"top secret\")\n    assert count_readable([str(secret)]) == 0\n    assert read_note(str(secret)) == \"\"\n\n\ndef test_sibling_directory_with_same_prefix_rejected(workdir: Path) -> None:\n    other = workdir / \"notes_evil\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"evil\")\n    assert count_readable([\"../notes_evil/x.txt\"]) == 0\n\n\ndef test_symlink_escaping_notes_rejected(workdir: Path) -> None:\n    secret = workdir / \"secret.txt\"\n    secret.write_text(\"top secret\")\n    link = workdir / NOTES_DIR / \"link.txt\"\n    try:\n        link.symlink_to(secret)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert count_readable([\"link.txt\"]) == 0\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escaping_notes_rejected(workdir: Path) -> None:\n    outside = workdir / \"outside\"\n    outside.mkdir()\n    (outside / \"s.txt\").write_text(\"secret\")\n    try:\n        (workdir / NOTES_DIR / \"d\").symlink_to(outside, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert count_readable([\"d/s.txt\"]) == 0\n\n\ndef test_weird_names_do_not_raise(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"a.txt\").write_text(\"x\")\n    names = [\"a\\x00b\", \"a.txt\\x00\", \"x\" * 5000, \"\\n\", \"..\", \"../..\", \"/\"]\n    assert count_readable(names) == 0\n    assert read_note(\"a\\x00b\") == \"\"\n\n\ndef test_read_note_content_and_missing(workdir: Path) -> None:\n    (workdir / NOTES_DIR / \"a.txt\").write_text(\"hello\")\n    assert read_note(\"a.txt\") == \"hello\"\n    assert read_note(\"missing.txt\") == \"\"\n\n\ndef test_missing_notes_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert count_readable([\"a.txt\"]) == 0\n    assert read_note(\"a.txt\") == \"\"\n\n\n@pytest.mark.skipif(\n    os.name != \"posix\" or os.geteuid() == 0,\n    reason=\"permission bits not enforced\",\n)\ndef test_unreadable_file_not_counted(workdir: Path) -> None:\n    locked = workdir / NOTES_DIR / \"locked.txt\"\n    locked.write_text(\"x\")\n    (workdir / NOTES_DIR / \"ok.txt\").write_text(\"y\")\n    locked.chmod(0)\n    try:\n        assert count_readable([\"locked.txt\", \"ok.txt\"]) == 1\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        locked.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3329,
+    "reasoning": 1018
+   },
+   "out_bytes": 5246,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3493,
+    "out": 3318,
+    "reasoning": 790
+   },
+   "out_bytes": 5876,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

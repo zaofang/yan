@@ -325,7 +325,8 @@ fn declared(
                 ("params", params()),
                 ("fields", fields(&r.tparams, &r.fields)),
                 ("annotations", annotations(attrs)),
-                ("layout", layout(name, args, kind, types)?),
+                // Absent for default layout (RFC 0083 D3); `@layout` types report theirs from L1.
+                ("layout", data("None", Vec::new())),
             ],
         ),
         ItemKind::Sum(su) => wrap(
@@ -355,7 +356,7 @@ fn declared(
                     ),
                 ),
                 ("annotations", annotations(attrs)),
-                ("layout", layout(name, args, kind, types)?),
+                ("layout", data("None", Vec::new())),
             ],
         ),
         ItemKind::Newtype(n) => wrap(
@@ -369,59 +370,6 @@ fn declared(
         ),
         _ => unreachable!("traits are described by `info`"),
     })
-}
-
-/// `Layout(size, align)` of a record or sum applied to `args`, under the default target layout.
-fn layout(name: &str, args: &[Type], kind: &ItemKind, types: &Types) -> R<Value> {
-    let applied = match kind {
-        ItemKind::Record(r) => ItemKind::Record(Record {
-            tparams: Vec::new(),
-            fields: r
-                .fields
-                .iter()
-                .map(|f| Field {
-                    ty: subst(&f.ty, &r.tparams, args),
-                    ..f.clone()
-                })
-                .collect(),
-            ..r.clone()
-        }),
-        ItemKind::Sum(su) => ItemKind::Sum(Sum {
-            tparams: Vec::new(),
-            variants: su
-                .variants
-                .iter()
-                .map(|v| Variant {
-                    fields: v.fields.as_ref().map(|fs| {
-                        fs.iter()
-                            .map(|f| Field {
-                                ty: subst(&f.ty, &su.tparams, args),
-                                ..f.clone()
-                            })
-                            .collect()
-                    }),
-                    ..v.clone()
-                })
-                .collect(),
-            ..su.clone()
-        }),
-        _ => unreachable!("only records and sums have a layout"),
-    };
-    let ty = Type::Named(Named {
-        path: vec![name.into()],
-        args: Vec::new(),
-    });
-    let decls = types.decls.values().map(|(_, k)| k).chain([&applied]);
-    match yan_mir::layout_of(decls, &ty) {
-        Ok(l) => Ok(data(
-            "Layout",
-            vec![
-                ("size", Value::Int(l.size.into())),
-                ("align", Value::Int(l.align.into())),
-            ],
-        )),
-        Err(e) => unsupported(format!("the layout of `{name}`: {e}")),
-    }
 }
 
 /// What a stage-0 `Type` result stands for: the type and the declarations it was reified from.

@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1466,
+   "out": 700,
+   "reasoning": 582,
+   "out_bytes": 255
+  },
+  "body": {
+   "in": 3635,
+   "out": 1907,
+   "reasoning": 1483,
+   "out_bytes": 957
+  }
+ },
+ "final": "-- Spec only: body left unimplemented.\nconfig_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  post out.char_count() <= text.char_count()\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\", \"b\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() < 2\n      continue\n    if parts[0] == key\n      var v = copy parts[1]\n      for i in range(2, parts.len())\n        v = \"\\(v)=\\(parts[i])\"\n      return v\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1466,
+    "out": 700,
+    "reasoning": 582
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1657,
+    "out": 1339,
+    "reasoning": 1128
+   },
+   "out_bytes": 476,
+   "ok": false,
+   "report": "E413 task.yn:15:14 config_value: `return v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:11 | fix: v -> v.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1978,
+    "out": 568,
+    "reasoning": 355
+   },
+   "out_bytes": 481,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:15:14 config_value: `v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:11 | fix: v -> v.copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

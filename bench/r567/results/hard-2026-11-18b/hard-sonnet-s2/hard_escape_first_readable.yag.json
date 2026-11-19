@@ -1,0 +1,159 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain relative path that stays inside the\n    directory it is resolved against. Empty names, absolute paths, names\n    with a \"..\" component, backslashes or NUL characters are not safe.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"a\\\\b\") == False\n    if name.char_count() == 0:\n        return False\n    if name.startswith(\"/\"):\n        return False\n    if \"\\\\\" in name:\n        return False\n    if \"\\0\" in name:\n        return False\n    for part in name.split(\"/\"):\n        if part == \"..\":\n            return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read from the directory\n    notes, or \"\" when none can. Reading happens inside\n    `with fs = fs.sub(\"notes\"):`, so fs is confined to notes. A name that\n    fails is_safe_name, or that is missing or unreadable, is skipped.\n    Returns \"\" for an empty list.\"\"\"\n    result = \"\"\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text = fs.read_text(name) else \"\"\n            if text != \"\":\n                result = text\n                break\n    return result\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpqmsuedtl/work/task.yag:7:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpqmsuedtl/work/task.yag:8:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpqmsuedtl/work/task.yag:9:8 first_readable: `assert first_readable([\"/etc/passwd\", \"../../x\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 436,
+    "reasoning": 223
+   },
+   "out_bytes": 540
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2624,
+    "out": 724,
+    "reasoning": 360
+   },
+   "out_bytes": 924
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpqmsuedtl/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 W806 /tmp/tmpqmsuedtl/work/task.yag:12:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E201 /tmp/tmpqmsuedtl/work/task.yag:36:44 first_readable: `else None` expected `str`, found `None`\n#4 E201 /tmp/tmpqmsuedtl/work/task.yag:37:16 first_readable: `text is` a `str` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3086,
+    "out": 995,
+    "reasoning": 474
+   },
+   "out_bytes": 1472
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3849,
+    "out": 1221,
+    "reasoning": 694
+   },
+   "out_bytes": 1476
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 6935,
+   "out": 2216,
+   "reasoning": 1168,
+   "out_bytes": 2948
+  },
+  "spec": {
+   "in": 4763,
+   "out": 1160,
+   "reasoning": 583,
+   "out_bytes": 1464
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpqmsuedtl/work/task.yag:7:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpqmsuedtl/work/task.yag:8:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpqmsuedtl/work/task.yag:9:8 first_readable: `assert first_readable([\"/et"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpqmsuedtl/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 W806 /tmp/tmpqmsuedtl/work/task.yag:12:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E201 /tmp/tmpqmsuedtl/work/task.yag:36:44 first_readable: `else None` expected `str`, found `None`\n#4 E201 /tmp/tmpqmsuedtl/work/task.yag:37:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "W806 task.yag:12:8 is_safe_name: `name` this branch special-cases an `ex` input\nN57 task.yag:36:20 first_readable: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nE201 task.yag:36:44 first_readable: `None` expected `str`, found `None`\nE201 task.yag:37:16 first_readable: `text` a `str` is nev"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

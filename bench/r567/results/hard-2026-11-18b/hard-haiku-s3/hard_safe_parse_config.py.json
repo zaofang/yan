@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1390,
+   "reasoning": 671,
+   "out_bytes": 1877
+  },
+  "body": {
+   "in": 1855,
+   "out": 1185,
+   "reasoning": 377,
+   "out_bytes": 2163
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` per-line config text.\n\n    Rules:\n    - Each line is `name=value`; the split happens at the first `=`.\n    - Surrounding whitespace is stripped from both the name and the value.\n    - Blank lines and lines whose first non-space character is `#` are ignored.\n    - If the key appears more than once, the first occurrence wins.\n    - If the key is absent, return an empty string.\n    - The function never reads files; it works only on `text`.\n    \"\"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        if name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_returns_value_for_present_key() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_returns_empty_string_for_absent_key() -> None:\n    assert config_value(\"host=localhost\", \"port\") == \"\"\n\n\ndef test_returns_empty_string_for_empty_text() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_strips_whitespace_around_name_and_value() -> None:\n    assert config_value(\"  host  =  localhost  \\n\", \"host\") == \"localhost\"\n\n\ndef test_split_happens_at_first_equals_sign() -> None:\n    assert config_value(\"expr=a=b=c\", \"expr\") == \"a=b=c\"\n\n\ndef test_ignores_comment_lines() -> None:\n    text = \"# host=wrong\\nhost=right\"\n    assert config_value(text, \"host\") == \"right\"\n\n\ndef test_ignores_indented_comment_lines() -> None:\n    text = \"   # host=wrong\\nhost=right\"\n    assert config_value(text, \"host\") == \"right\"\n\n\ndef test_ignores_blank_lines() -> None:\n    assert config_value(\"\\n\\nname=alice\\n\\n\", \"name\") == \"alice\"\n\n\ndef test_first_occurrence_wins_for_duplicate_keys() -> None:\n    assert config_value(\"level=1\\nlevel=2\", \"level\") == \"1\"\n\n\ndef test_key_must_match_exactly() -> None:\n    assert config_value(\"hostname=box\", \"host\") == \"\"\n\n\ndef test_empty_value_is_returned_as_empty_string() -> None:\n    assert config_value(\"token=\\nother=x\", \"token\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1390,
+    "reasoning": 671
+   },
+   "out_bytes": 1877,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1855,
+    "out": 1185,
+    "reasoning": 377
+   },
+   "out_bytes": 2163,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

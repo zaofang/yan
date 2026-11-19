@@ -23,8 +23,8 @@ use cranelift_object::{ObjectBuilder, ObjectModule};
 mod debug;
 use yan_mir::{AtomicOp, Func, Inst, IntTy, Operand, Program, RtFn, ScalarOp, Term, Ty};
 use yan_rt::{
-    abi, actor, bigint, bytes, chan, chars, civil, cluster, dq, envhandler, ffi, fshandler,
-    loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
+    abi, actor, bigint, bytes, chan, chars, civil, cluster, deadline, dq, envhandler, ffi,
+    fshandler, futex, loghandler, map, pathabi, pool, pq, regexabi, sched, select, slice, timeabi,
 };
 
 type R<T> = Result<T, String>;
@@ -664,6 +664,7 @@ const RT: &[RtFn] = &[
     RtFn::ReadLine,
     RtFn::ReadAll,
     RtFn::FsRead,
+    RtFn::FsListDir,
     RtFn::FsFake,
     RtFn::LogNew,
     RtFn::LogSpan,
@@ -804,6 +805,7 @@ const RT: &[RtFn] = &[
     RtFn::Math2,
     RtFn::Rounded,
     RtFn::DotExact,
+    RtFn::SumF64,
     RtFn::Copysign,
     RtFn::IsNan,
     RtFn::IsInf,
@@ -863,7 +865,10 @@ const RT: &[RtFn] = &[
     RtFn::ChanRecv,
     RtFn::ChanTrySend,
     RtFn::ChanTryRecv,
+    RtFn::FutexWait,
+    RtFn::FutexNotify,
     RtFn::SelectWait,
+    RtFn::ChanDrain,
     RtFn::ChanDrop,
     RtFn::ChanDropSender,
     RtFn::ChanClone,
@@ -917,6 +922,9 @@ const RT: &[RtFn] = &[
     RtFn::ClusterAdmit,
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
+    RtFn::DeadlineBegin,
+    RtFn::DeadlineEnd,
+    RtFn::DeadlineEndTo,
     RtFn::FfiCall,
     RtFn::FfiCallF64,
 ];
@@ -959,6 +967,12 @@ fn rt_fn(
         RtFn::FsRead => (
             "yan_rt_fs_read_with",
             fshandler::yan_rt_fs_read_with as *const u8,
+            &[I64, I64],
+            Some(I64),
+        ),
+        RtFn::FsListDir => (
+            "yan_rt_fs_list_dir_with",
+            fshandler::yan_rt_fs_list_dir_with as *const u8,
             &[I64, I64],
             Some(I64),
         ),
@@ -1784,6 +1798,12 @@ fn rt_fn(
             &[I64, I64, I64],
             Some(F64),
         ),
+        RtFn::SumF64 => (
+            "yan_rt_sum_f64",
+            abi::yan_rt_sum_f64 as *const u8,
+            &[I64, I64],
+            Some(F64),
+        ),
         RtFn::Rounded => (
             "yan_rt_rounded",
             abi::yan_rt_rounded as *const u8,
@@ -2156,10 +2176,28 @@ fn rt_fn(
             &[I64, I64, I64],
             Some(I64),
         ),
+        RtFn::FutexWait => (
+            "yan_rt_futex_wait",
+            futex::yan_rt_futex_wait as *const u8,
+            &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::FutexNotify => (
+            "yan_rt_futex_notify",
+            futex::yan_rt_futex_notify as *const u8,
+            &[I64, I64],
+            None,
+        ),
         RtFn::SelectWait => (
             "yan_rt_select_wait",
             chan::yan_rt_select_wait as *const u8,
             &[I64, I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ChanDrain => (
+            "yan_rt_chan_drain",
+            chan::yan_rt_chan_drain as *const u8,
+            &[I64, I64],
             Some(I64),
         ),
         RtFn::ChanDrop => (
@@ -2232,7 +2270,7 @@ fn rt_fn(
             "yan_rt_pool_run",
             pool::yan_rt_pool_run as *const u8,
             &[I64, I64],
-            None,
+            Some(I64),
         ),
         RtFn::ActorSpawn => (
             "yan_rt_actor_spawn",
@@ -2475,6 +2513,24 @@ fn rt_fn(
         RtFn::SupEndTo => (
             "yan_rt_sup_end_to",
             actor::yan_rt_sup_end_to as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::DeadlineBegin => (
+            "yan_rt_deadline_begin",
+            deadline::yan_rt_deadline_begin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::DeadlineEnd => (
+            "yan_rt_deadline_end",
+            deadline::yan_rt_deadline_end as *const u8,
+            &[],
+            None,
+        ),
+        RtFn::DeadlineEndTo => (
+            "yan_rt_deadline_end_to",
+            deadline::yan_rt_deadline_end_to as *const u8,
             &[I64],
             None,
         ),
@@ -2829,7 +2885,7 @@ impl Gen<'_, '_> {
             Inst::Fence { .. } => {
                 self.b.ins().fence();
             }
-            Inst::Arm(_) => {}
+            Inst::Arm(_) | Inst::Move { .. } => {}
             Inst::Scalar {
                 dst, op, ty, args, ..
             } => {

@@ -1,0 +1,196 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer quotient of a divided by b; fails with DivZero(a) when b is zero.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(-7, 2) == -4\n    ex safe_div(5, 0) == Err(DivZero(a=5))\n    nonzero = b != 0\n    if not nonzero:\n        fail DivZero(a=a)\n    return a // b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmppqzye38_/work/task.yag:8:8 safe_div: `(DivZero)` cannot find `DivZero` | in `ex` of `safe_div`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2046,
+    "out": 763,
+    "reasoning": 626
+   },
+   "out_bytes": 273
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2282,
+    "out": 674,
+    "reasoning": 532
+   },
+   "out_bytes": 278
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmppqzye38_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmppqzye38_/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2522,
+    "out": 978,
+    "reasoning": 813
+   },
+   "out_bytes": 329
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: safe_div. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 1,
+   "tools": [],
+   "usage": {
+    "in": 2818,
+    "out": 1007,
+    "reasoning": 847
+   },
+   "out_bytes": 324
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmppqzye38_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmppqzye38_/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3065,
+    "out": 731,
+    "reasoning": 566
+   },
+   "out_bytes": 329
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 3,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3361,
+    "out": 879,
+    "reasoning": 702
+   },
+   "out_bytes": 355
+  }
+ ],
+ "rounds_to_green": 4,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 11766,
+   "out": 3595,
+   "reasoning": 2928,
+   "out_bytes": 1337
+  },
+  "spec": {
+   "in": 4328,
+   "out": 1437,
+   "reasoning": 1158,
+   "out_bytes": 551
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmppqzye38_/work/task.yag:8:8 safe_div: `(DivZero)` cannot find `DivZero` | in `ex` of `safe_div`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmppqzye38_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmppqzye38_/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmppqzye38_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmppqzye38_/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

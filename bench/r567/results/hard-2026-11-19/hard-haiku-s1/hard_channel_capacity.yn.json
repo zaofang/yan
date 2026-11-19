@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1627,
+   "out": 875,
+   "reasoning": 739,
+   "out_bytes": 269
+  },
+  "body": {
+   "in": 3983,
+   "out": 1674,
+   "reasoning": 1297,
+   "out_bytes": 737
+  }
+ },
+ "final": "-- Spec: count how many non-blocking sends succeed on a bounded int channel.\n\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(0, [1, 2, 3]) == 0\n  ex accepted(5, []) == 0\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else break\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1627,
+    "out": 875,
+    "reasoning": 739
+   },
+   "out_bytes": 269,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1836,
+    "out": 931,
+    "reasoning": 740
+   },
+   "out_bytes": 376,
+   "ok": false,
+   "report": "E201 task.yn:12:8 accepted: `tx.try_send(x)` expected `bool`, found `()`\nE315 task.yn:12:8 accepted: `tx.try_send(x)` the failure of this call is not handled; add `?` or `else`",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2147,
+    "out": 743,
+    "reasoning": 557
+   },
+   "out_bytes": 361,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:12:8 accepted: `tx.try_send(x)` expected `bool`, found `()`\nE315 ./task.yn:12:8 accepted: `tx.try_send(x)` the failure of this call is not handled; add `?` or `else`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2639,
+   "out": 1304,
+   "reasoning": 538,
+   "out_bytes": 1672
+  },
+  "body": {
+   "in": 1985,
+   "out": 437,
+   "reasoning": 74,
+   "out_bytes": 782
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of `s` to the list `dst` in place. Returns nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\"]\n\n\ndef test_add_name_appends_to_end_of_existing_list() -> None:\n    dst: list[str] = [\"bob\", \"cy\"]\n    add_name(dst, \"ada\")\n    assert dst == [\"bob\", \"cy\", \"ada\"]\n\n\ndef test_add_name_mutates_same_list_object() -> None:\n    dst: list[str] = [\"bob\"]\n    original_id = id(dst)\n    add_name(dst, \"ada\")\n    assert id(dst) == original_id\n    assert dst == [\"bob\", \"ada\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"ada\"]\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\", \"ada\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 757,
+    "reasoning": 349
+   },
+   "out_bytes": 900,
+   "ok": false,
+   "report": "test_task.py:34: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1570,
+    "out": 547,
+    "reasoning": 189
+   },
+   "out_bytes": 772,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1985,
+    "out": 437,
+    "reasoning": 74
+   },
+   "out_bytes": 782,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

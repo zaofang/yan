@@ -1,0 +1,94 @@
+{
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of xs chosen deterministically from seed.\n\n    The same xs and seed always give the same element. No randomness\n    or nondeterminism is used.\n    \"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([7], 0) == 7\n    ex pick([10, 20, 30], 4) == 20\n    return xs[seed % xs.len()]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2039,
+    "out": 643,
+    "reasoning": 501
+   },
+   "out_bytes": 337
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2279,
+    "out": 474,
+    "reasoning": 321
+   },
+   "out_bytes": 360
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_pick_seeded",
+ "tokens": {
+  "body": {
+   "in": 2279,
+   "out": 474,
+   "reasoning": 321,
+   "out_bytes": 360
+  },
+  "spec": {
+   "in": 2039,
+   "out": 643,
+   "reasoning": 501,
+   "out_bytes": 337
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

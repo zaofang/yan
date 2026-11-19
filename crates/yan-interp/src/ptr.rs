@@ -62,6 +62,10 @@ pub(crate) const BINDS: &[(yan_std::registry::Id, Bind)] = &[
         Bind::Plain(|_| crate::unsupported("`read` outside the raw-memory machine")),
     ),
     (
+        STD_PTR_TAKE,
+        Bind::Plain(|_| crate::unsupported("`take` outside the raw-memory machine")),
+    ),
+    (
         STD_PTR_WRITE,
         Bind::Plain(|_| crate::unsupported("`write` outside the raw-memory machine")),
     ),

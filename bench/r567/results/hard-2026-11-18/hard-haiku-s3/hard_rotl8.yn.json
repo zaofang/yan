@@ -1,0 +1,120 @@
+{
+ "status": "body_failed",
+ "rounds_to_green": null,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1026,
+   "reasoning": 877,
+   "out_bytes": 255
+  },
+  "body": {
+   "in": 8761,
+   "out": 4998,
+   "reasoning": 3818,
+   "out_bytes": 2298
+  }
+ },
+ "final": "-- Rotate an 8-bit value left by k bits (k from 0 to 7),\n-- wrapping the high bits around to the low end.\n--\n-- BLOCKED: the Yan reference I was given does not name any way to\n-- convert between u8 and int. Four guesses have been rejected by\n-- the checker: int(x), x.to_int(), to_u8(...), and the\n-- to_int_from_u8 / to_u8_from_int pair. Inventing another name\n-- would only repeat the failure, so the body below is left as a\n-- marked placeholder. Replace the two UNVERIFIED lines with the\n-- real conversion API once it is confirmed.\nrotl8(x: u8, k: int) -> u8 =\n  pre k >= 0\n  pre k <= 7\n  ex rotl8(129, 1) == 3\n  ex rotl8(1, 0) == 1\n  ex rotl8(128, 7) == 64\n  let n = UNVERIFIED_u8_to_int(x)\n  var p = 1\n  for i in range(0, k)\n    p *= 2\n  let low = (n * p) % 256\n  let high = n // (256 // p)\n  UNVERIFIED_int_to_u8(low + high)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1026,
+    "reasoning": 877
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1673,
+    "out": 896,
+    "reasoning": 684
+   },
+   "out_bytes": 376,
+   "ok": false,
+   "report": "E201 task.yn:9:15 rotl8: `(x)` `int` does not take a `u8`\nE200 task.yn:15:3 rotl8: `u8(low + high)` cannot find function `u8`",
+   "codes": [
+    "E200",
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1989,
+    "out": 1279,
+    "reasoning": 1063
+   },
+   "out_bytes": 383,
+   "ok": false,
+   "report": "E203 task.yn:9:13 rotl8: `to_int` `u8` has no method `to_int`\nE200 task.yn:15:3 rotl8: `to_u8(low + high)` cannot find function `to_u8`",
+   "codes": [
+    "E200",
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2314,
+    "out": 1606,
+    "reasoning": 1263
+   },
+   "out_bytes": 697,
+   "ok": false,
+   "report": "E200 task.yn:13:11 rotl8: `to_int_from_u8(x)` cannot find function `to_int_from_u8`\nE200 task.yn:19:3 rotl8: `to_u8_from_int(low + high)` cannot find function `to_u8_from_int`",
+   "codes": [
+    "E200"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 2785,
+    "out": 1217,
+    "reasoning": 808
+   },
+   "out_bytes": 842,
+   "ok": false,
+   "report": "E112 task.yn:17:11 `UNVERIFIED_u8_to_int` type names have no two consecutive capitals\nE112 task.yn:23:3 `UNVERIFIED_int_to_u8` type names have no two consecutive capitals",
+   "codes": [
+    "E112"
+   ]
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yn:9:15 rotl8: `x` `int` does not take a `u8`\nE200 ./task.yn:15:3 rotl8: `u8(low + high)` cannot find function `u8` | maybe: u8(low + high) -> sum\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E112 ./task.yn:17:11 `UNVERIFIED_u8_to_int` type names have no two consecutive capitals\nE112 ./task.yn:23:3 `UNVERIFIED_int_to_u8` type names have no two consecutive capitals\n0 of 0 tests passed"
+ }
+}

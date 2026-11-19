@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1103,
+   "out": 1178,
+   "reasoning": 656,
+   "out_bytes": 1263
+  },
+  "body": {
+   "in": 1682,
+   "out": 632,
+   "reasoning": 99,
+   "out_bytes": 1292
+  }
+ },
+ "final": "from collections.abc import Callable\n\nimport logging\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job and return \"start:\" + its result + \":end\".\n\n    The helper uses no capabilities of its own: it does not print,\n    log, or perform I/O. Exceptions raised by job propagate unchanged.\n    \"\"\"\n    return \"start:\" + job() + \":end\"\n\n\ndef test_wraps_result() -> None:\n    assert wrapped(lambda: \"abc\") == \"start:abc:end\"\n\n\ndef test_empty_result() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_calls_job_exactly_once() -> None:\n    calls: list[int] = []\n\n    def job() -> str:\n        calls.append(1)\n        return \"x\"\n\n    assert wrapped(job) == \"start:x:end\"\n    assert len(calls) == 1\n\n\ndef test_produces_no_stdout_or_stderr(capsys: pytest.CaptureFixture[str]) -> None:\n    wrapped(lambda: \"x\")\n    captured = capsys.readouterr()\n    assert captured.out == \"\"\n    assert captured.err == \"\"\n\n\ndef test_emits_no_log_records(caplog: pytest.LogCaptureFixture) -> None:\n    caplog.set_level(logging.DEBUG)\n    wrapped(lambda: \"x\")\n    assert caplog.records == []\n\n\ndef test_job_exception_propagates() -> None:\n    def job() -> str:\n        raise ValueError(\"boom\")\n\n    with pytest.raises(ValueError, match=\"boom\"):\n        wrapped(job)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1103,
+    "out": 1178,
+    "reasoning": 656
+   },
+   "out_bytes": 1263,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1682,
+    "out": 632,
+    "reasoning": 99
+   },
+   "out_bytes": 1292,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

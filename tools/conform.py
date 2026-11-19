@@ -3,7 +3,10 @@
 An executor is any command that implements:
     CMD check --format json [FLAGS] FILE  -> JSON array of diagnostic records (spec 18.2)
     CMD run [FLAGS] FILE                  -> the program's stdout and exit status
-    CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr
+    CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr;
+                                             a `warn: Wnnn` case also needs `warning[Wnnn]` there;
+                                             `seeds: all N` runs seeds 1 to N with
+                                             `--seed S` and needs all to match, `any N` one
     CMD patch --format json [FLAGS] PATCH -> applies PATCH in its directory; JSON records on refusal
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
@@ -61,7 +64,19 @@ DEFAULT_MILESTONE = {".yir": "M0", ".yag": "M1", ".yn": "M3"}
 MILESTONES = ("P0", "M0", "M1", "M1b", "M2a", "M2b", "M3", "RC", "M4")
 TOOL_FAILURE = 2
 HEADERS = frozenset(
-    {"expect", "exit", "stdout", "spec", "rows", "flags", "milestone", "note", "ub"}
+    {
+        "expect",
+        "exit",
+        "stdout",
+        "spec",
+        "rows",
+        "flags",
+        "milestone",
+        "note",
+        "ub",
+        "warn",
+        "seeds",
+    }
 )
 
 type Status = Literal["pass", "fail", "skip"]
@@ -86,6 +101,8 @@ class Case:
     flags: list[str] = field(default_factory=list)
     milestone: str = "M0"
     ub: str | None = None
+    warn: str | None = None
+    seeds: tuple[str, int] | None = None
     meta: dict[str, object] = field(default_factory=dict)
 
 
@@ -155,7 +172,13 @@ class CommandExecutor:
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run(
-            [*self.argv, "run", "--ub", *flags, str(path)],
+            [
+                *self.argv,
+                "run",
+                *([] if any(f.startswith("--ub") for f in flags) else ["--ub"]),
+                *flags,
+                str(path),
+            ],
             stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
@@ -314,6 +337,13 @@ def parse_case(kind: str, path: Path, text: str) -> Case:
                 case.milestone = value.strip()
             case "ub":
                 case.ub = value.strip()
+            case "warn":
+                case.warn = value.strip()
+            case "seeds":
+                mode, _, n = value.strip().partition(" ")
+                if mode not in ("all", "any") or not n.strip().isdigit() or int(n) < 1:
+                    raise ValueError(f"{path}: `seeds` is `all N` or `any N`, got {value!r}")
+                case.seeds = (mode, int(n))
     case.stdout = None if stdout is None else "".join(s + "\n" for s in stdout)
     return case
 
@@ -402,14 +432,22 @@ def _judge(case: Case, ex: Executor) -> Result:
             if stdout != (case.stdout or "") or code != case.exit:
                 return Result(name, ex.name, "fail", f"exit {code}, stdout {stdout!r}")
         case "ub":
-            stderr, code = ex.run_ub(case.path, case.flags)
-            flagged = "ub(" in stderr
-            if case.ub == "none" and (flagged or code != 0):
-                return Result(name, ex.name, "fail", f"expected a clean run, exit {code}: {stderr}")
-            if case.ub != "none" and (f"ub({case.ub})" not in stderr or code == 0):
-                return Result(
-                    name, ex.name, "fail", f"expected ub({case.ub}), exit {code}: {stderr}"
-                )
+            runs = (
+                [[]]
+                if case.seeds is None
+                else [["--seed", str(n)] for n in range(1, case.seeds[1] + 1)]
+            )
+            failures = [
+                f
+                for extra in runs
+                if (f := _ub_failure(case, *ex.run_ub(case.path, [*case.flags, *extra])))
+            ]
+            # `all` needs every seed to match, `any` at least one.
+            ok = (
+                len(failures) < len(runs) if case.seeds and case.seeds[0] == "any" else not failures
+            )
+            if not ok:
+                return Result(name, ex.name, "fail", failures[0])
         case "patch":
             return _judge_patch(case, ex)
         case "pkg":
@@ -427,6 +465,22 @@ def _judge(case: Case, ex: Executor) -> Result:
         case _:
             return Result(name, ex.name, "skip", f"{case.kind} case format not defined yet")
     return Result(name, ex.name, "pass")
+
+
+def _ub_failure(case: Case, stderr: str, code: int) -> str | None:
+    if case.ub == "none" and ("ub(" in stderr or code != case.exit):
+        return f"expected a clean run, exit {code}: {stderr}"
+    if case.ub != "none" and (f"ub({case.ub})" not in stderr or code == 0):
+        return f"expected ub({case.ub}), exit {code}: {stderr}"
+    warned = re.findall(r"^warning\[(\w+)\]", stderr, re.MULTILINE)
+    if (
+        case.warn == "none"
+        and warned
+        or case.warn not in (None, "none")
+        and case.warn not in warned
+    ):
+        return f"expected warning {case.warn}, got {warned}"
+    return None
 
 
 def _judge_patch(case: Case, ex: Executor) -> Result:
@@ -825,6 +879,8 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
                 "expect": [asdict(d) for d in c.expect],
                 **({"stdout": c.stdout, "exit": c.exit} if c.kind == "run" else {}),
                 **({"ub": c.ub} if c.ub else {}),
+                **({"warn": c.warn} if c.warn else {}),
+                **({"seeds": list(c.seeds)} if c.seeds else {}),
                 **({"expect_toml": c.meta} if c.meta else {}),
             }
             for c in cases

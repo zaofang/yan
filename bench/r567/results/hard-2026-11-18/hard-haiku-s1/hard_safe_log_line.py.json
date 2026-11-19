@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1075,
+   "out": 991,
+   "reasoning": 372,
+   "out_bytes": 1451
+  },
+  "body": {
+   "in": 1751,
+   "out": 705,
+   "reasoning": 75,
+   "out_bytes": 1477
+  }
+ },
+ "final": "import builtins\n\nimport pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print one log line in the form ``[level] message`` to stdout.\n\n    Writes only to standard output. Never touches the file system.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_formats_level_and_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"server started\")\n    assert capsys.readouterr().out == \"[INFO] server started\\n\"\n\n\ndef test_log_line_prints_exactly_one_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"WARN\", \"disk nearly full\")\n    out = capsys.readouterr().out\n    assert out.count(\"\\n\") == 1\n    assert out.endswith(\"\\n\")\n\n\ndef test_log_line_preserves_message_text(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"ERROR\", \"failed: code=42 [retry]\")\n    assert capsys.readouterr().out == \"[ERROR] failed: code=42 [retry]\\n\"\n\n\ndef test_log_line_allows_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_log_line_does_not_open_files(\n    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]\n) -> None:\n    def _forbidden_open(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"log_line must not open files\")\n\n    monkeypatch.setattr(builtins, \"open\", _forbidden_open)\n    log_line(\"INFO\", \"console only\")\n    assert capsys.readouterr().out == \"[INFO] console only\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 991,
+    "reasoning": 372
+   },
+   "out_bytes": 1451,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1751,
+    "out": 705,
+    "reasoning": 75
+   },
+   "out_bytes": 1477,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

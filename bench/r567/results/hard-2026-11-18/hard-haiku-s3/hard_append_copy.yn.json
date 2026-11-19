@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1294,
+   "reasoning": 1136,
+   "out_bytes": 341
+  },
+  "body": {
+   "in": 3594,
+   "out": 1164,
+   "reasoning": 836,
+   "out_bytes": 688
+  }
+ },
+ "final": "-- Helper used by the contracts below: counts the items in a list.\nsize_of(xs: List[str]) -> int =\n  post out >= 0\n  ex size_of([\"a\", \"b\"]) == 2\n  xs.len()\n\n-- Appends a copy of s to the caller's list dst, editing it in place.\nadd_name(var dst: List[str], s: str) =\n  pre size_of(dst) >= 0\n  post size_of(dst) >= 1\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1294,
+    "reasoning": 1136
+   },
+   "out_bytes": 341,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1682,
+    "out": 531,
+    "reasoning": 367
+   },
+   "out_bytes": 343,
+   "ok": false,
+   "report": "E203 task.yn:11:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1912,
+    "out": 633,
+    "reasoning": 469
+   },
+   "out_bytes": 345,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:11:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

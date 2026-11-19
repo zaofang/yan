@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2650,
+   "out": 1096,
+   "reasoning": 279,
+   "out_bytes": 1692
+  },
+  "body": {
+   "in": 2031,
+   "out": 592,
+   "reasoning": 172,
+   "out_bytes": 850
+  }
+ },
+ "final": "def swap_ends(xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place.\n\n    An empty or one-element list is left unchanged.\n    \"\"\"\n    if len(xs) >= 2:\n        xs[0], xs[-1] = xs[-1], xs[0]\n\n\ndef test_swap_ends_swaps_first_and_last() -> None:\n    xs = [1, 2, 3, 4]\n    swap_ends(xs)\n    assert xs == [4, 2, 3, 1]\n\n\ndef test_swap_ends_two_elements() -> None:\n    xs = [7, 9]\n    swap_ends(xs)\n    assert xs == [9, 7]\n\n\ndef test_swap_ends_single_element_unchanged() -> None:\n    xs = [5]\n    swap_ends(xs)\n    assert xs == [5]\n\n\ndef test_swap_ends_empty_unchanged() -> None:\n    xs: list[int] = []\n    swap_ends(xs)\n    assert xs == []\n\n\ndef test_swap_ends_mutates_same_list_object() -> None:\n    xs = [1, 2, 3]\n    original_id = id(xs)\n    swap_ends(xs)\n    assert id(xs) == original_id\n    assert xs == [3, 2, 1]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1062,
+    "out": 535,
+    "reasoning": 104
+   },
+   "out_bytes": 893,
+   "ok": false,
+   "report": "test_task.py:43: error: \"swap_ends\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1588,
+    "out": 561,
+    "reasoning": 175
+   },
+   "out_bytes": 799,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2031,
+    "out": 592,
+    "reasoning": 172
+   },
+   "out_bytes": 850,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

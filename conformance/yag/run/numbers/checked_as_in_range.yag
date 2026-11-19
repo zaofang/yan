@@ -1,0 +1,9 @@
+# spec: 3.4, 14.1
+# rows: R1112
+# stdout:
+# 200 300 2147483647 255
+
+def main() uses io:
+    a: uint8 = 200
+    b: uint32 = 2147483647
+    io.print(f"{checked_as[uint8](a)} {checked_as[uint32](a) + 100} {checked_as[int32](b)} {checked_as[uint8](255)}")

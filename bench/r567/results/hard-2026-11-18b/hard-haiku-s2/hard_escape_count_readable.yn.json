@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3469,
+   "out": 2847,
+   "reasoning": 2234,
+   "out_bytes": 1481
+  },
+  "body": {
+   "in": 2300,
+   "out": 1540,
+   "reasoning": 1147,
+   "out_bytes": 956
+  }
+ },
+ "final": "-- True when a name is one plain file name: no path separators and not \"..\".\nis_plain_name(name: str) -> bool =\n  post not out or name.split(\"/\").len() == 1\n  post not out or name != \"..\"\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  if name == \"\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\n-- Reads one note from the confined fs. A missing or unreadable file gives \"\".\nread_note(name: str) -> str uses fs =\n  pre is_plain_name(name)\n  post out.char_count() >= 0\n  ex read_note(\"no-such-file-xyz\") == \"\"\n  fs.read(name) else \"\"\n\n-- Counts the names that can be read from the notes directory.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if is_plain_name(name) and read_note(name) != \"\"\n        n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 2105,
+    "reasoning": 1798
+   },
+   "out_bytes": 741,
+   "ok": false,
+   "report": "E100 task.yn:21:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1921,
+    "out": 742,
+    "reasoning": 436
+   },
+   "out_bytes": 740,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2300,
+    "out": 1540,
+    "reasoning": 1147
+   },
+   "out_bytes": 956,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

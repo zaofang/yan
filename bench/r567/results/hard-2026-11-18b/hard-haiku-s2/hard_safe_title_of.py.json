@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 799,
+   "reasoning": 387,
+   "out_bytes": 1093
+  },
+  "body": {
+   "in": 1545,
+   "out": 1120,
+   "reasoning": 640,
+   "out_bytes": 1223
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first <title> and </title> in html.\n\n    Tag matching is case-insensitive. Returns an empty string when\n    no complete <title> element is present. Does not use the network;\n    html is already fetched and passed in.\n    \"\"\"\n    m = re.search(r\"<title\\b[^>]*>(.*?)</title\\s*>\", html, re.IGNORECASE | re.DOTALL)\n    return str(m.group(1)) if m else \"\"\n\n\ndef test_title_simple() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_title_case_insensitive_tags() -> None:\n    assert title_of(\"<TITLE>Mixed Case</Title>\") == \"Mixed Case\"\n\n\ndef test_title_missing_returns_empty() -> None:\n    assert title_of(\"<html><body>no head here</body></html>\") == \"\"\n\n\ndef test_title_unclosed_returns_empty() -> None:\n    assert title_of(\"<title>never closed\") == \"\"\n\n\ndef test_title_empty_string_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_title_uses_first_occurrence() -> None:\n    assert title_of(\"<title>First</title><title>Second</title>\") == \"First\"\n\n\ndef test_title_preserves_inner_whitespace() -> None:\n    assert title_of(\"<title>  spaced  out </title>\") == \"  spaced  out \"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 799,
+    "reasoning": 387
+   },
+   "out_bytes": 1093,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1545,
+    "out": 1120,
+    "reasoning": 640
+   },
+   "out_bytes": 1223,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

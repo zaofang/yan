@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1075,
+   "out": 830,
+   "reasoning": 319,
+   "out_bytes": 1191
+  },
+  "body": {
+   "in": 1643,
+   "out": 522,
+   "reasoning": 0,
+   "out_bytes": 1217
+  }
+ },
+ "final": "import pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print a log line formatted as `[level] message` to standard output.\n\n    Writes only to stdout. Must not open or write any file.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_prints_formatted_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"started\")\n    assert capsys.readouterr().out == \"[INFO] started\\n\"\n\n\ndef test_log_line_keeps_level_and_message_verbatim(\n    capsys: pytest.CaptureFixture[str],\n) -> None:\n    log_line(\"warn\", \"disk 90% full\")\n    assert capsys.readouterr().out == \"[warn] disk 90% full\\n\"\n\n\ndef test_log_line_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_log_line_does_not_touch_filesystem(\n    capsys: pytest.CaptureFixture[str],\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def forbidden_open(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"log_line must not open files\")\n\n    monkeypatch.setattr(\"builtins.open\", forbidden_open)\n    log_line(\"ERROR\", \"no file access\")\n    assert capsys.readouterr().out == \"[ERROR] no file access\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 830,
+    "reasoning": 319
+   },
+   "out_bytes": 1191,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1643,
+    "out": 522,
+    "reasoning": 0
+   },
+   "out_bytes": 1217,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

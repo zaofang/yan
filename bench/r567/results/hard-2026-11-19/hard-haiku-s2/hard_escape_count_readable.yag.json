@@ -1,0 +1,127 @@
+{
+ "final": "def safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain file name: non-empty, no path separators, no '..', not absolute.\"\"\"\n    ex safe_name(\"a.txt\") == True\n    ex safe_name(\"../secret\") == False\n    ex safe_name(\"sub/a.txt\") == False\n    ex safe_name(\"/etc/passwd\") == False\n    if name.char_count() == 0:\n        return False\n    if name == \".\" or \"..\" in name:\n        return False\n    if \"/\" in name or \"\\\\\" in name or \":\" in name:\n        return False\n    return True\n\ndef count_present(found: list[str | None]) -> int:\n    \"\"\"Number of entries that hold text. None entries (missing or unreadable) do not count.\"\"\"\n    ex count_present([\"a\", None, \"b\"]) == 2\n    ex count_present([]) == 0\n    n = 0\n    for f in found:\n        if f is not None:\n            n += 1\n    return n\n\ndef read_note(name: str) -> str | None uses fs:\n    \"\"\"Text of notes/name, or None when the file is missing or unreadable.\n    Reads through fs.sub(\"notes\") so no name can reach a file outside notes.\"\"\"\n    pre safe_name(name)\n    text: str | None = None\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else None\n    return text\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Number of names that are readable files inside notes. Unsafe names are never read.\"\"\"\n    post out >= 0 and out <= names.len()\n    found: list[str | None] = []\n    for name in names:\n        if not safe_name(name):\n            found.append(None)\n            continue\n        found.append(read_note(name))\n    return count_present(found)\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmphtnb5bw0/work/task.yag:14:8 read_note: `assert read_note(\"no-such-file-xyz.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmphtnb5bw0/work/task.yag:21:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmphtnb5bw0/work/task.yag:22:8 count_readable: `assert count_readable([\"../secret\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 2099,
+    "reasoning": 1745
+   },
+   "out_bytes": 877
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2756,
+    "out": 1170,
+    "reasoning": 794
+   },
+   "out_bytes": 970
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3230,
+    "out": 2025,
+    "reasoning": 1462
+   },
+   "out_bytes": 1552
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 3230,
+   "out": 2025,
+   "reasoning": 1462,
+   "out_bytes": 1552
+  },
+  "spec": {
+   "in": 4885,
+   "out": 3269,
+   "reasoning": 2539,
+   "out_bytes": 1847
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmphtnb5bw0/work/task.yag:14:8 read_note: `assert read_note(\"no-such-file-xyz.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmphtnb5bw0/work/task.yag:21:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmphtnb5bw0/work/task.yag:22:8 count_readable: `assert count_readable([\"../secret\""
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at count_present task.yag:22:12\n  at count_readable task.yag:46:12\n  at main task.yag:50:5"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at count_present task.yag:21:12\n  at count_readable task.yag:43:12\n  at main task.yag:47:5"
+ }
+}

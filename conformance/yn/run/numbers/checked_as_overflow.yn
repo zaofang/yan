@@ -1,0 +1,10 @@
+-- spec: 3.4
+-- rows: R1112
+-- stdout:
+-- before
+-- exit: 101
+
+main() =
+  io.print("before")
+  let x = 300
+  io.print("\(checked_as[u8](x))")

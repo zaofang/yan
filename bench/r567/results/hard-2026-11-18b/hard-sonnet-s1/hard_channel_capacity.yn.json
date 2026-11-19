@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1468,
+   "out": 431,
+   "reasoning": 291,
+   "out_bytes": 243
+  },
+  "body": {
+   "in": 5911,
+   "out": 1983,
+   "reasoning": 1200,
+   "out_bytes": 1669
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= cap\n  post out <= xs.len()\n  ex accepted(0, [1, 2]) == 0\n  ex accepted(2, [1, 2, 3]) == 2\n  ex accepted(5, [1, 2]) == 2\n  -- This toolchain has no channel operation (nondet.channel is E017), so\n  -- the bounded channel is modelled by a free-slot count. A non-blocking\n  -- send succeeds while a slot is free and fails once the channel is full.\n  var n = 0\n  for i in range(0, xs.len())\n    if n >= cap\n      break\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 431,
+    "reasoning": 291
+   },
+   "out_bytes": 243,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1681,
+    "out": 559,
+    "reasoning": 372
+   },
+   "out_bytes": 339,
+   "ok": false,
+   "report": "E200 task.yn:9:12 accepted: `channel(cap)` cannot find function `channel`",
+   "codes": [
+    "E200"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1936,
+    "out": 764,
+    "reasoning": 493
+   },
+   "out_bytes": 577,
+   "ok": false,
+   "report": "E017 task.yn:9:12 accepted: `nondet.channel(cap)` capability operation `nondet.channel`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2294,
+    "out": 660,
+    "reasoning": 335
+   },
+   "out_bytes": 753,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yn:9:12 accepted: `channel(cap)` cannot find function `channel`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

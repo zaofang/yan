@@ -1,0 +1,94 @@
+{
+ "final": "def swap_ends(var xs: list[int]):\n    \"\"\"Swap the first and last elements of xs in place.\n\n    An empty or one-element list is unchanged.\n    \"\"\"\n    if xs.len() >= 2:\n        last = xs.len() - 1\n        first = xs[0]\n        xs[0] = xs[last]\n        xs[last] = first\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2024,
+    "out": 965,
+    "reasoning": 857
+   },
+   "out_bytes": 294
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2230,
+    "out": 538,
+    "reasoning": 378
+   },
+   "out_bytes": 408
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/swap_ends",
+ "tokens": {
+  "body": {
+   "in": 2230,
+   "out": 538,
+   "reasoning": 378,
+   "out_bytes": 408
+  },
+  "spec": {
+   "in": 2024,
+   "out": 965,
+   "reasoning": 857,
+   "out_bytes": 294
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

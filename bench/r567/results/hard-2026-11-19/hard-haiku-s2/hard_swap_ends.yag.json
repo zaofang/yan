@@ -1,0 +1,94 @@
+{
+ "final": "# swap_ends returns nothing and only changes its var parameter, so it takes\n# no ex lines (an ex there is error E201/E403). Its behaviour is checked by\n# tests instead.\n\ndef swap_ends(var xs: list[int]):\n    \"\"\"Swap the first and last elements of xs in place.\n\n    An empty or one-element list is left unchanged.\n    \"\"\"\n    if xs.len() >= 2:\n        last = xs.len() - 1\n        tmp = xs[0]\n        xs[0] = xs[last]\n        xs[last] = tmp\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2024,
+    "out": 951,
+    "reasoning": 818
+   },
+   "out_bytes": 346
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2255,
+    "out": 433,
+    "reasoning": 244
+   },
+   "out_bytes": 456
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/swap_ends",
+ "tokens": {
+  "body": {
+   "in": 2255,
+   "out": 433,
+   "reasoning": 244,
+   "out_bytes": 456
+  },
+  "spec": {
+   "in": 2024,
+   "out": 951,
+   "reasoning": 818,
+   "out_bytes": 346
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

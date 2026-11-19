@@ -1,0 +1,94 @@
+{
+ "final": "def title_of(html: str) -> str:\n    \"\"\"Text between the first <title> and </title> in html, or \"\" if absent.\"\"\"\n    post out.char_count() <= html.char_count()\n    ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n    ex title_of(\"<p>no title</p>\") == \"\"\n    _, sep, after = html.partition(\"<title>\")\n    if sep == \"\":\n        return \"\"\n    inner, end, _ = after.partition(\"</title>\")\n    if end == \"\":\n        return \"\"\n    return inner\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2039,
+    "out": 450,
+    "reasoning": 334
+   },
+   "out_bytes": 276
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2253,
+    "out": 774,
+    "reasoning": 595
+   },
+   "out_bytes": 451
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_title_of",
+ "tokens": {
+  "body": {
+   "in": 2253,
+   "out": 774,
+   "reasoning": 595,
+   "out_bytes": 451
+  },
+  "spec": {
+   "in": 2039,
+   "out": 450,
+   "reasoning": 334,
+   "out_bytes": 276
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

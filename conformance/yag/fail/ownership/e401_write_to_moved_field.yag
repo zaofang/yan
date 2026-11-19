@@ -1,0 +1,16 @@
+# spec: 4.2
+# rows: R1086
+# expect: E401 at 16:5
+# note: a field that was moved out is not written again; the whole value is rebuilt instead (#1625)
+
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take s: str) -> str:
+    return s
+
+def main() -> None uses io:
+    h = H(s="x".upper(), xs=[1])
+    io.print(eat(h.s))
+    h.s = "z".upper()

@@ -1,0 +1,128 @@
+{
+ "final": "def safe_name(name: str) -> bool:\n    \"\"\"True when name is one plain path component: non-empty, not '.' or '..', with no slash, backslash or NUL.\"\"\"\n    ex safe_name(\"notes.txt\") == True\n    ex safe_name(\"../secret\") == False\n    ex safe_name(\"a/b\") == False\n    ex safe_name(\"\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for ch in name.chars():\n        if ch == \"/\" or ch == \"\\\\\" or ch == \"\\0\":\n            return False\n    return True\n\ndef can_read(name: str) -> bool uses fs:\n    \"\"\"True when name is a safe name and fs, confined to the notes directory, can open it as a readable file. A missing or unreadable file gives False.\"\"\"\n    post not out or safe_name(name)\n    if not safe_name(name):\n        return False\n    text = fs.read_text(name) else return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Number of entries in names that can be read from the notes directory. Names are untrusted; the function narrows fs with `with fs = fs.sub(\"notes\"):` so no name can reach a file outside notes.\"\"\"\n    post out >= 0 and out <= names.len()\n    count = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if can_read(name):\n                count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmplcskhy39/work/task.yag:13:8 can_read: `assert can_read(\"../secret\")` capability `fs` is not in scope | in `ex` of `can_read`\n#2 E301 /tmp/tmplcskhy39/work/task.yag:14:8 can_read: `assert can_read(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `can_read`\n#3 E301 /tmp/tmplcskhy39/work/task.yag:21:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#4 E301 /tmp/tmplcskhy39/work/task.yag:22:8 count_readable: `assert count_readable([\"../secret\", \"a/b\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 2632,
+    "reasoning": 2243
+   },
+   "out_bytes": 1013
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2847,
+    "out": 573,
+    "reasoning": 254
+   },
+   "out_bytes": 855
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3264,
+    "out": 1621,
+    "reasoning": 1165
+   },
+   "out_bytes": 1281
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 3264,
+   "out": 1621,
+   "reasoning": 1165,
+   "out_bytes": 1281
+  },
+  "spec": {
+   "in": 4976,
+   "out": 3205,
+   "reasoning": 2497,
+   "out_bytes": 1868
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmplcskhy39/work/task.yag:13:8 can_read: `assert can_read(\"../secret\")` capability `fs` is not in scope | in `ex` of `can_read`\n#2 E301 /tmp/tmplcskhy39/work/task.yag:14:8 can_read: `assert can_read(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `can_read`\n#3 E301 /tmp/tmplcskhy39/work/task.yag:21:8 count_readable: `assert count_readable([])` capability `fs` is not in sc"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

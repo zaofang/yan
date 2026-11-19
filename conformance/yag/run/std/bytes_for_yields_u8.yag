@@ -1,0 +1,14 @@
+# spec: 17.3
+# rows: R579
+# stdout:
+# 6
+
+def count_b(bs: bytes) -> int:
+    n = 0
+    for b in bs:
+        if b == 98:
+            n += 1
+    return n + len(bs)
+
+def main() uses io:
+    io.print(count_b(b"abcb"))

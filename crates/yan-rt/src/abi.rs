@@ -19,6 +19,9 @@ unsafe fn text<'a>(ptr: *const u8, len: usize) -> &'a str {
 pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     // SAFETY: forwarded.
     let s = unsafe { text(ptr, len) };
+    if crate::pool::capture(format!("{s}\n").as_bytes()) {
+        return;
+    }
     let mut out = std::io::stdout().lock();
     if writeln!(out, "{s}").and_then(|()| out.flush()).is_err() {
         std::process::exit(1);
@@ -217,6 +220,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
         "wire" => "a value the Wire codec rejects",
+        "forged" => "a capability made from bytes",
         _ => "invalid value",
     }
 }
@@ -232,8 +236,9 @@ pub struct List {
 }
 
 pub(crate) fn leak<T>(x: T) -> *mut T {
-    crate::heap::block_taken();
-    Box::into_raw(Box::new(x))
+    let p = Box::into_raw(Box::new(x));
+    crate::heap::block_taken(p as usize, crate::heap::release_box::<T>);
+    p
 }
 
 pub(crate) fn panic(kind: &str) -> ! {
@@ -283,7 +288,7 @@ pub unsafe extern "C" fn yan_rt_str_free(s: *mut String) {
     {
         return;
     }
-    crate::heap::block_freed();
+    crate::heap::block_freed(s as usize);
     // SAFETY: the caller's contract; the block came from `leak`.
     drop(unsafe { Box::from_raw(s) });
 }
@@ -294,7 +299,7 @@ pub unsafe extern "C" fn yan_rt_str_free(s: *mut String) {
 /// `l` is a `List` block that nothing uses afterwards.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_list_free(l: *mut List) {
-    crate::heap::block_freed();
+    crate::heap::block_freed(l as usize);
     // SAFETY: the caller's contract; the block came from `leak`.
     drop(unsafe { Box::from_raw(l) });
 }
@@ -373,11 +378,62 @@ pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
 
 /// The text of the real file at `path`, or the reason it could not be read.
 pub fn fs_read(path: &str) -> Result<String, String> {
-    std::fs::read_to_string(path).map_err(|e| match e.kind() {
+    std::fs::read_to_string(path).map_err(fs_reason_of)
+}
+
+/// `std.fs.list_dir` on the host: the entries of the directory, as a `list[Path]` block, or null
+/// with the reason kept for [`yan_rt_fs_reason`].
+///
+/// # Safety
+/// `path` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_fs_list_dir(path: *const String) -> *mut List {
+    // SAFETY: the caller's contract.
+    let path = unsafe { &*path };
+    entries_list(path, fs_list_dir(path))
+}
+
+/// The entry names of the real directory at `path`, or the reason it could not be listed. A name
+/// that is not UTF-8 fails with `NotUnicode` (R591).
+pub fn fs_list_dir(path: &str) -> Result<Vec<String>, String> {
+    let rd = std::fs::read_dir(path).map_err(fs_reason_of)?;
+    rd.map(|e| {
+        e.map_err(fs_reason_of)?
+            .file_name()
+            .into_string()
+            .map_err(|_| "NotUnicode".to_owned())
+    })
+    .collect()
+}
+
+fn fs_reason_of(e: std::io::Error) -> String {
+    match e.kind() {
         std::io::ErrorKind::NotFound => "not found".to_owned(),
         std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
         _ => e.to_string(),
-    })
+    }
+}
+
+/// What `list_dir(dir)` returns for the entry `names`: each joined onto `dir` with `/`, sorted by
+/// name so the order does not depend on the host.
+pub fn list_entries(dir: &str, mut names: Vec<String>) -> Vec<String> {
+    names.sort_unstable();
+    let base = dir.strip_suffix('/').unwrap_or(dir);
+    names.iter().map(|n| format!("{base}/{n}")).collect()
+}
+
+/// The `list[Path]` block of a listing, or null with the reason recorded.
+pub fn entries_list(dir: &str, names: Result<Vec<String>, String>) -> *mut List {
+    match names {
+        Ok(names) => {
+            let entries = list_entries(dir, names);
+            str_list(entries.iter().map(String::as_str))
+        }
+        Err(reason) => {
+            set_fs_reason(reason);
+            std::ptr::null_mut()
+        }
+    }
 }
 
 pub(crate) fn set_fs_reason(reason: String) {
@@ -584,7 +640,7 @@ pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
     crate::math::pow(x, y)
 }
 
-fn str_list<'a>(parts: impl Iterator<Item = &'a str>) -> *mut List {
+pub(crate) fn str_list<'a>(parts: impl Iterator<Item = &'a str>) -> *mut List {
     let l = yan_rt_list_new(1);
     for p in parts {
         // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
@@ -740,6 +796,23 @@ pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode
     };
     let ys = (!ys.is_null()).then(|| floats(ys));
     crate::math::dot_exact(&floats(xs), ys.as_deref(), mode).unwrap_or_else(|| panic("value"))
+}
+
+/// The float `sum` of the elements of a list of floats from `from` on, in the reduction order of
+/// 9.3 (R382).
+///
+/// # Safety
+/// `xs` is a `List` block of floats, and `from` is at most its length.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_sum_f64(xs: *const List, from: i64) -> f64 {
+    // SAFETY: the caller's contract.
+    let fs: Vec<f64> = unsafe { &*xs }
+        .data
+        .iter()
+        .skip(from as usize)
+        .map(|w| f64::from_bits(*w))
+        .collect();
+    crate::num::sum_f64(&fs)
 }
 
 #[unsafe(no_mangle)]
@@ -969,11 +1042,12 @@ pub extern "C" fn yan_rt_exit(code: i64) -> ! {
 /// `words` zeroed words: a closure's captures. A header word before them holds the count.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_alloc(words: u64) -> *mut u64 {
-    crate::heap::block_taken();
     let mut b = vec![0u64; words as usize + 1];
     b[0] = words;
     // SAFETY: the block has the header word.
-    unsafe { Box::leak(b.into_boxed_slice()).as_mut_ptr().add(1) }
+    let p = unsafe { Box::leak(b.into_boxed_slice()).as_mut_ptr().add(1) };
+    crate::heap::block_taken(p as usize, release_env);
+    p
 }
 
 /// Free a block from [`yan_rt_alloc`]; null (a closure without captures) is ignored.
@@ -985,10 +1059,19 @@ pub unsafe extern "C" fn yan_rt_free_env(p: *mut u64) {
     if p.is_null() {
         return;
     }
-    crate::heap::block_freed();
-    // SAFETY: the caller's contract; the header is one word before.
+    crate::heap::block_freed(p as usize);
+    // SAFETY: the caller's contract.
+    unsafe { release_env(p as usize) };
+}
+
+/// Free the block at `p` from [`yan_rt_alloc`] without counting it.
+///
+/// # Safety
+/// `p` is from `yan_rt_alloc` and nothing uses it afterwards.
+unsafe fn release_env(p: usize) {
+    // SAFETY: the header is one word before.
     unsafe {
-        let head = p.sub(1);
+        let head = (p as *mut u64).sub(1);
         let n = *head as usize + 1;
         drop(Box::from_raw(std::ptr::slice_from_raw_parts_mut(head, n)));
     }
@@ -1346,7 +1429,9 @@ pub extern "C" fn yan_rt_rand_split(h: i64, k: i64) -> i64 {
     match crate::rand::branch(h, k as u64) {
         Some(b) => b,
         None => {
-            eprintln!("yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)");
+            let report = "yan: `seeded(seed, Pcg64Dxsm())` in a `par` cannot split (E402)";
+            crate::pool::arm_failed(report.to_owned(), 101);
+            eprintln!("{report}");
             std::process::exit(101)
         }
     }

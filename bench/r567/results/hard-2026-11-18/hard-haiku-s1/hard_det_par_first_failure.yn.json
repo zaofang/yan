@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1513,
+   "out": 750,
+   "reasoning": 628,
+   "out_bytes": 237
+  },
+  "body": {
+   "in": 3731,
+   "out": 1661,
+   "reasoning": 1273,
+   "out_bytes": 710
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  post out == x\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1513,
+    "out": 750,
+    "reasoning": 628
+   },
+   "out_bytes": 237,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1708,
+    "out": 779,
+    "reasoning": 585
+   },
+   "out_bytes": 355,
+   "ok": false,
+   "report": "E315 task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE017 task.yn:15:3 all_even: `ys?` `?` on a value that is not a call: not supported by this toolchain yet",
+   "codes": [
+    "E017",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2023,
+    "out": 882,
+    "reasoning": 688
+   },
+   "out_bytes": 355,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E315 ./task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE017 ./task.yn:15:3 all_even: `ys?` `?` on a value that is not a call: not supported by this toolchain yet\n0 of 0 tests passed\nE315 ./task.yn:14:5 all_even: `check(x)` the failure of this call is not "
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

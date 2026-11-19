@@ -1,0 +1,126 @@
+{
+ "final": "def fact(n: int) -> bigint:\n    \"\"\"Factorial of n as an arbitrary-precision integer. n must be non-negative.\"\"\"\n    pre n >= 0\n    post out >= 1\n    ex fact(0) == 1\n    ex fact(5) == 120\n    acc: bigint = 1\n    for i in range(2, n + 1):\n        acc = acc * bigint(i)\n    return acc\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2033,
+    "out": 578,
+    "reasoning": 480
+   },
+   "out_bytes": 205
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp05_l4ogr/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp05_l4ogr/work/task.yag:9:15 fact: `acc *` `*` between `bigint` and `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2229,
+    "out": 665,
+    "reasoning": 532
+   },
+   "out_bytes": 284
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2496,
+    "out": 468,
+    "reasoning": 330
+   },
+   "out_bytes": 292
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/factorial_big",
+ "tokens": {
+  "body": {
+   "in": 4725,
+   "out": 1133,
+   "reasoning": 862,
+   "out_bytes": 576
+  },
+  "spec": {
+   "in": 2033,
+   "out": 578,
+   "reasoning": 480,
+   "out_bytes": 205
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp05_l4ogr/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmp05_l4ogr/work/task.yag:9:15 fact: `acc *` `*` between `bigint` and `int`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yag:9:15 fact: `acc` `*` between `bigint` and `int`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

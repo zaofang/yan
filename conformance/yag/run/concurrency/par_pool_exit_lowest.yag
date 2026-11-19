@@ -1,0 +1,49 @@
+# spec: 6.7, 9.1
+# rows: R1089
+# note: pool arms that leave by `?`: the lowest-index arm that leaves decides the block, a panic in a higher arm is discarded, and later output is dropped, at every thread count
+# stdout:
+# p0
+# p1
+# -2
+# p0
+# p1
+# -3
+# -1
+# 1
+
+class Bad:
+    n: int
+
+def check(n: int) -> int fail Bad:
+    if n > 0:
+        fail Bad(n=n)
+    return n
+
+def boom(n: int) -> int:
+    return 100 // n
+
+def say(tag: str, n: int) uses io:
+    i = 0
+    while i < n:
+        io.print(f"{tag}{i}")
+        i += 1
+
+def blk(b: int, c: int) -> int fail Bad uses io:
+    par:
+        say("p", 2)
+        y = check(b)?
+        z = check(c)?
+        say("q", 2)
+    return y + z
+
+def first(a: int, c: int) -> int fail Bad:
+    par:
+        v = check(a)?
+        w = boom(c)
+    return v + w
+
+pub def main() uses io:
+    io.print(f"{blk(2, 3) else e -> -2}")
+    io.print(f"{blk(0, 3) else e -> -3}")
+    io.print(f"{first(5, 0) else e -> -1}")
+    io.print(f"{first(0, 100) else e -> 0}")

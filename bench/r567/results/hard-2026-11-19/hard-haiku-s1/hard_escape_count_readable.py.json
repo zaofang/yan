@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 2881,
+   "reasoning": 1909,
+   "out_bytes": 2233
+  },
+  "body": {
+   "in": 2154,
+   "out": 2251,
+   "reasoning": 1090,
+   "out_bytes": 2813
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final[Path] = Path(\"notes\")\n\n\ndef _resolve_note(name: str) -> Path | None:\n    \"\"\"Return the path of `name` inside NOTES_DIR, or None if it is rejected.\n\n    Rejects absolute paths, names with '..' that climb out of NOTES_DIR,\n    names containing NUL bytes, and symlinks that resolve outside NOTES_DIR.\n    Does not check whether the path is a readable regular file.\n    \"\"\"\n    if \"\\x00\" in name or Path(name).is_absolute():\n        return None\n    base = NOTES_DIR.resolve()\n    try:\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count entries of `names` that are readable regular files inside NOTES_DIR.\n\n    Each entry is counted separately, so duplicates count again. Missing or\n    unreadable files contribute nothing. No name may cause a read outside\n    NOTES_DIR.\n    \"\"\"\n    count = 0\n    for name in names:\n        path = _resolve_note(name)\n        if path is None or not path.is_file():\n            continue\n        try:\n            with path.open(\"rb\"):\n                pass\n        except OSError:\n            continue\n        count += 1\n    return count\n\n\n@pytest.fixture\ndef notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / \"notes\"\n    d.mkdir()\n    (d / \"a.txt\").write_text(\"hello\")\n    (d / \"empty.txt\").write_text(\"\")\n    (d / \"sub\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    return d\n\n\ndef test_counts_only_readable_files(notes: Path) -> None:\n    assert count_readable([\"a.txt\", \"empty.txt\", \"missing.txt\"]) == 2\n\n\ndef test_empty_name_list(notes: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_duplicates_count_each_entry(notes: Path) -> None:\n    assert count_readable([\"a.txt\", \"a.txt\"]) == 2\n\n\ndef test_directory_is_not_a_file(notes: Path) -> None:\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_parent_traversal_rejected(notes: Path) -> None:\n    assert count_readable([\"../secret.txt\"]) == 0\n    assert count_readable([\"sub/../../secret.txt\"]) == 0\n\n\ndef test_absolute_path_outside_rejected(notes: Path, tmp_path: Path) -> None:\n    assert count_readable([str(tmp_path / \"secret.txt\")]) == 0\n\n\ndef test_nul_byte_rejected(notes: Path) -> None:\n    assert count_readable([\"a.txt\\x00\"]) == 0\n\n\ndef test_symlink_escaping_notes_rejected(notes: Path, tmp_path: Path) -> None:\n    (notes / \"link\").symlink_to(tmp_path / \"secret.txt\")\n    assert count_readable([\"link\"]) == 0\n\n\ndef test_resolve_note_rejects_traversal(notes: Path) -> None:\n    assert _resolve_note(\"../secret.txt\") is None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 2881,
+    "reasoning": 1909
+   },
+   "out_bytes": 2233,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2154,
+    "out": 2251,
+    "reasoning": 1090
+   },
+   "out_bytes": 2813,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

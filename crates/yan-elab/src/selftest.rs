@@ -667,7 +667,7 @@ fn a_cancel_scope_needs_timeout_in_the_fail_type() {
 
 #[test]
 fn channels_run_and_their_waits_time_out() {
-    let src = "def pair() -> int fail Cancelled:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()? else 0\n    b = rx.recv()? else 0\n    return a + b\n\n\
+    let src = "def pair() -> int fail Cancelled | Timeout:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()? else 0\n    b = rx.recv()? else 0\n    return a + b\n\n\
                def empty() -> int fail Cancelled | Timeout uses time:\n    tx, rx = Channel[int](1)\n    with timeout(5 * ms):\n        return rx.recv()? else 0\n    tx.send(0)?\n    return 0\n\n\
                def full() -> int fail Cancelled | Timeout uses time:\n    tx, _ = Channel[int](1)\n    with timeout(5 * ms):\n        tx.send(1)?\n        tx.send(2)?\n    return 0\n\n\
                pub def main() uses io, time:\n    p = pair() else _ -> -1\n    e = empty() else _ -> -1\n    f = full() else _ -> -1\n    io.print(f\"{p} {e} {f}\")\n";
@@ -1731,4 +1731,11 @@ fn binding_a_list_element_view_to_another_name_is_e413() {
     let src = "def f(xs: list[str]) -> str:\n    t = xs[0]\n    u = t\n    return u\n";
     let (_, d) = lower(src);
     assert_eq!(d.iter().filter(|d| d.code == "E413").count(), 1, "{d:?}");
+}
+
+#[test]
+fn for_over_bytes_lowers_without_diagnostics() {
+    let src = "def f(bs: bytes) -> int:\n    n = 0\n    for b in bs:\n        if b == 98:\n            n += 1\n    return n\n";
+    let (_, d) = lower(src);
+    assert!(d.is_empty(), "{d:?}");
 }

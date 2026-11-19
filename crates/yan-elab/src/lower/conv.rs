@@ -1,7 +1,7 @@
 use super::*;
 
 impl Lower<'_, '_, '_> {
-    /// `wrap_as[T](x)` and `sat_as[T](x)` (3.4, assumption A6).
+    /// `wrap_as[T](x)`, `sat_as[T](x)` and `checked_as[T](x)` (3.4, assumption A6).
     pub(super) fn conv_call(
         &mut self,
         f: &str,

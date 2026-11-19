@@ -1,0 +1,161 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one file name: non-empty, with no path separators, no '..' part, and not absolute.\"\"\"\n    pre name.char_count() > 0\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../a.txt\") == False\n    ex is_plain_name(\"sub/a.txt\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"..\") == False\n    if name.startswith(\"/\"):\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    if \"..\" in name:\n        return False\n    return True\n\ndef read_note(name: str) -> str | None uses fs:\n    \"\"\"Text of the file name inside the notes directory, or None when it is missing or unreadable.\"\"\"\n    pre is_plain_name(name) == True\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else return None\n        return text\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read from the notes directory, or '' when none can. Names that are not plain file names are skipped, so nothing outside notes is read.\"\"\"\n    for name in names:\n        if is_plain_name(name):\n            text = read_note(name)\n            if text is not None:\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmphvhrq5ax/work/task.yag:15:8 read_note: `assert read_note(\"no-such-file-xyz.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmphvhrq5ax/work/task.yag:16:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmphvhrq5ax/work/task.yag:22:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#4 E301 /tmp/tmphvhrq5ax/work/task.yag:23:8 first_readable: `assert first_readable([\"no-such-file-xyz.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#5 E301 /tmp/tmphvhrq5ax/work/task.yag:24:8 first_readable: `assert first_readable([\"../secret.txt\", \"no-such-file-xyz.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1841,
+    "reasoning": 1401
+   },
+   "out_bytes": 1097
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3023,
+    "out": 712,
+    "reasoning": 390
+   },
+   "out_bytes": 849
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmphvhrq5ax/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmphvhrq5ax/work/task.yag:13:8 is_plain_name: `name =` this branch special-cases an `ex` input\n#3 E201 /tmp/tmphvhrq5ax/work/task.yag:32:16 first_readable: `return text` expected `str`, found `str | None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3443,
+    "out": 1497,
+    "reasoning": 1045
+   },
+   "out_bytes": 1283
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4087,
+    "out": 1260,
+    "reasoning": 815
+   },
+   "out_bytes": 1257
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 7530,
+   "out": 2757,
+   "reasoning": 1860,
+   "out_bytes": 2540
+  },
+  "spec": {
+   "in": 5162,
+   "out": 2553,
+   "reasoning": 1791,
+   "out_bytes": 1946
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmphvhrq5ax/work/task.yag:15:8 read_note: `assert read_note(\"no-such-file-xyz.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmphvhrq5ax/work/task.yag:16:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmphvhrq5ax/work/task.yag:22:8 first_readable: `assert first_readable([])` capabilit"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmphvhrq5ax/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmphvhrq5ax/work/task.yag:13:8 is_plain_name: `name =` this branch special-cases an `ex` input\n#3 E201 /tmp/tmphvhrq5ax/work/task.yag:32:16 first_readable: `return text` expected `str`, found `str | None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "W806 task.yag:13:8 is_plain_name: `name` this branch special-cases an `ex` input\nN57 task.yag:22:16 read_note: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nE201 task.yag:34:16 first_readable: `text` expected `str`, found `str | None`"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

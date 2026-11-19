@@ -614,6 +614,35 @@
    ]
   },
   {
+   "path": "yag/fail/atomic_wait_needs_nondet.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E709",
+     "line": 9,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 10,
+     "col": 5
+    },
+    {
+     "code": "E709",
+     "line": 11,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/bindings/r832_if_without_else.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -986,8 +1015,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 5
+    },
+    {
      "code": "E323",
-     "line": 15,
+     "line": 16,
      "col": 5
     }
    ]
@@ -1006,8 +1040,18 @@
    "expect": [
     {
      "code": "E323",
-     "line": 9,
+     "line": 11,
      "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 11,
+     "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 12,
+     "col": 5
     }
    ]
   },
@@ -1026,12 +1070,17 @@
    "expect": [
     {
      "code": "E323",
-     "line": 9,
+     "line": 10,
+     "col": 5
+    },
+    {
+     "code": "W863",
+     "line": 10,
      "col": 5
     },
     {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 13
     }
    ]
@@ -1259,8 +1308,18 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 11,
+     "col": 9
+    },
+    {
      "code": "E713",
-     "line": 10,
+     "line": 12,
+     "col": 13
+    },
+    {
+     "code": "W863",
+     "line": 12,
      "col": 13
     }
    ]
@@ -1280,8 +1339,13 @@
    "expect": [
     {
      "code": "E715",
-     "line": 10,
+     "line": 11,
      "col": 9
+    },
+    {
+     "code": "W863",
+     "line": 12,
+     "col": 5
     }
    ]
   },
@@ -1339,6 +1403,26 @@
      "code": "W818",
      "line": 6,
      "col": 25
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/concurrency/w863_recv_narrows_timeout.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "17.3"
+   ],
+   "rows": [
+    "R1111"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W863",
+     "line": 7,
+     "col": 9
     }
    ]
   },
@@ -1827,6 +1911,25 @@
    ]
   },
   {
+   "path": "yag/fail/failure/propagate_non_result.yag",
+   "kind": "fail",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R1107"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E201",
+     "line": 11,
+     "col": 12
+    }
+   ]
+  },
+  {
    "path": "yag/fail/generics/derive_argument.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -2115,6 +2218,25 @@
      "code": "E200",
      "line": 6,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/lenient/e200_queue_channel_hint.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 9
     }
    ]
   },
@@ -3055,6 +3177,25 @@
    ]
   },
   {
+   "path": "yag/fail/lints/w806_branch_is_the_only_source.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "W806",
+     "line": 8,
+     "col": 8
+    }
+   ]
+  },
+  {
    "path": "yag/fail/lints/w806_special_cases_ex.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3423,6 +3564,63 @@
    ]
   },
   {
+   "path": "yag/fail/ownership/e401_part_move_in_loop.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1086"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 16,
+     "col": 22
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e401_whole_read_after_part_move.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1086"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 19,
+     "col": 24
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e401_write_to_moved_field.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1086"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E401",
+     "line": 16,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/ownership/e402_overlapping_fields.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -3655,6 +3853,25 @@
      "code": "E413",
      "line": 19,
      "col": 26
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ownership/e413_field_out_of_drop_type.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1084"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E413",
+     "line": 19,
+     "col": 14
     }
    ]
   },
@@ -4073,8 +4290,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 6,
+     "line": 7,
      "col": 13
     }
    ]
@@ -4091,8 +4313,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 12,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 11,
+     "line": 12,
      "col": 13
     }
    ]
@@ -4108,8 +4335,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 5
     }
    ]
@@ -4127,8 +4359,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 7,
+     "line": 8,
      "col": 13
     }
    ]
@@ -4144,8 +4381,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 7,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 6,
+     "line": 7,
      "col": 13
     }
    ]
@@ -4197,8 +4439,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 10,
+     "col": 5
+    },
+    {
      "code": "E415",
-     "line": 9,
+     "line": 10,
      "col": 13
     }
    ]
@@ -6399,6 +6646,84 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/atomic_wait_cancelled.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "9.4"
+   ],
+   "rows": [
+    "R1103"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Bad(n=7)\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_deadlock.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R396",
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "waiting\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101",
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_notify_all.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1102"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "111\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/atomic_wait_value_differs.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.2"
+   ],
+   "rows": [
+    "R1101"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "done\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/chan_send_after_close.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6690,6 +7015,38 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_pool_discard_leak.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1089"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/par_pool_exit_lowest.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1089"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "p0\np1\n-2\np0\np1\n-3\n-1\n1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_pool_lowest_panic.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6704,6 +7061,22 @@
    "expect": [],
    "stdout": "before\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/concurrency/par_pool_print_rand.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "7.1"
+   ],
+   "rows": [
+    "R1088"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a0\na1\na2\nb0\nb1\n42 89\nc0\nc1\nd0\nd1\nd2\nend\n",
+   "exit": 0
   },
   {
    "path": "yag/run/concurrency/par_pool_results.yag",
@@ -6722,6 +7095,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/par_pool_return_owned.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.7",
+    "9.1"
+   ],
+   "rows": [
+    "R1090"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "r0\n10\nr0\ns0\nt0\nfell\n0\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_source_order.yag",
    "kind": "run",
    "milestone": "M1",
@@ -6736,6 +7125,22 @@
    "flags": [],
    "expect": [],
    "stdout": "one\ntwo\n4 9 [0, 1, 4, 9, 16]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/recv_times_out_under_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "17.3"
+   ],
+   "rows": [
+    "R1111"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "-1\n3\n",
    "exit": 0
   },
   {
@@ -6778,6 +7183,21 @@
    "expect": [],
    "stdout": "2\n",
    "exit": 101
+  },
+  {
+   "path": "yag/run/contracts/w806_guard_not_flagged.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R1096"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "False True\n",
+   "exit": 0
   },
   {
    "path": "yag/run/dist/cluster_group.yag",
@@ -7036,6 +7456,21 @@
    "exit": 1
   },
   {
+   "path": "yag/run/failure/propagate_result_value.yag",
+   "kind": "run",
+   "milestone": "M1b",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R1106"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "5 -1 9 -2\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/generics/generic_fail_types.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7065,6 +7500,22 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n['x', 'y']\nPair(a=7, b='k')\nBox(value='ab')\nTrue\nFalse\n2\nBox(value=Box(value=2))\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/generics/generic_sum_inferred_constructor.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "10.1",
+    "13"
+   ],
+   "rows": [
+    "R423"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2\n",
    "exit": 0
   },
   {
@@ -7409,6 +7860,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n57_fs_read_text.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R1095"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "missing\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/py_real_functions.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7436,6 +7902,21 @@
    "flags": [],
    "expect": [],
    "stdout": "0 0 0 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/match/qualified_variant.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1110"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
    "exit": 0
   },
   {
@@ -7512,6 +7993,70 @@
    "expect": [],
    "stdout": "1180591620717411303424\n",
    "exit": 0
+  },
+  {
+   "path": "yag/run/numbers/checked_as_in_range.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200 300 2147483647 255\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/numbers/checked_as_narrowing_boundary.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/numbers/checked_as_negative_unsigned.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/numbers/checked_as_overflow.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
   },
   {
    "path": "yag/run/numbers/div_zero_panics.yag",
@@ -7860,6 +8405,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/ownership/linear_field_leaves_record.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2",
+    "5.4"
+   ],
+   "rows": [
+    "R1085"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\nY\nX\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/loop_two_breaks_drop_once.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7919,6 +8480,21 @@
    "flags": [],
    "expect": [],
    "stdout": "1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/ownership/part_move_disjoint_read.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "4.2"
+   ],
+   "rows": [
+    "R1087"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "X\n1\n2\n",
    "exit": 0
   },
   {
@@ -8265,6 +8841,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/bytes_for_yields_u8.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R579"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "6\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/char_parse_int_float.yag",
    "kind": "run",
    "milestone": "M1",
@@ -8601,6 +9192,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/fs_list_dir.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1109"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "d/a.txt\nd/b\nd/c.txt\n/r/x\n3\nnot found\nnot a directory\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/fstring_numeric_specs.yag",
    "kind": "run",
    "milestone": "M1",
@@ -8784,6 +9390,21 @@
    "flags": [],
    "expect": [],
    "stdout": "[7, 7, 7]\n[9]\n[]\n[0, 0]\n[1, 3]\n['a', 'b', 'c']\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/iter_sum_float_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.3"
+   ],
+   "rows": [
+    "R382"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0.0 0.0 0.0\n-0.0\n",
    "exit": 0
   },
   {
@@ -9554,6 +10175,45 @@
    "flags": [],
    "expect": [],
    "stdout": "h\u00e9llo 2 7\n\u8a00 1 2\nABC\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/set_add_discard_contains.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 True False\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/set_for_insertion_order.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "b c d\n3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/set_union_intersection.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "[3, 1, 2, 4] [1, 2] 4 2\n[3, 1, 2, 4, 5] 5\n[] [3, 1, 2] 0 3\n[x, y] [y]\n",
    "exit": 0
   },
   {
@@ -10756,6 +11416,25 @@
      "code": "E307",
      "line": 7,
      "col": 15
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/concurrency/e200_chan_near_miss.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 18
     }
    ]
   },
@@ -12482,8 +13161,13 @@
    "flags": [],
    "expect": [
     {
+     "code": "W863",
+     "line": 8,
+     "col": 3
+    },
+    {
      "code": "E415",
-     "line": 7,
+     "line": 8,
      "col": 11
     }
    ]
@@ -13332,6 +14016,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/collections/nested_ast_walks.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "5.4"
+   ],
+   "rows": [
+    "R770"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "50 1 True False\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/collections/ref_temp_method.yn",
    "kind": "run",
    "milestone": "M3",
@@ -13345,6 +14044,21 @@
    "flags": [],
    "expect": [],
    "stdout": "2\n6\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/collections/u8_to_int.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R656"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "98 122\n",
    "exit": 0
   },
   {
@@ -13617,6 +14331,66 @@
    "exit": 0
   },
   {
+   "path": "yn/run/meta/info_layout_none.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1091"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "none\nnone\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/numbers/checked_as_in_range.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "44 200 255\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/numbers/checked_as_overflow.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yn/run/numbers/checked_as_u64_boundary.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1112"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "9223372036854775807\nbefore\n",
+   "exit": 101
+  },
+  {
    "path": "yn/run/numbers/checked_cast.yn",
    "kind": "run",
    "milestone": "M3",
@@ -13675,6 +14449,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/qualified_variant.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1110"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "15\n25\n5\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/stage0/ffi/extern_scalar_calls.yn",
    "kind": "run",
    "milestone": "M3",
@@ -13699,6 +14488,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3628800\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/std_fs_list_dir.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R1109"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "d/a.txt\nd/b\nd/c.txt\nnot found\n",
    "exit": 0
   },
   {
@@ -15065,6 +15869,80 @@
    ]
   },
   {
+   "path": "ub/atomic_release_acquire_forbids_stale.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.5",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    16
+   ]
+  },
+  {
+   "path": "ub/atomic_seqcst_forbids_store_buffering.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    16
+   ]
+  },
+  {
+   "path": "ub/atomic_store_buffering_allowed.yag",
+   "kind": "ub",
+   "milestone": "M1",
+   "spec": [
+    "6.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1105"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "any",
+    16
+   ]
+  },
+  {
+   "path": "ub/channel_drop_releases_queued.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "4.2",
+    "6.9"
+   ],
+   "rows": [
+    "R1098"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "none"
+  },
+  {
    "path": "ub/data_race.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15103,6 +15981,48 @@
    "ub": "8"
   },
   {
+   "path": "ub/drop_after_take.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7",
+    "6.9"
+   ],
+   "rows": [
+    "R1092",
+    "R1093"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "8"
+  },
+  {
+   "path": "ub/forged_capability.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7",
+    "6.9"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "9"
+  },
+  {
+   "path": "ub/immutable_literal.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.7"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "7"
+  },
+  {
    "path": "ub/invalid_bool.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15114,6 +16034,38 @@
    "flags": [],
    "expect": [],
    "ub": "6"
+  },
+  {
+   "path": "ub/leak_denied.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1099"
+   ],
+   "flags": [
+    "--ub=deny-leaks"
+   ],
+   "expect": [],
+   "ub": "none",
+   "warn": "W862"
+  },
+  {
+   "path": "ub/leak_reported.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1098"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "W862"
   },
   {
    "path": "ub/misaligned_access.yn",
@@ -15160,6 +16112,22 @@
    "ub": "none"
   },
   {
+   "path": "ub/no_leak_when_freed.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1098",
+    "R1100"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "warn": "none"
+  },
+  {
    "path": "ub/offset_outside_allocation.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15186,6 +16154,24 @@
    "ub": "none"
   },
   {
+   "path": "ub/seeds_run_every_seed.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.9"
+   ],
+   "rows": [
+    "R1104"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "none",
+   "seeds": [
+    "all",
+    3
+   ]
+  },
+  {
    "path": "ub/select_orders_tasks.yn",
    "kind": "ub",
    "milestone": "M3",
@@ -15194,6 +16180,22 @@
     "15.3"
    ],
    "rows": [],
+   "flags": [],
+   "expect": [],
+   "ub": "none"
+  },
+  {
+   "path": "ub/take_then_write_is_defined.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7"
+   ],
+   "rows": [
+    "R1092",
+    "R1094"
+   ],
    "flags": [],
    "expect": [],
    "ub": "none"
@@ -15255,6 +16257,24 @@
    "flags": [],
    "expect": [],
    "ub": "16"
+  },
+  {
+   "path": "ub/use_after_take.yn",
+   "kind": "ub",
+   "milestone": "M3",
+   "spec": [
+    "6.6",
+    "6.7",
+    "6.9"
+   ],
+   "rows": [
+    "R1092",
+    "R1093",
+    "R1094"
+   ],
+   "flags": [],
+   "expect": [],
+   "ub": "8"
   },
   {
    "path": "semver/add_capability",

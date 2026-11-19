@@ -116,7 +116,7 @@ altbase   = "_" | literal [(".." | "..=") literal] | NAME
           | vpath ["(" [ppat {"," ppat}] ")"]
           | "(" pattern "," pattern {"," pattern} ")"
           | "[" [spat {"," spat}] "]" ;
-vpath     = {NAME "."} TYPENAME ;
+vpath     = {(NAME | TYPENAME) "."} TYPENAME ;
 ppat      = pattern | NAME ":" [pattern] | ".." ;
 spat      = pattern | ".." [NAME] ;
 

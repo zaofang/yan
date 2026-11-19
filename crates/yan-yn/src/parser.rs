@@ -2546,11 +2546,15 @@ impl<'a> Parser<'a> {
                 self.bump();
                 PatKind::Wild
             }
-            Tok::Name(_) if self.qualified_ctor_ahead() => {
+            Tok::Name(_) | Tok::TypeName(_) if self.qualified_ctor_ahead() => {
                 let mut path = Vec::new();
-                while !matches!(self.peek(), Tok::TypeName(_)) {
-                    path.push(self.name()?.0);
-                    self.expect_p(".")?;
+                while *self.peek_n(1) == Tok::Punct(".") {
+                    path.push(match self.peek() {
+                        Tok::Name(n) | Tok::TypeName(n) => n.clone(),
+                        _ => unreachable!("checked"),
+                    });
+                    self.bump();
+                    self.bump();
                 }
                 let Tok::TypeName(n) = self.peek() else {
                     unreachable!("checked")
@@ -2619,10 +2623,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// `a.b.C`: names and dots up to a type name.
+    /// `a.b.C` or `T.V`: names, type names and dots up to a final type name.
     fn qualified_ctor_ahead(&self) -> bool {
         let mut i = 0;
-        while matches!(self.peek_n(i), Tok::Name(_)) && *self.peek_n(i + 1) == Tok::Punct(".") {
+        while matches!(self.peek_n(i), Tok::Name(_) | Tok::TypeName(_))
+            && *self.peek_n(i + 1) == Tok::Punct(".")
+        {
             i += 2;
         }
         i > 0 && matches!(self.peek_n(i), Tok::TypeName(_))

@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1464,
+   "reasoning": 593,
+   "out_bytes": 1970
+  },
+  "body": {
+   "in": 5820,
+   "out": 2828,
+   "reasoning": 864,
+   "out_bytes": 4529
+  }
+ },
+ "final": "import sys\nimport threading\nimport time\nfrom concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    check finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures: list[Future[int]] = [pool.submit(check, x) for x in xs]\n        out: list[int] = []\n        for f in futures:\n            out.append(f.result())\n    return out\n\n\ndef test_all_even_ok_preserves_order() -> None:\n    xs = [8, 2, 6, 0, 4, -2]\n    assert all_even(xs) == xs\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 6])\n    assert ei.value.n == 7\n\n\ndef test_all_even_raises_first_odd_by_index() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 3, 5])\n    assert ei.value.n == 9\n\n\ndef test_all_even_negative_odd() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, -3, 4])\n    assert ei.value.n == -3\n\n\ndef test_all_even_lowest_index_wins_even_if_finishes_last(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    real_check = check\n\n    def slow_check(x: int) -> int:\n        if x == 3:\n            time.sleep(0.1)\n        return real_check(x)\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_all_even_checks_every_element(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    real_check = check\n    seen: set[int] = set()\n    lock = threading.Lock()\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.add(x)\n        return real_check(x)\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", recording_check)\n    xs = [1, 2, 4, 6, 8, 10]\n    with pytest.raises(Bad) as ei:\n        all_even(xs)\n    assert ei.value.n == 1\n    assert seen == set(xs)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1464,
+    "reasoning": 593
+   },
+   "out_bytes": 1970,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2096,
+    "out": 1479,
+    "reasoning": 506
+   },
+   "out_bytes": 2236,
+   "ok": false,
+   "report": "    out.append(f.result())\n               ^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py:447: in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py:396: in __get_result\n    raise self._exception\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py:86: in run\n    result = ctx.run(self.task)\n             ^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py:73: in run\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\ntest_task.py:68: in slow_check\n    return check(x)\n           ^^^^^^^^\ntest_task.py:68: in slow_check\n    return check(x)\n           ^^^^^^^^\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n=========================== short test summary info ============================\nFAILED test_task.py::test_all_even_lowest_index_wins_even_if_finishes_last - ...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 5 passed in 99.64s (0:01:39)"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3724,
+    "out": 1349,
+    "reasoning": 358
+   },
+   "out_bytes": 2293,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": ".....FF...                                                               [100%]\n=================================== FAILURES ===================================\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n/tmp/tmp5ydv35_9/test_hidden.py:68: Re"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

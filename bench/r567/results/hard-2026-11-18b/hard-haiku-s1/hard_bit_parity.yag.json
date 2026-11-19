@@ -1,0 +1,188 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when the byte has an odd number of set bits.\"\"\"\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(3) == False\n    ex parity(7) == True\n    ex parity(255) == False\n    ones: uint8 = 0\n    n: uint8 = x\n    while n > 0:\n        ones += n % 2\n        n = n // 2\n    return ones % 2 == 1\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 N22 /tmp/tmpcjux6d_q/work/task.yag:3:9 `pre 0 <` chained comparison rewritten with `and`\n#2 E201 /tmp/tmpcjux6d_q/work/task.yag:3:14 parity: `= x <` cannot compare `int` with `uint8`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "N22",
+      "E201"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2006,
+    "out": 414,
+    "reasoning": 299
+   },
+   "out_bytes": 260
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2263,
+    "out": 581,
+    "reasoning": 466
+   },
+   "out_bytes": 264
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "the frozen spec declares `parity(x: int)`, but the task requires `parity(x: uint8)`. Restoring the signature would change a frozen line, so the spec needs to be corrected first.",
+   "tools": [],
+   "usage": {
+    "in": 2476,
+    "out": 952,
+    "reasoning": 883
+   },
+   "out_bytes": 183
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2741,
+    "out": 483,
+    "reasoning": 382
+   },
+   "out_bytes": 238
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpcjux6d_q/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpcjux6d_q/work/task.yag:11:17 parity: `n %` `+` between `int` and `uint8`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2940,
+    "out": 1066,
+    "reasoning": 920
+   },
+   "out_bytes": 336
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3219,
+    "out": 480,
+    "reasoning": 324
+   },
+   "out_bytes": 350
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 8635,
+   "out": 2498,
+   "reasoning": 2127,
+   "out_bytes": 869
+  },
+  "spec": {
+   "in": 7010,
+   "out": 1478,
+   "reasoning": 1147,
+   "out_bytes": 762
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E201",
+    "N22"
+   ],
+   "report": "#1 N22 /tmp/tmpcjux6d_q/work/task.yag:3:9 `pre 0 <` chained comparison rewritten with `and`\n#2 E201 /tmp/tmpcjux6d_q/work/task.yag:3:14 parity: `= x <` cannot compare `int` with `uint8`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpcjux6d_q/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpcjux6d_q/work/task.yag:11:17 parity: `n %` `+` between `int` and `uint8`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:32 unexpected character ```\nE100 ./task.yag:1:47 unexpected character ```\nE100 ./task.yag:1:72 unexpected character ```\nE100 ./task.yag:1:89 unexpected character ```\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

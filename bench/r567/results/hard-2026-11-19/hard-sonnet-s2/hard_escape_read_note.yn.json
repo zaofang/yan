@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1709,
+   "out": 325,
+   "reasoning": 229,
+   "out_bytes": 201
+  },
+  "body": {
+   "in": 3976,
+   "out": 1036,
+   "reasoning": 673,
+   "out_bytes": 849
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"missing-note.txt\") == \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = fs.read(name) else \"\"\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1709,
+    "out": 325,
+    "reasoning": 229
+   },
+   "out_bytes": 201,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1878,
+    "out": 459,
+    "reasoning": 328
+   },
+   "out_bytes": 282,
+   "ok": false,
+   "report": "E017 task.yn:8:14 read_note: `fs.read_text(name) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2098,
+    "out": 577,
+    "reasoning": 345
+   },
+   "out_bytes": 567,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E017 task.yn:8:14 read_note: `fs.read_text(name) else \"\"` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

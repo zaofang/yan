@@ -351,6 +351,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 set(self, vec![rem]);
             }
             id::STD_ITER_OPS_SUM | id::STD_ITER_OPS_SUM_FLOAT => {
+                if matches!(&e, Shape::Scalar(Ty::F64)) {
+                    let r = self.rt(RtFn::SumF64, Ty::F64, vec![l.clone(), pos.clone()]);
+                    advance(self);
+                    set(self, vec![r]);
+                    return Ok(());
+                }
                 let (zero, op, ty) = match &e {
                     Shape::Scalar(t) if *t == I64 => (Operand::Int(0), ScalarOp::AddChecked, I64),
                     Shape::Scalar(Ty::F64) => (Operand::F64(0.0), ScalarOp::Add, Ty::F64),
