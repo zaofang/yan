@@ -771,9 +771,11 @@ impl<'a, 'm> Fn<'a, 'm> {
                 Shape::Scalar(Ty::Unit),
                 failure_union(&["Cancelled", "Timeout"]),
             )),
-            Some(id::STD_SYNC_ATOMIC_WAIT | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
-                Some(result(Shape::Scalar(Ty::Unit), cancelled()))
-            }
+            Some(id::STD_SYNC_ATOMIC_WAIT) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            Some(id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {
                 Some(y::TArg::Type(f)) => Some(result(Shape::Scalar(Ty::Unit), self.shape(f)?)),
                 _ => None,

@@ -293,9 +293,13 @@ pub fn select_wait(keys: &[u64], at: &[u64], in_task: bool) -> (u64, u64) {
         if crate::actor::yan_rt_actor_idle() != 0 {
             return (crate::actor::WORK, 0);
         }
-        match wake {
-            Some(w) => crate::civil::wait_until(w),
-            None => deadlock(),
+        match (wake, crate::deadline::current()) {
+            (Some(w), Some(d)) if d < w => {
+                crate::civil::wait_until(d);
+                return (TIMEOUT, 0);
+            }
+            (Some(w), _) => crate::civil::wait_until(w),
+            (None, _) => return (idle_or_deadlock(), 0),
         }
     }
 }
