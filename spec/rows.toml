@@ -2212,6 +2212,6 @@ topic = "`x?` where `x` is neither a fallible call nor a `Result` value is E201 
 sections = "14.1, 25"
 
 [[entry]]
-rows = "R1108"
+rows = "R1109"
 topic = "`T.V(args)` is the qualified spelling of variant `V` of sum `T` in an expression, a pattern and an argument, in Yan and Yan Agent; always legal, and the only legal spelling when two sums in scope share the variant name, whose bare form is E200 (RFC 0093 D3, S1 of #1703)"
 sections = "15.3"
