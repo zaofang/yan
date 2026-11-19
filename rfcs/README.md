@@ -119,4 +119,4 @@ conformance case in the same PR set.
 | [0093](0093-wait-on-workers-deadlines-and-variant-paths.md) | `Atomic.wait` on pool workers, native deadline scopes and `Type.Variant()` paths | accepted | |
 | [0094](0094-chan-constructor-spelling.md) | Channel constructor spelling and the near-miss diagnostic | accepted | pending |
 | [0095](0095-handler-bound-examples-and-par-for-statements.md) | Handler-bound `ex` lines and `par for` statements | accepted | pending |
-| [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | draft | |
+| [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | accepted | pending |

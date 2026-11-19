@@ -1,8 +1,8 @@
 # 0096: `checked_as`, the checked integer conversion function
 
-- Status: draft
+- Status: accepted
 - Research: #1747 (R567 hard rerun 2026-11-19, `hard_rotl8`, `hard_bit_parity`), #1765 (habit hints; "yag has no checked narrowing" left for a decision)
-- Rows: filled in when accepted
+- Rows: pending
 
 ## Summary
 
@@ -21,7 +21,7 @@ Options:
 
 Recommended: A. One fact, one representation (practice 12): the checked conversion keeps one implementation, reached by `as` in Yan and by `checked_as[T]` in Yan Agent, and the three policies sit side by side with the same call shape.
 
-- Decision:
+- Decision: accepted as recommended: A, `checked_as[T](x)` in both surfaces (lead, 2026-11-19)
 - Row:
 
 ### D2: failure mode and semantics
@@ -35,21 +35,21 @@ Options:
 
 Recommended: A for `checked_as`. Tension recorded openly: `checked_*` arithmetic returns `Option`, `checked_as` traps. The name follows the conversion family (spec 3.4, `as` "is checked"), not the arithmetic one. The failable form is D3.
 
-- Decision:
+- Decision: accepted as recommended: A, panic with kind `overflow` (lead, 2026-11-19)
 - Row:
 
 ### D3: the failable conversion, deferred
 
 A conversion that returns `Option[T]` (Rust's `try_from`, Python's range test) is useful and is not the same function. Naming it now would freeze a second spelling for an unmeasured need; no R567 or conformance program asks for it. Recommended: do not add it here; file it as a numbered item in a gap issue (practice 9), and decide the spelling by RFC when a program needs it, with the `checked_*` naming tension from D2 on the table. Deferred, not dropped.
 
-- Decision:
+- Decision: accepted as recommended: deferred to a gap item (lead, 2026-11-19)
 - Row:
 
 ### D4: Python habits
 
 Policy: a real function or a normalization, never a bare unresolved-name error. With D1 A the real function exists, so the habit entries added in #1765 for `uint8(x)`, `u8(x)`, `np.uint8(x)` and `ctypes.c_uint8(x)` name `checked_as[uint8](x)` first (fails if it does not fit), then `wrap_as` and `sat_as`. No lenient-reader rewrite: as in D1 C, the Python habits do not agree on the policy, so a rewrite would choose it silently. `trunc_as` stays specified but unsupported in lowering and keeps its fail-loud diagnostic; it is not decided here.
 
-- Decision:
+- Decision: accepted as recommended: hint entries only, no lenient rewrite (lead, 2026-11-19)
 - Row:
 
 ## Spec changes
