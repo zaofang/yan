@@ -1,0 +1,21 @@
+# spec: 9.4
+# note: deadline scopes opened in par tasks end with the task and the block's own scope survives (RFC 0093 S2b-1)
+# stdout:
+# 30
+
+def work(t: MonoInstant, d: Duration, k: int) -> int fail Timeout uses time:
+    with deadline(t + 2 * s):
+        with deadline(t + d):
+            return k * 10
+
+def main() uses io, time:
+    t = time.monotonic()
+    r = run(t) else e -> -1
+    print(f"{r}")
+
+def run(t: MonoInstant) -> int fail Timeout uses time:
+    with deadline(t + 5 * s):
+        par:
+            a = work(t, 1 * s, 1) else e -> -1
+            b = work(t, 3 * s, 2) else e -> -1
+        return a + b
