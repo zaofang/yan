@@ -1,0 +1,5 @@
+module edge.err4
+record R[T: Foo] { a: i64 }
+record Q[] { a: i64 }
+trait T { type A fn f() -> i64 { ret 1 } }
+fn k() -> i64 { ret 1 }
