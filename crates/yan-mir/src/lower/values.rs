@@ -312,21 +312,26 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("a channel operation without its failure");
         };
         let e = &efs[0].1;
-        let err = match e {
-            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Vec::new(),
-            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
-                Self::variant_value(e, "Cancelled", Vec::new())
-            }
-            _ => return unsupported("a channel failure without `Cancelled`"),
-        };
-        let err = Self::variant_value(&dst.shape, "Err", err);
-        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(2)]);
-        let (c, o) = self.branch(cancelled);
         let join = self.block_new();
-        self.cur = c;
-        self.copy_to(&dst.locals, err);
-        self.goto(join);
-        self.cur = o;
+        for (name, status) in [("Cancelled", 2), ("Timeout", 5)] {
+            let v = match e {
+                Shape::Rec(n, fs) if n == name && fs.is_empty() => Vec::new(),
+                Shape::Sum(_, _) if e.variant(name).is_some() => {
+                    Self::variant_value(e, name, Vec::new())
+                }
+                _ if name == "Cancelled" => {
+                    return unsupported("a channel failure without `Cancelled`");
+                }
+                _ => continue,
+            };
+            let err = Self::variant_value(&dst.shape, "Err", v);
+            let hit = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(status)]);
+            let (c, o) = self.branch(hit);
+            self.cur = c;
+            self.copy_to(&dst.locals, err);
+            self.goto(join);
+            self.cur = o;
+        }
         if closed {
             let Some((_, _, ofs)) = dst.shape.variant("Ok") else {
                 return unsupported("a receive without its value");
@@ -736,7 +741,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                         ("None".into(), vec![]),
                     ],
                 );
-                result(option, cancelled())
+                result(option, failure_union(&["Cancelled", "Timeout"]))
             }),
             Some(id::STD_PRELUDE_SELECT_WAIT) => Some(result(
                 Shape::Scalar(I64),
@@ -762,12 +767,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 _ => None,
             },
-            Some(
-                id::STD_CHAN_SENDER_SEND
-                | id::STD_SYNC_ATOMIC_WAIT
-                | id::STD_TIME_SLEEP
-                | id::STD_TIME_SLEEP_UNTIL,
-            ) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            Some(id::STD_CHAN_SENDER_SEND) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
+            Some(id::STD_SYNC_ATOMIC_WAIT | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
+                Some(result(Shape::Scalar(Ty::Unit), cancelled()))
+            }
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {
                 Some(y::TArg::Type(f)) => Some(result(Shape::Scalar(Ty::Unit), self.shape(f)?)),
                 _ => None,
@@ -781,6 +787,11 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn widen_err(&mut self, ev: Vec<Operand>, e: &Shape, f: &Shape) -> R<Vec<Operand>> {
         if e == f {
             return Ok(ev);
+        }
+        if let (Shape::Sum(en, evs), Shape::Rec(fname, _)) = (e, f)
+            && en == "Union"
+        {
+            return self.narrow_err(ev, evs, fname, f);
         }
         let Shape::Sum(fu, fvs) = f else {
             return unsupported("`?` across error types");
@@ -812,7 +823,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         let join = self.block_new();
         for (tag, name, payload) in members {
             if f.variant(&name).is_none() {
-                return unsupported("`?` across error types");
+                // W863: the failure is not in the declared fail type; it cannot propagate.
+                let Some(t) = tag else {
+                    return unsupported("`?` across error types");
+                };
+                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(t)]);
+                let (this, next) = self.branch(is);
+                self.cur = this;
+                self.finish(Term::Panic("a failure outside the declared fail type"));
+                self.cur = next;
+                continue;
             }
             let next = match tag {
                 Some(t) => {
@@ -836,6 +856,36 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.cur = join;
         Ok(Self::ops(&out))
+    }
+
+    /// The failure `ev` of the union `evs` as the single failure type `f` named `fname`: its
+    /// member of that name, and a panic for any other member (W863).
+    fn narrow_err(
+        &mut self,
+        ev: Vec<Operand>,
+        evs: &[(String, Vec<(String, Shape)>)],
+        fname: &str,
+        f: &Shape,
+    ) -> R<Vec<Operand>> {
+        let Some(tag) = evs.iter().position(|(n, _)| n == fname) else {
+            return unsupported("`?` across error types");
+        };
+        let at = 1 + evs[..tag]
+            .iter()
+            .flat_map(|(_, fs)| fs)
+            .map(|(_, s)| s.width())
+            .sum::<usize>();
+        let w = f.width();
+        let is = self.scalar_op(
+            ScalarOp::Eq,
+            I64,
+            vec![ev[0].clone(), Operand::Int(tag as i128)],
+        );
+        let (this, other) = self.branch(is);
+        self.cur = other;
+        self.finish(Term::Panic("a failure outside the declared fail type"));
+        self.cur = this;
+        Ok(ev[at..at + w].to_vec())
     }
 
     /// Lift `c` to its own function; its value is that code and a block of the captures.

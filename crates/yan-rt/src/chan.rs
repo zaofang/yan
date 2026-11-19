@@ -60,11 +60,19 @@ pub const CLOSED: u64 = 3;
 /// with no room (`Empty`, `Full`).
 pub const NOT_READY: u64 = 4;
 
+/// The status of a wait that nothing can end inside a deadline scope: it fails `Timeout` once
+/// the deadline passes (9.4).
+pub const TIMEOUT: u64 = 5;
+
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
 pub(crate) fn idle_or_deadlock() -> u64 {
     if crate::actor::yan_rt_actor_idle() == 0 {
-        deadlock();
+        let Some(d) = crate::deadline::current() else {
+            deadlock();
+        };
+        crate::civil::wait_until(d);
+        return TIMEOUT;
     }
     crate::actor::WORK
 }

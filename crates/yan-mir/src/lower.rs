@@ -15,6 +15,7 @@ mod collections;
 mod compare;
 mod consts;
 mod contracts;
+mod deadline;
 mod encoding;
 mod entry;
 mod env;
@@ -601,6 +602,8 @@ enum Scope {
         head: BlockId,
         exit: BlockId,
     },
+    /// A `with deadline` body, left by `break` or `continue` through it.
+    Deadline,
     /// A block that declares join points. A jump from its statement `at` sets `cont` to `at`,
     /// and the end of a join point's body resumes after that statement.
     Jps {
@@ -657,6 +660,8 @@ struct Fn<'a, 'm> {
     pinned: Vec<Vec<Local>>,
     /// The supervisor scope depth this function's `with supervisor` scopes end at (`actor.rs`).
     sup_depth: Option<Local>,
+    /// As `sup_depth`, for `with deadline` scopes (`deadline.rs`).
+    deadline_depth: Option<Local>,
     /// `main`'s `Rand` capabilities, bound to the OS generator.
     os_rand: Vec<String>,
     /// The names of `Rand` handlers, which a `par` splits per branch.
@@ -700,6 +705,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             cost_tokens: Vec::new(),
             pinned: Vec::new(),
             sup_depth: None,
+            deadline_depth: None,
             os_rand: Vec::new(),
             rands: Vec::new(),
             mismatch: None,
@@ -1049,6 +1055,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
         self.end_costs();
         self.end_sups();
+        self.end_deadlines();
         self.end(Term::Return(v));
     }
 

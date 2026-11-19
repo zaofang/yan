@@ -1795,6 +1795,19 @@ impl Machine<'_> {
                 yan_rt::actor::yan_rt_sup_end_to(a[0].addr());
                 Val::U
             }
+            RtFn::DeadlineBegin => Val::I(i128::from(yan_rt::deadline::yan_rt_deadline_begin(
+                a[0].addr(),
+                a[1].int() as i64,
+                a[2].int() as i64,
+            ))),
+            RtFn::DeadlineEnd => {
+                yan_rt::deadline::yan_rt_deadline_end();
+                Val::U
+            }
+            RtFn::DeadlineEndTo => {
+                yan_rt::deadline::yan_rt_deadline_end_to(a[0].addr());
+                Val::U
+            }
             RtFn::ParBegin => {
                 let n = a[0].addr();
                 let h = sched::yan_rt_par_begin(n, a[1].addr());
