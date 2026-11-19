@@ -1,0 +1,94 @@
+{
+ "final": "def square(x: int) -> int:\n    \"\"\"Return x multiplied by itself.\"\"\"\n    pre -3037000499 <= x and x <= 3037000499\n    ex square(3) == 9\n    ex square(-4) == 16\n    return x * x\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Return the sum of square(x) for every x in xs.\n\n    The squares are computed in parallel. Integer addition is associative,\n    so the result is identical for every thread count and every order of\n    partial sums.\n    \"\"\"\n    pre [x for x in xs if x > 1000000 or x < -1000000].len() == 0\n    post out >= 0\n    ex sum_squares([1, 2, 3]) == 14\n    ex sum_squares([]) == 0\n    ex sum_squares([-2, 2]) == 8\n    squares = par [square(x) for x in xs]\n    total = 0\n    for s in squares:\n        total += s\n    return total\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 1094,
+    "reasoning": 821
+   },
+   "out_bytes": 635
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2420,
+    "out": 976,
+    "reasoning": 665
+   },
+   "out_bytes": 750
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_sum",
+ "tokens": {
+  "body": {
+   "in": 2420,
+   "out": 976,
+   "reasoning": 665,
+   "out_bytes": 750
+  },
+  "spec": {
+   "in": 2049,
+   "out": 1094,
+   "reasoning": 821,
+   "out_bytes": 635
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

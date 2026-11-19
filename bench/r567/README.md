@@ -38,6 +38,16 @@ uv run python bench/r567/report.py bench/r567/runs/claude-free-5shot --json summ
 - Reruns skip finished files. One JSON record per task and arm under `runs/MODEL-DECODING-Nshot/`.
 - `--limit` takes a seeded shuffle (`--seed`). Pass the same limit and seed for every model.
 
+## Hard suite (`--suite hard`)
+
+`hard.py` holds Yan-only tasks with hidden `yan test` cases; `uv run python bench/r567/hard.py --validate
+target/release/yan` checks every reference passes. Categories added for #1585: `safety` (the prompt
+caps the capabilities; the hidden test declares only those, so a solution that declares more fails the
+check) and `determinism` (the hidden cases run at `YAN_THREADS` 1, 2, 4 and 8 and must pass at each).
+The Python arm runs `hard` through `hard_py.py` (`uv run python bench/r567/hard_py.py` validates the references): hidden pytest cases, capability ceilings enforced by an audit-hook conftest around the test call (fs, net, time, nondet), and the determinism matrix as `os.cpu_count()`, `PYTHONHASHSEED` and thread switch interval at 1, 2, 4 and 8. Python cannot check ownership (a consumed argument stays usable), so those tasks measure the result only. The plain Yan arm (`--arms yn`, `--suite hard` only) is `hard_yn.py`: the same 26 ids written in `.yn` (spec 15) with hidden tests, a reference and 12 negative checks (`uv run python bench/r567/hard_yn.py --validate target/release/yan`). `yan agent` writes `.yag`, so the loop runs in `run.py` (`run_yn`): a spec phase and a body phase, with `yan check` errors and the file's own `yan test` results as repair reports, then the hidden cases through `yan test` (1, 2, 4 and 8 `YAN_THREADS` for determinism tasks). Primer: `primer-yn.md`, two shots `shots/s*.yn`. `yan test` enforces a capability ceiling only when the test declares capabilities, so the `safety` tasks also check the solution's `uses` clauses and capability calls as text (`FORBID` in `hard_yn.py`). `unreachable` is the body placeholder of the spec phase, because `...` is not Yan syntax.
+
+Six tasks (`escape_*`, `rt_*`; #1621) are run-mode: `yan test` runs on an in-memory file system and cannot see real files, so the program runs (`yan run`, `python`) in a temp directory holding `hard.FIXTURE` (`notes/`, a secret outside it, a relative and an absolute symlink out) and its stdout is compared line by line with `Hard.expect` (`run_fixture`, `run_expect`). They cover `fs.sub` confinement and attacks 01, 02 and 06 of `examples/redteam-plugin`. The Yan prompts say how to narrow `fs` (`hard.YAN_SUB`) because the primers do not; the Python prompts name no mechanism. Not covered: write escapes (`fs.write` is not supported by the toolchain yet) and native code (`fs.sub` is interpreter-only).
+
 ## Measures
 
 - **pass@1**: the hidden cases pass on the first body reply, before any repair round. `hidden_first`.

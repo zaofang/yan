@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1193,
+   "reasoning": 263,
+   "out_bytes": 2138
+  },
+  "body": {
+   "in": 2088,
+   "out": 982,
+   "reasoning": 0,
+   "out_bytes": 2262
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel with a\n    thread pool. The result is in input order, regardless of worker count\n    or task completion order. Does not modify xs.\"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([7]) == [1]\n    assert parities([0]) == [0]\n\n\ndef test_parities_negative() -> None:\n    assert parities([-3, -2, -1, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_large_ints() -> None:\n    big = 10**30\n    assert parities([big, big + 1, -big - 1]) == [0, 1, 1]\n\n\ndef test_parities_preserves_order_large_input() -> None:\n    xs = list(range(5000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_order_not_input_sorted() -> None:\n    xs = [9, 4, 4, 7, 0, 3, 8, 1, 1, 2]\n    assert parities(xs) == [parity(x) for x in xs]\n\n\ndef test_parities_deterministic_across_calls() -> None:\n    xs = [(i * 7919) % 1009 for i in range(2000)]\n    expected = [parity(x) for x in xs]\n    for _ in range(5):\n        assert parities(xs) == expected\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    copy = list(xs)\n    parities(xs)\n    assert xs == copy\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [0, 1]\n    out = parities(xs)\n    assert out is not xs\n\n\ndef test_parities_values_are_ints_0_or_1() -> None:\n    out = parities(list(range(-50, 50)))\n    assert all(type(p) is int and p in (0, 1) for p in out)\n\n\ndef test_parities_propagates_errors(monkeypatch: pytest.MonkeyPatch) -> None:\n    import sys\n\n    mod = sys.modules[parities.__module__]\n\n    def boom(x: int) -> int:\n        if x == 3:\n            raise ValueError(\"bad\")\n        return x % 2\n\n    if not hasattr(mod, \"parity\"):\n        pytest.skip(\"parity not looked up from module namespace\")\n    monkeypatch.setattr(mod, \"parity\", boom)\n    with pytest.raises(ValueError):\n        parities([1, 2, 3, 4])\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1193,
+    "reasoning": 263
+   },
+   "out_bytes": 2138,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2088,
+    "out": 982,
+    "reasoning": 0
+   },
+   "out_bytes": 2262,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "final": "class Chan:\n    cap: int\n    items: list[int]\n\ndef offer(ch: Chan, v: int) -> tuple[Chan, bool]:\n    \"\"\"Return the channel with v appended if there is room, and True; otherwise return ch unchanged and False. Never blocks.\"\"\"\n    pre ch.items.len() <= ch.cap\n    post out[1] == (ch.items.len() < ch.cap) and out[0].items.len() <= out[0].cap\n    ex offer(Chan(cap=1, items=[]), 1) == (Chan(cap=1, items=[1]), True)\n    ex offer(Chan(cap=1, items=[5]), 2) == (Chan(cap=1, items=[5]), False)\n    if ch.items.len() < ch.cap:\n        new_items = ch.items.copy()\n        new_items.append(v)\n        return (Chan(cap=ch.cap, items=new_items), True)\n    return (Chan(cap=ch.cap, items=ch.items.copy()), False)\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Count the sends accepted into a channel of capacity cap, trying each element of xs in order without blocking, and stop at the first send that finds the channel full. Examples: with cap 2 and xs [1, 2, 3] the result is 2; with cap 0 and xs [1] it is 0; with cap 5 and xs [] it is 0.\"\"\"\n    pre cap >= 0\n    post out >= 0 and out <= cap and out <= xs.len()\n    ch = Chan(cap=cap, items=[])\n    n = 0\n    for v in xs:\n        ch, ok = offer(ch, v)\n        if not ok:\n            break\n        n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpjfbedzo5/work/task.yag:15:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpjfbedzo5/work/task.yag:16:8 accepted: `assert accepted(0, [1])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpjfbedzo5/work/task.yag:17:8 accepted: `assert accepted(5, [])` capability `nondet` is not in scope | in `ex` of `accepted`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 2018,
+    "reasoning": 1696
+   },
+   "out_bytes": 737
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2632,
+    "out": 1665,
+    "reasoning": 1239
+   },
+   "out_bytes": 935
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3156,
+    "out": 1866,
+    "reasoning": 1283
+   },
+   "out_bytes": 1287
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 3156,
+   "out": 1866,
+   "reasoning": 1283,
+   "out_bytes": 1287
+  },
+  "spec": {
+   "in": 4681,
+   "out": 3683,
+   "reasoning": 2935,
+   "out_bytes": 1672
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpjfbedzo5/work/task.yag:15:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmpjfbedzo5/work/task.yag:16:8 accepted: `assert accepted(0, [1])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmpjfbedzo5/work/task.yag:17:8 accepted: `assert accepted(5, [])` capability `nondet` is not in scope"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1631,
+   "out": 691,
+   "reasoning": 566,
+   "out_bytes": 249
+  },
+  "body": {
+   "in": 1829,
+   "out": 493,
+   "reasoning": 307,
+   "out_bytes": 370
+  }
+ },
+ "final": "-- Phase 1: spec for parallel parity. Bodies are stubs until Phase 2.\n\nparity(x: int) -> int = x % 2\n\nparities(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex parities([3, 4]) == [1, 0]\n  ex parities([]) == []\n  let ys = par for x in xs\n    parity(x)\n  ys\n\ntest_parities() =\n  assert parities([3, 4, 7]) == [1, 0, 1]\n  assert parities([]) == []\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1631,
+    "out": 691,
+    "reasoning": 566
+   },
+   "out_bytes": 249,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1829,
+    "out": 493,
+    "reasoning": 307
+   },
+   "out_bytes": 370,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

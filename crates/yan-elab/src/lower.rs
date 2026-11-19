@@ -35,6 +35,7 @@ mod fallback;
 mod fmtspec;
 mod generic_sum;
 mod last_use;
+mod lenient_chan;
 mod lenient_names;
 mod lenient_py;
 pub(crate) use lenient_names::MATH_FREE;
@@ -43,6 +44,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod propagate;
 mod ptr;
 mod pyfid;
 pub(crate) mod reentrant;
@@ -78,7 +80,8 @@ struct Lower<'a, 'c, 's> {
     scopes: Vec<Vec<(String, Option<Local>)>>,
     locals: HashMap<String, Local>,
     /// Names bound to a non-copy element of a list or array: a view, not an owner (E413 on a sink).
-    index_views: HashSet<String>,
+    /// Names bound to an element of a list, with where they were bound.
+    index_views: HashMap<String, Span>,
     /// Names whose block has ended; a later use needs function-level scope.
     gone: HashMap<String, Ty>,
     mutable: HashSet<String>,
@@ -829,7 +832,7 @@ fn function_body_with(
         joins: Vec::new(),
         scopes: Vec::new(),
         locals: HashMap::new(),
-        index_views: HashSet::new(),
+        index_views: HashMap::new(),
         gone: HashMap::new(),
         mutable,
         loops: Vec::new(),
@@ -890,6 +893,7 @@ fn function_body_with(
         .collect();
     for p in &sig.params {
         if let Ty::Coll("Atomic", ts) = &p.ty
+            && !matches!(ts[0], Ty::Param(_))
             && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
         {
             let line =
@@ -1146,7 +1150,7 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 
 /// The std function and result type of `op` between time values (17.5).
 /// The builtin functions `builtin` lowers, offered as near names (R651).
-const BUILTINS: [&str; 28] = [
+const BUILTINS: [&str; 29] = [
     "len",
     "sorted",
     "int",
@@ -1159,6 +1163,7 @@ const BUILTINS: [&str; 28] = [
     "min",
     "max",
     "print",
+    "eprint",
     "evolve",
     "range",
     "deque",
@@ -1481,7 +1486,7 @@ impl Lower<'_, '_, '_> {
             && !ty.is_copy()
             && p.projs.iter().any(|x| matches!(x, Proj::Index(_)))
         {
-            self.index_views.insert(name.to_owned());
+            self.index_views.insert(name.to_owned(), span);
         }
         self.emit(
             StmtKind::Let {
@@ -2234,6 +2239,9 @@ const NONDET_OPS: &[&str] = &[
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
+    "std.sync.atomic.wait",
+    "std.sync.atomic.notify_one",
+    "std.sync.atomic.notify_all",
 ];
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).

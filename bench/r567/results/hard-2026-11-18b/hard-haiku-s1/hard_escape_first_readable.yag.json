@@ -1,0 +1,128 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single path component with no separators and no parent reference.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret.txt\") == False\n    ex is_plain_name(\"sub/a.txt\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    return True\n\ndef note_text(name: str) -> str | None uses fs:\n    \"\"\"Text of the file `name` inside the notes directory, or None when it is missing, unreadable, or not a plain name.\n\n    Opens the directory with `with fs = fs.sub(\"notes\"):` so every read is confined to it.\n    Names that fail is_plain_name are rejected before any read.\n    \"\"\"\n    pre name.byte_len() >= 0\n    if not is_plain_name(name=name):\n        return None\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else return\n    return text\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in `names` readable inside the notes directory, or \"\" when none can be read.\n\n    Names are untrusted; `note_text` confines every read to notes.\n    \"\"\"\n    post out.byte_len() >= 0\n    for name in names:\n        text = note_text(name=name)\n        if text is not None:\n            return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpzc6rnl79/work/task.yag:7:8 note_text: `assert note_text(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `note_text`\n#2 E301 /tmp/tmpzc6rnl79/work/task.yag:8:8 note_text: `assert note_text(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `note_text`\n#3 E301 /tmp/tmpzc6rnl79/work/task.yag:18:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#4 E301 /tmp/tmpzc6rnl79/work/task.yag:19:8 first_readable: `assert first_readable([\"no-such-file.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1387,
+    "reasoning": 1090
+   },
+   "out_bytes": 770
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2777,
+    "out": 987,
+    "reasoning": 642
+   },
+   "out_bytes": 926
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3220,
+    "out": 1691,
+    "reasoning": 1222
+   },
+   "out_bytes": 1322
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 3220,
+   "out": 1691,
+   "reasoning": 1222,
+   "out_bytes": 1322
+  },
+  "spec": {
+   "in": 4916,
+   "out": 2374,
+   "reasoning": 1732,
+   "out_bytes": 1696
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpzc6rnl79/work/task.yag:7:8 note_text: `assert note_text(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `note_text`\n#2 E301 /tmp/tmpzc6rnl79/work/task.yag:8:8 note_text: `assert note_text(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `note_text`\n#3 E301 /tmp/tmpzc6rnl79/work/task.yag:18:8 first_readable: `assert first_readable([])` capability `fs`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:35:12\n  at main task.yag:41:20"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:33:12\n  at main task.yag:39:20"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 940,
+   "reasoning": 537,
+   "out_bytes": 913
+  },
+  "body": {
+   "in": 1531,
+   "out": 1008,
+   "reasoning": 440,
+   "out_bytes": 1201
+  }
+ },
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs chosen by seed.\n\n    The same xs and seed must always produce the same element. The\n    function must not use randomness (no random module, no os.urandom,\n    no time-based state).\n    \"\"\"\n    if not xs:\n        raise ValueError(\"pick() requires a non-empty list\")\n    mask = (1 << 64) - 1\n    z = (seed + 0x9E3779B97F4A7C15) & mask\n    z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & mask\n    z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & mask\n    z ^= z >> 31\n    return xs[z % len(xs)]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_single_element() -> None:\n    assert pick([7], 0) == 7\n    assert pick([7], 12345) == 7\n\n\ndef test_pick_is_deterministic() -> None:\n    xs = [3, 1, 4, 1, 5, 9, 2, 6]\n    for seed in (-5, 0, 1, 42, 2**31):\n        first = pick(xs, seed)\n        for _ in range(5):\n            assert pick(xs, seed) == first\n\n\ndef test_pick_varies_across_seeds() -> None:\n    xs = [1, 2, 3, 4, 5, 6, 7, 8]\n    seen = {pick(xs, seed) for seed in range(200)}\n    assert len(seen) > 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 940,
+    "reasoning": 537
+   },
+   "out_bytes": 913,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1531,
+    "out": 1008,
+    "reasoning": 440
+   },
+   "out_bytes": 1201,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

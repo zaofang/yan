@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1598,
+   "out": 1377,
+   "reasoning": 1182,
+   "out_bytes": 398
+  },
+  "body": {
+   "in": 1866,
+   "out": 964,
+   "reasoning": 634,
+   "out_bytes": 653
+  }
+ },
+ "final": "-- Spec for the in-place swap of first and last list elements.\n-- ends_swapped is a pure reference: the result swap_ends must produce.\n\nends_swapped(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex ends_swapped([1, 2, 3]) == [3, 2, 1]\n  ex ends_swapped([7]) == [7]\n  ex ends_swapped([]) == []\n  var r: List[int] = []\n  let n = xs.len()\n  for i in range(0, n)\n    if i == 0\n      r.append(xs[n - 1])\n    else if i == n - 1\n      r.append(xs[0])\n    else\n      r.append(xs[i])\n  r\n\nswap_ends(var xs: List[int]) =\n  post xs.len() >= 0\n  let n = xs.len()\n  if n >= 2\n    let first = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = first\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1598,
+    "out": 1377,
+    "reasoning": 1182
+   },
+   "out_bytes": 398,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1866,
+    "out": 964,
+    "reasoning": 634
+   },
+   "out_bytes": 653,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

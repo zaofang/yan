@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 523,
+   "reasoning": 447,
+   "out_bytes": 142
+  },
+  "body": {
+   "in": 3347,
+   "out": 416,
+   "reasoning": 254,
+   "out_bytes": 296
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() >= 1\n  post dst[dst.len() - 1] == s\n  ex add_name(&[\"a\"], \"b\")\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 523,
+    "reasoning": 447
+   },
+   "out_bytes": 142,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1600,
+    "out": 81,
+    "reasoning": 0
+   },
+   "out_bytes": 147,
+   "ok": false,
+   "report": "E203 task.yn:5:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1747,
+    "out": 335,
+    "reasoning": 254
+   },
+   "out_bytes": 149,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:5:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

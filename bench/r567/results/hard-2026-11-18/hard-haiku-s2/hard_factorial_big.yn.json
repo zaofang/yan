@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1452,
+   "out": 591,
+   "reasoning": 523,
+   "out_bytes": 115
+  },
+  "body": {
+   "in": 5444,
+   "out": 1961,
+   "reasoning": 1461,
+   "out_bytes": 957
+  }
+ },
+ "final": "fact(n: int) -> bigint =\n  pre n >= 0\n  post out >= 1\n  ex fact(0) == 1\n  ex fact(5) == 120\n  var acc: bigint = 1\n  for i in range(2, n + 1)\n    -- assumes bigint(i) converts an int to bigint\n    let factor: bigint = bigint(i)\n    acc *= factor\n  acc\n\ntest_fact() =\n  assert fact(0) == 1\n  assert fact(5) == 120\n  assert fact(25) == 15511210043330985984000000\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 591,
+    "reasoning": 523
+   },
+   "out_bytes": 115,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1593,
+    "out": 683,
+    "reasoning": 533
+   },
+   "out_bytes": 278,
+   "ok": false,
+   "report": "E201 task.yn:8:12 fact: `= i` `*` between `BigInt` and `int`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1811,
+    "out": 623,
+    "reasoning": 461
+   },
+   "out_bytes": 310,
+   "ok": false,
+   "report": "E201 task.yn:8:26 fact: `= i` expected `BigInt`, found `int`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2040,
+    "out": 655,
+    "reasoning": 467
+   },
+   "out_bytes": 369,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/factorial_big",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:8:12 fact: `i` `*` between `BigInt` and `int`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

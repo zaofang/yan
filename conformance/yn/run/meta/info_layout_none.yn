@@ -1,0 +1,27 @@
+-- spec: 17.3
+-- rows: R1091
+-- note: info(T).layout is None for a record or sum of default layout (RFC 0083 D3)
+-- stdout:
+-- none
+-- none
+
+type Point = { x: int, y: float }
+type Shape = Circle(r: float) | Rect(w: float, h: float) | Dot()
+
+show(l: Layout?) -> str =
+  match l
+    Some(x) -> "\(x.size) \(x.align)"
+    None -> "none"
+
+lay(t: Type) -> str =
+  match meta.info(t)
+    Record(info:) -> show(info.layout)
+    Sum(info:) -> show(info.layout)
+    _ -> "other"
+
+let a: str = #lay(Point)
+let b: str = #lay(Shape)
+
+main() uses io =
+  io.print(a)
+  io.print(b)

@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 1866,
+   "reasoning": 1370,
+   "out_bytes": 1191
+  },
+  "body": {
+   "in": 5014,
+   "out": 4200,
+   "reasoning": 2874,
+   "out_bytes": 3250
+  }
+ },
+ "final": "-- Phase 2: bodies. Signatures and contract lines are unchanged from phase 1.\n\n-- A name is plain when it is a single path component: no separators,\n-- no \"..\", no absolute form. Pure, so it needs no capability.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"sub/a.txt\") == False\n  ex is_plain_name(\"\") == False\n  name != \"\" and name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- Text of notes/name, or \"\" when the name is not plain, the file is\n-- missing, or it cannot be read. Confined to the notes directory.\nread_note(name: str) -> str uses fs =\n  post out == \"\" or is_plain_name(name)\n  ex read_note(\"no-such-file.txt\") == \"\"\n  ex read_note(\"../secret\") == \"\"\n  if is_plain_name(name) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else \"\"\n    return text\n  \"\"\n\n-- True when notes/name exists and can be read, even if it is empty.\ncan_read(name: str) -> bool uses fs =\n  ex can_read(\"no-such-file.txt\") == False\n  ex can_read(\"../secret\") == False\n  if is_plain_name(name) == False\n    return False\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return False\n    return True\n  False\n\n-- Number of names in the list that can be read from notes.\ncount_readable(names: List[str]) -> int uses fs =\n  pre names.len() >= 0\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"no-such-file.txt\", \"../secret\"]) == 0\n  var count = 0\n  for name in names\n    if can_read(name)\n      count += 1\n  count\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 1866,
+    "reasoning": 1370
+   },
+   "out_bytes": 1191,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2117,
+    "out": 2998,
+    "reasoning": 2334
+   },
+   "out_bytes": 1626,
+   "ok": false,
+   "report": "E100 task.yn:20:28 `with fs = fs.sub(\"notes\"):` unexpected token; expected an indented block\nE100 task.yn:31:28 `with fs = fs.sub(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2897,
+    "out": 1202,
+    "reasoning": 540
+   },
+   "out_bytes": 1624,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:20:28 `:` unexpected token; expected an indented block\nE100 task.yn:31:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

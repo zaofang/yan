@@ -18,7 +18,7 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | W8xx | lints |
 | E9xx | unsafe, FFI, layout, linking and inline assembly |
 | P0xx | patches |
-| N01 to N56 | lenient-reader notes (14.4) |
+| N01 to N57 | lenient-reader notes (14.4) |
 | I001 to I999 | internal errors |
 
 ### 25.2 Packages, registry and stability
@@ -306,6 +306,8 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W859 | `with fast_math:` nested in a relaxed scope (R822) *new* | 7.7 |
 | W860 | an `Args:`, `Attributes:` or `Variants:` entry names no parameter, field or variant (R848) *new* | 18.9 |
 | W861 | off by default, on in `yan.toml`: a public parameter, field or variant without a doc (R848) *new* | 18.9 |
+| W862 | `yan run --ub`: an allocation still live when `main` returns (R1098) *new* | 6.9 |
+| W863 | `?` on a std blocking call whose failure `Cancelled \| Timeout` is not covered by the function's fail type (R1111) *new* | 9.4 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 
@@ -336,7 +338,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P004 | replaced or deleted item missing |
 | P005 | added item already exists |
 | P006 | patch touches a protected target without a human confirmation token |
-| N01 to N56 | lenient-reader normalizations (14.4) |
+| N01 to N57 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yan validator failures |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

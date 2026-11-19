@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1627,
+   "out": 865,
+   "reasoning": 781,
+   "out_bytes": 158
+  },
+  "body": {
+   "in": 3827,
+   "out": 1218,
+   "reasoning": 944,
+   "out_bytes": 518
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(3, []) == 0\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else return n\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1627,
+    "out": 865,
+    "reasoning": 781
+   },
+   "out_bytes": 158,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1784,
+    "out": 708,
+    "reasoning": 569
+   },
+   "out_bytes": 265,
+   "ok": false,
+   "report": "E201 task.yn:9:8 accepted: `tx.try_send(x)` expected `bool`, found `()`\nE315 task.yn:9:8 accepted: `tx.try_send(x)` the failure of this call is not handled; add `?` or `else`",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2043,
+    "out": 510,
+    "reasoning": 375
+   },
+   "out_bytes": 253,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:9:8 accepted: `tx.try_send(x)` expected `bool`, found `()`\nE315 ./task.yn:9:8 accepted: `tx.try_send(x)` the failure of this call is not handled; add `?` or `else`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

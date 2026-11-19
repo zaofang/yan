@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1064,
+   "out": 609,
+   "reasoning": 357,
+   "out_bytes": 632
+  },
+  "body": {
+   "in": 1373,
+   "out": 353,
+   "reasoning": 75,
+   "out_bytes": 726
+  }
+ },
+ "final": "def age_at(born: int, now: int) -> int:\n    \"\"\"Whole years between a birth year and a given current year.\n\n    The current year is passed in; this function never reads the clock.\n    Raises ValueError when born is after now.\n    \"\"\"\n    if born > now:\n        raise ValueError(\"birth year is after current year\")\n    return now - born\n\n\ndef test_age_at_same_year_is_zero() -> None:\n    assert age_at(2000, 2000) == 0\n\n\ndef test_age_at_counts_whole_years() -> None:\n    assert age_at(1990, 2024) == 34\n\n\ndef test_age_at_one_year_apart() -> None:\n    assert age_at(2023, 2024) == 1\n\n\ndef test_age_at_born_after_now_raises() -> None:\n    import pytest\n\n    with pytest.raises(ValueError):\n        age_at(2025, 2024)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1064,
+    "out": 609,
+    "reasoning": 357
+   },
+   "out_bytes": 632,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1373,
+    "out": 353,
+    "reasoning": 75
+   },
+   "out_bytes": 726,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

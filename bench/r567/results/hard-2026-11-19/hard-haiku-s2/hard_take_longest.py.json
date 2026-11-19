@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1057,
+   "out": 512,
+   "reasoning": 240,
+   "out_bytes": 612
+  },
+  "body": {
+   "in": 1386,
+   "out": 344,
+   "reasoning": 59,
+   "out_bytes": 644
+  }
+ },
+ "final": "def longest(a: list[int], b: list[int]) -> list[int]:\n    \"\"\"Return the longer of a and b; the first wins a tie.\"\"\"\n    return a if len(a) >= len(b) else b\n\n\ndef test_longest_first_is_longer() -> None:\n    assert longest([1, 2, 3], [4]) == [1, 2, 3]\n\n\ndef test_longest_second_is_longer() -> None:\n    assert longest([1], [2, 3]) == [2, 3]\n\n\ndef test_longest_tie_returns_first() -> None:\n    a = [1, 2]\n    b = [3, 4]\n    assert longest(a, b) is a\n\n\ndef test_longest_both_empty() -> None:\n    assert longest([], []) == []\n\n\ndef test_longest_one_empty() -> None:\n    assert longest([], [7]) == [7]\n    assert longest([7], []) == [7]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1057,
+    "out": 512,
+    "reasoning": 240
+   },
+   "out_bytes": 612,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1386,
+    "out": 344,
+    "reasoning": 59
+   },
+   "out_bytes": 644,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/take_longest",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

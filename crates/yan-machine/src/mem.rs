@@ -4,6 +4,8 @@
 pub enum Byte {
     Uninit,
     Init(u8),
+    /// The value moved out (RFC 0087); a store makes the byte `Init` again.
+    Moved,
 }
 
 pub struct Alloc {
@@ -11,6 +13,9 @@ pub struct Alloc {
     pub size: usize,
     pub bytes: Vec<Byte>,
     pub live: bool,
+    pub immutable: bool,
+    /// The function that was running when the allocation was made.
+    pub site: u32,
 }
 
 pub type AllocId = usize;
@@ -21,6 +26,8 @@ pub type AllocId = usize;
 pub struct Memory {
     allocs: Vec<Alloc>,
     next: u64,
+    /// Set by the machine before each instruction; recorded by `alloc`.
+    pub site: u32,
 }
 
 const GAP: u64 = 16;
@@ -30,6 +37,7 @@ impl Memory {
         Memory {
             allocs: Vec::new(),
             next: 0x1_0000,
+            site: 0,
         }
     }
 
@@ -41,6 +49,8 @@ impl Memory {
             size,
             bytes: vec![Byte::Uninit; size],
             live: true,
+            immutable: false,
+            site: self.site,
         });
         base
     }
@@ -67,12 +77,23 @@ impl Memory {
     }
 
     /// Live allocations as `(base, size)`, excluding `except`.
-    pub fn live(&self, except: impl Fn(u64) -> bool) -> Vec<(u64, usize)> {
+    pub fn live(&self, except: impl Fn(u64) -> bool) -> Vec<(usize, u32)> {
         self.allocs
             .iter()
             .filter(|a| a.live && !except(a.base))
-            .map(|a| (a.base, a.size))
+            .map(|a| (a.size, a.site))
             .collect()
+    }
+
+    /// Marks the allocation at `addr` immutable: later writes are `ub(7)` under `--ub`.
+    pub fn freeze(&mut self, addr: u64) {
+        if let Some(i) = self.find(addr) {
+            self.allocs[i].immutable = true;
+        }
+    }
+
+    pub fn is_immutable(&self, addr: u64) -> bool {
+        self.find(addr).is_some_and(|i| self.allocs[i].immutable)
     }
 
     pub fn is_live(&self, id: AllocId) -> bool {
@@ -88,6 +109,15 @@ impl Memory {
         let a = &self.allocs[self.find(addr)?];
         let at = (addr - a.base) as usize;
         a.bytes.get(at..at + n).map(<[Byte]>::to_vec)
+    }
+
+    /// Marks `n` bytes at `addr` moved-from; `None` when they are not inside one live allocation.
+    pub fn mark_moved(&mut self, addr: u64, n: usize) -> Option<()> {
+        let i = self.find(addr)?;
+        let a = &mut self.allocs[i];
+        let at = (addr - a.base) as usize;
+        a.bytes.get_mut(at..at + n)?.fill(Byte::Moved);
+        Some(())
     }
 
     pub fn write(&mut self, addr: u64, bytes: &[Byte]) -> Option<()> {
@@ -110,7 +140,7 @@ mod tests {
         let mut m = Memory::new();
         let (a, b) = (m.alloc(8), m.alloc(3));
         m.free(a);
-        assert_eq!(m.live(|_| false), vec![(b, 3)]);
+        assert_eq!(m.live(|_| false), vec![(3, 0)]);
         assert!(m.live(|x| x == b).is_empty());
     }
 }

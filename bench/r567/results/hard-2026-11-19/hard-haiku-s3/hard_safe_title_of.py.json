@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 968,
+   "reasoning": 452,
+   "out_bytes": 1339
+  },
+  "body": {
+   "in": 1649,
+   "out": 1194,
+   "reasoning": 578,
+   "out_bytes": 1570
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first <title> and its </title> in html.\n\n    Tag names match case-insensitively, and a <title> tag may carry\n    attributes. The result is stripped of surrounding whitespace. Returns\n    an empty string when there is no complete title element. The html\n    argument is already-fetched text; this function never performs I/O.\n    \"\"\"\n    match = re.search(\n        r\"<title(?:\\s[^>]*)?>(.*?)</title\\s*>\",\n        html,\n        flags=re.IGNORECASE | re.DOTALL,\n    )\n    if match is None:\n        return \"\"\n    body: str = match.group(1)\n    return body.strip()\n\n\ndef test_title_of_simple() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_title_of_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Shout</Title></HTML>\") == \"Shout\"\n\n\ndef test_title_of_with_attributes() -> None:\n    assert title_of('<title lang=\"en\">Bonjour</title>') == \"Bonjour\"\n\n\ndef test_title_of_strips_whitespace() -> None:\n    assert title_of(\"<title>\\n  Spaced out  \\n</title>\") == \"Spaced out\"\n\n\ndef test_title_of_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_title_of_missing_title_returns_empty() -> None:\n    assert title_of(\"<html><body>no head here</body></html>\") == \"\"\n\n\ndef test_title_of_unclosed_title_returns_empty() -> None:\n    assert title_of(\"<title>never closed\") == \"\"\n\n\ndef test_title_of_empty_input_returns_empty() -> None:\n    assert title_of(\"\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 968,
+    "reasoning": 452
+   },
+   "out_bytes": 1339,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1649,
+    "out": 1194,
+    "reasoning": 578
+   },
+   "out_bytes": 1570,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

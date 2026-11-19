@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1466,
+   "out": 652,
+   "reasoning": 550,
+   "out_bytes": 216
+  },
+  "body": {
+   "in": 3556,
+   "out": 1177,
+   "reasoning": 865,
+   "out_bytes": 693
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  post out.char_count() <= text.char_count()\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\", \"z\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2\n      if parts[0] == key\n        return parts[1].copy()\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1466,
+    "out": 652,
+    "reasoning": 550
+   },
+   "out_bytes": 216,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1641,
+    "out": 767,
+    "reasoning": 612
+   },
+   "out_bytes": 343,
+   "ok": false,
+   "report": "E413 task.yn:10:16 config_value: `parts[1]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 10:16 | fix: parts[1] -> parts[1].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1915,
+    "out": 410,
+    "reasoning": 253
+   },
+   "out_bytes": 350,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:10:16 config_value: `parts[1]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 10:16 | fix: parts[1] -> parts[1].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

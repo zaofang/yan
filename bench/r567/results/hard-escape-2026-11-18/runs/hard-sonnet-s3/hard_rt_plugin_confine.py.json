@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2467,
+   "reasoning": 996,
+   "out_bytes": 3293
+  },
+  "body": {
+   "in": 2783,
+   "out": 2103,
+   "reasoning": 485,
+   "out_bytes": 3772
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef make_reader(root: Path) -> Callable[[str], str]:\n    \"\"\"Return a reader giving the UTF-8 text of a path taken relative to `root`.\n\n    The reader returns \"\" whenever the path resolves (after normalising \"..\",\n    absolute paths and symlinks) to something outside `root`, or to something\n    that is not a readable regular file.\n    \"\"\"\n    base = root.resolve()\n\n    def read(p: str) -> str:\n        try:\n            if Path(p).is_absolute():\n                return \"\"\n            target = (base / p).resolve()\n            if not target.is_relative_to(base):\n                return \"\"\n            if not target.is_file():\n                return \"\"\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` where `read(p)` yields the text of `p` relative\n    to the `notes` directory (under the current working directory), or \"\" when\n    `p` cannot be read inside `notes`.\n    \"\"\"\n    return plugin(path, make_reader(Path(\"notes\")))\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"deep\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    # 'notes/../secret.txt' relative to notes is notes/secret.txt, which is absent.\n    assert run_plugin(\"a.txt\") == \"hello|\"\n\n\ndef test_reads_subdirectory_file(sandbox: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"deep|\"\n\n\ndef test_dotdot_staying_inside_is_allowed(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../a.txt\") == \"hello|\"\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_parent_escape_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n\n\ndef test_deep_parent_escape_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(str(sandbox / \"secret.txt\")) == \"|\"\n\n\ndef test_absolute_path_inside_notes_gives_empty(sandbox: Path) -> None:\n    # Paths are interpreted relative to notes; an absolute path is not.\n    assert run_plugin(str(sandbox / \"notes\" / \"a.txt\")) == \"|\"\n\n\ndef test_sibling_with_common_prefix_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes2\").mkdir()\n    (sandbox / \"notes2\" / \"x.txt\").write_text(\"X\", encoding=\"utf-8\")\n    assert run_plugin(\"../notes2/x.txt\") == \"|\"\n\n\ndef test_symlink_escape_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"link.txt\").symlink_to(sandbox / \"secret.txt\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_plugin_second_read_sees_notes_secret(sandbox: Path) -> None:\n    # Relative to notes, the plugin's hard-coded path is notes/secret.txt.\n    (sandbox / \"notes\" / \"secret.txt\").write_text(\"inner\", encoding=\"utf-8\")\n    assert run_plugin(\"a.txt\") == \"hello|inner\"\n\n\ndef test_make_reader_directly(sandbox: Path) -> None:\n    read = make_reader(sandbox / \"notes\")\n    assert read(\"a.txt\") == \"hello\"\n    assert read(\"../secret.txt\") == \"\"\n    assert read(\"missing.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2467,
+    "reasoning": 996
+   },
+   "out_bytes": 3293,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2783,
+    "out": 2103,
+    "reasoning": 485
+   },
+   "out_bytes": 3772,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

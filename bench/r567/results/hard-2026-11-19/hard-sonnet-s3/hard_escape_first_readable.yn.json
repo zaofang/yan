@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 531,
+   "reasoning": 428,
+   "out_bytes": 216
+  },
+  "body": {
+   "in": 1904,
+   "out": 854,
+   "reasoning": 640,
+   "out_bytes": 506
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\"]) == \"\"\n  ex first_readable([\"/etc/passwd\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for n in names\n      if n.char_count() == 0\n        continue\n      if n.split(\"..\").len() > 1\n        continue\n      if n.split(\"/\").get(0) == \"\"\n        continue\n      if n.split(\"\\\\\").len() > 1\n        continue\n      let t = fs.read(n) else continue\n      return t\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 531,
+    "reasoning": 428
+   },
+   "out_bytes": 216,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1904,
+    "out": 854,
+    "reasoning": 640
+   },
+   "out_bytes": 506,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

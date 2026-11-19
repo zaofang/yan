@@ -1,0 +1,82 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1613,
+   "out": 946,
+   "reasoning": 808,
+   "out_bytes": 244
+  },
+  "body": {
+   "in": 4086,
+   "out": 1985,
+   "reasoning": 1330,
+   "out_bytes": 1181
+  }
+ },
+ "final": "-- Integer square root: the largest r with r * r <= n.\nisqrt(n: int) -> int =\n  pre n >= 0\n  post out * out <= n and n - out * out <= 2 * out\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(10) == 3\n  ex isqrt(16) == 4\n  var lo = 0\n  var hi = 3037000499\n  while lo < hi\n    let mid = (lo + hi + 1) // 2\n    if mid * mid <= n\n      lo = mid\n    else\n      hi = mid - 1\n  lo\n\ntest_isqrt() =\n  assert isqrt(0) == 0\n  assert isqrt(1) == 1\n  assert isqrt(3) == 1\n  assert isqrt(10) == 3\n  assert isqrt(16) == 4\n  assert isqrt(17) == 4\n  assert isqrt(9223372036854775807) == 3037000499\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1613,
+    "out": 946,
+    "reasoning": 808
+   },
+   "out_bytes": 244,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1824,
+    "out": 976,
+    "reasoning": 647
+   },
+   "out_bytes": 591,
+   "ok": false,
+   "report": "FAIL task.test_isqrt (proposed) failed: panic(overflow): 3037000500 * 3037000500 overflows i64 | repro: yan test --only task.test_isqrt\n0 of 1 tests passed",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2262,
+    "out": 1009,
+    "reasoning": 683
+   },
+   "out_bytes": 590,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

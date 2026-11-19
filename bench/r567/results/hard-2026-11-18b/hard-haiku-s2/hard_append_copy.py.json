@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1069,
+   "out": 1103,
+   "reasoning": 769,
+   "out_bytes": 748
+  },
+  "body": {
+   "in": 1460,
+   "out": 410,
+   "reasoning": 71,
+   "out_bytes": 758
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place; return nothing.\n\n    dst is the caller's list and is mutated directly.\n    \"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ann\")\n    assert dst == [\"ann\"]\n\n\ndef test_add_name_preserves_existing_order() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_mutates_same_list_object() -> None:\n    dst: list[str] = []\n    ref = dst\n    add_name(dst, \"x\")\n    assert ref is dst\n    assert ref == [\"x\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"x\"]\n    add_name(dst, \"x\")\n    assert dst == [\"x\", \"x\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 1103,
+    "reasoning": 769
+   },
+   "out_bytes": 748,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1460,
+    "out": 410,
+    "reasoning": 71
+   },
+   "out_bytes": 758,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

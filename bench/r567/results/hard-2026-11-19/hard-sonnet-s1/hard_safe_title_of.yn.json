@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1617,
+   "out": 332,
+   "reasoning": 228,
+   "out_bytes": 221
+  },
+  "body": {
+   "in": 1794,
+   "out": 755,
+   "reasoning": 574,
+   "out_bytes": 403
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title here</p>\") == \"\"\n  ex title_of(\"\") == \"\"\n  let parts = html.split(\"<title>\")\n  let rest = parts.get(1) else return \"\"\n  let inner = rest.split(\"</title>\")\n  if inner.len() < 2\n    return \"\"\n  let t = inner.get(0) else return \"\"\n  copy t\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1617,
+    "out": 332,
+    "reasoning": 228
+   },
+   "out_bytes": 221,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1794,
+    "out": 755,
+    "reasoning": 574
+   },
+   "out_bytes": 403,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

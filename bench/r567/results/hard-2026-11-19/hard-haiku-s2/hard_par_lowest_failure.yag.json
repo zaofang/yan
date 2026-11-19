@@ -1,0 +1,94 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x if it is even, otherwise fail with Bad carrying x.\"\"\"\n    ex check(2) == 2\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element in parallel and return the checked values in order.\n    On failure, return the Bad of the lowest-index odd element.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4]) == [2, 4]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    return par [check(x)? for x in xs]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2113,
+    "out": 1363,
+    "reasoning": 1132
+   },
+   "out_bytes": 515
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2442,
+    "out": 1657,
+    "reasoning": 1390
+   },
+   "out_bytes": 592
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_lowest_failure",
+ "tokens": {
+  "body": {
+   "in": 2442,
+   "out": 1657,
+   "reasoning": 1390,
+   "out_bytes": 592
+  },
+  "spec": {
+   "in": 2113,
+   "out": 1363,
+   "reasoning": 1132,
+   "out_bytes": 515
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

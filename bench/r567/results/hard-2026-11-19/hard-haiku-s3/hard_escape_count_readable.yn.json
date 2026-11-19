@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1718,
+   "out": 1690,
+   "reasoning": 1316,
+   "out_bytes": 922
+  },
+  "body": {
+   "in": 2165,
+   "out": 1795,
+   "reasoning": 1271,
+   "out_bytes": 1285
+  }
+ },
+ "final": "-- Names are untrusted. Only a bare file name directly inside notes/ is ever opened.\n\n-- True when name is a bare file name: no path separators and no parent references.\nsafe_name(name: str) -> bool =\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"../secret\") == False\n  ex safe_name(\"sub/a.txt\") == False\n  name.char_count() > 0 and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1 and name.split(\"..\").len() == 1\n\n-- Reads notes/name. A missing or unreadable file, or an unsafe name, gives \"\".\nread_note(name: str) -> str uses fs =\n  ex read_note(\"no-such-file-xyz\") == \"\"\n  ex read_note(\"../secret\") == \"\"\n  if safe_name(name) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n\n-- True when name passes safe_name and notes/name exists and can be read.\nreadable(name: str) -> bool uses fs =\n  ex readable(\"no-such-file-xyz\") == False\n  ex readable(\"../secret\") == False\n  if safe_name(name) == False\n    return False\n  with fs = fs.sub(\"notes\")\n    let body = fs.read(name) else return False\n    True\n\n-- Counts the names in names that are readable files inside notes/.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  ex count_readable([]) == 0\n  var n = 0\n  for name in names\n    if readable(name)\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 1690,
+    "reasoning": 1316
+   },
+   "out_bytes": 922,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2165,
+    "out": 1795,
+    "reasoning": 1271
+   },
+   "out_bytes": 1285,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

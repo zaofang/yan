@@ -1,0 +1,24 @@
+# spec: 6.2, 6.9
+# rows: R1105
+# note: store buffering: with Relaxed stores and loads both loads may read the old zero, which only weak memory produces (RFC 0090 D3)
+# ub: none
+# seeds: any 16
+# exit: 101
+
+def left(x: Atomic[int], y: Atomic[int], r: Atomic[int]) -> None uses nondet:
+    x.store(1, StoreOrdering.Relaxed())
+    r.store(y.load(LoadOrdering.Relaxed()), StoreOrdering.SeqCst())
+
+def right(x: Atomic[int], y: Atomic[int], r: Atomic[int]) -> None uses nondet:
+    y.store(1, StoreOrdering.Relaxed())
+    r.store(x.load(LoadOrdering.Relaxed()), StoreOrdering.SeqCst())
+
+def main() uses nondet:
+    x = Atomic[int](0)
+    y = Atomic[int](0)
+    a = Atomic[int](5)
+    b = Atomic[int](5)
+    par:
+        left(x, y, a)
+        right(x, y, b)
+    assert a.load(LoadOrdering.SeqCst()) + b.load(LoadOrdering.SeqCst()) > 0

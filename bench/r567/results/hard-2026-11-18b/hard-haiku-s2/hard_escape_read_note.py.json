@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2149,
+   "reasoning": 1181,
+   "out_bytes": 2202
+  },
+  "body": {
+   "in": 2141,
+   "out": 1941,
+   "reasoning": 840,
+   "out_bytes": 2581
+  }
+ },
+ "final": "from __future__ import annotations\n\nimport os\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of `name` inside NOTES_DIR.\n\n    Only regular files that resolve to a location inside NOTES_DIR are read.\n    Absolute paths, `..` components, and symlinks that point outside\n    NOTES_DIR are refused. A missing, unreadable, or refused file yields \"\".\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        target = (base / name).resolve()\n    except (OSError, ValueError):\n        return \"\"\n    if target == base or not target.is_relative_to(base):\n        return \"\"\n    try:\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Run each test from a temp cwd that contains an empty notes/ dir.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    return notes\n\n\ndef test_reads_existing_note(notes_env: Path) -> None:\n    (notes_env / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_note_in_subdirectory(notes_env: Path) -> None:\n    (notes_env / \"sub\").mkdir()\n    (notes_env / \"sub\" / \"b.txt\").write_text(\"x\", encoding=\"utf-8\")\n    assert read_note(\"sub/b.txt\") == \"x\"\n\n\ndef test_missing_file_gives_empty(notes_env: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_gives_empty(notes_env: Path) -> None:\n    (notes_env / \"d\").mkdir()\n    assert read_note(\"d\") == \"\"\n\n\ndef test_parent_traversal_blocked(notes_env: Path, tmp_path: Path) -> None:\n    (tmp_path / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(\"../secret.txt\") == \"\"\n\n\ndef test_nested_traversal_blocked(notes_env: Path, tmp_path: Path) -> None:\n    (tmp_path / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_absolute_path_blocked(notes_env: Path, tmp_path: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    assert read_note(str(secret.resolve())) == \"\"\n\n\ndef test_symlink_escape_blocked(notes_env: Path, tmp_path: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    os.symlink(secret, notes_env / \"link.txt\")\n    assert read_note(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2149,
+    "reasoning": 1181
+   },
+   "out_bytes": 2202,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2141,
+    "out": 1941,
+    "reasoning": 840
+   },
+   "out_bytes": 2581,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

@@ -1,0 +1,12 @@
+# spec: 9.3
+# rows: R382
+# note: float iter.sum, sum_float and sum follow the lane and tree order, not left to right (left to right gives 0.7)
+# stdout:
+# 0.0 0.0 0.0
+# -0.0
+
+def main() uses io:
+    xs: list[float] = [0.1, 0.2, 0.3, 1e16, -1e16, 0.7]
+    io.print(f"{xs.iter().sum()} {sum(xs)} {xs.iter().sum_float()}")
+    e: list[float] = []
+    io.print(f"{e.iter().sum()}")

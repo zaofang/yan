@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 2336,
+   "reasoning": 1047,
+   "out_bytes": 2958
+  },
+  "body": {
+   "in": 2471,
+   "out": 2269,
+   "reasoning": 783,
+   "out_bytes": 3489
+  }
+ },
+ "final": "from collections.abc import Iterator\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final[Path] = Path(\"notes\")\n\n\ndef _note_path(name: str) -> Path | None:\n    \"\"\"Return the resolved path of the note called `name` if it is a readable\n    regular file inside NOTES_DIR, otherwise None.\n\n    Rejects any name that resolves outside NOTES_DIR (absolute paths, `..`\n    segments, symlinks pointing elsewhere), directories, missing files, and\n    files that cannot be opened for reading.\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if candidate == base or not candidate.is_relative_to(base):\n        return None\n    if not candidate.is_file():\n        return None\n    try:\n        with candidate.open(\"rb\"):\n            pass\n    except OSError:\n        return None\n    return candidate\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` that map to readable files inside NOTES_DIR.\n\n    Each name is checked with _note_path; names that are missing, unreadable,\n    or that would reach a file outside NOTES_DIR are not counted. Never reads\n    or stats any file outside NOTES_DIR.\n    \"\"\"\n    return sum(1 for name in names if _note_path(name) is not None)\n\n\n@pytest.fixture\ndef notes_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:\n    \"\"\"Run the test from tmp_path with an empty notes/ directory and a secret\n    file one level above notes/ that must never be counted or read.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    NOTES_DIR.mkdir()\n    yield tmp_path\n\n\ndef test_counts_existing_readable_files(notes_cwd: Path) -> None:\n    (NOTES_DIR / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (NOTES_DIR / \"b.txt\").write_text(\"\", encoding=\"utf-8\")\n    assert count_readable([\"a.txt\", \"b.txt\"]) == 2\n\n\ndef test_missing_files_not_counted(notes_cwd: Path) -> None:\n    (NOTES_DIR / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    assert count_readable([\"a.txt\", \"missing.txt\"]) == 1\n\n\ndef test_directories_not_counted(notes_cwd: Path) -> None:\n    (NOTES_DIR / \"sub\").mkdir()\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_empty_list_gives_zero(notes_cwd: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_traversal_names_not_counted(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    names = [\"../secret.txt\", \"sub/../../secret.txt\", \"./../secret.txt\"]\n    assert count_readable(names) == 0\n\n\ndef test_absolute_paths_not_counted(notes_cwd: Path) -> None:\n    secret = notes_cwd / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    assert count_readable([str(secret.resolve())]) == 0\n\n\ndef test_symlink_escaping_notes_not_counted(notes_cwd: Path) -> None:\n    secret = notes_cwd / \"secret.txt\"\n    secret.write_text(\"top secret\", encoding=\"utf-8\")\n    (NOTES_DIR / \"link.txt\").symlink_to(secret)\n    assert count_readable([\"link.txt\"]) == 0\n\n\ndef test_note_path_none_for_unsafe_name(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"top secret\", encoding=\"utf-8\")\n    assert _note_path(\"../secret.txt\") is None\n\n\ndef test_note_path_returns_path_inside_notes(notes_cwd: Path) -> None:\n    (NOTES_DIR / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    result = _note_path(\"a.txt\")\n    assert result is not None\n    assert result.resolve() == (NOTES_DIR / \"a.txt\").resolve()\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 2336,
+    "reasoning": 1047
+   },
+   "out_bytes": 2958,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2471,
+    "out": 2269,
+    "reasoning": 783
+   },
+   "out_bytes": 3489,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,24 @@
+# spec: 6.2, 6.5, 6.9
+# rows: R1105
+# note: message passing: a load that acquires the flag may not read the older data, under every seed (RFC 0090 D3)
+# ub: none
+# seeds: all 16
+
+def writer(data: Atomic[int], flag: Atomic[int]) -> None uses nondet:
+    data.store(1, StoreOrdering.Relaxed())
+    flag.store(1, StoreOrdering.Release())
+
+def reader(data: Atomic[int], flag: Atomic[int], out: Atomic[int]) -> None uses nondet:
+    if flag.load(LoadOrdering.Acquire()) == 1:
+        out.store(data.load(LoadOrdering.Relaxed()), StoreOrdering.SeqCst())
+    else:
+        out.store(1, StoreOrdering.SeqCst())
+
+def main() uses nondet:
+    data = Atomic[int](0)
+    flag = Atomic[int](0)
+    out = Atomic[int](0)
+    par:
+        writer(data, flag)
+        reader(data, flag, out)
+    assert out.load(LoadOrdering.SeqCst()) == 1

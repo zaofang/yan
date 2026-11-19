@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1529,
+   "out": 975,
+   "reasoning": 846,
+   "out_bytes": 241
+  },
+  "body": {
+   "in": 3707,
+   "out": 1257,
+   "reasoning": 893,
+   "out_bytes": 656
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  ex check(4) == 4\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x: x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4]) == [2, 4]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1529,
+    "out": 975,
+    "reasoning": 846
+   },
+   "out_bytes": 241,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1731,
+    "out": 876,
+    "reasoning": 709
+   },
+   "out_bytes": 300,
+   "ok": false,
+   "report": "E315 task.yn:14:5 all_even: `check(x: x)` the failure of this call is not handled; add `?` or `else`",
+   "codes": [
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1976,
+    "out": 381,
+    "reasoning": 184
+   },
+   "out_bytes": 356,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E315 ./task.yn:14:5 all_even: `check(x: x)` the failure of this call is not handled; add `?` or `else`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

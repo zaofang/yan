@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1156,
+   "out": 1090,
+   "reasoning": 710,
+   "out_bytes": 780
+  },
+  "body": {
+   "in": 1593,
+   "out": 944,
+   "reasoning": 450,
+   "out_bytes": 1021
+  }
+ },
+ "final": "from __future__ import annotations\n\nfrom dataclasses import dataclass\nfrom typing import TypeAlias\n\nimport pytest\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: Expr\n    r: Expr\n\n\n@dataclass\nclass Mul:\n    l: Expr\n    r: Expr\n\n\nExpr: TypeAlias = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an expression tree of Num, Add, and Mul nodes to an int.\"\"\"\n    if isinstance(e, Num):\n        return e.v\n    if isinstance(e, Add):\n        return eval_expr(e.l) + eval_expr(e.r)\n    if isinstance(e, Mul):\n        return eval_expr(e.l) * eval_expr(e.r)\n    raise TypeError(f\"unknown expression node: {e!r}\")\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(5)) == 5\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(2), Num(3))) == 5\n\n\ndef test_eval_mul_negative() -> None:\n    assert eval_expr(Mul(Num(4), Num(-2))) == -8\n\n\ndef test_eval_nested() -> None:\n    expr = Add(Mul(Num(2), Num(3)), Mul(Num(4), Add(Num(1), Num(1))))\n    assert eval_expr(expr) == 14\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1156,
+    "out": 1090,
+    "reasoning": 710
+   },
+   "out_bytes": 780,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1593,
+    "out": 944,
+    "reasoning": 450
+   },
+   "out_bytes": 1021,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

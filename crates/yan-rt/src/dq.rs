@@ -134,7 +134,7 @@ pub unsafe extern "C" fn yan_rt_dq_pop(l: *mut List, front: i64, out: *mut u64) 
 /// `l` and `src` are distinct `List` blocks of the same element width.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn yan_rt_dq_extend(l: *mut List, src: *mut List) -> *mut List {
-    crate::heap::block_freed();
+    crate::heap::block_freed(src as usize);
     // SAFETY: the caller's contract; `src` came from `leak`.
     let (l, src) = unsafe { (&mut *l, *Box::from_raw(src)) };
     let w = l.words;

@@ -1,0 +1,18 @@
+-- spec: 17.3
+-- rows: R1109
+-- note: fs.list_dir in Yan: sorted entries joined onto the path, same output on every backend (#1737)
+-- stdout:
+-- d/a.txt
+-- d/b
+-- d/c.txt
+-- not found
+
+names(p: str) -> str fail FsError uses fs =
+  let xs = fs.list_dir(p)?
+  "\(len(xs))"
+
+main() uses io, fs =
+  with fs = fake_fs({"d/c.txt": "c", "d/b/y": "y", "d/a.txt": "a"})
+    for p in fs.list_dir("d") else []
+      io.print(p.text())
+    io.print(names("e") else err -> err.reason)

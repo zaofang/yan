@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 1260,
+   "reasoning": 730,
+   "out_bytes": 1075
+  },
+  "body": {
+   "in": 1678,
+   "out": 803,
+   "reasoning": 251,
+   "out_bytes": 1116
+  }
+ },
+ "final": "from typing import Final\n\nBITS: Final[int] = 8\nMASK: Final[int] = 0xFF\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping high bits to the low end.\n\n    x is in 0..255 and k is in 0..7. The result is in 0..255.\n    \"\"\"\n    return ((x << k) | (x >> (BITS - k))) & MASK\n\n\ndef test_rotl8_zero_shift_is_identity() -> None:\n    assert rotl8(0xA5, 0) == 0xA5\n    assert rotl8(0x00, 0) == 0x00\n\n\ndef test_rotl8_single_bit_wraps() -> None:\n    assert rotl8(0x80, 1) == 0x01\n    assert rotl8(0x01, 7) == 0x80\n\n\ndef test_rotl8_known_values() -> None:\n    assert rotl8(0x81, 1) == 0x03\n    assert rotl8(0xC0, 2) == 0x03\n    assert rotl8(0x12, 4) == 0x21\n\n\ndef test_rotl8_all_ones_is_fixed() -> None:\n    for k in range(8):\n        assert rotl8(0xFF, k) == 0xFF\n\n\ndef test_rotl8_result_in_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= MASK\n\n\ndef test_rotl8_eight_shifts_cycle_back() -> None:\n    for x in range(256):\n        y = x\n        for _ in range(BITS):\n            y = rotl8(y, 1)\n        assert y == x\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 1260,
+    "reasoning": 730
+   },
+   "out_bytes": 1075,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1678,
+    "out": 803,
+    "reasoning": 251
+   },
+   "out_bytes": 1116,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

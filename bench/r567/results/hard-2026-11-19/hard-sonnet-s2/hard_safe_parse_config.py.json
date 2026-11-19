@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1206,
+   "reasoning": 357,
+   "out_bytes": 2110
+  },
+  "body": {
+   "in": 1985,
+   "out": 944,
+   "reasoning": 0,
+   "out_bytes": 2418
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in a `name=value` per-line config text.\n\n    Rules:\n    - Each line is split at its first \"=\", so values may contain \"=\".\n    - Whitespace around the name and around the value is stripped.\n    - Blank lines, lines starting with \"#\" (after stripping), and lines\n      without \"=\" are ignored.\n    - Key matching is exact and case-sensitive.\n    - If the key appears more than once, the last occurrence wins.\n    - Returns \"\" when the key is absent (or its value is empty).\n    - Operates only on `text`; never reads files.\n    \"\"\"\n    result = \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        if name.strip() == key:\n            result = value.strip()\n    return result\n\n\ndef test_basic_lookup() -> None:\n    text = \"host=localhost\\nport=8080\\n\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"port\") == \"8080\"\n\n\ndef test_missing_key_returns_empty() -> None:\n    assert config_value(\"a=1\\nb=2\", \"c\") == \"\"\n    assert config_value(\"\", \"a\") == \"\"\n\n\ndef test_whitespace_stripped() -> None:\n    assert config_value(\"  name  =  value with space  \\n\", \"name\") == \"value with space\"\n\n\ndef test_value_contains_equals() -> None:\n    assert config_value(\"url=http://x/?a=b\", \"url\") == \"http://x/?a=b\"\n\n\ndef test_empty_value() -> None:\n    assert config_value(\"a=\\nb=2\", \"a\") == \"\"\n\n\ndef test_comments_and_blank_lines_ignored() -> None:\n    text = \"# a=1\\n\\n   \\nb=2\"\n    assert config_value(text, \"a\") == \"\"\n    assert config_value(text, \"b\") == \"2\"\n\n\ndef test_lines_without_equals_ignored() -> None:\n    text = \"garbage\\na=1\"\n    assert config_value(text, \"garbage\") == \"\"\n    assert config_value(text, \"a\") == \"1\"\n\n\ndef test_case_sensitive_and_exact_match() -> None:\n    text = \"Key=1\\nkey2=2\"\n    assert config_value(text, \"key\") == \"\"\n    assert config_value(text, \"Key\") == \"1\"\n    assert config_value(text, \"key2\") == \"2\"\n\n\ndef test_duplicate_key_last_wins() -> None:\n    assert config_value(\"a=1\\na=2\\na=3\", \"a\") == \"3\"\n\n\ndef test_crlf_line_endings() -> None:\n    assert config_value(\"a=1\\r\\nb=2\\r\\n\", \"b\") == \"2\"\n\n\ndef test_key_is_not_matched_against_value() -> None:\n    assert config_value(\"a=b\\nc=a\", \"b\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1206,
+    "reasoning": 357
+   },
+   "out_bytes": 2110,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1985,
+    "out": 944,
+    "reasoning": 0
+   },
+   "out_bytes": 2418,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

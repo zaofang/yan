@@ -280,6 +280,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             chans: Vec::new(),
             arenas: Vec::new(),
             atoms: Vec::new(),
+            futex: Vec::new(),
+            woken: Vec::new(),
             atom_tys: Vec::new(),
             mutexes: Vec::new(),
             actors: Vec::new(),
@@ -431,6 +433,10 @@ pub(crate) struct Interp<'o> {
     /// The value of each `Atomic`, by atomic; every interleaving the interpreter runs is
     /// sequentially consistent, so an ordering has no effect here.
     atoms: Vec<Value>,
+    /// Tasks parked in `Atomic.wait`, oldest first: (task path, atom).
+    futex: Vec<(Vec<usize>, usize)>,
+    /// Tasks `notify` released that have not yet resumed.
+    woken: Vec<Vec<usize>>,
     /// The integer type of each `Atomic`, by atomic, empty for any other element.
     atom_tys: Vec<Rc<str>>,
     /// Each `Mutex`, by mutex: its value and whether a guard holds it (6.3). A cooperative task
@@ -897,6 +903,8 @@ fn entry(
         chans: Vec::new(),
         arenas: Vec::new(),
         atoms: Vec::new(),
+        futex: Vec::new(),
+        woken: Vec::new(),
         atom_tys: Vec::new(),
         mutexes: Vec::new(),
         actors: Vec::new(),
@@ -1154,6 +1162,16 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
                     Err(e) => unsupported(format!("stdout: {e}")),
                 },
                 _ => bad_args(STD_IO_PRINT),
+            }),
+        ),
+        (
+            STD_IO_EPRINT,
+            Bind::Cap(|_, a| match a {
+                [Value::Cap(_), Value::Str(s)] => match writeln!(std::io::stderr(), "{s}") {
+                    Ok(()) => Ok(Value::Unit),
+                    Err(e) => unsupported(format!("stderr: {e}")),
+                },
+                _ => bad_args(STD_IO_EPRINT),
             }),
         ),
         (

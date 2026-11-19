@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1707,
+   "reasoning": 1186,
+   "out_bytes": 1283
+  },
+  "body": {
+   "in": 4723,
+   "out": 2852,
+   "reasoning": 1550,
+   "out_bytes": 3294
+  }
+ },
+ "final": "import time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element of xs in a thread pool.\n\n    Returns the results in input order when every element passes.\n    If any element fails, raises Bad for the failing element with the\n    lowest index, regardless of which worker finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        out: list[int] = []\n        for fut in futures:\n            out.append(fut.result())\n    return out\n\n\ndef test_all_even_returns_results_in_order() -> None:\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_bad_for_odd() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 4])\n    assert info.value.n == 3\n\n\ndef test_all_even_lowest_index_wins_over_completion_order(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    original_check = check\n\n    def slow_check(x: int) -> int:\n        # The bad element at index 0 finishes last; the one at index 1 finishes first.\n        if x == 5:\n            time.sleep(0.05)\n        return original_check(x)\n\n    monkeypatch.setattr(f\"{__name__}.check\", slow_check)\n    with pytest.raises(Bad) as info:\n        all_even([5, 3])\n    assert info.value.n == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1707,
+    "reasoning": 1186
+   },
+   "out_bytes": 1283,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1731,
+    "out": 1550,
+    "reasoning": 937
+   },
+   "out_bytes": 1526,
+   "ok": false,
+   "report": "    out.append(fut.result())\n               ^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py:454: in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/_base.py:396: in __get_result\n    raise self._exception\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py:86: in run\n    result = ctx.run(self.task)\n             ^^^^^^^^^^^^^^^^^^\n/root/.local/share/uv/python/cpython-3.14.6-linux-x86_64-gnu/lib/python3.14/concurrent/futures/thread.py:73: in run\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\ntest_task.py:54: in slow_check\n    return check(x)\n           ^^^^^^^^\ntest_task.py:54: in slow_check\n    return check(x)\n           ^^^^^^^^\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n=========================== short test summary info ============================\nFAILED test_task.py::test_all_even_lowest_index_wins_over_completion_order - ...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 3 passed in 49.94s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2992,
+    "out": 1302,
+    "reasoning": 613
+   },
+   "out_bytes": 1768,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "...F.                                                                    [100%]\n=================================== FAILURES ===================================\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n/tmp/tmpcq27qxnq/test_hidden.py:53: Re"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

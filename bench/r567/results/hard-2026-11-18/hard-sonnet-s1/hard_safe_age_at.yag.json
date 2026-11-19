@@ -1,0 +1,94 @@
+{
+ "final": "def age_at(born: int, now: int) -> int:\n    \"\"\"Whole years between the birth year born and the current year now.\"\"\"\n    pre now >= born\n    post out >= 0\n    post out == now - born\n    ex age_at(born=1990, now=2020) == 30\n    ex age_at(born=2000, now=2000) == 0\n    ex age_at(born=1985, now=1986) == 1\n    return now - born\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2030,
+    "out": 329,
+    "reasoning": 193
+   },
+   "out_bytes": 320
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2264,
+    "out": 171,
+    "reasoning": 33
+   },
+   "out_bytes": 334
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_age_at",
+ "tokens": {
+  "body": {
+   "in": 2264,
+   "out": 171,
+   "reasoning": 33,
+   "out_bytes": 334
+  },
+  "spec": {
+   "in": 2030,
+   "out": 329,
+   "reasoning": 193,
+   "out_bytes": 320
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

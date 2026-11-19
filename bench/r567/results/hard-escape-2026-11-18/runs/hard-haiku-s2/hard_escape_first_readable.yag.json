@@ -1,0 +1,188 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one file name with no path parts, so it cannot leave its directory.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"sub/a.txt\") == False\n    ex is_plain_name(\"\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read from the notes directory, or \"\" when none can.\n    Names that are not plain file names are never opened, and a missing or unreadable file is skipped.\"\"\"\n    post out == \"\" or names.len() > 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            text = fs.read(name) else \"\"\n            if text != \"\":\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpo0wyhe_r/work/task.yag:13:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpo0wyhe_r/work/task.yag:14:8 first_readable: `assert first_readable([\"../etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpo0wyhe_r/work/task.yag:15:8 first_readable: `assert first_readable([\"no-such-file.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1665,
+    "reasoning": 1390
+   },
+   "out_bytes": 711
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2686,
+    "out": 726,
+    "reasoning": 497
+   },
+   "out_bytes": 620
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpo0wyhe_r/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpo0wyhe_r/work/task.yag:21:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3013,
+    "out": 1867,
+    "reasoning": 1528
+   },
+   "out_bytes": 994
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpo0wyhe_r/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpo0wyhe_r/work/task.yag:21:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpo0wyhe_r/work/task.yag:22:16 first_readable: `text is` a `str` is never `None`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3505,
+    "out": 771,
+    "reasoning": 434
+   },
+   "out_bytes": 989
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4029,
+    "out": 1925,
+    "reasoning": 1588
+   },
+   "out_bytes": 981
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 10547,
+   "out": 4563,
+   "reasoning": 3550,
+   "out_bytes": 2964
+  },
+  "spec": {
+   "in": 4825,
+   "out": 2391,
+   "reasoning": 1887,
+   "out_bytes": 1331
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpo0wyhe_r/work/task.yag:13:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpo0wyhe_r/work/task.yag:14:8 first_readable: `assert first_readable([\"../etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpo0wyhe_r/work/task.yag:15:8 first_readable: `assert first_readable([\""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpo0wyhe_r/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmpo0wyhe_r/work/task.yag:21:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpo0wyhe_r/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpo0wyhe_r/work/task.yag:21:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpo0wyhe_r/work/task.yag:22:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E017 task.yag:22:20 first_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

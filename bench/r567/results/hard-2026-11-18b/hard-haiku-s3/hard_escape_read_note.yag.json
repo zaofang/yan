@@ -1,0 +1,158 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single file name with no path separators or dot-dot parts.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret.txt\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"notes/../../secret.txt\") == False\n    ex is_plain_name(\"\") == False\n    return name.char_count() > 0 and \"/\" not in name and \"\\\\\" not in name and \"..\" not in name\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`.\n\n    `name` is untrusted. Only files inside `notes` are read, and no name,\n    including absolute paths or ones containing `..`, may reach a file\n    outside `notes`. A missing or unreadable file gives \"\".\n    \"\"\"\n    if not is_plain_name(name):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read_text(name) else \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp6ridx7qt/work/task.yag:8:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp6ridx7qt/work/task.yag:9:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmp6ridx7qt/work/task.yag:10:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmp6ridx7qt/work/task.yag:11:8 read_note: `assert read_note(\"notes/../../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 1008,
+    "reasoning": 805
+   },
+   "out_bytes": 504
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2665,
+    "out": 999,
+    "reasoning": 730
+   },
+   "out_bytes": 690
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp6ridx7qt/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp6ridx7qt/work/task.yag:8:8 is_plain_name: `name =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3032,
+    "out": 1377,
+    "reasoning": 1026
+   },
+   "out_bytes": 926
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3520,
+    "out": 1213,
+    "reasoning": 868
+   },
+   "out_bytes": 892
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 6552,
+   "out": 2590,
+   "reasoning": 1894,
+   "out_bytes": 1818
+  },
+  "spec": {
+   "in": 4785,
+   "out": 2007,
+   "reasoning": 1535,
+   "out_bytes": 1194
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp6ridx7qt/work/task.yag:8:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp6ridx7qt/work/task.yag:9:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmp6ridx7qt/work/task.yag:10:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmp6ridx7qt/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp6ridx7qt/work/task.yag:8:8 is_plain_name: `name =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3110,
+   "reasoning": 645,
+   "out_bytes": 5668
+  },
+  "body": {
+   "in": 3647,
+   "out": 3612,
+   "reasoning": 805,
+   "out_bytes": 6732
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef resolve_note(name: str) -> Path | None:\n    \"\"\"Resolve `name` to a path strictly inside NOTES_DIR (relative to the\n    current working directory), or return None.\n\n    Returns None for any name that would land outside NOTES_DIR after\n    normalisation and symlink resolution: absolute paths, `..` escapes,\n    symlinks pointing outside, names containing NUL bytes, and the empty\n    name or any name resolving to NOTES_DIR itself. Never raises.\n    The target need not exist.\n    \"\"\"\n    if not name or \"\\x00\" in name:\n        return None\n    try:\n        if os.path.isabs(name) or Path(name).anchor or Path(name).drive:\n            return None\n        base = Path(NOTES_DIR).resolve()\n        candidate = (base / name).resolve()\n        if candidate == base or not candidate.is_relative_to(base):\n            return None\n        return candidate\n    except (OSError, ValueError, RuntimeError):\n        return None\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside NOTES_DIR.\n\n    Returns \"\" if the file is missing, is not a regular file, is unreadable,\n    or if `name` would escape NOTES_DIR. Never raises and never reads\n    anything outside NOTES_DIR.\n    \"\"\"\n    path = resolve_note(name)\n    if path is None:\n        return \"\"\n    try:\n        if not path.is_file():\n            return \"\"\n        with open(path, encoding=\"utf-8\", errors=\"replace\") as f:\n            return f.read()\n    except (OSError, ValueError):\n        return \"\"\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` that are regular files inside NOTES_DIR\n    which can be opened and read.\n\n    Each entry is counted independently, so duplicates count each time.\n    Names may be hostile: any name that would reach outside NOTES_DIR\n    (absolute, `..`, symlink escape, NUL byte, ...) is not counted and\n    never causes an exception. An empty but readable file is counted.\n    \"\"\"\n    total = 0\n    for name in names:\n        path = resolve_note(name)\n        if path is None:\n            continue\n        try:\n            if not path.is_file():\n                continue\n            with open(path, encoding=\"utf-8\", errors=\"replace\") as f:\n                f.read()\n        except (OSError, ValueError):\n            continue\n        total += 1\n    return total\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"alpha\")\n    (notes / \"b.txt\").write_text(\"beta\")\n    (notes / \"empty.txt\").write_text(\"\")\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"c.txt\").write_text(\"gamma\")\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_counts_existing_files(workdir: Path) -> None:\n    assert count_readable([\"a.txt\", \"b.txt\"]) == 2\n\n\ndef test_empty_list(workdir: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_missing_not_counted(workdir: Path) -> None:\n    assert count_readable([\"a.txt\", \"nope.txt\"]) == 1\n\n\ndef test_empty_file_is_counted(workdir: Path) -> None:\n    assert count_readable([\"empty.txt\"]) == 1\n\n\ndef test_duplicates_counted_each_time(workdir: Path) -> None:\n    assert count_readable([\"a.txt\", \"a.txt\", \"b.txt\"]) == 3\n\n\ndef test_subdirectory_file(workdir: Path) -> None:\n    assert count_readable([\"sub/c.txt\"]) == 1\n\n\ndef test_directory_not_counted(workdir: Path) -> None:\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_empty_and_dot_names(workdir: Path) -> None:\n    assert count_readable([\"\", \".\", \"./\"]) == 0\n\n\ndef test_inner_dotdot_staying_inside(workdir: Path) -> None:\n    assert count_readable([\"sub/../a.txt\"]) == 1\n\n\ndef test_parent_traversal_rejected(workdir: Path) -> None:\n    assert count_readable([\"../secret.txt\"]) == 0\n    assert count_readable([\"sub/../../secret.txt\"]) == 0\n    assert count_readable([\"../notes/../secret.txt\"]) == 0\n    assert count_readable([\"..\"]) == 0\n\n\ndef test_absolute_path_rejected(workdir: Path) -> None:\n    secret = str(workdir / \"secret.txt\")\n    assert count_readable([secret]) == 0\n    inside = str(workdir / NOTES_DIR / \"a.txt\")\n    assert count_readable([inside]) == 0\n\n\ndef test_nul_byte_rejected(workdir: Path) -> None:\n    assert count_readable([\"a.txt\\x00\", \"a.txt\\x00../secret.txt\"]) == 0\n\n\ndef test_symlink_escape_rejected(workdir: Path) -> None:\n    link = workdir / NOTES_DIR / \"link.txt\"\n    try:\n        link.symlink_to(workdir / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unavailable\")\n    assert count_readable([\"link.txt\"]) == 0\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_dir_escape_rejected(workdir: Path) -> None:\n    link = workdir / NOTES_DIR / \"outside\"\n    try:\n        link.symlink_to(workdir, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unavailable\")\n    assert count_readable([\"outside/secret.txt\"]) == 0\n\n\ndef test_symlink_inside_notes_allowed(workdir: Path) -> None:\n    link = workdir / NOTES_DIR / \"alias.txt\"\n    try:\n        link.symlink_to(workdir / NOTES_DIR / \"a.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unavailable\")\n    assert count_readable([\"alias.txt\"]) == 1\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"permission bits not enforced\",\n)\ndef test_unreadable_file_not_counted(workdir: Path) -> None:\n    locked = workdir / NOTES_DIR / \"locked.txt\"\n    locked.write_text(\"x\")\n    locked.chmod(0)\n    try:\n        assert count_readable([\"locked.txt\", \"a.txt\"]) == 1\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        locked.chmod(0o600)\n\n\ndef test_read_note_contents(workdir: Path) -> None:\n    assert read_note(\"a.txt\") == \"alpha\"\n    assert read_note(\"sub/c.txt\") == \"gamma\"\n\n\ndef test_read_note_failures_give_empty(workdir: Path) -> None:\n    assert read_note(\"missing.txt\") == \"\"\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(str(workdir / \"secret.txt\")) == \"\"\n    assert read_note(\"a.txt\\x00\") == \"\"\n\n\ndef test_resolve_note(workdir: Path) -> None:\n    p = resolve_note(\"a.txt\")\n    assert p is not None\n    assert p.resolve() == (workdir / NOTES_DIR / \"a.txt\").resolve()\n    assert resolve_note(\"../secret.txt\") is None\n    assert resolve_note(\"\") is None\n    assert resolve_note(\"a\\x00b\") is None\n    assert resolve_note(str(workdir / \"secret.txt\")) is None\n\n\ndef test_missing_notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert count_readable([\"a.txt\", \"../x\"]) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3110,
+    "reasoning": 645
+   },
+   "out_bytes": 5668,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3647,
+    "out": 3612,
+    "reasoning": 805
+   },
+   "out_bytes": 6732,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

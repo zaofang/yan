@@ -1,0 +1,124 @@
+{
+ "final": "def notes_dir() -> str:\n    \"\"\"The directory below which the plugin may read.\"\"\"\n    ex notes_dir() == \"notes\"\n    return \"notes\"\n\ndef plugin(path: str) -> str uses fs:\n    \"\"\"Reads path and a second file, joining both contents with a bar.\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Runs plugin(path) with fs confined to the directory notes, so any read outside it gives an empty string.\"\"\"\n    with fs = fs.sub(notes_dir()):\n        return plugin(path)\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpkiqzp4co/work/task.yag:7:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#2 E301 /tmp/tmpkiqzp4co/work/task.yag:8:8 run_plugin: `assert run_plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 155,
+    "reasoning": 0
+   },
+   "out_bytes": 378
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2572,
+    "out": 744,
+    "reasoning": 583
+   },
+   "out_bytes": 416
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2831,
+    "out": 597,
+    "reasoning": 361
+   },
+   "out_bytes": 590
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2831,
+   "out": 597,
+   "reasoning": 361,
+   "out_bytes": 590
+  },
+  "spec": {
+   "in": 4795,
+   "out": 899,
+   "reasoning": 583,
+   "out_bytes": 794
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpkiqzp4co/work/task.yag:7:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#2 E301 /tmp/tmpkiqzp4co/work/task.yag:8:8 run_plugin: `assert run_plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

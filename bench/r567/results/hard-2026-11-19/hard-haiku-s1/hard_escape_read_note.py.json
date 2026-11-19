@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2622,
+   "reasoning": 1165,
+   "out_bytes": 3056
+  },
+  "body": {
+   "in": 2630,
+   "out": 2394,
+   "reasoning": 832,
+   "out_bytes": 3345
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final[Path] = Path(\"notes\")\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of file `name` inside NOTES_DIR.\n\n    Resolves `name` relative to NOTES_DIR. A missing or unreadable file gives\n    \"\". Any name that would resolve outside NOTES_DIR (absolute paths, \"..\",\n    symlinks pointing out) gives \"\" and is never opened.\n    \"\"\"\n    try:\n        base = NOTES_DIR.resolve()\n        candidate = (base / name).resolve()\n        if candidate == base or not candidate.is_relative_to(base):\n            return \"\"\n        return candidate.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\ndef _make_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    monkeypatch.chdir(tmp_path)\n    return notes\n\n\ndef test_reads_existing_note(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_notes(tmp_path, monkeypatch)\n    (notes / \"todo.txt\").write_text(\"buy milk\", encoding=\"utf-8\")\n    assert read_note(\"todo.txt\") == \"buy milk\"\n\n\ndef test_reads_note_in_subdirectory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_notes(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"a.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    assert read_note(\"sub/a.txt\") == \"nested\"\n\n\ndef test_missing_file_gives_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _make_notes(tmp_path, monkeypatch)\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_directory_gives_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_notes(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n\n\n@pytest.mark.skipif(\n    hasattr(os, \"geteuid\") and os.geteuid() == 0,\n    reason=\"root can read mode-0 files\",\n)\ndef test_unreadable_file_gives_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = _make_notes(tmp_path, monkeypatch)\n    f = notes / \"locked.txt\"\n    f.write_text(\"secret\", encoding=\"utf-8\")\n    f.chmod(0)\n    try:\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        f.chmod(0o600)\n\n\n@pytest.mark.parametrize(\n    \"name\",\n    [\n        \"../secret.txt\",\n        \"..\",\n        \"sub/../../secret.txt\",\n        \"./../secret.txt\",\n        \"/secret.txt\",\n        \"..\\\\secret.txt\",\n    ],\n)\ndef test_traversal_names_are_blocked(\n    name: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _make_notes(tmp_path, monkeypatch)\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    assert read_note(name) == \"\"\n\n\ndef test_absolute_path_outside_notes_is_blocked(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _make_notes(tmp_path, monkeypatch)\n    outside = tmp_path / \"secret.txt\"\n    outside.write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    assert read_note(str(outside.resolve())) == \"\"\n\n\ndef test_symlink_pointing_outside_is_blocked(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _make_notes(tmp_path, monkeypatch)\n    outside = tmp_path / \"secret.txt\"\n    outside.write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    os.symlink(outside, notes / \"link.txt\")\n    assert read_note(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2622,
+    "reasoning": 1165
+   },
+   "out_bytes": 3056,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2630,
+    "out": 2394,
+    "reasoning": 832
+   },
+   "out_bytes": 3345,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

@@ -3,9 +3,9 @@
 //! `words` 8-byte slots each in a data allocation that is replaced when the list grows.
 
 use crate::mem::Byte;
-use crate::{Machine, Stop, Val, unsupported};
+use crate::{Kind, Machine, Stop, Val, unsupported};
 use std::io::Write;
-use yan_mir::RtFn;
+use yan_mir::{MemOrder, RtFn};
 use yan_rt::jsonslots::Slot;
 use yan_rt::sched;
 
@@ -499,6 +499,11 @@ impl Machine<'_> {
                     .map_err(|e| Stop::Fault(e.to_string()))?;
                 Val::U
             }
+            RtFn::Eprint => {
+                let s = self.str_of(a[0].addr())?;
+                writeln!(std::io::stderr(), "{s}").map_err(|e| Stop::Fault(e.to_string()))?;
+                Val::U
+            }
             RtFn::FailMain => return Err(Stop::Fail(self.str_of(a[0].addr())?, a[1].int() as i64)),
             RtFn::ShowI64 => Val::I(i128::from(self.new_str(&(a[0].int() as i64).to_string()))),
             RtFn::ShowU64 => Val::I(i128::from(self.new_str(&(a[0].int() as u64).to_string()))),
@@ -780,6 +785,19 @@ impl Machine<'_> {
                 Val::F(f)
             }
             RtFn::Pow => Val::F(yan_rt::math::pow(a[0].float(), a[1].float())),
+            RtFn::SumF64 => {
+                let (words, len, data) = {
+                    let l = self.list(a[0])?;
+                    (l.words, l.len, l.data)
+                };
+                let xs: Vec<f64> = self
+                    .words(data, words * len)?
+                    .into_iter()
+                    .skip(a[1].int() as usize)
+                    .map(f64::from_bits)
+                    .collect();
+                Val::F(yan_rt::num::sum_f64(&xs))
+            }
             RtFn::DotExact => {
                 let floats = |m: &mut Self, l: Val| -> Result<Vec<f64>, Stop> {
                     let (words, len, data) = {
@@ -904,6 +922,29 @@ impl Machine<'_> {
                 };
                 match read {
                     Ok(text) => Val::I(i128::from(self.new_str(&text))),
+                    Err(reason) => {
+                        self.fs_reason = reason;
+                        Val::I(0)
+                    }
+                }
+            }
+            RtFn::FsListDir => {
+                let path = self.str_of(a[1].addr())?;
+                let names = match a[0].int() {
+                    0 => yan_rt::abi::fs_list_dir(&path),
+                    h => yan_rt::fshandler::fake_list(
+                        self.fs_fakes[h as usize - 1].keys().map(String::as_str),
+                        &path,
+                    ),
+                };
+                match names {
+                    Ok(names) => {
+                        let ws: Vec<u64> = yan_rt::abi::list_entries(&path, names)
+                            .iter()
+                            .map(|s| self.new_str(s))
+                            .collect();
+                        self.new_list(1, word_bytes(&ws))
+                    }
                     Err(reason) => {
                         self.fs_reason = reason;
                         Val::I(0)
@@ -1759,6 +1800,19 @@ impl Machine<'_> {
                 yan_rt::actor::yan_rt_sup_end_to(a[0].addr());
                 Val::U
             }
+            RtFn::DeadlineBegin => Val::I(i128::from(yan_rt::deadline::yan_rt_deadline_begin(
+                a[0].addr(),
+                a[1].int() as i64,
+                a[2].int() as i64,
+            ))),
+            RtFn::DeadlineEnd => {
+                yan_rt::deadline::yan_rt_deadline_end();
+                Val::U
+            }
+            RtFn::DeadlineEndTo => {
+                yan_rt::deadline::yan_rt_deadline_end_to(a[0].addr());
+                Val::U
+            }
             RtFn::ParBegin => {
                 let n = a[0].addr();
                 let h = sched::yan_rt_par_begin(n, a[1].addr());
@@ -1827,6 +1881,22 @@ impl Machine<'_> {
                 }
                 Val::I(i128::from(status))
             }
+            RtFn::FutexWait => {
+                let (p, in_task) = (a[0].addr(), a[3].int() != 0);
+                let equal = self.wait_word(p, a[1].int() as u64)?;
+                self.atomic_raced(
+                    p,
+                    (Kind::Read, MemOrder::from_code(a[2].int()), false),
+                    0,
+                    None,
+                )?;
+                Val::I(i128::from(yan_rt::futex::wait(p as usize, equal, in_task)))
+            }
+            RtFn::FutexNotify => {
+                self.check_futex_word(a[0].addr(), "notify")?;
+                yan_rt::futex::notify(a[0].addr() as usize, a[1].int() as u64 as usize);
+                Val::U
+            }
             RtFn::SelectWait => {
                 let (keys, at) = (self.list_words(a[0])?, self.list_words(a[1])?);
                 let (status, arm) = yan_rt::chan::select_wait(&keys, &at, a[3].int() != 0);
@@ -1854,6 +1924,13 @@ impl Machine<'_> {
                 }
                 Val::I(i128::from(status))
             }
+            RtFn::ChanDrain => match yan_rt::chan::drain(a[0].addr() as usize) {
+                Some(v) => {
+                    self.write_words(a[1].addr(), &v)?;
+                    Val::I(1)
+                }
+                None => Val::I(0),
+            },
             RtFn::ChanDrop | RtFn::ChanDropSender | RtFn::ChanClone | RtFn::ChanCloneSender => {
                 use yan_rt::chan::End;
                 let op = match f {

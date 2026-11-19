@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1785,
+   "out": 987,
+   "reasoning": 681,
+   "out_bytes": 748
+  },
+  "body": {
+   "in": 2164,
+   "out": 1941,
+   "reasoning": 1498,
+   "out_bytes": 1091
+  }
+ },
+ "final": "-- Returns True only when `path` stays inside the base directory after\n-- normalization: no absolute paths, and no `..` that climbs above the base.\nis_contained(path: str) -> bool =\n  ex is_contained(\"a.txt\") == True\n  ex is_contained(\"sub/../a.txt\") == True\n  ex is_contained(\"../x\") == False\n  ex is_contained(\"sub/../../x\") == False\n  ex is_contained(\"/etc/passwd\") == False\n  let parts = path.split(\"/\")\n  if parts[0] == \"\"\n    return False\n  var depth = 0\n  for p in parts\n    if p == \"\" or p == \".\"\n      continue\n    if p == \"..\"\n      if depth == 0\n        return False\n      depth -= 1\n    else\n      depth += 1\n  True\n\n-- Returns the text of the file at `path` inside the `notes` directory,\n-- or \"\" if the path escapes `notes` or the file is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_public(\"missing.txt\") == \"\"\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  if is_contained(path) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(path) else \"\"\n    text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1785,
+    "out": 987,
+    "reasoning": 681
+   },
+   "out_bytes": 748,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2164,
+    "out": 1941,
+    "reasoning": 1498
+   },
+   "out_bytes": 1091,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

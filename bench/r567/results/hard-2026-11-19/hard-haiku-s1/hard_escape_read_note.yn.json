@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1709,
+   "out": 1427,
+   "reasoning": 1226,
+   "out_bytes": 482
+  },
+  "body": {
+   "in": 1983,
+   "out": 1185,
+   "reasoning": 875,
+   "out_bytes": 757
+  }
+ },
+ "final": "-- A plain name is one file name: non-empty, no path separators, no \"..\".\nis_plain_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../x\") == False\n  if name.char_count() == 0\n    return False\n  if name.split(\"/\").len() > 1 or name.split(\"\\\\\").len() > 1\n    return False\n  if name.split(\"..\").len() > 1\n    return False\n  True\n\n-- Text of notes/name. Returns \"\" when the name is not plain or the file is missing or unreadable.\nread_note(name: str) -> str uses fs =\n  post is_plain_name(name) or out == \"\"\n  ex read_note(\"no-such-file.txt\") == \"\"\n  if not is_plain_name(name)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else \"\"\n    return text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1709,
+    "out": 1427,
+    "reasoning": 1226
+   },
+   "out_bytes": 482,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1983,
+    "out": 1185,
+    "reasoning": 875
+   },
+   "out_bytes": 757,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

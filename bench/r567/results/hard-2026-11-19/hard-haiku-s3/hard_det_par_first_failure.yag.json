@@ -1,0 +1,127 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even; otherwise fail with Bad carrying x.\"\"\"\n    ex check(2) == 2\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 != 0:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Return the list unchanged when all\n    elements are even. Otherwise fail with the failure of the bad element with the\n    lowest index, regardless of which parallel check finishes first.\"\"\"\n    post out == xs\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([]) == []\n    oks = par [check(x) else -1 for x in xs]\n    for i in range(xs.len()):\n        if oks[i] == -1:\n            fail Bad(n=xs[i])\n    return xs.copy()\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1072,
+    "reasoning": 800
+   },
+   "out_bytes": 627
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpzv6e7dk7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpzv6e7dk7/work/task.yag:20:30 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmpzv6e7dk7/work/task.yag:22:12 all_even: `oks[i]` a `int` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2467,
+    "out": 1623,
+    "reasoning": 1264
+   },
+   "out_bytes": 820
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3014,
+    "out": 1077,
+    "reasoning": 690
+   },
+   "out_bytes": 887
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 5481,
+   "out": 2700,
+   "reasoning": 1954,
+   "out_bytes": 1707
+  },
+  "spec": {
+   "in": 2097,
+   "out": 1072,
+   "reasoning": 800,
+   "out_bytes": 627
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpzv6e7dk7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpzv6e7dk7/work/task.yag:20:30 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmpzv6e7dk7/work/task.yag:22:12 all_even: `oks[i]` a `int` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:20:30 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:22:12 all_even: `oks` a `int` is never `None`\n0 of 0 tests passed\nE201 ./task.yag:20:30 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:22:12 all_even: `oks` a `int` is never `None`\n0 of 0 tests passed\n"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

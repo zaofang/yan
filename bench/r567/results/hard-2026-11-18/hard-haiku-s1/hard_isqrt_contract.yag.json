@@ -1,0 +1,94 @@
+{
+ "final": "def isqrt(n: int) -> int:\n    \"\"\"Largest r with r * r <= n, for n >= 0.\"\"\"\n    pre n >= 0\n    post out * out <= n and (out + 1) * (out + 1) > n\n    ex isqrt(0) == 0\n    ex isqrt(15) == 3\n    ex isqrt(16) == 4\n    m = n\n    r = 0\n    bit = 1 << 62\n    while bit > m:\n        bit = bit >> 2\n    while bit != 0:\n        if m >= r + bit:\n            m = m - (r + bit)\n            r = (r >> 1) + bit\n        else:\n            r = r >> 1\n        bit = bit >> 2\n    return r\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 433,
+    "reasoning": 308
+   },
+   "out_bytes": 227
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2258,
+    "out": 1199,
+    "reasoning": 963
+   },
+   "out_bytes": 478
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/isqrt_contract",
+ "tokens": {
+  "body": {
+   "in": 2258,
+   "out": 1199,
+   "reasoning": 963,
+   "out_bytes": 478
+  },
+  "spec": {
+   "in": 2035,
+   "out": 433,
+   "reasoning": 308,
+   "out_bytes": 227
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

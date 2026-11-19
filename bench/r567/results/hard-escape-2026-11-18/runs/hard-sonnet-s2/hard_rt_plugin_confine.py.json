@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2486,
+   "reasoning": 926,
+   "out_bytes": 3509
+  },
+  "body": {
+   "in": 2872,
+   "out": 2253,
+   "reasoning": 552,
+   "out_bytes": 3967
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` with a confined reader and return its result.\n\n    `read(p)` resolves `p` relative to the directory `notes` (in the current\n    working directory) and returns that file's text. It returns \"\" whenever\n    the resolved file is not inside `notes`: `..` traversal, absolute paths\n    and symlinks pointing outside are all refused. It also returns \"\" when\n    the file is missing or is not a readable file. `read` never raises.\n    \"\"\"\n    root = Path(\"notes\").resolve()\n\n    def read(p: str) -> str:\n        try:\n            if Path(p).is_absolute():\n                return \"\"\n            target = (root / p).resolve()\n            if not target.is_relative_to(root):\n                return \"\"\n            if not target.is_file():\n                return \"\"\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError):\n            return \"\"\n\n    return plugin(path, read)\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (tmp_path / \"notes\" / \"sub\").mkdir()\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    # The plugin's own extra read of the secret must yield \"\".\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_reads_nested_file(sandbox: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"B|\"\n\n\ndef test_dotdot_inside_notes_allowed(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../a.txt\") == \"A|\"\n\n\ndef test_secret_never_leaks_via_traversal(sandbox: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n    assert \"TOP\" not in run_plugin(\"../secret.txt\")\n\n\ndef test_deep_traversal_refused(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_refused(sandbox: Path) -> None:\n    abs_secret = str(sandbox / \"secret.txt\")\n    assert run_plugin(abs_secret) == \"|\"\n\n\ndef test_absolute_path_to_file_inside_notes_refused_or_empty(sandbox: Path) -> None:\n    # An absolute path is not \"relative to notes\"; it must not expose the secret.\n    result = run_plugin(str(sandbox / \"secret.txt\"))\n    assert \"TOP\" not in result\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_empty_path_gives_empty(sandbox: Path) -> None:\n    assert run_plugin(\"\") == \"|\"\n\n\ndef test_symlink_escape_refused(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_symlink_inside_notes_allowed(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"alias.txt\"\n    try:\n        link.symlink_to(sandbox / \"notes\" / \"a.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"alias.txt\") == \"A|\"\n\n\ndef test_sibling_directory_with_notes_prefix_refused(sandbox: Path) -> None:\n    other = sandbox / \"notes_private\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"X\", encoding=\"utf-8\")\n    assert run_plugin(\"../notes_private/x.txt\") == \"|\"\n\n\ndef test_missing_notes_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"secret.txt\").write_text(\"TOP\", encoding=\"utf-8\")\n    assert run_plugin(\"a.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2486,
+    "reasoning": 926
+   },
+   "out_bytes": 3509,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2872,
+    "out": 2253,
+    "reasoning": 552
+   },
+   "out_bytes": 3967,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,126 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single relative path component that stays inside a directory.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret.txt\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read from the notes directory, or \"\" if none can.\n    Names are untrusted: only plain names are opened inside notes, and a missing or unreadable file is skipped.\"\"\"\n    post out.byte_len() >= 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            content: str | None = fs.read_text(name) else None\n            if content is not None:\n                return content\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpsp15_gug/work/task.yag:4:8 first_readable: `assert first_readable([\"missing.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpsp15_gug/work/task.yag:5:8 first_readable: `assert first_readable([\"../secret.txt\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1059,
+    "reasoning": 911
+   },
+   "out_bytes": 388
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2486,
+    "out": 913,
+    "reasoning": 695
+   },
+   "out_bytes": 585
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2802,
+    "out": 1094,
+    "reasoning": 762
+   },
+   "out_bytes": 980
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 2802,
+   "out": 1094,
+   "reasoning": 762,
+   "out_bytes": 980
+  },
+  "spec": {
+   "in": 4625,
+   "out": 1972,
+   "reasoning": 1606,
+   "out_bytes": 973
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpsp15_gug/work/task.yag:4:8 first_readable: `assert first_readable([\"missing.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpsp15_gug/work/task.yag:5:8 first_readable: `assert first_readable([\"../secret.txt\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:21:16\n  at main task.yag:27:20"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:21:16\n  at main task.yag:27:20"
+ }
+}
