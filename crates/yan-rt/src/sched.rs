@@ -251,7 +251,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
                         st.progress += 1;
                     }
                 }
-                let progress = st.progress;
+                let progress = st.progress + crate::futex::epoch();
                 block(st, h).tasks[i].seen = Some(progress);
             } else if let Some((true, c)) = prev
                 && unwait(st, c)
@@ -259,7 +259,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
                 st.progress += 1;
             }
         }
-        let progress = st.progress;
+        let progress = st.progress + crate::futex::epoch();
         let inherited = st.force.is_some_and(|f| f != h as usize);
         let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let parent = b.parent;

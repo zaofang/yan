@@ -1852,6 +1852,7 @@ impl Machine<'_> {
                 Val::I(i128::from(yan_rt::futex::wait(p as usize, equal, in_task)))
             }
             RtFn::FutexNotify => {
+                self.check_futex_word(a[0].addr(), "notify")?;
                 yan_rt::futex::notify(a[0].addr() as usize, a[1].int() as u64 as usize);
                 Val::U
             }

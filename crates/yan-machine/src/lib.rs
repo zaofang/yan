@@ -231,7 +231,8 @@ impl Machine<'_> {
 
     /// `Atomic.wait` on `addr` is `ub(15)` unless it is 4-aligned, inside a live allocation and a
     /// word an atomic instruction accessed. Returns whether the word equals `expected`.
-    fn wait_word(&self, addr: u64, expected: u64) -> Result<bool, Stop> {
+    /// UB item 15 on the address of `wait` or `notify` (`what`), when checking.
+    fn check_futex_word(&self, addr: u64, what: &str) -> Result<(), Stop> {
         if self.ub {
             let why = if !addr.is_multiple_of(4) {
                 Some("is not 4-aligned")
@@ -245,10 +246,15 @@ impl Machine<'_> {
             if let Some(why) = why {
                 return Err(Stop::Ub(
                     15,
-                    format!("`Atomic.wait` on {addr:#x}, which {why}"),
+                    format!("`Atomic.{what}` on {addr:#x}, which {why}"),
                 ));
             }
         }
+        Ok(())
+    }
+
+    fn wait_word(&self, addr: u64, expected: u64) -> Result<bool, Stop> {
+        self.check_futex_word(addr, "wait")?;
         let w = self.read_word_with(addr, false)?;
         Ok(w as u32 == expected as u32)
     }
