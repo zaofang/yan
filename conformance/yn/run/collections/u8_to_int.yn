@@ -1,0 +1,9 @@
+-- spec: 3.4
+-- rows: R656
+-- note: byte values widen with int(b) and b as int on both backends (#1505)
+-- stdout:
+-- 98 122
+
+main() uses io =
+  let bs = "az".bytes()
+  io.print("\(int(bs[0]) + 1) \(bs[1] as int)")
