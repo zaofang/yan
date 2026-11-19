@@ -1,8 +1,8 @@
 -- spec: 6.4, 15
 -- rows: R1040
 -- note: Mutex[T] is Send iff T is Send, so a Mutex[Rc[int]] cannot cross a channel
--- expect: W863 at 7:3
--- expect: E415 at 7:11
+-- expect: W863 at 8:3
+-- expect: E415 at 8:11
 
 send_mutex(var tx: Sender[Mutex[Rc[int]]], m: Mutex[Rc[int]]) fail Cancelled =
   tx.send(m)?

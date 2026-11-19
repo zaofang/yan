@@ -46,7 +46,7 @@ impl Lower<'_, '_, '_> {
     /// W863: a std call's declared failure `e` is not all in this function's fail type. The Yan
     /// Core checker reports E310 for user calls but does not see std signatures, so a blocking
     /// operation declaring `Cancelled | Timeout` would otherwise pass a function declaring
-    /// `Cancelled` and fail `Timeout` at run time (R1112).
+    /// `Cancelled` and fail `Timeout` at run time (R1111).
     pub(super) fn std_failure_injects(&mut self, e: &Ty, at: Span) {
         let Some(own) = self.sig.fail.clone() else {
             return;
@@ -66,7 +66,9 @@ impl Lower<'_, '_, '_> {
                 "W863",
                 at,
                 &item,
-                format!("`?` passes a `{e}` failure up, but `fail {own}` does not include all of it"),
+                format!(
+                    "`?` passes a `{e}` failure up, but `fail {own}` does not include all of it"
+                ),
             );
         }
     }

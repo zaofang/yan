@@ -307,6 +307,7 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | W860 | an `Args:`, `Attributes:` or `Variants:` entry names no parameter, field or variant (R848) *new* | 18.9 |
 | W861 | off by default, on in `yan.toml`: a public parameter, field or variant without a doc (R848) *new* | 18.9 |
 | W862 | `yan run --ub`: an allocation still live when `main` returns (R1098) *new* | 6.9 |
+| W863 | `?` on a std blocking call whose failure `Cancelled \| Timeout` is not covered by the function's fail type (R1111) *new* | 9.4 |
 
 ### 25.11 Unsafe, FFI, layout and assembly
 

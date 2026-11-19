@@ -1,8 +1,8 @@
 # spec: 6.4
 # rows: R1040
 # note: Mutex[T] is Send iff T is Send, so Mutex[Rc[int]] is not (the payload expression is the span)
-# expect: W863 at 7:5
-# expect: E415 at 7:13
+# expect: W863 at 8:5
+# expect: E415 at 8:13
 
 def send_mutex(var tx: Sender[Mutex[Rc[int]]], m: Mutex[Rc[int]]) -> None fail Cancelled:
     tx.send(m)?

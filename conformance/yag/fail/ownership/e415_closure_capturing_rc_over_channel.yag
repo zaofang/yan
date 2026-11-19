@@ -1,7 +1,7 @@
 # spec: 4.6, 6.4
 # note: a closure has the auto traits of what it captures
-# expect: W863 at 11:5
-# expect: E415 at 11:13
+# expect: W863 at 12:5
+# expect: E415 at 12:13
 
 def size(rs: list[Rc[int]]) -> int:
     return len(rs)

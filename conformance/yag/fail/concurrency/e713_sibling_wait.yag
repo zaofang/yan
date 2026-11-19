@@ -1,9 +1,9 @@
 # spec: 9.2
 # rows: R390
 # note: Channel construction returning (Sender, Receiver) is assumption A3
-# expect: W863 at 9:9
-# expect: E713 at 10:13
-# expect: W863 at 10:13
+# expect: W863 at 11:9
+# expect: E713 at 12:13
+# expect: W863 at 12:13
 
 def f() -> int fail Cancelled:
     tx, rx = Channel[int](1)

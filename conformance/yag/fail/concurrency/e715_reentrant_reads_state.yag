@@ -1,7 +1,7 @@
 # spec: 9.6
 # rows: R397, R435
-# expect: E715 at 10:9
-# expect: W863 at 11:5
+# expect: E715 at 11:9
+# expect: W863 at 12:5
 
 class Counter:
     n: int

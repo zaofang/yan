@@ -1,8 +1,8 @@
 # spec: 6.3
 # rows: R1024
 # note: a guard live across a call that can wait on another task; the wait is two calls away
-# expect: W863 at 7:5
-# expect: E323 at 15:5
+# expect: W863 at 8:5
+# expect: E323 at 16:5
 
 def wait() -> None fail Cancelled uses time:
     time.sleep(1 * ms)?

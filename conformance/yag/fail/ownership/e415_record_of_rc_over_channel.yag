@@ -1,7 +1,7 @@
 # spec: 6.4
 # note: Send is structural: a record that holds an `Rc` is not Send
-# expect: W863 at 9:5
-# expect: E415 at 9:13
+# expect: W863 at 10:5
+# expect: E415 at 10:13
 
 class W:
     r: Rc[int]
