@@ -1,8 +1,8 @@
 # 0095: Handler-bound `ex` lines and `par for` statements
 
-- Status: draft
+- Status: accepted
 - Research: R567 hard rerun 2026-11-19 (`bench/r567/results/hard-2026-11-19/compare.md`), #1746, #1749
-- Rows: filled in when accepted
+- Rows: pending
 
 ## Summary
 
@@ -16,7 +16,7 @@ Allow `ex with h: f(a) == r` (`.yn`) and `ex with h f(a) == r` (`.yag`), where `
 
 Alternative: keep `ex` capability-free and let `uses` functions carry only `pre` and `post`. No implementation cost, but their behaviour then has no example the agent can write.
 
-- Decision:
+- Decision: accepted as recommended: `ex with handler:` binds a capability for one example (lead, 2026-11-19). Implementation deferred to #1746.
 - Row:
 
 ### D2: `par for` as a statement
@@ -25,7 +25,7 @@ Accept a unit-bodied `par for` in statement position in `.yn`, lowered as the st
 
 Alternative: require a binding (`let _ = par for ...`) and make the statement form a typed diagnostic. Cheaper, but it contradicts 9.3.
 
-- Decision:
+- Decision: accepted as recommended: unit-bodied `par for` statement in `.yn` (lead, 2026-11-19). Implementation deferred to #1749; native side stays with #1632.
 - Row:
 
 ## Spec changes
