@@ -17,6 +17,14 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// CPython's `str` of a value, or its `repr` inside a container (SQ20).
     pub(super) fn show(&mut self, v: &[Operand], s: &Shape, nested: bool) -> R<Operand> {
+        if Self::outlined(s) {
+            return Ok(self.walk_shape(knot::Walk::Show(nested), s, v)[0].clone());
+        }
+        self.show_body(v, s, nested)
+    }
+
+    /// `show` of `s` with its own type expanded and the types it holds called.
+    pub(super) fn show_body(&mut self, v: &[Operand], s: &Shape, nested: bool) -> R<Operand> {
         Ok(match s {
             Shape::Scalar(Ty::Int(t)) => {
                 let f = if t.signed {
@@ -367,6 +375,17 @@ impl<'a, 'm> Fn<'a, 'm> {
 
     /// A copy of `v` that owns its own blocks.
     pub(super) fn clone_value(&mut self, v: Vec<Operand>, s: &Shape) -> R<Vec<Operand>> {
+        if !Self::has_heap(s) {
+            return Ok(v);
+        }
+        if Self::outlined(s) {
+            return Ok(self.walk_shape(knot::Walk::Copy, s, &v));
+        }
+        self.clone_body(v, s)
+    }
+
+    /// `clone_value` of `s` with its own type expanded and the types it holds called.
+    pub(super) fn clone_body(&mut self, v: Vec<Operand>, s: &Shape) -> R<Vec<Operand>> {
         if !Self::has_heap(s) {
             return Ok(v);
         }
