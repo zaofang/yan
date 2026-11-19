@@ -14264,6 +14264,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/io_eprint.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R655"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "out\n7\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/items/module_constants.yn",
    "kind": "run",
    "milestone": "M3",
