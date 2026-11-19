@@ -1003,6 +1003,25 @@
    ]
   },
   {
+   "path": "yag/fail/concurrency/e200_chan_type_near_miss.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.5"
+   ],
+   "rows": [
+    "R1108"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E200",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e323_guard_across_wait.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -11667,6 +11686,25 @@
      "code": "E312",
      "line": 7,
      "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/failure/e312_with_tail_value.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R374"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 10,
+     "col": 5
     }
    ]
   },

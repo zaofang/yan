@@ -1,0 +1,10 @@
+-- spec: 8.1
+-- rows: R374
+-- expect: E312 at 10:5
+
+plugin(path: str) -> str uses fs =
+  fs.read(path) else ""
+
+run(path: str) -> str uses fs =
+  with fs = fs.sub("notes")
+    plugin(path)
