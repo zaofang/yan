@@ -14,6 +14,32 @@ struct Habit {
     text: &'static str,
 }
 
+const BIT_OPS: &[&str] = &[" & ", " | ", " ^ ", "<<", ">>"];
+
+/// Whether `l` names a sized integer type: `prefix` ("u" or "uint") followed by a width.
+fn sized_name(l: &str, prefix: &str) -> bool {
+    sized_at(l, prefix, |_| true)
+}
+
+/// Whether `l` calls a sized integer type as a function, as in `uint8(x)`.
+fn sized_call(l: &str, prefix: &str) -> bool {
+    sized_at(l, prefix, |rest| rest.starts_with('('))
+}
+
+fn sized_at(l: &str, prefix: &str, after: impl Fn(&str) -> bool) -> bool {
+    let signed = prefix.replacen('u', "", 1);
+    [prefix, signed.as_str()].iter().any(|p| {
+        l.match_indices(p).any(|(i, _)| {
+            let before = l[..i].chars().next_back();
+            let tail = &l[i + p.len()..];
+            let w = tail.chars().take_while(char::is_ascii_digit).count();
+            !before.is_some_and(|c| c.is_alphanumeric() || c == '_')
+                && ["8", "16", "32", "64", "128"].contains(&&tail[..w])
+                && after(&tail[w..])
+        })
+    })
+}
+
 const TABLE: &[Habit] = &[
     Habit {
         ext: "yag",
@@ -197,6 +223,51 @@ const TABLE: &[Habit] = &[
         text: "TypeScript template literal `${x}`: Yan strings interpolate with `\\(x)`",
     },
     Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E200", "E201"],
+        on: |l| sized_call(l, "uint"),
+        text: "there is no `uint8(x)` constructor: to narrow an `int`, write `wrap_as[uint8](x)` \
+               (modulo 2**8) or `sat_as[uint8](x)` (clamped); to widen, `int(x)`. A literal that \
+               fits needs no conversion, and `bits.rotate_left(x, k)` rotates without overflow",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E200", "E201"],
+        on: |l| sized_call(l, "u"),
+        text: "there is no `u8(x)` constructor: to narrow an `int`, write `x as u8` (panics with \
+               `overflow` when it does not fit), `wrap_as[u8](x)` (modulo 2**8) or \
+               `sat_as[u8](x)` (clamped); to widen, `int(x)` or `x as int`. A literal that fits \
+               needs no conversion, and `bits.rotate_left(x, k)` rotates without overflow",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E203"],
+        on: |l| l.contains(".to_int(") || l.contains(".to_u8("),
+        text: "a sized integer has no conversion methods: write `int(b)` or `b as int` to widen, \
+               and `n as u8`, `wrap_as[u8](n)` or `sat_as[u8](n)` to narrow",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E201"],
+        on: |l| sized_name(l, "uint") || BIT_OPS.iter().any(|o| l.contains(o)),
+        text: "a sized integer (`uint8`, `int32`, ...) never mixes with `int` or another width \
+               in arithmetic, bit operators or comparison: widen it with `int(x)` first, and \
+               narrow the result with `wrap_as[uint8](r)` or `sat_as[uint8](r)`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E201"],
+        on: |l| sized_name(l, "u") || BIT_OPS.iter().any(|o| l.contains(o)),
+        text: "a sized integer (`u8`, `i32`, ...) never mixes with `int` or another width in \
+               arithmetic, bit operators or comparison: widen it with `int(x)` first, and \
+               narrow the result with `r as u8`, `wrap_as[u8](r)` or `sat_as[u8](r)`",
+    },
+    Habit {
         ext: "yn",
         lang: "typescript",
         codes: &["E403"],
@@ -310,6 +381,27 @@ mod selftest {
         assert!(t(1).contains("[f(x)? for x in xs]"));
         assert!(t(2).contains("try_send"));
         assert!(t(3).contains("let ys = par for"));
+    }
+
+    #[test]
+    fn sized_integer_hints() {
+        let src = "    r = uint8(x)\n  let r = u8(x)\n  x.to_int()\n    return n & parity\n  let m: u32 = a + b\n";
+        let mut ds = vec![
+            diag("E200", "a.yag", 1),
+            diag("E200", "a.yn", 2),
+            diag("E203", "a.yn", 3),
+            diag("E201", "a.yag", 4),
+            diag("E201", "a.yn", 5),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("wrap_as[uint8]"));
+        assert!(t(1).contains("x as u8"));
+        assert!(t(2).contains("int(b)"));
+        assert!(t(3).contains("widen it with `int(x)`"));
+        assert!(t(4).contains("wrap_as[u8]"));
+        assert!(!sized_call("print_u8(x)", "u"));
+        assert!(!sized_name("let uint = 8", "uint"));
     }
 
     #[test]
