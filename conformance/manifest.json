@@ -11936,6 +11936,25 @@
    ]
   },
   {
+   "path": "yn/fail/failure/e312_with_tail_name.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [
+    "R374"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E312",
+     "line": 12,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yn/fail/failure/e312_with_tail_value.yn",
    "kind": "fail",
    "milestone": "M3",
