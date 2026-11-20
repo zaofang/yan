@@ -243,6 +243,11 @@ jobs:
       - run: >-
           uv run python -m tools.ubsweep
           --yan ${{ github.workspace }}/target/release/yan
+      # MIR validator sweep (RFC 0097 D7, #1513): `yan view --as mir --check` over the same corpus.
+      # Programs it fails are listed in tools/mirsweep_allow.toml with an issue (#1810); a stale entry fails.
+      - run: >-
+          uv run python -m tools.mirsweep
+          --yan ${{ github.workspace }}/target/release/yan
       # Thread-count matrix (RFC 0086 D6, #1584): stdout, exit status and diagnostics identical at 1, 2, 4, 8 and 16 threads.
       # No allowlist: a divergence is a pool bug.
       - run: >-

@@ -267,7 +267,7 @@ enum Command {
         /// Raise without spelling marks (the bare check of RFC 0034 D7).
         #[arg(long)]
         bare: bool,
-        /// With `--as mir`, validate the printed program (RFC 0097 D7) and fail on any violation.
+        /// With `--as mir`, validate the program (RFC 0097 D7, R1114) and fail on any violation; F may be a `.mir` text.
         #[arg(long)]
         check: bool,
         file: PathBuf,
@@ -1000,6 +1000,9 @@ fn view(as_: &str, file: &Path, marks: yan_ide::Marks, check: bool) -> ExitCode 
 
 /// Canonical MIR text (RFC 0097) of the optimized module, as native code sees it.
 fn view_mir(file: &Path, check: bool) -> ExitCode {
+    if file.extension().is_some_and(|e| e == "mir") {
+        return check_mir_text(file, check);
+    }
     let mut db = Database::new(false, false);
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -1022,6 +1025,32 @@ fn view_mir(file: &Path, check: bool) -> ExitCode {
         }
         Err(code) => code,
     }
+}
+
+/// A `.mir` file: read the text, print its canonical form, and with `--check` validate it.
+fn check_mir_text(file: &Path, check: bool) -> ExitCode {
+    let text = match std::fs::read_to_string(file) {
+        Ok(t) => t,
+        Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
+    };
+    let p = match text.parse::<yan_mir::Program>() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let violations = if check {
+        p.validate(yan_mir::Form::Backend)
+    } else {
+        Vec::new()
+    };
+    violations.iter().for_each(|v| eprintln!("{v}"));
+    if !violations.is_empty() {
+        return ExitCode::FAILURE;
+    }
+    print!("{p}");
+    ExitCode::SUCCESS
 }
 
 fn fmt(files: &[PathBuf], check: bool) -> ExitCode {
