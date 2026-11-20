@@ -6416,6 +6416,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/actor/call_inherits_shield_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "9.6"
+   ],
+   "rows": [
+    "R811"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Timeout() after PT1S\n7\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/actor/call_scope_deadline.yag",
    "kind": "run",
    "milestone": "M1",

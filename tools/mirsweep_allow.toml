@@ -10,6 +10,10 @@ program = "conformance/yag/run/actor/call_default_deadline.yag"
 issue = "#1810"
 
 [[allow]]
+program = "conformance/yag/run/actor/call_inherits_shield_deadline.yag"
+issue = "#1810"
+
+[[allow]]
 program = "conformance/yag/run/actor/call_scope_deadline.yag"
 issue = "#1810"
 
