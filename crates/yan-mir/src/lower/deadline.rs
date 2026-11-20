@@ -32,10 +32,45 @@ impl<'m> Fn<'_, 'm> {
             args: vec![Operand::Local(depth), hi, lo],
         });
         self.scopes.push(Scope::Deadline);
+        self.shields += u32::from(shield);
         self.block(body)?;
+        self.shields -= u32::from(shield);
         self.scopes.pop();
         self.end_deadline();
         Ok(())
+    }
+
+    /// A `Timeout` that a shield's own expiry raised becomes `ShieldTimeout` as it leaves (R812).
+    pub(super) fn shield_failure(&mut self, e: &Shape, v: Vec<Operand>) -> Vec<Operand> {
+        let (Some((tag, ..)), Some(_)) = (e.variant("Timeout"), e.variant("ShieldTimeout")) else {
+            return v;
+        };
+        let out: Vec<Local> = e.tys().into_iter().map(|t| self.local(t)).collect();
+        self.copy_to(&out, v.clone());
+        let join = self.block_new();
+        let is_timeout = self.scalar_op(ScalarOp::Eq, I64, vec![v[0].clone(), Operand::Int(tag)]);
+        let (timeout, other) = self.branch(is_timeout);
+        self.cur = other;
+        self.goto(join);
+        self.cur = timeout;
+        let hit = self.local(I64);
+        self.emit(Inst::Rt {
+            dst: Some(hit),
+            f: RtFn::ShieldHit,
+            args: Vec::new(),
+        });
+        let own = self.scalar_op(
+            ScalarOp::Ne,
+            I64,
+            vec![Operand::Local(hit), Operand::Int(0)],
+        );
+        let (convert, keep) = self.branch(own);
+        self.cur = keep;
+        self.goto(join);
+        self.cur = convert;
+        self.copy_to(&out, Self::variant_value(e, "ShieldTimeout", Vec::new()));
+        self.goto(join);
+        out.into_iter().map(Operand::Local).collect()
     }
 
     pub(super) fn end_deadline(&mut self) {

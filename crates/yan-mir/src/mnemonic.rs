@@ -330,6 +330,7 @@ mnemonics!(RtFn {
     SupEndTo = "sup_end_to",
     DeadlineBegin = "deadline_begin",
     ShieldBegin = "shield_begin",
+    ShieldHit = "shield_hit",
     DeadlineEnd = "deadline_end",
     DeadlineEndTo = "deadline_end_to",
     FfiCall = "ffi_call",
@@ -443,7 +444,7 @@ mod tests {
 
     #[test]
     fn rt_fns() {
-        check(RtFn::MNEMONICS, 270, RtFn::mnemonic, RtFn::from_mnemonic);
+        check(RtFn::MNEMONICS, 271, RtFn::mnemonic, RtFn::from_mnemonic);
     }
 
     #[test]
