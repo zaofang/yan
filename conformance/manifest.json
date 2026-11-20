@@ -8240,6 +8240,54 @@
    "exit": 0
   },
   {
+   "path": "yag/run/numbers/trunc_as_float.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1123"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 -3 3990\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/numbers/trunc_as_overflow.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1123"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/numbers/try_as_option.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "3.4",
+    "14.1"
+   ],
+   "rows": [
+    "R1122"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200 none none\n7 -5 9\n1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/ownership/borrowed_param_leaves_by_copy.yag",
    "kind": "run",
    "milestone": "M1",
@@ -14546,6 +14594,21 @@
    "flags": [],
    "expect": [],
    "stdout": "3 -4 1 2 3.5\n",
+   "exit": 0
+  },
+  {
+   "path": "yn/run/numbers/try_as_option.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "3.4"
+   ],
+   "rows": [
+    "R1122"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "200 0 0\n1 200\n",
    "exit": 0
   },
   {

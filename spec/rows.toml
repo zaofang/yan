@@ -2280,3 +2280,13 @@ sections = "22.4, 25.12"
 rows = "R1121"
 topic = "I107: `AddrOf` names a local that a pinned group holds, and no local is in two pinned groups"
 sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1122"
+topic = "`try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1123"
+topic = "`trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770)"
+sections = "3.4, 14.1"

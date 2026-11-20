@@ -1,8 +1,8 @@
 # 0098: The failable integer conversion and the meaning of `trunc_as`
 
-- Status: draft
+- Status: accepted
 - Research: #1770 (gap issue, RFC 0096 D3 deferred); RFC 0096 D2 (`checked_as` panics) and D3
-- Rows: filled in when accepted
+- Rows: R1114, R1115
 
 ## Summary
 
@@ -24,8 +24,8 @@ Options:
 
 Recommended: A. It is the only option that leaves every existing name's meaning untouched, keeps one call shape across the four policies, and works in both surfaces.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended: A, `try_as[T](x)` (lead, 2026-11-19)
+- Row: R1114
 
 ### D2: what `trunc_as` means
 
@@ -40,8 +40,8 @@ Options:
 
 Recommended: A. The name already reads as truncation, the behaviour reuses the `int(x)` rule so there is one float-to-integer rounding rule, and it keeps the four-way policy table total: each of integer-to-integer (wrap, sat, checked, try) and float-to-integer (trunc) has a spelling. A failable float form is not proposed here; no program asks for it.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended: A, float to sized integer (lead, 2026-11-19)
+- Row: R1115
 
 ## Spec changes
 

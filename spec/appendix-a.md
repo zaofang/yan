@@ -463,6 +463,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1119 | I105: a MIR argument, bound result or returned value has the type of the slot it fills; an integer literal fits any integer or pointer slot | 22.4, 25.12 |
 | R1120 | I106: `Par`, `Suspend`, `TaskEnd` and `Unwind` do not appear in the MIR form backends read, which follows the task transform | 22.4, 25.12 |
 | R1121 | I107: `AddrOf` names a local that a pinned group holds, and no local is in two pinned groups | 22.4, 25.12 |
+| R1122 | `try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770) | 3.4, 14.1 |
+| R1123 | `trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770) | 3.4, 14.1 |
 
 <!-- /rows -->
 
