@@ -265,43 +265,95 @@ fn sleep(it: &mut Interp, h: &Value, ns: i128) {
     }
     match slept(it, h) {
         Some(s) => *s += ns,
-        None => std::thread::sleep(std::time::Duration::from_nanos(ns as u64)),
+        None => yan_rt::signal::sleep(ns as u64),
     }
     crate::simfault::sweep(it);
 }
 
 /// Sleeps `ns`, or until the enclosing deadline when that comes first; `Err` is `Timeout` (9.4).
 fn sleep_in_scope(it: &mut Interp, h: &Value, ns: i128) -> Result<Value, Value> {
-    let Mono(now) = monotonic(it, h) else {
-        unreachable!("a reading")
+    let mono = |it: &mut Interp| match monotonic(it, h) {
+        Mono(now) => now,
+        _ => unreachable!("a reading"),
     };
-    match it.deadline {
-        Some(d) if now + ns > d => {
-            sleep(it, h, d - now);
-            Err(timeout(it))
+    let end = mono(it) + ns;
+    // A signal wakes a host sleep early (9.4): the drain it starts may cut the rest short.
+    loop {
+        let now = mono(it);
+        let cut = cut(it).filter(|d| end > *d);
+        let until = cut.unwrap_or(end);
+        if now < until {
+            sleep(it, h, until - now);
+            continue;
         }
-        _ => {
-            sleep(it, h, ns);
-            Ok(Unit)
-        }
+        return match cut {
+            Some(_) => Err(timeout(it)),
+            None => Ok(Unit),
+        };
     }
 }
 
 /// The failure of an expired deadline. A shield's own expiry is noted, for `Op::FailShield` to
 /// turn into `ShieldTimeout` where it leaves the shield (R812).
 pub(crate) fn timeout(it: &Interp) -> Value {
-    it.shield_hit.set(it.shielded);
+    let drain = drain_cut(it);
+    it.shield_hit.set(it.shielded && !drain);
     Data {
-        name: "Timeout".to_owned(),
+        name: if drain { "Cancelled" } else { "Timeout" }.to_owned(),
         fields: Vec::new(),
     }
+}
+
+/// The open scopes, after noting a signal that drains the root (9.4).
+pub(crate) fn scopes<'a>(it: &'a Interp<'_>) -> &'a yan_rt::scope::Scopes {
+    yan_rt::signal::observe(|| mono_now(it));
+    &it.scopes
+}
+
+/// The grace end of a drain around the running task came before the deadline in force and has
+/// passed (9.4).
+fn drain_cut(it: &Interp) -> bool {
+    let deadline = deadline(it);
+    scopes(it)
+        .cancel_at(it.scope)
+        .is_some_and(|c| deadline.is_none_or(|d| c < d) && mono_now(it) >= c)
+}
+
+/// The deadline in force: under drain a shield runs no later than the end of the cancel grace of
+/// the scopes it holds back (R812).
+pub(crate) fn deadline(it: &Interp) -> Option<i128> {
+    let limit = scopes(it).shield_limit(it.scope);
+    it.deadline.map(|d| limit.map_or(d, |l| l.min(d)))
+}
+
+/// The instant that cuts a wait short: the deadline in force, or the grace end of a drain around
+/// the running task when that comes first; [`timeout`] is the failure of a wait it cut.
+pub(crate) fn cut(it: &Interp) -> Option<i128> {
+    let deadline = deadline(it);
+    match scopes(it).cancel_at(it.scope) {
+        Some(c) => Some(deadline.map_or(c, |d| d.min(c))),
+        None => deadline,
+    }
+}
+
+/// At a cancellation point: the grace of a drain around the running task has passed. A task
+/// still alive once the cancel grace has also passed aborts the program (9.4).
+pub(crate) fn drain_cancelled(it: &Interp) -> R<bool> {
+    let Some(c) = scopes(it).cancel_at(it.scope) else {
+        return Ok(false);
+    };
+    let now = mono_now(it);
+    if now >= c + yan_rt::scope::CANCEL_GRACE {
+        return super::panic("shutdown");
+    }
+    Ok(now >= c)
 }
 
 /// For an operation that cannot complete, waits until the enclosing deadline and returns
 /// `Timeout` (9.4); `None` when no deadline is open. The operation names no clock, so under
 /// `fixed_time` or `virtual` handlers every such clock advances to the deadline.
 pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
-    let d = it.deadline?;
+    let d = cut(it)?;
     Some(wait_until(it, d))
 }
 
@@ -314,9 +366,13 @@ pub(crate) fn wait_until(it: &mut Interp, d: i128) -> Value {
 /// Moves the clock the std timers use to `d`: a real wait, or the virtual clocks jumping.
 pub(crate) fn advance_to(it: &mut Interp, d: i128) {
     if it.clocks.is_empty() {
-        let now = START.elapsed().as_nanos() as i128;
-        if d > now {
-            std::thread::sleep(std::time::Duration::from_nanos((d - now) as u64));
+        loop {
+            let now = START.elapsed().as_nanos() as i128;
+            let until = cut(it).map_or(d, |c| c.min(d));
+            if now >= until {
+                break;
+            }
+            yan_rt::signal::sleep((until - now) as u64);
         }
     } else {
         it.clocks.iter_mut().for_each(|c| *c = (*c).max(d));
@@ -326,7 +382,7 @@ pub(crate) fn advance_to(it: &mut Interp, d: i128) {
 /// The host time left before the enclosing deadline, for host I/O that can be cut short. Under
 /// `fixed_time` or `virtual` handlers host I/O takes no time, so no deadline bounds it.
 pub(crate) fn host_time_left(it: &Interp) -> Option<std::time::Duration> {
-    let d = it.deadline.filter(|_| it.clocks.is_empty())?;
+    let d = cut(it).filter(|_| it.clocks.is_empty())?;
     let left = d - START.elapsed().as_nanos() as i128;
     Some(std::time::Duration::from_nanos(left.max(0) as u64))
 }

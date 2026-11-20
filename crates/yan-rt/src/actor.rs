@@ -439,20 +439,19 @@ fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
         s
     });
     // Under `fixed_time` or `virtual` handlers the wait takes no host time: their clocks jump.
-    let scope = crate::deadline::current();
-    if let Some(now) = since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
-        let end = scope.unwrap_or(now + DEFAULT_DEADLINE.as_nanos() as i128);
-        crate::civil::clocks_advance_to(end);
-        return TIMEOUT;
-    }
-    match scope {
-        Some(d) => crate::civil::wait_until(d),
+    // A drain's grace end cuts the wait only when it comes before the deadline or the default.
+    let cut = crate::deadline::current();
+    let default = DEFAULT_DEADLINE.as_nanos() as i128;
+    let end = match since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
+        Some(now) => now + default,
         None => {
-            let end = since.map(|s| s.0).unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
-            std::thread::sleep(end.saturating_duration_since(Instant::now()));
+            let waited = since.map_or(0, |s| s.0.elapsed().as_nanos() as i128);
+            crate::civil::mono_now() + default - waited
         }
-    }
-    TIMEOUT
+    };
+    let end = crate::deadline::in_force().unwrap_or(end);
+    crate::civil::wait_until(cut.map_or(end, |c| c.min(end)));
+    crate::deadline::cut_status(TIMEOUT, CANCELLED)
 }
 
 /// The youngest caller of a wait cycle that `me` closes by waiting on actor `id`, if it closes

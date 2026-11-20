@@ -375,6 +375,9 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
     let lit = module
         .declare_function("yan_rt_static_str", Linkage::Import, &lit_sig)
         .map_err(err)?;
+    let signals = module
+        .declare_function("yan_rt_signals", Linkage::Import, &module.make_signature())
+        .map_err(err)?;
     let mut entry_sig = module.make_signature();
     entry_sig.returns.push(AbiParam::new(types::I32));
     let entry = module
@@ -397,6 +400,8 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
             let slot = b.ins().symbol_value(ptr, slot);
             b.ins().store(MemFlagsData::trusted(), block, slot, 0);
         }
+        let signals = module.declare_func_in_func(signals, b.func);
+        b.ins().call(signals, &[]);
         let main = module.declare_func_in_func(ids[p.main as usize], b.func);
         b.ins().call(main, &[]);
         let code = b.ins().iconst(types::I64, 0);
@@ -2561,7 +2566,7 @@ fn rt_fn(
         RtFn::ScopeDrain => (
             "yan_rt_scope_drain",
             yan_rt::scope::yan_rt_scope_drain as *const u8,
-            &[I64],
+            &[I64, I64, I64],
             None,
         ),
         RtFn::ScopeDraining => (

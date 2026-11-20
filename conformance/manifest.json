@@ -7302,6 +7302,51 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/scope_drain_abort_after_cancel_grace.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1128"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "slow done\n",
+   "exit": 134
+  },
+  {
+   "path": "yag/run/concurrency/scope_drain_cancel_after_grace.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1127"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "boss first ok after PT1S\nboss second Cancelled() after PT2S\nboss third Cancelled() after PT2S\nworker recv -1 after PT0S True\nworker again -2 after PT0S\nafter par ok False\nTimeout() at PT2S\nCancelled() at PT3S\nroot Cancelled() at PT4S\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/shield_clamped_under_drain.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1129"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "short ok True at PT3S\ntight ShieldTimeout() at PT7S\nlong ShieldTimeout() at PT11S\nother\ndone\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_expiry_is_shield_timeout.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7375,6 +7420,32 @@
    "expect": [],
    "stdout": "caught Timeout()\nBad(n=7)\n",
    "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/signal_drains_root.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "24.1"
+   ],
+   "rows": [
+    "R1130"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ready\ndraining True True\n",
+   "exit": 143,
+   "signals": [
+    [
+     "INT",
+     "ready"
+    ],
+    [
+     "TERM",
+     "draining True True"
+    ]
+   ]
   },
   {
    "path": "yag/run/contracts/assert_panics.yag",
@@ -11479,6 +11550,32 @@
    "expect": []
   },
   {
+   "path": "yn/pass/failure/with_tail_name.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/failure/with_tail_value.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yn/pass/ffi/callbacks_and_ownership.yn",
    "kind": "pass",
    "milestone": "M3",
@@ -11947,44 +12044,6 @@
      "code": "E312",
      "line": 7,
      "col": 3
-    }
-   ]
-  },
-  {
-   "path": "yn/fail/failure/e312_with_tail_name.yn",
-   "kind": "fail",
-   "milestone": "M3",
-   "spec": [
-    "8.1"
-   ],
-   "rows": [
-    "R374"
-   ],
-   "flags": [],
-   "expect": [
-    {
-     "code": "E312",
-     "line": 12,
-     "col": 5
-    }
-   ]
-  },
-  {
-   "path": "yn/fail/failure/e312_with_tail_value.yn",
-   "kind": "fail",
-   "milestone": "M3",
-   "spec": [
-    "8.1"
-   ],
-   "rows": [
-    "R374"
-   ],
-   "flags": [],
-   "expect": [
-    {
-     "code": "E312",
-     "line": 10,
-     "col": 5
     }
    ]
   },
@@ -14566,6 +14625,21 @@
    "expect": [],
    "stdout": "start\n",
    "exit": 1
+  },
+  {
+   "path": "yn/run/failure/with_tail_result.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "8\n0\n3\n",
+   "exit": 0
   },
   {
    "path": "yn/run/ffi/ptr_of_across_suspend.yn",

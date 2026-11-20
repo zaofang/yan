@@ -77,7 +77,7 @@ impl Lower<'_, '_, '_> {
                     && (matches!(rhs, Rhs::Call(_)) || matches!(e.kind, j::ExprKind::Name(_)))
                 {
                     let hint = if t == self.sig.ret {
-                        "; a block (`with`, `if`, `for`) does not yield the function's value: `return` it"
+                        "; a loop does not yield the function's value: `return` it"
                     } else {
                         ""
                     };

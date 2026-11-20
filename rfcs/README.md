@@ -122,3 +122,4 @@ conformance case in the same PR set.
 | [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | accepted | pending |
 | [0097](0097-mir-text-format.md) | Canonical MIR text: printer, parser, validator | accepted | pending |
 | [0098](0098-failable-integer-conversion-and-trunc-as.md) | The failable integer conversion and the meaning of `trunc_as` | accepted | pending |
+| [0099](0099-with-tail-value.md) | The tail value of `with` and `unsafe` blocks, and diverging branches of a conditional | accepted | R1131, D2 pending |

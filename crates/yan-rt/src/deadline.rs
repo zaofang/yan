@@ -14,15 +14,39 @@ thread_local! {
     static STACK: RefCell<Stack> = const { RefCell::new(Vec::new()) };
     /// Whether the deadline last read by an operation was a shield's own (R812).
     static HIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// Whether the instant last read by an operation was a drain's grace end, not a deadline.
+    static DRAIN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-/// The deadline in force, if a scope is open.
+/// The instant that cuts a wait short: the deadline in force, or the grace end of a drain around
+/// the running task when that comes first (9.4).
 pub fn current() -> Option<i128> {
-    STACK.with(|s| {
-        let s = s.borrow();
-        HIT.with(|h| h.set(s.last().is_some_and(|e| e.2)));
-        s.last().map(|e| e.0)
-    })
+    let limit = crate::scope::shield_limit();
+    let deadline = STACK
+        .with(|s| s.borrow().last().map(|e| (e.0, e.2)))
+        .map(|(at, shield)| (limit.map_or(at, |l| l.min(at)), shield));
+    let cancel = crate::scope::cancel_at().filter(|c| deadline.is_none_or(|d| *c < d.0));
+    DRAIN.with(|d| d.set(cancel.is_some()));
+    HIT.with(|h| h.set(cancel.is_none() && deadline.is_some_and(|d| d.1)));
+    cancel.or(deadline.map(|d| d.0))
+}
+
+/// The deadline in force without drains, if a scope is open.
+pub(crate) fn in_force() -> Option<i128> {
+    let limit = crate::scope::shield_limit();
+    STACK
+        .with(|s| s.borrow().last().map(|e| e.0))
+        .map(|at| limit.map_or(at, |l| l.min(at)))
+}
+
+/// The status of a wait that ended unfulfilled after [`current`]: `cancelled` when a drain's
+/// grace end came before the deadline and has passed, else `timeout`.
+pub(crate) fn cut_status(timeout: u64, cancelled: u64) -> u64 {
+    if DRAIN.with(std::cell::Cell::get) && crate::scope::cancelled() {
+        cancelled
+    } else {
+        timeout
+    }
 }
 
 /// The id of the innermost scope open in the running task.
@@ -51,7 +75,7 @@ pub(crate) fn snapshot() -> Stack {
 /// `yan_rt_sup_begin`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
-    let id = crate::scope::open();
+    let id = crate::scope::open(false);
     STACK.with(|s| {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;
@@ -67,7 +91,7 @@ pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_shield_begin(low: u64, hi: i64, lo: i64) -> u64 {
     let held = crate::sched::depth();
-    let id = crate::scope::open();
+    let id = crate::scope::open(true);
     STACK.with(|s| {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;

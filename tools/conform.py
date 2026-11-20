@@ -3,6 +3,8 @@
 An executor is any command that implements:
     CMD check --format json [FLAGS] FILE  -> JSON array of diagnostic records (spec 18.2)
     CMD run [FLAGS] FILE                  -> the program's stdout and exit status
+                                             a `signal: INT|TERM after LINE` header sends
+                                             that signal once the program has printed LINE
     CMD run --ub [FLAGS] FILE             -> exit status; a UB report names "ub(N)" on stderr;
                                              a `warn: Wnnn` case also needs `warning[Wnnn]` there;
                                              `seeds: all N` runs seeds 1 to N with
@@ -37,6 +39,7 @@ import random
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -82,6 +85,7 @@ HEADERS = frozenset(
         "ub",
         "warn",
         "seeds",
+        "signal",
     }
 )
 
@@ -109,6 +113,7 @@ class Case:
     ub: str | None = None
     warn: str | None = None
     seeds: tuple[str, int] | None = None
+    signals: list[tuple[str, str]] = field(default_factory=list)
     meta: dict[str, object] = field(default_factory=dict)
 
 
@@ -131,6 +136,10 @@ class Executor(Protocol):
     def check(self, path: Path, flags: list[str]) -> list[dict[str, object]]: ...
 
     def run(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
+
+    def run_signalled(
+        self, path: Path, flags: list[str], signals: list[tuple[str, str]]
+    ) -> tuple[str, int]: ...
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]: ...
 
@@ -179,6 +188,29 @@ class CommandExecutor:
         if out.returncode == TOOL_FAILURE and out.stderr.startswith("yan:"):
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
+
+    def run_signalled(
+        self, path: Path, flags: list[str], signals: list[tuple[str, str]]
+    ) -> tuple[str, int]:
+        """As `run`, sending each signal when the program prints its line (in header order)."""
+        pending = list(signals)
+        lines: list[str] = []
+        with subprocess.Popen(
+            [*self.argv, "run", *flags, str(path)],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        ) as proc:
+            assert proc.stdout is not None and proc.stderr is not None
+            for line in proc.stdout:
+                lines.append(line)
+                if pending and line.rstrip("\n") == pending[0][1]:
+                    proc.send_signal(getattr(signal, "SIG" + pending.pop(0)[0]))
+            stderr = proc.stderr.read()
+        if proc.returncode == TOOL_FAILURE and stderr.startswith("yan:"):
+            raise ToolFailure(stderr.strip())
+        return "".join(lines), proc.returncode
 
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         out = subprocess.run(
@@ -372,6 +404,11 @@ def parse_case(kind: str, path: Path, text: str) -> Case:
                 if mode not in ("all", "any") or not n.strip().isdigit() or int(n) < 1:
                     raise ValueError(f"{path}: `seeds` is `all N` or `any N`, got {value!r}")
                 case.seeds = (mode, int(n))
+            case "signal":
+                name, sep, at = value.strip().partition(" after ")
+                if name not in ("INT", "TERM") or not sep:
+                    raise ValueError(f"{path}: `signal` is `INT|TERM after LINE`, got {value!r}")
+                case.signals.append((name, at))
     case.stdout = None if stdout is None else "".join(s + "\n" for s in stdout)
     return case
 
@@ -456,7 +493,10 @@ def _judge(case: Case, ex: Executor) -> Result:
             if Counter(got) != Counter(case.expect):
                 return Result(name, ex.name, "fail", f"expected {sorted(case.expect)}, got {got}")
         case "run":
-            stdout, code = ex.run(case.path, case.flags)
+            if case.signals:
+                stdout, code = ex.run_signalled(case.path, case.flags, case.signals)
+            else:
+                stdout, code = ex.run(case.path, case.flags)
             if stdout != (case.stdout or "") or code != case.exit:
                 return Result(name, ex.name, "fail", f"exit {code}, stdout {stdout!r}")
         case "ub":
@@ -943,6 +983,7 @@ def manifest(cases: list[Case], root: Path) -> dict[str, object]:
                 **({"ub": c.ub} if c.ub else {}),
                 **({"warn": c.warn} if c.warn else {}),
                 **({"seeds": list(c.seeds)} if c.seeds else {}),
+                **({"signals": [list(s) for s in c.signals]} if c.signals else {}),
                 **({"expect_toml": c.meta} if c.meta else {}),
             }
             for c in cases

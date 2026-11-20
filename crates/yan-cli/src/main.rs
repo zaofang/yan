@@ -422,7 +422,7 @@ enum Command {
         format: ReviewFormat,
     },
     /// List the claims taken on trust: `unsafe` items and preconditions, extern `safe`,
-    /// `uses none` and `@access` claims (6, 11.2, 12).
+    /// `uses none` and `@access` claims, and shields (6, 9.4, 11.2, 12).
     Audit {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
@@ -1169,6 +1169,7 @@ fn run_program(
         Ok(m) => m,
         Err(code) => return code,
     };
+    yan_rt::signal::yan_rt_signals();
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
     }
@@ -1226,7 +1227,7 @@ fn run_program(
         }
         Err(Stop::Panic(p)) => {
             eprintln!("{}", p.render(&file.display().to_string()));
-            ExitCode::from(EXIT_PANIC as u8)
+            ExitCode::from(yan_rt::abi::panic_exit(&p.kind) as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
         Err(Stop::Limit(what)) => tool_failure(&format!("stage-0 {what} limit at run time")),

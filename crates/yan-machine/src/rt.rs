@@ -1821,7 +1821,11 @@ impl Machine<'_> {
             }
             RtFn::ScopeCurrent => Val::I(i128::from(yan_rt::scope::yan_rt_scope_current())),
             RtFn::ScopeDrain => {
-                yan_rt::scope::yan_rt_scope_drain(a[0].addr());
+                yan_rt::scope::yan_rt_scope_drain(
+                    a[0].addr(),
+                    a[1].int() as i64,
+                    a[2].int() as i64,
+                );
                 Val::U
             }
             RtFn::ScopeDraining => Val::I(i128::from(yan_rt::scope::yan_rt_scope_draining(

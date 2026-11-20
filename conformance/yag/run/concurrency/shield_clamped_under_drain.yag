@@ -1,0 +1,37 @@
+# spec: 9.4
+# rows: R1129
+# note: a shield holds a drain's cancel but still sees the drain; under drain it runs no later than the end of the cancel grace (drain grace end plus 10 s), and a shorter shield keeps its own instant (#1803 item 4, #1820)
+# stdout:
+# short ok True at PT3S
+# tight ShieldTimeout() at PT7S
+# long ShieldTimeout() at PT11S
+# other
+# done
+
+def held(d: Duration) -> str fail Cancelled | Timeout | ShieldTimeout uses time, shield:
+    with shield(30 * s):
+        time.sleep(d)?
+        return f"ok {scope.current().is_draining()}"
+
+def tight() -> str fail Cancelled | Timeout | ShieldTimeout uses time, shield:
+    with shield(4 * s):
+        time.sleep(20 * s)?
+        return "ok"
+
+def work() -> None uses io, time, shield, nondet:
+    t0 = time.monotonic()
+    scope.current().drain(1 * s)
+    a = held(3 * s) else e -> f"{e}"
+    io.print(f"short {a} at {time.monotonic() - t0}")
+    b = tight() else e -> f"{e}"
+    io.print(f"tight {b} at {time.monotonic() - t0}")
+    c = held(20 * s) else e -> f"{e}"
+    io.print(f"long {c} at {time.monotonic() - t0}")
+
+def main() uses io, time, shield, nondet:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            par concurrent:
+                work()
+                io.print("other")
+            io.print("done")

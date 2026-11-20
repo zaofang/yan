@@ -19,7 +19,7 @@ conformance/
 
 - `pass/` files must check with no errors.
 - `fail/` files carry header lines `# expect: E501 at 14:9` (Yan and Yan Core: `-- expect:`), one per expected diagnostic. Exactly those codes must be reported, at those positions, and no others.
-- `run/` files carry `# stdout:` blocks and optionally `# exit: 101`. They must produce exactly that output on every executor.
+- `run/` files carry `# stdout:` blocks and optionally `# exit: 101`. They must produce exactly that output on every executor. A `# signal: INT after LINE` header (or `TERM`) has the runner send that signal once the program has printed the line `LINE`; several are sent in header order (R1130).
 - `ub/` files must be flagged under `--ub` with the named item of 6.7, or run clean.
 - `semver/` holds one old/new package pair per row of the API evolution table (20.6) with the expected bump. pkg/ holds one package tree per case, with an optional earlier version, the toolchain command to run and the expected diagnostic, for the codes of sections 18 to 20 that need a whole package (R479).
 - `patch/` cases contain a module, a patch and the expected result or P-code.

@@ -526,7 +526,7 @@ impl<'o> Vm<'o> {
         let (mut tasks, mut first, mut failed, cancel, scope) = match self.suspended.remove(&key) {
             Some(s) => (s.tasks, s.first, s.failed, s.cancel, s.scope),
             None => {
-                let scope = self.it.scopes.open(self.it.scope);
+                let scope = self.it.scopes.open(self.it.scope, false);
                 let prios = match self.it.pct.as_mut() {
                     Some(p) => p.priorities(entries.len()),
                     None => vec![0; entries.len()],
@@ -898,7 +898,7 @@ impl<'o> Vm<'o> {
                             | (self.it.shield_floor as i128) << 1
                             | i128::from(self.it.shielded),
                     );
-                    self.it.scope = self.it.scopes.open(self.it.scope);
+                    self.it.scope = self.it.scopes.open(self.it.scope, shield);
                     if shield {
                         self.it.deadline = Some(at);
                         self.it.shielded = true;
