@@ -11010,6 +11010,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/types/else_none_inject.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.1"
+   ],
+   "rows": [
+    "R794"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\n-\na\n-\n3\nnone\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/types/nested_optional_get.yag",
    "kind": "run",
    "milestone": "M1",
