@@ -28,7 +28,7 @@ fn a_valid_program_passes() {
 
 #[test]
 fn a_violation_is_reported_with_its_code_and_fails() {
-    let out = check("conformance/golden/g2_vwap.yag");
+    let out = check("conformance/yag/run/concurrency/par_source_order.yag");
     assert!(!out.status.success());
     assert!(String::from_utf8_lossy(&out.stderr).contains("I103: fn \"main\""));
 }
