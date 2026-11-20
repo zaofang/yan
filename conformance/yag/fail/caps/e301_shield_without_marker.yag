@@ -2,8 +2,9 @@
 # rows: R812
 # expect: E301 at 6:5
 
-def hold() -> int fail Timeout | ShieldTimeout uses time:
+def hold() -> int fail Cancelled | Timeout | ShieldTimeout uses time:
     with shield(1 * s):
+        time.sleep(1 * ms)?
         return 1
 
 pub def main() uses io, time:

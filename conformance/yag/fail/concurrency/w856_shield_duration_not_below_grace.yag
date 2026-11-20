@@ -1,0 +1,11 @@
+# spec: 9.4
+# rows: R812
+# expect: W856 at 6:17
+
+def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout | ShieldTimeout uses nondet, shield, time:
+    with shield(10 * s):
+        a.wait(0, LoadOrdering.Acquire())?
+
+pub def main() uses io, nondet, shield, time:
+    a = Atomic[uint32](1)
+    hold(a) else e -> io.print(f"{e}")
