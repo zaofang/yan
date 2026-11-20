@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1170,
+   "reasoning": 386,
+   "out_bytes": 1721
+  },
+  "body": {
+   "in": 1912,
+   "out": 820,
+   "reasoning": 0,
+   "out_bytes": 1807
+  }
+ },
+ "final": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element of xs from an integer seed.\n\n    The same xs and seed always give the same element. No randomness is\n    used. Any integer seed is valid, including negative and very large\n    values. The input list is not modified.\n\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"xs must be non-empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_result_is_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(-20, 20):\n        assert pick(xs, seed) in xs\n\n\ndef test_same_seed_same_element() -> None:\n    xs = [5, 8, 13, 21, 34]\n    for seed in (0, 1, 7, -3, 10**18, -(10**18)):\n        assert pick(xs, seed) == pick(xs, seed)\n        assert pick(list(xs), seed) == pick(xs, seed)\n\n\ndef test_single_element() -> None:\n    for seed in (0, 1, -1, 12345, -98765, 10**30):\n        assert pick([42], seed) == 42\n\n\ndef test_all_elements_reachable() -> None:\n    xs = [3, 1, 4, 15, 9, 2]\n    picked = {pick(xs, seed) for seed in range(len(xs))}\n    assert picked == set(xs)\n\n\ndef test_all_elements_reachable_with_many_seeds() -> None:\n    xs = [7, 8, 9]\n    picked = {pick(xs, seed) for seed in range(-50, 50)}\n    assert picked == set(xs)\n\n\ndef test_duplicates_allowed() -> None:\n    xs = [2, 2, 2]\n    for seed in range(-5, 5):\n        assert pick(xs, seed) == 2\n\n\ndef test_negative_and_large_seeds() -> None:\n    xs = [1, 2, 3, 4, 5]\n    assert pick(xs, -1) in xs\n    assert pick(xs, -(10**20)) in xs\n    assert pick(xs, 10**20) in xs\n\n\ndef test_input_not_mutated() -> None:\n    xs = [9, 8, 7, 6]\n    copy = list(xs)\n    pick(xs, 3)\n    pick(xs, -11)\n    assert xs == copy\n\n\ndef test_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1170,
+    "reasoning": 386
+   },
+   "out_bytes": 1721,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1912,
+    "out": 820,
+    "reasoning": 0
+   },
+   "out_bytes": 1807,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1812,
+   "out": 1708,
+   "reasoning": 1504,
+   "out_bytes": 475
+  },
+  "body": {
+   "in": 4518,
+   "out": 1751,
+   "reasoning": 1150,
+   "out_bytes": 1426
+  }
+ },
+ "final": "-- The plugin reads through whatever fs it is given. Its second read\n-- escapes the directory and must come back as \"\".\nplugin(path: str) -> str uses fs =\n  post out.split(\"|\").len() >= 2\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin with fs confined to notes/, so path is relative to notes.\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.split(\"|\").len() >= 2\n  ex run_plugin(\"missing.txt\") == \"|\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = plugin(path)\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1812,
+    "out": 1708,
+    "reasoning": 1504
+   },
+   "out_bytes": 475,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2089,
+    "out": 933,
+    "reasoning": 665
+   },
+   "out_bytes": 603,
+   "ok": false,
+   "report": "E312 task.yn:16:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2429,
+    "out": 818,
+    "reasoning": 485
+   },
+   "out_bytes": 823,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:16:5 run_plugin: `plugin(path)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

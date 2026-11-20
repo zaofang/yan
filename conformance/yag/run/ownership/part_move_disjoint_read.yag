@@ -1,0 +1,20 @@
+# spec: 4.2
+# rows: R1087
+# stdout:
+# X
+# 1
+# 2
+# note: a field that was not moved out stays readable after another field was (#1625)
+
+class H:
+    s: str
+    xs: list[int]
+
+def eat(take s: str) -> str:
+    return s
+
+def main() -> None uses io:
+    h = H(s="x".upper(), xs=[1])
+    io.print(eat(h.s))
+    io.print(str(h.xs.len()))
+    io.print(str(h.xs.len() + 1))

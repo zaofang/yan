@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 2079,
+   "reasoning": 1498,
+   "out_bytes": 1438
+  },
+  "body": {
+   "in": 1791,
+   "out": 1699,
+   "reasoning": 953,
+   "out_bytes": 1920
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\nimport sys\nimport time\n\nimport pytest\n\n\nclass Bad(Exception):\n    \"\"\"Raised by check() for an odd element; n is the offending value.\"\"\"\n\n    n: int\n\n    def __init__(self, n: int) -> None:\n        \"\"\"Store the offending value in self.n.\"\"\"\n        super().__init__(n)\n        self.n = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even, otherwise raise Bad(x).\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Apply check to every element in a thread pool and return the results in order.\n\n    If any element raises Bad, raise the Bad belonging to the lowest-index\n    bad element, regardless of which thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        results: list[int] = []\n        # Consume futures in index order so the lowest-index failure is raised,\n        # not whichever thread happened to finish first.\n        for future in futures:\n            results.append(future.result())\n        return results\n\n\ndef test_all_even_returns_values() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_bad() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 4])\n    assert info.value.n == 3\n\n\ndef test_all_even_lowest_index_wins_over_finish_order(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        if x == 3:\n            # Lowest-index bad element (index 1) finishes last.\n            time.sleep(0.2)\n            raise Bad(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 5])\n    assert info.value.n == 3\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 2079,
+    "reasoning": 1498
+   },
+   "out_bytes": 1438,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1791,
+    "out": 1699,
+    "reasoning": 953
+   },
+   "out_bytes": 1920,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

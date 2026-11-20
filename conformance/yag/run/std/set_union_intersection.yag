@@ -1,0 +1,39 @@
+# spec: 17.3
+# stdout:
+# [3, 1, 2, 4] [1, 2] 4 2
+# [3, 1, 2, 4, 5] 5
+# [] [3, 1, 2] 0 3
+# [x, y] [y]
+
+def keys(s: set[int]) -> str:
+    parts: list[str] = []
+    for k in s:
+        parts.append(str(k))
+    return "[" + ", ".join(parts) + "]"
+
+def names(s: set[str]) -> str:
+    parts: list[str] = []
+    for k in s:
+        parts.append(k.copy())
+    return "[" + ", ".join(parts) + "]"
+
+def main() uses io:
+    a: set[int] = set()
+    for x in [3, 1, 2]:
+        a.add(x)
+    b: set[int] = set()
+    for x in [4, 2, 1]:
+        b.add(x)
+    u = a.union(b)
+    i = a.intersection(b)
+    io.print(f"{keys(u)} {keys(i)} {len(u)} {len(i)}")
+    u.add(5)
+    io.print(f"{keys(u)} {len(u)}")
+    e: set[int] = set()
+    io.print(f"{keys(a.intersection(e))} {keys(a.union(e))} {len(a.intersection(e))} {len(a)}")
+    p: set[str] = set()
+    p.add("x".copy())
+    p.add("y".copy())
+    q: set[str] = set()
+    q.add("y".copy())
+    io.print(f"{names(p.union(q))} {names(p.intersection(q))}")

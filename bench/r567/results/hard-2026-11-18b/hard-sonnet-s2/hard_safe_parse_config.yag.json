@@ -1,0 +1,94 @@
+{
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Value for `key` in a per-line `name=value` config text, or \"\" when absent.\n\n    Each line is split at its first \"=\". Whitespace around the name and the\n    value is ignored. Lines without \"=\" are skipped. If the key appears more\n    than once, the first occurrence wins.\n    \"\"\"\n    post out == out.strip()\n    ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n    ex config_value(\"a=1\\nb=2\", \"c\") == \"\"\n    ex config_value(\"a = 1\\nb = x=y\", \"b\") == \"x=y\"\n    ex config_value(\"a=1\\na=2\", \"a\") == \"1\"\n    ex config_value(\"junk\\nk=v\", \"k\") == \"v\"\n    ex config_value(\"\", \"a\") == \"\"\n    for raw in text.splitlines():\n        name, sep, val = raw.partition(\"=\")\n        if sep == \"\":\n            continue\n        if name.strip() == key:\n            return val.strip()\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2047,
+    "out": 533,
+    "reasoning": 262
+   },
+   "out_bytes": 641
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2416,
+    "out": 636,
+    "reasoning": 303
+   },
+   "out_bytes": 831
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_parse_config",
+ "tokens": {
+  "body": {
+   "in": 2416,
+   "out": 636,
+   "reasoning": 303,
+   "out_bytes": 831
+  },
+  "spec": {
+   "in": 2047,
+   "out": 533,
+   "reasoning": 262,
+   "out_bytes": 641
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

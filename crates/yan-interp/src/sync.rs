@@ -128,6 +128,36 @@ fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i128, i128) -> i128) -> Value {
     old
 }
 
+/// The park key of a task waiting on an atom: apart from channels and actors (R959).
+const FUTEX_KEY: usize = 1 << 62;
+
+/// `wait` and `notify` are for 32-bit atomics only (6.2).
+fn word32(it: &Interp, i: usize, op: &str) -> R<()> {
+    match &*it.atom_tys[i] {
+        "u32" | "i32" => Ok(()),
+        t => unsupported(format!("`Atomic.{op}` on a `{t}` atomic")),
+    }
+}
+
+/// Release up to `count` tasks parked on atom `i`, oldest first.
+fn notify(it: &mut Interp, i: usize, count: usize) -> Value {
+    let mut n = 0;
+    let mut k = 0;
+    while k < it.futex.len() && n < count {
+        if it.futex[k].1 == i {
+            let (p, _) = it.futex.remove(k);
+            it.woken.push(p);
+            n += 1;
+        } else {
+            k += 1;
+        }
+    }
+    if n > 0 {
+        it.progress += 1;
+    }
+    Value::Unit
+}
+
 pub(crate) fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
@@ -259,10 +289,14 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
 
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
 fn cancelled(it: &Interp) -> Option<Value> {
-    it.cancel.iter().any(|c| *c).then(|| Value::Data {
-        name: "Cancelled".into(),
-        fields: Vec::new(),
-    })
+    it.cancel
+        .iter()
+        .skip(it.shield_floor)
+        .any(|c| *c)
+        .then(|| Value::Data {
+            name: "Cancelled".into(),
+            fields: Vec::new(),
+        })
 }
 
 /// What a send to a full mailbox does (R974).
@@ -983,6 +1017,53 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_ATOMIC_INTO_INNER,
         Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
+    ),
+    (
+        STD_SYNC_ATOMIC_WAIT,
+        Bind::VmFallible(|vm, a| {
+            let (i, expected) = (atom(&a[0]), a[1].clone());
+            word32(&vm.it, i, "wait")?;
+            let me = vm.task_path.clone();
+            loop {
+                let it = &mut vm.it;
+                if let Some(e) = cancelled(it) {
+                    it.futex.retain(|(p, _)| *p != me);
+                    return Ok(Err(e));
+                }
+                if let Some(k) = it.woken.iter().position(|p| *p == me) {
+                    it.woken.remove(k);
+                    return Ok(Ok(Value::Unit));
+                }
+                if it.atoms[i] != expected {
+                    it.futex.retain(|(p, _)| *p != me);
+                    return Ok(Ok(Value::Unit));
+                }
+                if !it.futex.iter().any(|(p, _)| *p == me) {
+                    it.futex.push((me.clone(), i));
+                }
+                if !idle_ran(vm)? {
+                    let r = blocked(&mut vm.it, "wait", FUTEX_KEY + i);
+                    if matches!(r, Ok(Err(_))) {
+                        vm.it.futex.retain(|(p, _)| *p != me);
+                    }
+                    return r;
+                }
+            }
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_NOTIFY_ONE,
+        Bind::Cap(|it, a| {
+            word32(it, atom(&a[0]), "notify_one")?;
+            Ok(notify(it, atom(&a[0]), 1))
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_NOTIFY_ALL,
+        Bind::Cap(|it, a| {
+            word32(it, atom(&a[0]), "notify_all")?;
+            Ok(notify(it, atom(&a[0]), usize::MAX))
+        }),
     ),
     (STD_SYNC_ATOMIC_FENCE, Bind::Plain(|_| Ok(Value::Unit))),
     (

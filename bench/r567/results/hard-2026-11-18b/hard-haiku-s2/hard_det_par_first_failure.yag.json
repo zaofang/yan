@@ -1,0 +1,156 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when x is even; otherwise fail with Bad(n=x).\"\"\"\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Run check on every element in parallel. On failure, return the failure of the lowest-index bad element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4]) == [2, 4]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    checks = par [check(x) else -1 for x in xs]\n    out: list[int] = []\n    for i in range(xs.len()):\n        if checks[i] == -1:\n            fail Bad(n=xs[i])\n        out.append(checks[i])\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpnu_zb8ek/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpnu_zb8ek/work/task.yag:14:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1197,
+    "reasoning": 972
+   },
+   "out_bytes": 511
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2502,
+    "out": 895,
+    "reasoning": 660
+   },
+   "out_bytes": 521
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpnu_zb8ek/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpnu_zb8ek/work/task.yag:17:33 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmpnu_zb8ek/work/task.yag:20:13 all_even: `checks[i]` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2835,
+    "out": 1281,
+    "reasoning": 947
+   },
+   "out_bytes": 747
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3366,
+    "out": 978,
+    "reasoning": 608
+   },
+   "out_bytes": 844
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 6201,
+   "out": 2259,
+   "reasoning": 1555,
+   "out_bytes": 1591
+  },
+  "spec": {
+   "in": 4599,
+   "out": 2092,
+   "reasoning": 1632,
+   "out_bytes": 1032
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpnu_zb8ek/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpnu_zb8ek/work/task.yag:14:8 all_even: `([2, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpnu_zb8ek/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpnu_zb8ek/work/task.yag:17:33 all_even: `None` expected `int`, found `None`\n#3 E201 /tmp/tmpnu_zb8ek/work/task.yag:20:13 all_even: `checks[i]` `else` needs an optional or a fallible call, found `int`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:17:34 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:13 all_even: `checks` `else` needs an optional or a fallible call, found `int`\n0 of 0 tests passed\nE201 ./task.yag:17:34 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:13 all_even: `checks` `else"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

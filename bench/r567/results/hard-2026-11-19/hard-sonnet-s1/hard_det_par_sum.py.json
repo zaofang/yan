@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1585,
+   "reasoning": 802,
+   "out_bytes": 1783
+  },
+  "body": {
+   "in": 1933,
+   "out": 857,
+   "reasoning": 0,
+   "out_bytes": 1965
+  }
+ },
+ "final": "import os\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Sum of x*x over every element of xs, with the squares computed\n    in parallel on a thread pool (using `square`).\n\n    The result is exact and identical regardless of the number of\n    workers or the order in which tasks finish. An empty list gives 0.\n    The input list is not modified.\n    \"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor() as pool:\n        squares = list(pool.map(square, xs))\n    return sum(squares)\n\n\ndef test_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_single() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n    assert sum_squares([0, 0, 0]) == 0\n\n\ndef test_big_ints_exact() -> None:\n    big = 10**20\n    assert sum_squares([big, -big, 1]) == 2 * 10**40 + 1\n\n\ndef test_matches_sequential_large() -> None:\n    xs = list(range(-500, 1500))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, -1, 4, 1, -5]\n    copy = list(xs)\n    sum_squares(xs)\n    assert xs == copy\n\n\ndef test_repeated_calls_consistent() -> None:\n    xs = list(range(200))\n    expected = sum(x * x for x in xs)\n    assert all(sum_squares(xs) == expected for _ in range(20))\n\n\n@pytest.mark.parametrize(\"cpus\", [1, 2, 4, 16, 64])\ndef test_same_result_at_every_worker_count(\n    monkeypatch: pytest.MonkeyPatch, cpus: int\n) -> None:\n    # The default ThreadPoolExecutor size derives from os.cpu_count(),\n    # so patching it varies the worker count.\n    monkeypatch.setattr(os, \"cpu_count\", lambda: cpus)\n    xs = list(range(-300, 700))\n    assert sum_squares(xs) == sum(x * x for x in xs)\n    assert sum_squares([]) == 0\n    assert sum_squares([5]) == 25\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1585,
+    "reasoning": 802
+   },
+   "out_bytes": 1783,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1933,
+    "out": 857,
+    "reasoning": 0
+   },
+   "out_bytes": 1965,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

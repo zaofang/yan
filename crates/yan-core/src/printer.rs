@@ -719,7 +719,10 @@ impl Printer {
                 let d = if *dyn_ { "dyn " } else { "" };
                 self.block(&format!("with {name} = {d}{} ", atom(handler)), body)
             }
-            StmtKind::Deadline { at, body } => self.block(&format!("deadline {} ", atom(at)), body),
+            StmtKind::Deadline { at, body, shield } => {
+                let kw = if *shield { "shield" } else { "deadline" };
+                self.block(&format!("{kw} {} ", atom(at)), body)
+            }
             StmtKind::Par { concurrent, blocks } => {
                 self.line(if *concurrent {
                     "par concurrent {"

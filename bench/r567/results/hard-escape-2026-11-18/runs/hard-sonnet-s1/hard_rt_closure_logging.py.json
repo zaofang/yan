@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1103,
+   "out": 1066,
+   "reasoning": 235,
+   "out_bytes": 2035
+  },
+  "body": {
+   "in": 1991,
+   "out": 842,
+   "reasoning": 0,
+   "out_bytes": 2064
+  }
+ },
+ "final": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job once and return \"start:\" + its result + \":end\".\n\n    The helper uses no capabilities of its own: it does no I/O, prints\n    nothing and logs nothing. Anything the job does (including raising)\n    is the caller's business; exceptions from job propagate unchanged.\n    \"\"\"\n    return \"start:\" + job() + \":end\"\n\n\ndef test_wraps_result() -> None:\n    assert wrapped(lambda: \"x\") == \"start:x:end\"\n\n\ndef test_empty_result() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_result_containing_delimiters_is_not_altered() -> None:\n    assert wrapped(lambda: \"start:a:end\") == \"start:start:a:end:end\"\n\n\ndef test_multiline_and_unicode_result() -> None:\n    assert wrapped(lambda: \"a\\nb \u00e9\") == \"start:a\\nb \u00e9:end\"\n\n\ndef test_job_called_exactly_once() -> None:\n    calls: list[int] = []\n\n    def job() -> str:\n        calls.append(1)\n        return \"r\"\n\n    assert wrapped(job) == \"start:r:end\"\n    assert len(calls) == 1\n\n\ndef test_job_may_use_caller_capabilities() -> None:\n    log: list[str] = []\n\n    def job() -> str:\n        log.append(\"ran\")\n        return \"done\"\n\n    assert wrapped(job) == \"start:done:end\"\n    assert log == [\"ran\"]\n\n\ndef test_job_exception_propagates() -> None:\n    def job() -> str:\n        raise ValueError(\"boom\")\n\n    with pytest.raises(ValueError, match=\"boom\"):\n        wrapped(job)\n\n\ndef test_helper_prints_nothing(capsys: pytest.CaptureFixture[str]) -> None:\n    wrapped(lambda: \"quiet\")\n    captured = capsys.readouterr()\n    assert captured.out == \"\"\n    assert captured.err == \"\"\n\n\ndef test_helper_logs_nothing(caplog: pytest.LogCaptureFixture) -> None:\n    with caplog.at_level(0):\n        wrapped(lambda: \"quiet\")\n    assert caplog.records == []\n\n\ndef test_job_output_is_left_to_the_job(capsys: pytest.CaptureFixture[str]) -> None:\n    def job() -> str:\n        print(\"from job\")\n        return \"r\"\n\n    assert wrapped(job) == \"start:r:end\"\n    assert capsys.readouterr().out == \"from job\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1103,
+    "out": 1066,
+    "reasoning": 235
+   },
+   "out_bytes": 2035,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1991,
+    "out": 842,
+    "reasoning": 0
+   },
+   "out_bytes": 2064,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

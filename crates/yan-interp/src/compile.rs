@@ -76,12 +76,17 @@ pub(crate) enum BoolOp {
 pub(crate) enum Op {
     /// Enter a cancel scope ending at the monotonic instant `src`, keeping the outer deadline in
     /// `saved`.
+    /// A `shield` instead replaces the deadline and holds the cancellation of the blocks open now;
+    /// `floor` keeps the outer count of held blocks.
     DeadlineBegin {
         src: Opnd,
         saved: Reg,
+        floor: Reg,
+        shield: bool,
     },
     DeadlineEnd {
         saved: Reg,
+        floor: Reg,
     },
     /// Open a `with supervisor` scope with the spec in `src` (9.6).
     SupBegin(Opnd),
@@ -142,6 +147,9 @@ pub(crate) enum Op {
     JmpCont(Reg),
     Ret(Opnd),
     Fail(Opnd),
+    /// `Fail` out of a `shield`: a `Timeout` raised by the shield's own expiry becomes
+    /// `ShieldTimeout` (R812).
+    FailShield(Opnd),
     Call {
         site: u32,
         dst: Reg,
@@ -297,6 +305,8 @@ pub(crate) struct Site {
     /// not looked up by name at run time (R561).
     pub id: Option<Id>,
     pub mode: Mode,
+    /// Whether a `shield` is open around the call, in its frame (R812).
+    pub shield: bool,
 }
 
 #[derive(Debug)]
@@ -661,6 +671,8 @@ enum Scope {
     },
     Deadline {
         saved: Reg,
+        floor: Reg,
+        shield: bool,
     },
     Sup,
     Block {
@@ -1155,7 +1167,12 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Ret(a) => self.ret(a),
             StmtKind::Fail(a) => match self.atom(a) {
                 Ok(o) => {
-                    self.emit(Op::Fail(o));
+                    let shielded = self.in_shield();
+                    self.emit(if shielded {
+                        Op::FailShield(o)
+                    } else {
+                        Op::Fail(o)
+                    });
                 }
                 Err(m) => self.unsupported(m),
             },
@@ -1270,17 +1287,27 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
             }
             StmtKind::With { .. } => self.unsupported("`with ... = dyn`"),
-            StmtKind::Deadline { at, body } => {
+            StmtKind::Deadline { at, body, shield } => {
                 let src = match self.atom(at) {
                     Ok(o) => o,
                     Err(m) => return self.unsupported(m),
                 };
                 let saved = self.temp();
-                self.emit(Op::DeadlineBegin { src, saved });
-                self.scopes.push(Scope::Deadline { saved });
+                let floor = self.temp();
+                self.emit(Op::DeadlineBegin {
+                    src,
+                    saved,
+                    floor,
+                    shield: *shield,
+                });
+                self.scopes.push(Scope::Deadline {
+                    saved,
+                    floor,
+                    shield: *shield,
+                });
                 self.block(body);
                 self.scopes.pop();
-                self.emit(Op::DeadlineEnd { saved });
+                self.emit(Op::DeadlineEnd { saved, floor });
             }
             StmtKind::ComptimeFor { .. } | StmtKind::ComptimeIf { .. } => {
                 self.unsupported("stage 0")
@@ -1313,6 +1340,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                 id: registry::id("std.rand.split"),
                 name: "std.rand.split".into(),
                 mode: Mode::Plain,
+                shield: false,
             });
             let site = self.code.sites.len() as u32 - 1;
             self.emit(Op::Call { site, dst: reg });
@@ -1380,7 +1408,10 @@ impl<'g, 'm> FnC<'g, 'm> {
                     dst: *reg,
                     src: *saved,
                 }),
-                Scope::Deadline { saved } => Some(Op::DeadlineEnd { saved: *saved }),
+                Scope::Deadline { saved, floor, .. } => Some(Op::DeadlineEnd {
+                    saved: *saved,
+                    floor: *floor,
+                }),
                 Scope::Sup => Some(Op::SupEnd),
                 _ => None,
             })
@@ -1694,8 +1725,15 @@ impl<'g, 'm> FnC<'g, 'm> {
             id: registry::id(&name),
             name: name.into(),
             mode,
+            shield: self.in_shield(),
         });
         Some(self.code.sites.len() as u32 - 1)
+    }
+
+    fn in_shield(&self) -> bool {
+        self.scopes
+            .iter()
+            .any(|s| matches!(s, Scope::Deadline { shield: true, .. }))
     }
 
     fn call(&mut self, c: &Call, mode: Mode, dst: Reg) {

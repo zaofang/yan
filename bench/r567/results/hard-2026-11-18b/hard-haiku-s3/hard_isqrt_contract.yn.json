@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1454,
+   "out": 1191,
+   "reasoning": 1004,
+   "out_bytes": 376
+  },
+  "body": {
+   "in": 1714,
+   "out": 665,
+   "reasoning": 370,
+   "out_bytes": 554
+  }
+ },
+ "final": "-- Integer square root: the largest r with r * r <= n.\n-- The upper-bound check is written as n - out * out <= 2 * out,\n-- which is equivalent to (out + 1) * (out + 1) > n but cannot overflow.\n\nisqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n - out * out <= 2 * out\n  ex isqrt(0) == 0\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var r = 0\n  while (r + 1) * (r + 1) <= n\n    r += 1\n  r\n\ntest_isqrt() =\n  assert isqrt(0) == 0\n  assert isqrt(1) == 1\n  assert isqrt(15) == 3\n  assert isqrt(16) == 4\n  assert isqrt(17) == 4\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1454,
+    "out": 1191,
+    "reasoning": 1004
+   },
+   "out_bytes": 376,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1714,
+    "out": 665,
+    "reasoning": 370
+   },
+   "out_bytes": 554,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,15 @@
+rules:
+  dangerous-triggers:
+    ignore:
+      # Neither workflow checks out or runs code from the triggering ci run's PR: rerun-infra only reads logs,
+      # site-inputs acts on push and schedule runs of main only (event checked in its `if`).
+      - rerun-infra.yml
+      - site-inputs.yml
+  github-env:
+    ignore:
+      # Writes a path under the runner tool cache, derived from a fixed version, not from untrusted input.
+      - site-inputs.yml:45
+  artipacked:
+    ignore:
+      # progress-report pushes a branch with the checkout credentials.
+      - progress-report.yml:20

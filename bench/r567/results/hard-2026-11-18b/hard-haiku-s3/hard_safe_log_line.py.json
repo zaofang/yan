@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1075,
+   "out": 1107,
+   "reasoning": 719,
+   "out_bytes": 923
+  },
+  "body": {
+   "in": 1520,
+   "out": 529,
+   "reasoning": 130,
+   "out_bytes": 949
+  }
+ },
+ "final": "import builtins\nfrom pathlib import Path\n\nimport pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print ``[level] message`` to standard output.\n\n    Console output only: the function must not open, create, or write\n    any file.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_log_line_prints_formatted(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"started\")\n    assert capsys.readouterr().out == \"[INFO] started\\n\"\n\n\ndef test_log_line_no_file_access(\n    monkeypatch: pytest.MonkeyPatch,\n    tmp_path: Path,\n    capsys: pytest.CaptureFixture[str],\n) -> None:\n    def _forbidden(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"file access attempted\")\n\n    monkeypatch.setattr(builtins, \"open\", _forbidden)\n    monkeypatch.chdir(tmp_path)\n    log_line(\"WARN\", \"disk low\")\n    assert capsys.readouterr().out == \"[WARN] disk low\\n\"\n    assert list(tmp_path.iterdir()) == []\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1075,
+    "out": 1107,
+    "reasoning": 719
+   },
+   "out_bytes": 923,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1520,
+    "out": 529,
+    "reasoning": 130
+   },
+   "out_bytes": 949,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": ".F.                                                                      [100%]\n=================================== FAILURES ===================================\nE   PermissionError: capability not granted: fs\n/tmp/tmpjdli9__6/conftest.py:11: PermissionError: capability not granted: fs\n=============="
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": ".F.                                                                      [100%]\n=================================== FAILURES ===================================\nE   PermissionError: capability not granted: fs\n/tmp/tmpye3lrkqm/conftest.py:11: PermissionError: capability not granted: fs\n=============="
+ }
+}

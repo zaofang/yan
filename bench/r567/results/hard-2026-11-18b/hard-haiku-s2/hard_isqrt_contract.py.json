@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 2002,
+   "reasoning": 1420,
+   "out_bytes": 1314
+  },
+  "body": {
+   "in": 1718,
+   "out": 1253,
+   "reasoning": 543,
+   "out_bytes": 1635
+  }
+ },
+ "final": "def isqrt(n: int) -> int:\n    \"\"\"Return the largest r with r * r <= n.\n\n    Precondition: n >= 0. The implementation must assert this.\n    Postcondition: r * r <= n < (r + 1) * (r + 1), where r is the return value.\n    \"\"\"\n    assert n >= 0, \"precondition: n must be non-negative\"\n    if n < 2:\n        r = n\n    else:\n        x = n\n        y = (x + 1) // 2\n        while y < x:\n            x = y\n            y = (x + n // x) // 2\n        r = x\n    assert r * r <= n < (r + 1) * (r + 1), \"postcondition: r is the integer square root of n\"\n    return r\n\n\ndef check_contract(n: int, r: int) -> None:\n    \"\"\"State the isqrt contract as assertions over an input and result.\"\"\"\n    assert n >= 0, \"precondition: n must be non-negative\"\n    assert r * r <= n, \"postcondition: r * r <= n\"\n    assert n < (r + 1) * (r + 1), \"postcondition: n < (r + 1) * (r + 1)\"\n\n\nimport pytest\n\n\n@pytest.mark.parametrize(\n    (\"n\", \"expected\"),\n    [\n        (0, 0),\n        (1, 1),\n        (2, 1),\n        (3, 1),\n        (4, 2),\n        (8, 2),\n        (9, 3),\n        (15, 3),\n        (16, 4),\n    ],\n)\ndef test_isqrt_small_values(n: int, expected: int) -> None:\n    assert isqrt(n) == expected\n\n\ndef test_isqrt_contract_holds_for_range() -> None:\n    for n in range(0, 200):\n        check_contract(n, isqrt(n))\n\n\ndef test_isqrt_large_perfect_square() -> None:\n    root = 10**9 + 7\n    assert isqrt(root * root) == root\n\n\ndef test_isqrt_large_just_below_square() -> None:\n    root = 10**9 + 7\n    assert isqrt(root * root - 1) == root - 1\n\n\ndef test_isqrt_rejects_negative() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 2002,
+    "reasoning": 1420
+   },
+   "out_bytes": 1314,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 1253,
+    "reasoning": 543
+   },
+   "out_bytes": 1635,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

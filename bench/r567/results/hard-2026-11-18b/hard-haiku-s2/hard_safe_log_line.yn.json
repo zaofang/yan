@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1454,
+   "out": 937,
+   "reasoning": 766,
+   "out_bytes": 398
+  },
+  "body": {
+   "in": 1698,
+   "out": 396,
+   "reasoning": 205,
+   "out_bytes": 452
+  }
+ },
+ "final": "-- Phase 1: spec. Pure helper that builds the line; no capabilities.\nformat_line(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  ex format_line(\"INFO\", \"start\") == \"[INFO] start\"\n  \"[\\(level)] \\(message)\"\n\n-- Formats and prints one log line. Needs only io; no fs.\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  ex log_line(\"INFO\", \"ready\")\n  io.print(format_line(level: level, message: message))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1454,
+    "out": 937,
+    "reasoning": 766
+   },
+   "out_bytes": 398,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1698,
+    "out": 396,
+    "reasoning": 205
+   },
+   "out_bytes": 452,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

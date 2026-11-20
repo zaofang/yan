@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 3790,
+   "reasoning": 864,
+   "out_bytes": 6260
+  },
+  "body": {
+   "in": 4118,
+   "out": 3863,
+   "reasoning": 765,
+   "out_bytes": 6785
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first file in `names` readable from `notes`.\n\n    Each name is resolved relative to the directory `notes` (itself relative\n    to the current working directory). Names are untrusted: any name that\n    would reach a file outside `notes` (absolute paths, `..` escapes,\n    symlinks pointing outside, sibling directories such as `notes2`, names\n    with NUL bytes, over-long names) is treated as unreadable and skipped.\n    A name that is missing, a directory, not permitted, or not valid UTF-8\n    is also unreadable and skipped. Names inside subdirectories of `notes`\n    are allowed. The first readable file wins, even if its text is empty.\n    Returns \"\" when no name is readable (including an empty list or a\n    missing `notes` directory). Never raises for bad names.\n    \"\"\"\n    try:\n        root = Path(NOTES_DIR).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return \"\"\n    for name in names:\n        if \"\\x00\" in name:\n            continue\n        try:\n            candidate = (root / name).resolve()\n            if not candidate.is_relative_to(root):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, RuntimeError, ValueError):\n            continue\n    return \"\"\n\n\ndef _setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    monkeypatch.chdir(tmp_path)\n    return notes\n\n\ndef test_returns_first_readable_skipping_missing(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"b.txt\").write_text(\"bee\", encoding=\"utf-8\")\n    (notes / \"c.txt\").write_text(\"sea\", encoding=\"utf-8\")\n    assert first_readable([\"missing.txt\", \"b.txt\", \"c.txt\"]) == \"bee\"\n\n\ndef test_empty_list_and_none_readable(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert first_readable([]) == \"\"\n    assert first_readable([\"nope.txt\", \"also-nope.txt\"]) == \"\"\n\n\ndef test_missing_notes_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n\n\ndef test_empty_file_counts_as_readable(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"empty.txt\").write_text(\"\", encoding=\"utf-8\")\n    (notes / \"full.txt\").write_text(\"data\", encoding=\"utf-8\")\n    assert first_readable([\"empty.txt\", \"full.txt\"]) == \"\"\n\n\ndef test_subdirectory_inside_notes_allowed(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"a.txt\").write_text(\"deep\", encoding=\"utf-8\")\n    (notes / \"top.txt\").write_text(\"top\", encoding=\"utf-8\")\n    assert first_readable([\"sub/a.txt\"]) == \"deep\"\n    assert first_readable([\"sub/../top.txt\"]) == \"top\"\n\n\ndef test_parent_traversal_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (tmp_path / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    (notes / \"ok.txt\").write_text(\"ok\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n    assert first_readable([\"../secret.txt\", \"ok.txt\"]) == \"ok\"\n\n\ndef test_sibling_directory_with_same_prefix_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _setup(tmp_path, monkeypatch)\n    other = tmp_path / \"notes2\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"leak\", encoding=\"utf-8\")\n    assert first_readable([\"../notes2/x.txt\"]) == \"\"\n\n\ndef test_absolute_path_outside_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"secret\", encoding=\"utf-8\")\n    (notes / \"ok.txt\").write_text(\"ok\", encoding=\"utf-8\")\n    assert first_readable([str(secret)]) == \"\"\n    assert first_readable([str(secret), \"ok.txt\"]) == \"ok\"\n\n\ndef test_symlink_escaping_notes_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"secret\", encoding=\"utf-8\")\n    os.symlink(secret, notes / \"link.txt\")\n    outside_dir = tmp_path / \"outside\"\n    outside_dir.mkdir()\n    (outside_dir / \"f.txt\").write_text(\"leak\", encoding=\"utf-8\")\n    os.symlink(outside_dir, notes / \"dirlink\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"dirlink/f.txt\"]) == \"\"\n\n\ndef test_symlink_staying_inside_notes_allowed(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"real.txt\").write_text(\"real\", encoding=\"utf-8\")\n    os.symlink(notes / \"real.txt\", notes / \"alias.txt\")\n    assert first_readable([\"alias.txt\"]) == \"real\"\n\n\ndef test_directory_and_empty_name_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"sub\").mkdir()\n    (notes / \"a.txt\").write_text(\"a\", encoding=\"utf-8\")\n    assert first_readable([\"\", \".\", \"sub\", \"a.txt\"]) == \"a\"\n    assert first_readable([\"\", \".\", \"sub\"]) == \"\"\n\n\ndef test_weird_names_do_not_raise(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"a.txt\").write_text(\"a\", encoding=\"utf-8\")\n    assert first_readable([\"bad\\x00name\", \"a.txt\"]) == \"a\"\n    assert first_readable([\"x\" * 10000, \"a.txt\"]) == \"a\"\n    assert first_readable([\"x\" * 10000]) == \"\"\n\n\ndef test_undecodable_file_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\xfa\")\n    (notes / \"ok.txt\").write_text(\"ok\", encoding=\"utf-8\")\n    assert first_readable([\"bin.dat\", \"ok.txt\"]) == \"ok\"\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"permission bits are not enforced for root\",\n)\ndef test_permission_denied_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    locked = notes / \"locked.txt\"\n    locked.write_text(\"locked\", encoding=\"utf-8\")\n    locked.chmod(0)\n    (notes / \"ok.txt\").write_text(\"ok\", encoding=\"utf-8\")\n    try:\n        assert first_readable([\"locked.txt\", \"ok.txt\"]) == \"ok\"\n        assert first_readable([\"locked.txt\"]) == \"\"\n    finally:\n        locked.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 3790,
+    "reasoning": 864
+   },
+   "out_bytes": 6260,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 4118,
+    "out": 3863,
+    "reasoning": 765
+   },
+   "out_bytes": 6785,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

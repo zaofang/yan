@@ -35,6 +35,7 @@ mod fallback;
 mod fmtspec;
 mod generic_sum;
 mod last_use;
+mod lenient_chan;
 mod lenient_names;
 mod lenient_py;
 pub(crate) use lenient_names::MATH_FREE;
@@ -43,6 +44,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod propagate;
 mod ptr;
 mod pyfid;
 pub(crate) mod reentrant;
@@ -78,7 +80,8 @@ struct Lower<'a, 'c, 's> {
     scopes: Vec<Vec<(String, Option<Local>)>>,
     locals: HashMap<String, Local>,
     /// Names bound to a non-copy element of a list or array: a view, not an owner (E413 on a sink).
-    index_views: HashSet<String>,
+    /// Names bound to an element of a list, with where they were bound.
+    index_views: HashMap<String, Span>,
     /// Names whose block has ended; a later use needs function-level scope.
     gone: HashMap<String, Ty>,
     mutable: HashSet<String>,
@@ -121,6 +124,8 @@ struct Lower<'a, 'c, 's> {
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
     in_unsafe: bool,
+    /// A call that can fail `Cancelled` was lowered since the innermost open shield began (W855).
+    blocking_seen: bool,
     /// Lowering `gpu.launch`, the one place a `TileOrigin` is built and a kernel called.
     in_launch: bool,
     /// The handle a message of `actor.send` calls through, which may be a `SendOnly` (R975).
@@ -364,6 +369,7 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
             j::WithKind::Bind(_, e)
             | j::WithKind::Deadline(e)
             | j::WithKind::Timeout(e)
+            | j::WithKind::Shield(e)
             | j::WithKind::Supervisor(e) => vec![e],
         },
         K::Par {
@@ -829,7 +835,7 @@ fn function_body_with(
         joins: Vec::new(),
         scopes: Vec::new(),
         locals: HashMap::new(),
-        index_views: HashSet::new(),
+        index_views: HashMap::new(),
         gone: HashMap::new(),
         mutable,
         loops: Vec::new(),
@@ -855,6 +861,7 @@ fn function_body_with(
         pending: HashMap::new(),
         target: None,
         in_unsafe: false,
+        blocking_seen: false,
         stage,
         narrow: Vec::new(),
         posts: Vec::new(),
@@ -890,6 +897,7 @@ fn function_body_with(
         .collect();
     for p in &sig.params {
         if let Ty::Coll("Atomic", ts) = &p.ty
+            && !matches!(ts[0], Ty::Param(_))
             && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
         {
             let line =
@@ -1146,7 +1154,7 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 
 /// The std function and result type of `op` between time values (17.5).
 /// The builtin functions `builtin` lowers, offered as near names (R651).
-const BUILTINS: [&str; 28] = [
+const BUILTINS: [&str; 29] = [
     "len",
     "sorted",
     "int",
@@ -1159,6 +1167,7 @@ const BUILTINS: [&str; 28] = [
     "min",
     "max",
     "print",
+    "eprint",
     "evolve",
     "range",
     "deque",
@@ -1481,7 +1490,7 @@ impl Lower<'_, '_, '_> {
             && !ty.is_copy()
             && p.projs.iter().any(|x| matches!(x, Proj::Index(_)))
         {
-            self.index_views.insert(name.to_owned());
+            self.index_views.insert(name.to_owned(), span);
         }
         self.emit(
             StmtKind::Let {
@@ -2225,6 +2234,48 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
     ("cd", "luminosity", 1.0, None),
 ];
 
+/// The seconds of a duration written `N * unit`, `unit * N` or `Duration.ctor(N)` with a literal
+/// `N`; `None` for any other expression.
+fn literal_seconds(e: &j::Expr) -> Option<f64> {
+    use j::ExprKind as K;
+    let num = |e: &j::Expr| match &e.kind {
+        K::Lit(j::Lit::Int(s) | j::Lit::Float(s)) => s.replace('_', "").parse::<f64>().ok(),
+        _ => None,
+    };
+    let unit = |e: &j::Expr| match &e.kind {
+        K::Name(n) => UNITS
+            .iter()
+            .find(|u| u.0 == n && u.1 == "time")
+            .map(|u| u.2),
+        _ => None,
+    };
+    match &e.kind {
+        K::Binary("*", a, b) => match (num(a), unit(b), unit(a), num(b)) {
+            (Some(n), Some(u), _, _) | (_, _, Some(u), Some(n)) => Some(n * u),
+            _ => None,
+        },
+        K::Call(f, args) if args.len() == 1 => {
+            let K::Attr(d, ctor, _) = &f.kind else {
+                return None;
+            };
+            if !matches!(&d.kind, K::Name(n) if n == "Duration") {
+                return None;
+            }
+            let (_, _, scale, _) = UNITS
+                .iter()
+                .find(|u| matches!(u.3, Some((c, 1)) if c == ctor))?;
+            let j::ArgKind::Expr(a) = &args[0].kind else {
+                return None;
+            };
+            Some(num(a)? * scale)
+        }
+        _ => None,
+    }
+}
+
+/// The default cancel grace in seconds (9.4).
+const DEFAULT_CANCEL_GRACE: f64 = 10.0;
+
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
@@ -2234,6 +2285,9 @@ const NONDET_OPS: &[&str] = &[
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
+    "std.sync.atomic.wait",
+    "std.sync.atomic.notify_one",
+    "std.sync.atomic.notify_all",
 ];
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).

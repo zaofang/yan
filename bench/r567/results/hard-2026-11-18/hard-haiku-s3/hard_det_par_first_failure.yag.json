@@ -1,0 +1,173 @@
+{
+ "final": "STOP: the frozen `ex` lines use `Ok(...)` and `Err(...)`, which Yan does not have. Success is written as a plain value (`ex check(2) == 2`) and failure as `ex check(3) == fail Bad`, so the failure tests in the frozen spec are invalid.\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpzj8qpgr1/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpzj8qpgr1/work/task.yag:14:8 all_even: `([4, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1317,
+    "reasoning": 1072
+   },
+   "out_bytes": 589
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2522,
+    "out": 712,
+    "reasoning": 448
+   },
+   "out_bytes": 607
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "the frozen `ex` lines use `== Err(...)` and `== Ok(...)`, but Yan states a failure expectation as `ex f(x) == fail E`, so the spec's failure tests are not in valid form.",
+   "tools": [],
+   "usage": {
+    "in": 2884,
+    "out": 1170,
+    "reasoning": 1093
+   },
+   "out_bytes": 175
+  },
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpzj8qpgr1/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpzj8qpgr1/work/task.yag:14:8 all_even: `([4, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3256,
+    "out": 564,
+    "reasoning": 319
+   },
+   "out_bytes": 589
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3681,
+    "out": 1315,
+    "reasoning": 1051
+   },
+   "out_bytes": 607
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "the frozen `ex` lines use `Ok(...)` and `Err(...)`, which Yan does not have. Success is written as a plain value (`ex check(2) == 2`) and failure as `ex check(3) == fail Bad`, so the failure tests in the frozen spec are invalid.",
+   "tools": [],
+   "usage": {
+    "in": 4043,
+    "out": 573,
+    "reasoning": 472
+   },
+   "out_bytes": 234
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "stopped",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 6927,
+   "out": 1743,
+   "reasoning": 1565,
+   "out_bytes": 409
+  },
+  "spec": {
+   "in": 11556,
+   "out": 3908,
+   "reasoning": 2890,
+   "out_bytes": 2392
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpzj8qpgr1/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpzj8qpgr1/work/task.yag:14:8 all_even: `([4, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpzj8qpgr1/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpzj8qpgr1/work/task.yag:14:8 all_even: `([4, 3, 5]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E100 ./task.yag:1:18 unexpected character ```\nE100 ./task.yag:1:21 unexpected character ```\nE100 ./task.yag:1:33 unexpected character ```\nE100 ./task.yag:1:45 unexpected character ```\nE100 ./task.yag:1:51 unexpected character ```\nE100 ./task.yag:1:62 unexpected character ```\nE100 ./task.yag:1:105 un"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:18 unexpected character ```\nE100 ./task.yag:1:21 unexpected character ```\nE100 ./task.yag:1:33 unexpected character ```\nE100 ./task.yag:1:41 unexpected character ```\nE100 ./task.yag:1:47 unexpected character ```\nE100 ."
+ }
+}

@@ -74,10 +74,18 @@ impl Lower<'_, '_, '_> {
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
                 if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
+                    let hint = if t == self.sig.ret {
+                        "; a block (`with`, `if`, `for`) does not yield the function's value: `return` it"
+                    } else {
+                        ""
+                    };
                     self.err(
                         "E312",
                         at,
-                        format!("a result of type `{t}` is discarded", t = self.ty_text(&t)),
+                        format!(
+                            "a result of type `{t}` is discarded{hint}",
+                            t = self.ty_text(&t)
+                        ),
                     );
                 }
                 if !matches!(rhs, Rhs::Atom(_)) {
@@ -455,10 +463,11 @@ impl Lower<'_, '_, '_> {
             } => self.with_supervisor(spec, body, at)?,
             // `timeout(d)` is a deadline `d` from now (9.4).
             K::With {
-                kind: kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e)),
+                kind:
+                    kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e) | j::WithKind::Shield(e)),
                 body,
             } => {
-                let at_expr = if matches!(kind, j::WithKind::Timeout(_)) {
+                let at_expr = if matches!(kind, j::WithKind::Timeout(_) | j::WithKind::Shield(_)) {
                     let ex = |kind| j::Expr {
                         kind,
                         span: e.span,
@@ -476,7 +485,19 @@ impl Lower<'_, '_, '_> {
                 } else {
                     e.clone()
                 };
-                let timeout = Ty::Data("Timeout".into());
+                let shield = matches!(kind, j::WithKind::Shield(_));
+                if shield && !self.sig.caps.iter().any(|c| c == "shield") {
+                    self.err(
+                        "E301",
+                        at,
+                        format!(
+                            "`{}` opens a shield; declare `uses shield` (R812)",
+                            self.item
+                        ),
+                    );
+                }
+                let name = if shield { "ShieldTimeout" } else { "Timeout" };
+                let timeout = Ty::Data(name.into());
                 let lists = match &self.sig.fail {
                     Some(Ty::Union(ms)) => ms.contains(&timeout),
                     f => f.as_ref() == Some(&timeout),
@@ -486,15 +507,48 @@ impl Lower<'_, '_, '_> {
                         "E310",
                         at,
                         format!(
-                            "`{}` opens a cancel scope, so it can fail with `Timeout`; \
-                             add `Timeout` to its `fail` type (R472)",
+                            "`{}` opens a cancel scope, so it can fail with `{name}`; \
+                             add `{name}` to its `fail` type (R472)",
                             self.item
                         ),
                     );
                 }
+                if shield && literal_seconds(e).is_some_and(|d| d >= DEFAULT_CANCEL_GRACE) {
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W856",
+                        e.span,
+                        &item,
+                        "this shield lasts at least the default cancel grace (10 s), so drain \
+                         clamps it; use a shorter duration (R812)"
+                            .to_owned(),
+                    );
+                }
                 let (a, _) = self.atom(&at_expr, None)?;
-                let b = self.block(&body.stmts)?;
-                self.emit(StmtKind::Deadline { at: a, body: b }, at);
+                let outer = mem::replace(&mut self.blocking_seen, false);
+                let b = self.block(&body.stmts);
+                let blocks = self.blocking_seen;
+                self.blocking_seen = outer || blocks;
+                let b = b?;
+                if shield && !blocks {
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W855",
+                        at,
+                        &item,
+                        "this shield has no blocking operation, so it holds back nothing; \
+                         remove it (R812)"
+                            .to_owned(),
+                    );
+                }
+                self.emit(
+                    StmtKind::Deadline {
+                        at: a,
+                        body: b,
+                        shield,
+                    },
+                    at,
+                );
             }
             K::Unsafe(body) => {
                 if !self.cx.ffi {
@@ -786,7 +840,8 @@ impl Lower<'_, '_, '_> {
             )))),
         }));
         let last = ops.pop().expect("a `select` has an arm");
-        let arms: Vec<(j::Expr, j::Block)> = ops
+        let only = ops.is_empty();
+        let mut arms: Vec<(j::Expr, j::Block)> = ops
             .into_iter()
             .enumerate()
             .map(|(i, b)| {
@@ -801,10 +856,20 @@ impl Lower<'_, '_, '_> {
                 )
             })
             .collect();
-        out.push(st(K::If {
-            arms,
-            els: Some(last),
-        }));
+        // A one-arm `select` has no `else` to fall into: its only arm is index 0.
+        let els = if only {
+            let zero = ex(j::ExprKind::Lit(j::Lit::Int("0".into())));
+            let cond = ex(j::ExprKind::Compare(
+                "==",
+                Box::new(name(&idx)),
+                Box::new(zero),
+            ));
+            arms.push((cond, last));
+            None
+        } else {
+            Some(last)
+        };
+        out.push(st(K::If { arms, els }));
         out
     }
 }

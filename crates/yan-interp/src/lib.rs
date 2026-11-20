@@ -280,6 +280,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             chans: Vec::new(),
             arenas: Vec::new(),
             atoms: Vec::new(),
+            futex: Vec::new(),
+            woken: Vec::new(),
             atom_tys: Vec::new(),
             mutexes: Vec::new(),
             actors: Vec::new(),
@@ -307,6 +309,9 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             force: false,
             in_par: 0,
             cancel: Vec::new(),
+            shield_floor: 0,
+            shielded: false,
+            shield_hit: std::cell::Cell::new(false),
             task_done: false,
             host: None,
         },
@@ -424,6 +429,10 @@ pub(crate) struct Interp<'o> {
     ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
+    /// Whether `deadline` is the instant of a `shield`, whose expiry is `ShieldTimeout` (R812).
+    shielded: bool,
+    /// Whether the last `Timeout` raised was a shield's own expiry.
+    shield_hit: std::cell::Cell<bool>,
     /// Each channel, by channel.
     chans: Vec<sync::Chan>,
     /// The slots of each arena, by arena; a `Ref` is (arena, slot).
@@ -431,6 +440,10 @@ pub(crate) struct Interp<'o> {
     /// The value of each `Atomic`, by atomic; every interleaving the interpreter runs is
     /// sequentially consistent, so an ordering has no effect here.
     atoms: Vec<Value>,
+    /// Tasks parked in `Atomic.wait`, oldest first: (task path, atom).
+    futex: Vec<(Vec<usize>, usize)>,
+    /// Tasks `notify` released that have not yet resumed.
+    woken: Vec<Vec<usize>>,
     /// The integer type of each `Atomic`, by atomic, empty for any other element.
     atom_tys: Vec<Rc<str>>,
     /// Each `Mutex`, by mutex: its value and whether a guard holds it (6.3). A cooperative task
@@ -487,6 +500,8 @@ pub(crate) struct Interp<'o> {
     /// Per running `par concurrent` block, innermost last: a task left it and cancelled the
     /// rest (9.4).
     cancel: Vec<bool>,
+    /// The blocks of `cancel` below this index are held by a `shield` (9.4).
+    shield_floor: usize,
     /// Set when a task's branch ends.
     task_done: bool,
     /// Answers `toolchain` queries; set only by [`query`].
@@ -897,6 +912,8 @@ fn entry(
         chans: Vec::new(),
         arenas: Vec::new(),
         atoms: Vec::new(),
+        futex: Vec::new(),
+        woken: Vec::new(),
         atom_tys: Vec::new(),
         mutexes: Vec::new(),
         actors: Vec::new(),
@@ -924,6 +941,9 @@ fn entry(
         force: false,
         in_par: 0,
         cancel: Vec::new(),
+        shield_floor: 0,
+        shielded: false,
+        shield_hit: std::cell::Cell::new(false),
         task_done: false,
         host,
     };
@@ -1154,6 +1174,16 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
                     Err(e) => unsupported(format!("stdout: {e}")),
                 },
                 _ => bad_args(STD_IO_PRINT),
+            }),
+        ),
+        (
+            STD_IO_EPRINT,
+            Bind::Cap(|_, a| match a {
+                [Value::Cap(_), Value::Str(s)] => match writeln!(std::io::stderr(), "{s}") {
+                    Ok(()) => Ok(Value::Unit),
+                    Err(e) => unsupported(format!("stderr: {e}")),
+                },
+                _ => bad_args(STD_IO_EPRINT),
             }),
         ),
         (

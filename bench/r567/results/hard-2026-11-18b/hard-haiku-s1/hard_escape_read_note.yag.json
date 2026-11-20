@@ -1,0 +1,126 @@
+{
+ "final": "def read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of file `name` inside the directory notes.\n\n    A missing or unreadable file gives \"\". Any name that would resolve\n    outside notes (absolute paths, \"..\" segments, symlink escapes) also\n    gives \"\", and no file outside notes is read. The examples for this\n    function are omitted because they would call a function that uses fs\n    from an ex line, where fs is not in scope.\n    \"\"\"\n    pre name.byte_len() <= 255\n    if name == \"\" or name.startswith(\"/\") or name.startswith(\"\\\\\"):\n        return \"\"\n    if \"\\\\\" in name:\n        return \"\"\n    for seg in name.split(\"/\"):\n        if seg == \"..\":\n            return \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else \"\"\n        return text\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpytx7wijl/work/task.yag:9:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpytx7wijl/work/task.yag:10:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpytx7wijl/work/task.yag:11:8 read_note: `assert read_note(\"a/../../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmpytx7wijl/work/task.yag:12:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 1172,
+    "reasoning": 962
+   },
+   "out_bytes": 523
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2666,
+    "out": 675,
+    "reasoning": 502
+   },
+   "out_bytes": 499
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2937,
+    "out": 1155,
+    "reasoning": 876
+   },
+   "out_bytes": 787
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 2937,
+   "out": 1155,
+   "reasoning": 876,
+   "out_bytes": 787
+  },
+  "spec": {
+   "in": 4786,
+   "out": 1847,
+   "reasoning": 1464,
+   "out_bytes": 1022
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpytx7wijl/work/task.yag:9:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpytx7wijl/work/task.yag:10:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpytx7wijl/work/task.yag:11:8 read_note: `assert read_note(\"a/../../secret.txt\")` capabi"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

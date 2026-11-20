@@ -18,6 +18,8 @@ read-only to agents (22.6).
 | `semver/<case>/` | semver | `semver` on `old/` and `new/` computes the `bump` of `expect.toml` (one pair per row of the 20.6 table) |
 | `pkg/<case>/` | pkg | the `command` of `expect.toml`, run in `root/`, reports `code` (at `at` when given) and exits nonzero, or exits 0 with no errors when there is no `code` |
 | `fmt/<case>/` | fmt | `fmt` run on a copy of `in.<ext>` rewrites it to exactly the bytes of `out.<ext>` and exits 0 |
+| `view/<case>/` | view | `view --as T` on `in.<ext>` prints exactly the bytes of `out.T`, T the `as` of `expect.toml` (which also gives `spec` and `rows`) |
+| `mir/<case>/` | mir | `view --as mir --check` on `in.mir` exits 0 and prints exactly the bytes of `in.mir` (no `code` in `expect.toml`), or exits 1 with first stderr line starting with the `code` of `expect.toml` (the I-code of a validator rule, 22.4) |
 | `mcp/<case>/` | mcp | `mcp package` with the `flags` of `expect.toml`, run in a trusted copy of `root/` with `session.jsonl` on stdin, prints exactly the JSON lines of `expect.jsonl` (or the JSON of `expect.json` for `--list`) and exits 0, or exits nonzero naming the `code` of `expect.toml` on stderr |
 | `roundtrip/`, `sim/` | | not populated yet |
 

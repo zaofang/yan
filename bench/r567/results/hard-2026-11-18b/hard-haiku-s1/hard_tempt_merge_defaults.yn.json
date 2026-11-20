@@ -1,0 +1,115 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 3486,
+   "out": 2135,
+   "reasoning": 1406,
+   "out_bytes": 1664
+  },
+  "body": {
+   "in": 9330,
+   "out": 3371,
+   "reasoning": 1687,
+   "out_bytes": 3915
+  }
+ },
+ "final": "type Setting = { key: str, value: str }\n\n-- Value given for name, the last one if repeated; None when absent.\nlookup(keys: List[str], values: List[str], name: str) -> str? =\n  pre keys.len() == values.len()\n  ex lookup([\"mode\"], [\"slow\"], \"mode\") == \"slow\"\n  var found: str? = None\n  for i in range(0, keys.len())\n    if keys[i] == name\n      found = values[i]\n  found\n\n-- Values of keys other than mode and level, in the order given.\nextras(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  ex extras([\"mode\", \"x\", \"level\", \"y\"], [\"a\", \"b\", \"c\", \"d\"]) == [\"b\", \"d\"]\n  var out: List[str] = []\n  for i in range(0, keys.len())\n    if keys[i] != \"mode\" and keys[i] != \"level\"\n      out = out + [values[i].copy()]\n  out\n\n-- mode, level, then the other values; defaults fast and 3 when not given.\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([\"level\", \"mode\"], [\"5\", \"dev\"]) == [\"dev\", \"5\"]\n  ex settings([], []) == [\"fast\", \"3\"]\n  let mode = lookup(keys: keys, values: values, name: \"mode\") else \"fast\"\n  let level = lookup(keys: keys, values: values, name: \"level\") else \"3\"\n  var out: List[str] = [mode, level]\n  for v in extras(keys: keys, values: values)\n    out = out + [v.copy()]\n  out\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1501,
+    "out": 1505,
+    "reasoning": 1142
+   },
+   "out_bytes": 829,
+   "ok": false,
+   "report": "E100 task.yn:4:62 `end of line` unexpected token; expected `=`\nE100 task.yn:10:56 `end of line` unexpected token; expected `=`\nE100 task.yn:16:58 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1985,
+    "out": 630,
+    "reasoning": 264
+   },
+   "out_bytes": 835,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2424,
+    "out": 1595,
+    "reasoning": 1038
+   },
+   "out_bytes": 1295,
+   "ok": false,
+   "report": "E203 task.yn:20:11 extras: `push` `List[str]` has no method `push`\nE203 task.yn:33:9 settings: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3077,
+    "out": 876,
+    "reasoning": 316
+   },
+   "out_bytes": 1303,
+   "ok": false,
+   "report": "E413 task.yn:20:20 extras: `values[i]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 20:20 | fix: values[i] -> values[i].copy()\nE413 task.yn:33:18 settings: `[v]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 32:3 | fix: v -> v.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3829,
+    "out": 900,
+    "reasoning": 333
+   },
+   "out_bytes": 1317,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E203 ./task.yn:20:11 extras: `push` `List[str]` has no method `push`\nE203 ./task.yn:33:9 settings: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

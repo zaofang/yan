@@ -371,11 +371,15 @@ impl<'a> Fold<'a> {
                 };
                 out.push(stmt(StmtKind::With { kind, body }));
             }
-            K::Deadline { at, body } => {
+            K::Deadline { at, body, shield } => {
                 let at = self.atom(at)?;
                 let body = self.block(body)?;
                 out.push(stmt(StmtKind::With {
-                    kind: WithKind::Deadline(at),
+                    kind: if *shield {
+                        WithKind::Shield(at)
+                    } else {
+                        WithKind::Deadline(at)
+                    },
                     body,
                 }));
             }

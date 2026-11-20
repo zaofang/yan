@@ -20,21 +20,21 @@ const RETURNS_TWICE: [&str; 6] = [
     "getcontext",
 ];
 
-/// A C scalar of `core.ffi` (12.3), on an LP64 target.
+/// A C scalar of `core.ffi` (12.3), from the target description (RFC 0083 D4).
 pub(crate) fn c_scalar(name: &str) -> Option<Ty> {
-    Some(match name {
-        "c_char" | "c_schar" => Ty::Fixed("i8"),
-        "c_uchar" => Ty::Fixed("u8"),
-        "c_short" => Ty::Fixed("i16"),
-        "c_ushort" => Ty::Fixed("u16"),
-        "c_int" => Ty::Fixed("i32"),
-        "c_uint" => Ty::Fixed("u32"),
-        "c_long" | "c_longlong" | "c_ssize" | "c_ptrdiff" => Ty::Int,
-        "c_ulong" | "c_ulonglong" | "c_size" => Ty::Fixed("u64"),
-        "c_float" => Ty::Fixed("f32"),
-        "c_double" => Ty::Float,
-        "c_void" => Ty::Unit,
-        _ => return None,
+    Some(match yan_core::target::Target::host().c_scalar(name)? {
+        "int" => Ty::Int,
+        "float" => Ty::Float,
+        "unit" => Ty::Unit,
+        "i8" => Ty::Fixed("i8"),
+        "u8" => Ty::Fixed("u8"),
+        "i16" => Ty::Fixed("i16"),
+        "u16" => Ty::Fixed("u16"),
+        "i32" => Ty::Fixed("i32"),
+        "u32" => Ty::Fixed("u32"),
+        "u64" => Ty::Fixed("u64"),
+        "f32" => Ty::Fixed("f32"),
+        other => unreachable!("target description scalar `{other}`"),
     })
 }
 
@@ -70,7 +70,7 @@ fn is_profile(g: &Globals, t: &Ty, owned: bool) -> bool {
 }
 
 /// The built-in capability names (7.1), which a library's capability must not shadow.
-const BUILTIN_CAPABILITIES: [&str; 21] = [
+const BUILTIN_CAPABILITIES: [&str; 22] = [
     "alloc",
     "sched",
     "rand",
@@ -89,6 +89,7 @@ const BUILTIN_CAPABILITIES: [&str; 21] = [
     "py",
     "toolchain",
     "nondet",
+    "shield",
     "gpu",
     "critical_section",
     "cluster",

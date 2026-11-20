@@ -110,3 +110,15 @@ conformance case in the same PR set.
 | [0084](0084-module-and-package-structure.md) | Files, modules, directories and packages | accepted | pending |
 | [0085](0085-first-milestone-is-0-1-0.md) | The first milestone is 0.1.0 | accepted | none |
 | [0086](0086-native-pool-par.md) | Native pool for plain `par` | accepted | none |
+| [0087](0087-moved-from-place-detection.md) | Detecting a use of a moved-from place under `--ub` | accepted | |
+| [0088](0088-tree-borrows-check.md) | Tree Borrows check under `--ub` | draft | |
+| [0089](0089-atomic-wait-notify.md) | `Atomic.wait` and `notify`, and the check for UB item 15 | accepted | pending |
+| [0090](0090-ub-leak-report-and-store-buffers.md) | Leak report and store-buffer weak memory under `--ub` | draft | |
+| [0091](0091-w806-validity-guards.md) | W806 flags a validity guard only when removing it changes the `ex` result | accepted | pending |
+| [0092](0092-try-on-reified-result.md) | `?` on a reified `Result` value | draft | |
+| [0093](0093-wait-on-workers-deadlines-and-variant-paths.md) | `Atomic.wait` on pool workers, native deadline scopes and `Type.Variant()` paths | accepted | |
+| [0094](0094-chan-constructor-spelling.md) | Channel constructor spelling and the near-miss diagnostic | accepted | pending |
+| [0095](0095-handler-bound-examples-and-par-for-statements.md) | Handler-bound `ex` lines and `par for` statements | accepted | pending |
+| [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | accepted | pending |
+| [0097](0097-mir-text-format.md) | Canonical MIR text: printer, parser, validator | accepted | pending |
+| [0098](0098-failable-integer-conversion-and-trunc-as.md) | The failable integer conversion and the meaning of `trunc_as` | accepted | pending |

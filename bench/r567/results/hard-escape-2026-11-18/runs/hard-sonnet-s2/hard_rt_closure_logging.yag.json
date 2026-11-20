@@ -1,0 +1,94 @@
+{
+ "final": "def wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Return \"start:\" + job() + \":end\". Calls job exactly once. The helper declares no capabilities and does no printing or logging; any capabilities the job uses belong to the caller's closure.\"\"\"\n    post out.startswith(\"start:\")\n    post out.endswith(\":end\")\n    ex wrapped(lambda: \"x\") == \"start:x:end\"\n    ex wrapped(lambda: \"\") == \"start::end\"\n    ex wrapped(lambda: \"a:b\") == \"start:a:b:end\"\n    result = job()\n    return \"start:\" + result + \":end\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2069,
+    "out": 572,
+    "reasoning": 377
+   },
+   "out_bytes": 462
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2362,
+    "out": 211,
+    "reasoning": 0
+   },
+   "out_bytes": 511
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_closure_logging",
+ "tokens": {
+  "body": {
+   "in": 2362,
+   "out": 211,
+   "reasoning": 0,
+   "out_bytes": 511
+  },
+  "spec": {
+   "in": 2069,
+   "out": 572,
+   "reasoning": 377,
+   "out_bytes": 462
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

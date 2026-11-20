@@ -1,0 +1,27 @@
+# spec: 9.4, 17.3
+# rows: R1111
+# note: recv on an empty channel under a timeout fails Timeout, which the else arm of the declared Cancelled | Timeout takes
+# stdout:
+# -1
+# 3
+
+def first(var rx: Receiver[int]) -> int fail Cancelled | Timeout:
+    v = rx.recv()?
+    match v:
+        case Some(x):
+            return x
+        case None:
+            return 0
+
+def probe(var rx: Receiver[int]) -> str fail Timeout uses time:
+    with time = virtual(time.now()):
+        with timeout(1 * s):
+            r = first(&rx) else e -> -1
+            return f"{r}"
+
+def main() uses io, time:
+    tx, rx = Channel[int](1)
+    r = probe(&rx) else e -> "timeout"
+    print(r)
+    tx.send(3) else e -> None
+    print(f"{first(&rx) else e -> 0}")

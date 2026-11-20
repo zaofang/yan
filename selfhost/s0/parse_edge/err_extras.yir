@@ -1,0 +1,10 @@
+module edge.err5
+unsafe sum S { A }
+pub impl T for i64 { }
+unsafe extern "C" lib l { @a safe static x: i32 }
+fn f() -> i64 { ret 1 }
+fn g() -> i64 { comptime while }
+fn h() -> i64 { asm("x", bogus) }
+fn i() -> i64 { match x { 1 ..= } }
+fn j() -> i64 { let x: i64 = f( }
+fn k() -> i64 { ret 1 }

@@ -1,0 +1,13 @@
+mir 1
+main fn0
+str 0 "hello, world"
+
+fn 0 "main"() -> (unit) {
+  local %0: unit
+bb0:
+  rt.print(s0) @7
+  %0 = copy () @7
+  ret ()
+bb1:
+  panic "unreachable"
+}

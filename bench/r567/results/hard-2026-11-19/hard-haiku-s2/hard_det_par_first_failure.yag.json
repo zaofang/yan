@@ -1,0 +1,202 @@
+{
+ "final": "STOP: The frozen `ex` lines use `Err(Bad(n=3))`, which is not Yan syntax. Failures in `ex` lines must be written `== fail Bad`, as in `ex check(3) == fail Bad` and `ex all_even([4, 3, 1]) == fail Bad`.\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 1145,
+    "reasoning": 885
+   },
+   "out_bytes": 611
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2535,
+    "out": 899,
+    "reasoning": 627
+   },
+   "out_bytes": 621
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "The frozen `ex` lines use `== Err(Bad(n=3))`, but Yan states failures as `ex f(x) == fail E`, so the form should be `ex check(3) == fail Bad` and `ex all_even([4, 3, 1]) == fail Bad`.",
+   "tools": [],
+   "usage": {
+    "in": 2905,
+    "out": 592,
+    "reasoning": 495
+   },
+   "out_bytes": 189
+  },
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3317,
+    "out": 433,
+    "reasoning": 173
+   },
+   "out_bytes": 611
+  },
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3755,
+    "out": 598,
+    "reasoning": 338
+   },
+   "out_bytes": 611
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 4193,
+    "out": 914,
+    "reasoning": 642
+   },
+   "out_bytes": 621
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "stop": "The frozen `ex` lines use `Err(Bad(n=3))`, which is not Yan syntax. Failures in `ex` lines must be written `== fail Bad`, as in `ex check(3) == fail Bad` and `ex all_even([4, 3, 1]) == fail Bad`.",
+   "tools": [],
+   "usage": {
+    "in": 4563,
+    "out": 330,
+    "reasoning": 226
+   },
+   "out_bytes": 201
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "stopped",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 7468,
+   "out": 922,
+   "reasoning": 721,
+   "out_bytes": 390
+  },
+  "spec": {
+   "in": 15897,
+   "out": 3989,
+   "reasoning": 2665,
+   "out_bytes": 3075
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpuwapf0nv/work/task.yag:7:8 check: `(3) == Err(Bad)` cannot find `Bad` | in `ex` of `check`\n#2 E200 /tmp/tmpuwapf0nv/work/task.yag:14:8 all_even: `([4, 3, 1]) == Err(Bad)` cannot find `Bad` | in `ex` of `all_even`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:18 unexpected character ```\nE100 ./task.yag:1:21 unexpected character ```\nE100 ./task.yag:1:33 unexpected character ```\nE100 ./task.yag:1:50 unexpected character ```\nE100 ./task.yag:1:80 unexpected character ```\nE100 ."
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E100 ./task.yag:1:11 `frozen` unexpected `frozen`; expected `=`\nE100 ./task.yag:1:18 unexpected character ```\nE100 ./task.yag:1:21 unexpected character ```\nE100 ./task.yag:1:33 unexpected character ```\nE100 ./task.yag:1:47 unexpected character ```\nE100 ./task.yag:1:87 unexpected character ```\nE100 ."
+ }
+}

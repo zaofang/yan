@@ -1,0 +1,7 @@
+-- spec: 9.5
+-- rows: R1108
+-- expect: E200 at 6:18
+
+accepted(cap: int) -> int uses nondet =
+  let (tx, rx) = Chan[int](cap)
+  0

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1079,
+   "reasoning": 456,
+   "out_bytes": 1473
+  },
+  "body": {
+   "in": 1848,
+   "out": 1181,
+   "reasoning": 472,
+   "out_bytes": 1730
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even; raise Bad(x) if it is odd.\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element in a thread pool.\n\n    Returns the checked values in input order. If any element is odd,\n    raises the Bad for the lowest-index odd element.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        # map yields results in input order and re-raises the exception\n        # from the first failing index when that result is reached.\n        return list(pool.map(check, xs))\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_on_single_odd() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([2, 3, 4])\n    assert excinfo.value.n == 3\n\n\ndef test_all_even_reports_lowest_index_odd() -> None:\n    # Two odd elements: 7 at index 1 and 3 at index 2. The lowest index wins.\n    with pytest.raises(Bad) as excinfo:\n        all_even([4, 7, 3])\n    assert excinfo.value.n == 7\n\n\ndef test_check_even_passes_through() -> None:\n    assert check(6) == 6\n\n\ndef test_check_odd_raises() -> None:\n    with pytest.raises(Bad) as excinfo:\n        check(5)\n    assert excinfo.value.n == 5\n\n\ndef test_thread_pool_is_used() -> None:\n    # Confirms the ThreadPoolExecutor type is importable for the implementation.\n    with ThreadPoolExecutor(max_workers=1) as pool:\n        assert pool.submit(check, 2).result() == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1079,
+    "reasoning": 456
+   },
+   "out_bytes": 1473,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1848,
+    "out": 1181,
+    "reasoning": 472
+   },
+   "out_bytes": 1730,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

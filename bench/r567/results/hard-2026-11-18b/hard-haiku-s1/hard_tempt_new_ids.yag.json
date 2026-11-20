@@ -1,0 +1,94 @@
+{
+ "final": "def make_ids(n: int, seed: int) -> list[int]:\n    \"\"\"Return n distinct record ids derived only from seed.\n\n    The same n and seed always give the same list. Nothing outside the\n    arguments is read, so no capabilities are needed.\n    \"\"\"\n    pre n >= 0\n    post out.len() == n\n    post out.len() == {x for x in out}.len()\n    ex make_ids(0, 1) == []\n    ex make_ids(3, 42).len() == 3\n    ex make_ids(2, 5) == make_ids(2, 5)\n    out: list[int] = []\n    base = seed % 1000000007\n    for i in range(n):\n        out.append((base * 31 + i * 7919 + 1) % 1000000007)\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 1071,
+    "reasoning": 880
+   },
+   "out_bytes": 444
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2324,
+    "out": 1204,
+    "reasoning": 953
+   },
+   "out_bytes": 587
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/tempt_new_ids",
+ "tokens": {
+  "body": {
+   "in": 2324,
+   "out": 1204,
+   "reasoning": 953,
+   "out_bytes": 587
+  },
+  "spec": {
+   "in": 2035,
+   "out": 1071,
+   "reasoning": 880,
+   "out_bytes": 444
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

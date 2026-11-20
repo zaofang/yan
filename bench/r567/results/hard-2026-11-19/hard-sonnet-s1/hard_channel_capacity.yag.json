@@ -1,0 +1,216 @@
+{
+ "final": "def expected_accepted(cap: int, n: int) -> int:\n    \"\"\"Number of non-blocking sends accepted by an empty channel of capacity cap when n sends are attempted.\"\"\"\n    pre cap >= 0\n    pre n >= 0\n    post out >= 0\n    post out <= cap\n    post out <= n\n    ex expected_accepted(2, 3) == 2\n    ex expected_accepted(5, 2) == 2\n    ex expected_accepted(3, 0) == 0\n    if n < cap:\n        return n\n    return cap\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Count the elements of xs a channel of capacity cap accepts with non-blocking sends, stopping at the first send that finds the channel full.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= cap\n    post out <= xs.len()\n    buf: list[int] = []\n    for x in xs:\n        if buf.len() >= cap:\n            break\n        buf.append(x)\n    return buf.len()\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp_2gcbqze/work/task.yag:7:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmp_2gcbqze/work/task.yag:8:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmp_2gcbqze/work/task.yag:9:8 accepted: `assert accepted(3, [])` capability `nondet` is not in scope | in `ex` of `accepted`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2049,
+    "out": 506,
+    "reasoning": 324
+   },
+   "out_bytes": 401
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2495,
+    "out": 796,
+    "reasoning": 509
+   },
+   "out_bytes": 671
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp_2gcbqze/work/task.yag:21:10 accepted: `chan.` cannot find `chan`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2880,
+    "out": 584,
+    "reasoning": 235
+   },
+   "out_bytes": 842
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp_2gcbqze/work/task.yag:21:10 accepted: `channel.` cannot find `channel`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3359,
+    "out": 865,
+    "reasoning": 445
+   },
+   "out_bytes": 1053
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp_2gcbqze/work/task.yag:21:5 accepted: `ch:` type `Chan`: not supported by this toolchain yet",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3909,
+    "out": 908,
+    "reasoning": 452
+   },
+   "out_bytes": 1135
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 3,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4505,
+    "out": 821,
+    "reasoning": 340
+   },
+   "out_bytes": 1263
+  }
+ ],
+ "rounds_to_green": 4,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 14653,
+   "out": 3178,
+   "reasoning": 1472,
+   "out_bytes": 4293
+  },
+  "spec": {
+   "in": 4544,
+   "out": 1302,
+   "reasoning": 833,
+   "out_bytes": 1072
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp_2gcbqze/work/task.yag:7:8 accepted: `assert accepted(2, [1, 2, 3])` capability `nondet` is not in scope | in `ex` of `accepted`\n#2 E301 /tmp/tmp_2gcbqze/work/task.yag:8:8 accepted: `assert accepted(5, [1, 2])` capability `nondet` is not in scope | in `ex` of `accepted`\n#3 E301 /tmp/tmp_2gcbqze/work/task.yag:9:8 accepted: `assert accepted(3, [])` capability `nondet` is not in scope"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp_2gcbqze/work/task.yag:21:10 accepted: `chan.` cannot find `chan`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp_2gcbqze/work/task.yag:21:10 accepted: `channel.` cannot find `channel`"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp_2gcbqze/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp_2gcbqze/work/task.yag:21:5 accepted: `ch:` type `Chan`: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yag:21:10 accepted: `chan` cannot find `chan` | maybe: chan -> cap\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1598,
+   "out": 564,
+   "reasoning": 517,
+   "out_bytes": 80
+  },
+  "body": {
+   "in": 1718,
+   "out": 473,
+   "reasoning": 268,
+   "out_bytes": 339
+  }
+ },
+ "final": "swap_ends(var xs: List[int]) =\n  ex swap_ends(&[]) == ()\n  let n = xs.len()\n  if n >= 2\n    let t = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = t\n\ntest_swap_ends() =\n  var a: List[int] = [1, 2, 3]\n  swap_ends(&a)\n  assert a[0] == 3\n  assert a[1] == 2\n  assert a[2] == 1\n  var b: List[int] = [7]\n  swap_ends(&b)\n  assert b[0] == 7\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1598,
+    "out": 564,
+    "reasoning": 517
+   },
+   "out_bytes": 80,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 473,
+    "reasoning": 268
+   },
+   "out_bytes": 339,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

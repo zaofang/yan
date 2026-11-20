@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1069,
+   "out": 846,
+   "reasoning": 460,
+   "out_bytes": 844
+  },
+  "body": {
+   "in": 1512,
+   "out": 391,
+   "reasoning": 0,
+   "out_bytes": 854
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place; returns nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\"]\n\n\ndef test_add_name_appends_to_end_preserving_order() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"x\"]\n    add_name(dst, \"x\")\n    assert dst == [\"x\", \"x\"]\n\n\ndef test_add_name_mutates_caller_list_in_place() -> None:\n    dst: list[str] = []\n    alias = dst\n    add_name(dst, \"bob\")\n    assert alias is dst\n    assert alias == [\"bob\"]\n\n\ndef test_add_name_appends_empty_string() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"\")\n    assert dst == [\"a\", \"\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 846,
+    "reasoning": 460
+   },
+   "out_bytes": 844,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1512,
+    "out": 391,
+    "reasoning": 0
+   },
+   "out_bytes": 854,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

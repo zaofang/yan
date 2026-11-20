@@ -418,8 +418,8 @@ fn unwait(st: &mut State, me: &[usize]) {
 }
 
 /// Task `me` waits on actor `id`, keyed apart from channels (R959): 1 when it parked. Where it
-/// cannot, nothing else runs, so it fails [`TIMEOUT`] 5 s after the wait began (9.6); native
-/// code has no deadline scopes.
+/// cannot, nothing else runs, so it fails [`TIMEOUT`] at the enclosing deadline scope's end, or
+/// 5 s after the wait began outside every scope (9.6).
 fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
     if sched::park(key(id), in_task) {
         with(|st| {
@@ -439,12 +439,19 @@ fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
         s
     });
     // Under `fixed_time` or `virtual` handlers the wait takes no host time: their clocks jump.
+    let scope = crate::deadline::current();
     if let Some(now) = since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
-        crate::civil::clocks_advance_to(now + DEFAULT_DEADLINE.as_nanos() as i128);
+        let end = scope.unwrap_or(now + DEFAULT_DEADLINE.as_nanos() as i128);
+        crate::civil::clocks_advance_to(end);
         return TIMEOUT;
     }
-    let end = since.map(|s| s.0).unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
-    std::thread::sleep(end.saturating_duration_since(Instant::now()));
+    match scope {
+        Some(d) => crate::civil::wait_until(d),
+        None => {
+            let end = since.map(|s| s.0).unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
+            std::thread::sleep(end.saturating_duration_since(Instant::now()));
+        }
+    }
     TIMEOUT
 }
 

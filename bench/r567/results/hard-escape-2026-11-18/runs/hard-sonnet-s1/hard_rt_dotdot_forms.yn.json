@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1615,
+   "out": 695,
+   "reasoning": 313,
+   "out_bytes": 909
+  },
+  "body": {
+   "in": 4760,
+   "out": 2219,
+   "reasoning": 1112,
+   "out_bytes": 2695
+  }
+ },
+ "final": "-- True when the path, after resolving \".\" and \"..\", stays inside its base directory.\n-- Absolute paths, empty names and any path that climbs above the base are not inside.\nstays_inside(path: str) -> bool =\n  ex stays_inside(\"a.txt\") == True\n  ex stays_inside(\"sub/../a.txt\") == True\n  ex stays_inside(\"sub/b/c.txt\") == True\n  ex stays_inside(\"..\") == False\n  ex stays_inside(\"../x\") == False\n  ex stays_inside(\"sub/../../x\") == False\n  ex stays_inside(\"/etc/passwd\") == False\n  ex stays_inside(\"\") == False\n  for c in path.chars()\n    if c == \"\\\\\" or c == \"\\0\"\n      return False\n  var depth = 0\n  var first = True\n  for seg in path.split(\"/\")\n    if seg == \"\"\n      if first\n        return False\n      continue\n    first = False\n    if seg == \".\"\n      continue\n    if seg == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    else\n      depth += 1\n  depth > 0\n\n-- Text of the file `path` under the directory `notes`, or \"\" when the path\n-- escapes `notes`, or when the file is missing or unreadable.\nread_public(path: str) -> str uses fs =\n  post stays_inside(path) or out == \"\"\n  ex read_public(\"..\") == \"\"\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  if not stays_inside(path)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(path) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 695,
+    "reasoning": 313
+   },
+   "out_bytes": 909,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2070,
+    "out": 1521,
+    "reasoning": 967
+   },
+   "out_bytes": 1348,
+   "ok": false,
+   "report": "E100 task.yn:43:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2690,
+    "out": 698,
+    "reasoning": 145
+   },
+   "out_bytes": 1347,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:43:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

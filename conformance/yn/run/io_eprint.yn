@@ -1,0 +1,11 @@
+-- spec: 17.3
+-- rows: R655
+-- stdout:
+-- out
+-- 7
+
+main() uses io =
+  io.print("out")
+  io.eprint("to stderr")
+  io.eprint(42)
+  io.print(7)

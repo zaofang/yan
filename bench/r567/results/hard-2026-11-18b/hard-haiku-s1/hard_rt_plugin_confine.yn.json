@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 1366,
+   "reasoning": 1167,
+   "out_bytes": 446
+  },
+  "body": {
+   "in": 6749,
+   "out": 2890,
+   "reasoning": 2083,
+   "out_bytes": 1789
+  }
+ },
+ "final": "-- Phase 2: bodies filled in. Signatures and contract lines are unchanged.\n\n-- Untrusted plugin: reads `path` through the capability it is given.\nplugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin with `fs` narrowed to `notes`, so `path` is relative to `notes`.\n-- Anything that resolves outside `notes` reads as \"\".\nrun_plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 1366,
+    "reasoning": 1167
+   },
+   "out_bytes": 446,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1914,
+    "out": 1048,
+    "reasoning": 780
+   },
+   "out_bytes": 593,
+   "ok": false,
+   "report": "E100 task.yn:14:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2248,
+    "out": 644,
+    "reasoning": 377
+   },
+   "out_bytes": 592,
+   "ok": false,
+   "report": "E312 task.yn:15:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2587,
+    "out": 1198,
+    "reasoning": 926
+   },
+   "out_bytes": 604,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:14:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

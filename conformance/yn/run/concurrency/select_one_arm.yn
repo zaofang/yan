@@ -1,0 +1,13 @@
+-- spec: 15.3
+-- rows: R342
+-- note: a select with a single arm waits for it and runs it (#1777)
+-- stdout:
+-- got 4
+
+main() fail Cancelled | Timeout uses io, nondet =
+  let (tx, rx) = Channel[int](1)
+  var a = rx
+  var s = tx
+  s.send(4)?
+  select
+    a.recv() is Some(v) -> io.print("got \(v)")

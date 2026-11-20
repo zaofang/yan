@@ -1,0 +1,97 @@
+{
+ "final": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as `[level] message`.\"\"\"\n    ex format_line(\"info\", \"started\") == \"[info] started\"\n    ex format_line(\"warn\", \"\") == \"[warn] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print `[level] message` to standard output. Uses only io, never fs.\"\"\"\n    io.print(format_line(level, message))\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2038,
+    "out": 453,
+    "reasoning": 315
+   },
+   "out_bytes": 363
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2274,
+    "out": 356,
+    "reasoning": 198
+   },
+   "out_bytes": 429
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 2274,
+   "out": 356,
+   "reasoning": 198,
+   "out_bytes": 429
+  },
+  "spec": {
+   "in": 2038,
+   "out": 453,
+   "reasoning": 315,
+   "out_bytes": 363
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

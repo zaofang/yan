@@ -6,6 +6,22 @@
 use super::*;
 
 impl Fn<'_, '_> {
+    /// Start the frame of a `par` branch; `plain` for a branch without a scheduler.
+    pub(super) fn enter_frame(&mut self, plain: bool) {
+        self.task_starts.push(self.locals.len() as Local);
+        self.frame_plain.push(plain);
+    }
+
+    pub(super) fn leave_frame(&mut self) {
+        self.task_starts.pop();
+        self.frame_plain.pop();
+    }
+
+    /// Whether the code is in a branch of a `par concurrent`.
+    pub(super) fn in_task(&self) -> bool {
+        self.frame_plain.iter().any(|p| !p)
+    }
+
     /// How many enclosing branches bind `n`: 0 for a name of the function itself.
     fn depth(&self, n: &str) -> usize {
         self.names
@@ -51,11 +67,13 @@ impl Fn<'_, '_> {
     /// local that may have been moved (R871).
     fn drop_owned(&mut self, n: &str) {
         let Some(flag) = self.flags.get(n).and_then(|f| self.names.get(f)) else {
-            return self.drop_name(n);
+            self.drop_name(n);
+            return self.mark_name(n);
         };
         let (set, unset) = self.branch(Operand::Local(flag.locals[0]));
         self.cur = set;
         self.drop_name(n);
+        self.mark_name(n);
         self.goto(unset);
     }
 
@@ -80,11 +98,16 @@ impl Fn<'_, '_> {
             if d == 0 {
                 break;
             }
-            if let Some((e, ev)) = failure {
-                self.exit_kind(e, ev);
-            }
             let drops = self.block_new();
-            self.finish(Term::Unwind { drops });
+            if self.frame_plain[d - 1] {
+                self.emit(Inst::Arm(ArmEvent::Leave));
+                self.finish(Term::Jump(drops));
+            } else {
+                if let Some((e, ev)) = failure {
+                    self.exit_kind(e, ev);
+                }
+                self.finish(Term::Unwind { drops });
+            }
             self.cur = drops;
         }
     }

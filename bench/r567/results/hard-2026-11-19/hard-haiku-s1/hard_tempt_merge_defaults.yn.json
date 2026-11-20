@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1660,
+   "out": 686,
+   "reasoning": 510,
+   "out_bytes": 371
+  },
+  "body": {
+   "in": 4337,
+   "out": 2417,
+   "reasoning": 1608,
+   "out_bytes": 1895
+  }
+ },
+ "final": "-- Phase 2: implementation. Defaults: mode=fast, level=3.\n-- Output order: mode, level, then the other keys in the order given.\n\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([\"level\"], [\"5\"]) == [\"fast\", \"5\"]\n  ex settings([\"x\", \"mode\"], [\"a\", \"b\"]) == [\"b\", \"3\", \"a\"]\n  var mode = \"fast\"\n  var level = \"3\"\n  for i in range(0, keys.len())\n    if keys[i] == \"mode\"\n      mode = values[i]\n    else if keys[i] == \"level\"\n      level = values[i]\n  var res: List[str] = []\n  res.append(mode)\n  res.append(level)\n  for i in range(0, keys.len())\n    let k = keys[i]\n    if k == \"mode\" or k == \"level\"\n      continue\n    var first = True\n    for j in range(0, i)\n      if keys[j] == k\n        first = False\n    if first\n      var last = i\n      for j in range(i + 1, keys.len())\n        if keys[j] == k\n          last = j\n      res.append(values[last].copy())\n  res\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1660,
+    "out": 686,
+    "reasoning": 510
+   },
+   "out_bytes": 371,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1909,
+    "out": 1727,
+    "reasoning": 1324
+   },
+   "out_bytes": 944,
+   "ok": false,
+   "report": "E413 task.yn:32:18 settings: `values[last]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 32:18 | fix: values[last] -> values[last].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2428,
+    "out": 690,
+    "reasoning": 284
+   },
+   "out_bytes": 951,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E413 ./task.yn:32:18 settings: `values[last]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 32:18 | fix: values[last] -> values[last].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

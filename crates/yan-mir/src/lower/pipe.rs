@@ -159,7 +159,9 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     fn lazy(&mut self, pipe: Pipe, e: Shape) -> Lazy {
-        let buf = e.tys().into_iter().map(|t| self.local(t)).collect();
+        let buf: Vec<Local> = e.tys().into_iter().map(|t| self.local(t)).collect();
+        // A `for` loop's lookahead reads `buf` on paths the validator cannot tie to a pull.
+        self.zero_locals(&buf);
         let has = self.flag(false);
         let end = self.flag(false);
         Lazy {

@@ -347,7 +347,11 @@ impl Lower<'_, '_, '_> {
             self.pattern_check(n, args.first());
         }
         let path = format!("std.{module}.{m}");
-        if matches!(path.as_str(), "std.ptr.read" | "std.ptr.write") && !self.in_unsafe {
+        if matches!(
+            path.as_str(),
+            "std.ptr.read" | "std.ptr.take" | "std.ptr.write"
+        ) && !self.in_unsafe
+        {
             self.err(
                 "E903",
                 at,

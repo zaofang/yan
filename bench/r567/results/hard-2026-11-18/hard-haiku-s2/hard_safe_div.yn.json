@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1465,
+   "out": 481,
+   "reasoning": 397,
+   "out_bytes": 149
+  },
+  "body": {
+   "in": 3415,
+   "out": 1512,
+   "reasoning": 1305,
+   "out_bytes": 365
+  }
+ },
+ "final": "type DivZero = { a: int }\n\nsafe_div(a: int, b: int) -> int fail DivZero =\n  ex safe_div(7, 2) == 3\n  ex safe_div(-7, 2) == -4\n  if b == 0\n    fail DivZero(a: a)\n  a // b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1465,
+    "out": 481,
+    "reasoning": 397
+   },
+   "out_bytes": 149,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1622,
+    "out": 580,
+    "reasoning": 476
+   },
+   "out_bytes": 186,
+   "ok": false,
+   "report": "E100 task.yn:7:12 `return fail DivZero` unexpected token; expected an expression",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1793,
+    "out": 932,
+    "reasoning": 829
+   },
+   "out_bytes": 179,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_div",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E100 ./task.yn:7:12 `fail` unexpected token; expected an expression\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1143,
+   "out": 917,
+   "reasoning": 429,
+   "out_bytes": 1056
+  },
+  "body": {
+   "in": 1688,
+   "out": 552,
+   "reasoning": 0,
+   "out_bytes": 1238
+  }
+ },
+ "final": "from dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\nShape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of the shape in whole units, rounded down.\n\n    Rect: w * h. Square: side * side. Tri: b * h / 2, floored.\n    \"\"\"\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return (b * h) // 2\n\n\ndef test_rect_area() -> None:\n    assert area(Rect(3, 4)) == 12\n\n\ndef test_rect_zero_width() -> None:\n    assert area(Rect(0, 5)) == 0\n\n\ndef test_square_area() -> None:\n    assert area(Square(5)) == 25\n\n\ndef test_tri_area_exact() -> None:\n    assert area(Tri(4, 3)) == 6\n\n\ndef test_tri_area_rounds_down() -> None:\n    assert area(Tri(3, 3)) == 4\n\n\ndef test_tri_area_zero_height() -> None:\n    assert area(Tri(7, 0)) == 0\n\n\n@pytest.mark.parametrize(\n    (\"shape\", \"expected\"),\n    [\n        (Rect(2, 2), 4),\n        (Square(1), 1),\n        (Tri(1, 1), 0),\n    ],\n)\ndef test_area_parametrized(shape: Shape, expected: int) -> None:\n    assert area(shape) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1143,
+    "out": 917,
+    "reasoning": 429
+   },
+   "out_bytes": 1056,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1688,
+    "out": 552,
+    "reasoning": 0
+   },
+   "out_bytes": 1238,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

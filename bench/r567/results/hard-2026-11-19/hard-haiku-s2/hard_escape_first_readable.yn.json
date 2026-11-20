@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 1177,
+   "reasoning": 958,
+   "out_bytes": 540
+  },
+  "body": {
+   "in": 2020,
+   "out": 2492,
+   "reasoning": 2173,
+   "out_bytes": 807
+  }
+ },
+ "final": "-- Phase 1: declarations and signatures only. Bodies are placeholders.\n\n-- True only for a bare file name: no separators, no \"..\", not empty.\nsafe_name(name: str) -> bool =\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"../x\") == False\n  if name == \"\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\" or c == \":\"\n      return False\n  name != \".\" and name != \"..\"\n\n-- Returns the text of the first readable file in names, read from inside notes/.\n-- Returns \"\" when no name yields a readable file.\nfirst_readable(names: List[str]) -> str uses fs =\n  pre names.len() >= 0\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if safe_name(name)\n        let text = fs.read(name) else continue\n        return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 1177,
+    "reasoning": 958
+   },
+   "out_bytes": 540,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2020,
+    "out": 2492,
+    "reasoning": 2173
+   },
+   "out_bytes": 807,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

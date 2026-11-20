@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1812,
+   "out": 1788,
+   "reasoning": 1489,
+   "out_bytes": 681
+  },
+  "body": {
+   "in": 4841,
+   "out": 2299,
+   "reasoning": 1485,
+   "out_bytes": 1818
+  }
+ },
+ "final": "-- Untrusted plugin: reads through the fs capability it is given.\nplugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 1\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin confined to the `notes` directory, so `path` is relative to `notes`.\n-- Anything the plugin asks for outside `notes` reads as \"\".\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 1\n  ex run_plugin(\"../secret.txt\") == \"|\"\n  -- Open question for phase 2: under the sub-fs rooted at `notes`, the plugin's\n  -- own path \"notes/../secret.txt\" resolves to notes/secret.txt, which is inside.\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = plugin(path)\n  result\n\ntest_run_plugin_confined() uses fs =\n  assert run_plugin(\"../secret.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1812,
+    "out": 1788,
+    "reasoning": 1489
+   },
+   "out_bytes": 681,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2184,
+    "out": 1297,
+    "reasoning": 896
+   },
+   "out_bytes": 891,
+   "ok": false,
+   "report": "E312 task.yn:19:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2657,
+    "out": 1002,
+    "reasoning": 589
+   },
+   "out_bytes": 927,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:19:5 run_plugin: `plugin(path)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

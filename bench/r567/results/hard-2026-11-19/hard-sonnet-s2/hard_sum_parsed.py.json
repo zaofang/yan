@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1108,
+   "out": 886,
+   "reasoning": 267,
+   "out_bytes": 1405
+  },
+  "body": {
+   "in": 1784,
+   "out": 666,
+   "reasoning": 0,
+   "out_bytes": 1553
+  }
+ },
+ "final": "import pytest\n\n\nclass BadInput(Exception):\n    def __init__(self, text: str) -> None:\n        self.text = text\n\n\ndef sum_parsed(xs: list[str]) -> int:\n    \"\"\"Parse each string in xs as an integer and return their sum.\n\n    Raises BadInput carrying the first string that is not an integer.\n    An empty list sums to 0.\n    \"\"\"\n    total = 0\n    for s in xs:\n        try:\n            total += int(s)\n        except ValueError:\n            raise BadInput(s) from None\n    return total\n\n\ndef test_sum_basic() -> None:\n    assert sum_parsed([\"1\", \"2\", \"3\"]) == 6\n\n\ndef test_sum_empty() -> None:\n    assert sum_parsed([]) == 0\n\n\ndef test_sum_negative_and_zero() -> None:\n    assert sum_parsed([\"-3\", \"0\", \"10\"]) == 7\n\n\ndef test_sum_single() -> None:\n    assert sum_parsed([\"42\"]) == 42\n\n\ndef test_bad_input_carries_string() -> None:\n    with pytest.raises(BadInput) as exc:\n        sum_parsed([\"1\", \"abc\", \"3\"])\n    assert exc.value.text == \"abc\"\n\n\ndef test_first_bad_string_reported() -> None:\n    with pytest.raises(BadInput) as exc:\n        sum_parsed([\"1\", \"x\", \"y\"])\n    assert exc.value.text == \"x\"\n\n\ndef test_float_string_is_bad() -> None:\n    with pytest.raises(BadInput) as exc:\n        sum_parsed([\"1\", \"1.5\"])\n    assert exc.value.text == \"1.5\"\n\n\ndef test_empty_string_is_bad() -> None:\n    with pytest.raises(BadInput) as exc:\n        sum_parsed([\"\", \"2\"])\n    assert exc.value.text == \"\"\n\n\ndef test_bad_input_at_start() -> None:\n    with pytest.raises(BadInput) as exc:\n        sum_parsed([\"zzz\"])\n    assert exc.value.text == \"zzz\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1108,
+    "out": 886,
+    "reasoning": 267
+   },
+   "out_bytes": 1405,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1784,
+    "out": 666,
+    "reasoning": 0
+   },
+   "out_bytes": 1553,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -21,6 +21,8 @@ struct Task {
     timer: Option<i128>,
     /// The PCT priority (R999); unused without a `pct` scheduler.
     prio: i64,
+    /// The deadline scopes the task has open while it is not running.
+    deadlines: crate::deadline::Stack,
 }
 
 struct Block {
@@ -30,7 +32,11 @@ struct Block {
     can_yield: bool,
     /// The block whose task was running when this one began.
     parent: Option<usize>,
+    /// The task of `parent` that was running when this block began.
+    parent_task: Option<usize>,
     cancelled: bool,
+    /// The deadline scopes of the enclosing task, restored when the block returns to it.
+    outer: crate::deadline::Stack,
     /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
     kept: Option<(usize, u64)>,
 }
@@ -81,6 +87,21 @@ fn block(st: &mut State, h: u64) -> &mut Block {
     st.blocks[h as usize].as_mut().expect("a live par block")
 }
 
+/// A task of a block nested in task `i` of block `h`, at any depth, holds `level` in a shield.
+fn nested_held(st: &State, h: usize, i: usize, level: usize) -> bool {
+    st.blocks.iter().enumerate().any(|(c, b)| {
+        b.as_ref().is_some_and(|b| {
+            b.parent == Some(h)
+                && b.parent_task == Some(i)
+                && (b
+                    .tasks
+                    .iter()
+                    .any(|t| !t.done && t.deadlines.iter().any(|e| e.1 >= level))
+                    || (0..b.tasks.len()).any(|j| nested_held(st, c, j, level)))
+        })
+    })
+}
+
 /// A `pct` scheduler is bound: plain `par` stays inline so its order is the handler's.
 pub(crate) fn pct_bound() -> bool {
     with(|st| st.pct.is_some())
@@ -92,16 +113,30 @@ pub(crate) fn progressed() {
 
 /// The running task is cancelled: its block or one around it is.
 pub(crate) fn cancelled() -> bool {
+    let held = crate::deadline::floor();
     with(|st| {
+        let mut chain = Vec::new();
         let mut at = st.cur;
         while let Some(h) = at {
             let b = st.blocks[h].as_ref().expect("a live par block");
-            if b.cancelled {
-                return true;
-            }
+            chain.push(b.cancelled);
             at = b.parent;
         }
-        false
+        // The blocks a shield held when it opened are the outermost `held` of the chain.
+        chain.iter().rev().skip(held).any(|c| *c)
+    })
+}
+
+/// The count of `par` blocks the running task is inside.
+pub(crate) fn depth() -> usize {
+    with(|st| {
+        let mut n = 0;
+        let mut at = st.cur;
+        while let Some(h) = at {
+            n += 1;
+            at = st.blocks[h].as_ref().expect("a live par block").parent;
+        }
+        n
     })
 }
 
@@ -161,17 +196,22 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             Some(p) => p.priorities(n as usize),
             None => vec![0; n as usize],
         };
+        let outer = crate::deadline::snapshot();
+        let inherited: crate::deadline::Stack = outer.last().copied().into_iter().collect();
         let b = Block {
             tasks: prios
                 .into_iter()
                 .map(|prio| Task {
                     prio,
+                    deadlines: inherited.clone(),
                     ..Task::default()
                 })
                 .collect(),
+            outer,
             running: None,
             can_yield: can_yield != 0,
             parent: st.cur,
+            parent_task: st.cur.and_then(|c| block(st, c as u64).running),
             cancelled: false,
             kept: None,
         };
@@ -236,6 +276,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         let timer = st.park_timer.take();
         let b = block(st, h);
         if let Some(i) = b.running.take() {
+            b.tasks[i].deadlines = crate::deadline::take();
             b.tasks[i].timer = timer;
             let prev = b.tasks[i].park.take();
             if let Some(now) = parked {
@@ -251,7 +292,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
                         st.progress += 1;
                     }
                 }
-                let progress = st.progress;
+                let progress = st.progress + crate::futex::epoch();
                 block(st, h).tasks[i].seen = Some(progress);
             } else if let Some((true, c)) = prev
                 && unwait(st, c)
@@ -259,21 +300,37 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
                 st.progress += 1;
             }
         }
-        let progress = st.progress;
+        let progress = st.progress + crate::futex::epoch();
         let inherited = st.force.is_some_and(|f| f != h as usize);
         let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let parent = b.parent;
         let Some(first) = b.tasks.iter().position(|t| !t.done) else {
             let n = b.tasks.len() as u64;
+            crate::deadline::install(b.outer.clone());
             st.cur = parent;
             return n;
         };
         // A cancelled task runs on to fail its next wait.
+        // A task holding this block's cancellation in a shield is not run for it (R811).
+        let mut level = 1;
+        let mut up = parent;
+        while let Some(p) = up {
+            level += 1;
+            up = st.blocks[p].as_ref().expect("a live par block").parent;
+        }
+        let nested: Vec<bool> = (0..block(st, h).tasks.len())
+            .map(|i| nested_held(st, h as usize, i, level))
+            .collect();
+        let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let cancelled = b.cancelled;
         let runnable: Vec<bool> = b
             .tasks
             .iter()
-            .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+            .enumerate()
+            .map(|(i, t)| {
+                let held = nested[i] || t.deadlines.iter().any(|e| e.1 >= level);
+                !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
+            })
             .collect();
         let pick = match st.pct.as_mut() {
             Some(p) => {
@@ -288,6 +345,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
         // (RFC 0056 D4), and the parked tasks retry.
         if pick.is_none() && crate::actor::idle_ready() {
             let n = b.tasks.len() as u64;
+            crate::deadline::install(b.outer.clone());
             st.cur = parent;
             return n + 2;
         }
@@ -295,6 +353,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             Some(i) => (i, false),
             None if b.can_yield && !inherited => {
                 let n = b.tasks.len() as u64;
+                crate::deadline::install(b.outer.clone());
                 st.park = Some(NESTED);
                 st.cur = parent;
                 return n + 1;
@@ -311,6 +370,7 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             ),
         };
         b.running = Some(i);
+        crate::deadline::install(std::mem::take(&mut b.tasks[i].deadlines));
         st.force = forced.then_some(h as usize);
         st.cur = Some(h as usize);
         i as u64
@@ -330,6 +390,7 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
         if st.force == Some(h as usize) {
             st.force = None;
         }
+        crate::deadline::install(b.outer);
         st.park = None;
         st.cur = b.parent;
     });

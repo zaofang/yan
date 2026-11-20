@@ -278,7 +278,7 @@ fn sleep_in_scope(it: &mut Interp, h: &Value, ns: i128) -> Result<Value, Value> 
     match it.deadline {
         Some(d) if now + ns > d => {
             sleep(it, h, d - now);
-            Err(timeout())
+            Err(timeout(it))
         }
         _ => {
             sleep(it, h, ns);
@@ -287,7 +287,10 @@ fn sleep_in_scope(it: &mut Interp, h: &Value, ns: i128) -> Result<Value, Value> 
     }
 }
 
-pub(crate) fn timeout() -> Value {
+/// The failure of an expired deadline. A shield's own expiry is noted, for `Op::FailShield` to
+/// turn into `ShieldTimeout` where it leaves the shield (R812).
+pub(crate) fn timeout(it: &Interp) -> Value {
+    it.shield_hit.set(it.shielded);
     Data {
         name: "Timeout".to_owned(),
         fields: Vec::new(),
@@ -305,7 +308,7 @@ pub(crate) fn wait_out(it: &mut Interp) -> Option<Value> {
 /// Wait until `d`, then fail `Timeout`.
 pub(crate) fn wait_until(it: &mut Interp, d: i128) -> Value {
     advance_to(it, d);
-    timeout()
+    timeout(it)
 }
 
 /// Moves the clock the std timers use to `d`: a real wait, or the virtual clocks jumping.

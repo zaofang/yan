@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2948,
+   "out": 1582,
+   "reasoning": 159,
+   "out_bytes": 2856
+  },
+  "body": {
+   "in": 2633,
+   "out": 705,
+   "reasoning": 0,
+   "out_bytes": 1420
+  }
+ },
+ "final": "import pytest\n\n\ndef bump_all(xs: list[int], by: int) -> None:\n    \"\"\"Add `by` to every element of xs in place; the caller's list is mutated and nothing is returned.\"\"\"\n    for i in range(len(xs)):\n        xs[i] += by\n\n\ndef test_bump_all_basic() -> None:\n    xs = [1, 2, 3]\n    bump_all(xs, 2)\n    assert xs == [3, 4, 5]\n\n\ndef test_bump_all_mutates_same_object() -> None:\n    xs = [10, 20]\n    alias = xs\n    bump_all(xs, 5)\n    assert alias is xs\n    assert alias == [15, 25]\n\n\ndef test_bump_all_empty() -> None:\n    xs: list[int] = []\n    bump_all(xs, 7)\n    assert xs == []\n\n\ndef test_bump_all_zero() -> None:\n    xs = [4, -4, 0]\n    bump_all(xs, 0)\n    assert xs == [4, -4, 0]\n\n\ndef test_bump_all_negative() -> None:\n    xs = [1, 2, 3]\n    bump_all(xs, -3)\n    assert xs == [-2, -1, 0]\n\n\ndef test_bump_all_duplicates() -> None:\n    xs = [5, 5, 5]\n    bump_all(xs, 1)\n    assert xs == [6, 6, 6]\n\n\ndef test_bump_all_shared_references() -> None:\n    xs = [1, 2]\n    ys = [xs[0], xs[1]]\n    bump_all(xs, 10)\n    assert ys == [1, 2]\n    assert xs == [11, 12]\n\n\n@pytest.mark.parametrize(\n    (\"start\", \"by\", \"expected\"),\n    [\n        ([0], 1, [1]),\n        ([1, 2, 3], 100, [101, 102, 103]),\n        ([-1, -2], 1, [0, -1]),\n        ([2**62], 2**62, [2**63]),\n    ],\n)\ndef test_bump_all_parametrized(start: list[int], by: int, expected: list[int]) -> None:\n    bump_all(start, by)\n    assert start == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1059,
+    "out": 736,
+    "reasoning": 0
+   },
+   "out_bytes": 1477,
+   "ok": false,
+   "report": "test_task.py:17: error: \"bump_all\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1889,
+    "out": 846,
+    "reasoning": 159
+   },
+   "out_bytes": 1379,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2633,
+    "out": 705,
+    "reasoning": 0
+   },
+   "out_bytes": 1420,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

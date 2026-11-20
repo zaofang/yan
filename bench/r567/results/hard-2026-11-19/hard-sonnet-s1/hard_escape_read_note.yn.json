@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1709,
+   "out": 764,
+   "reasoning": 414,
+   "out_bytes": 794
+  },
+  "body": {
+   "in": 2132,
+   "out": 1112,
+   "reasoning": 645,
+   "out_bytes": 1080
+  }
+ },
+ "final": "-- A name is plain when it is a single path component: it is non-empty,\n-- is not \".\" or \"..\", and contains no \"/\", \"\\\" or NUL.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"\") == False\n  ex is_plain_name(\"..\") == False\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"/etc/passwd\") == False\n  ex is_plain_name(\"a/b\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\" or c == \"\\0\"\n      return False\n  True\n\n-- Reads notes/<name>. The function accepts any name, so there is no pre.\n-- An unsafe, missing or unreadable name gives \"\". The body confines fs\n-- to \"notes\" with `with fs = fs.sub(\"notes\")`.\nread_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  ex read_note(\"missing-note.txt\") == \"\"\n  if not is_plain_name(name)\n    return \"\"\n  var text = \"\"\n  with fs = fs.sub(\"notes\")\n    text = fs.read(name) else \"\"\n  text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1709,
+    "out": 764,
+    "reasoning": 414
+   },
+   "out_bytes": 794,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2132,
+    "out": 1112,
+    "reasoning": 645
+   },
+   "out_bytes": 1080,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

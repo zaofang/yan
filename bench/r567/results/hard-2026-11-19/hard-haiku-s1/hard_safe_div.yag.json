@@ -1,0 +1,125 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer division of a by b, rounding toward negative infinity as Python //. Fails with DivZero carrying a when b is 0.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(-7, 2) == -4\n    ex safe_div(7, 0) == Err(DivZero(a=7))\n    if not b:\n        fail DivZero(a=a)\n    return a // b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2046,
+    "out": 918,
+    "reasoning": 763
+   },
+   "out_bytes": 323
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp62kut45o/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp62kut45o/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2299,
+    "out": 639,
+    "reasoning": 461
+   },
+   "out_bytes": 374
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2608,
+    "out": 1305,
+    "reasoning": 1129
+   },
+   "out_bytes": 373
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 4907,
+   "out": 1944,
+   "reasoning": 1590,
+   "out_bytes": 747
+  },
+  "spec": {
+   "in": 2046,
+   "out": 918,
+   "reasoning": 763,
+   "out_bytes": 323
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmp62kut45o/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp62kut45o/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

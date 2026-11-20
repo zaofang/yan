@@ -38,8 +38,8 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
 const COMPILE_TIME_CAPS: [&str; 5] = ["alloc", "rand", "time", "sched", "fault"];
 
 /// The std capabilities a body can name without declaring them (7.1).
-const CAPS: [&str; 9] = [
-    "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
+const CAPS: [&str; 10] = [
+    "io", "net", "fs", "time", "rand", "log", "nondet", "shield", "env", "proc",
 ];
 
 /// Where a file sits in its package, for `use` (15.2): its directory's module path, for `use .m`,
@@ -1451,6 +1451,7 @@ impl Lower<'_> {
                     }
                     WithKind::Deadline(e) => h::WithKind::Deadline(self.expr(e)?),
                     WithKind::Timeout(e) => h::WithKind::Timeout(self.expr(e)?),
+                    WithKind::Shield(e) => h::WithKind::Shield(self.expr(e)?),
                     WithKind::Supervisor(e) => h::WithKind::Supervisor(self.expr(e)?),
                 },
                 body: self.block(body)?,
@@ -2019,9 +2020,16 @@ impl Lower<'_> {
             ),
             ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
-            ExprKind::TypeField(..) | ExprKind::Reflect(..) => {
-                return unsupported("type fields and reflection");
+            // `T.V` is the sum `T`'s variant `V` (RFC 0093 D3); it lowers like a field of the type.
+            ExprKind::TypeField(x, n) => {
+                let at = Span {
+                    line: span.end_line,
+                    col: span.end_col.saturating_sub(n.len() as u32),
+                    ..span
+                };
+                K::Attr(b(self.expr(x)?), n.clone(), at)
             }
+            ExprKind::Reflect(..) => return unsupported("reflection"),
             ExprKind::Block(_) | ExprKind::ParFor { .. } => {
                 return unsupported("block and `par for` values");
             }
@@ -2495,7 +2503,7 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
                     e(value, names, bound);
                     bound.insert(name.clone());
                 }
-                WithKind::Deadline(x) | WithKind::Timeout(x) => {
+                WithKind::Deadline(x) | WithKind::Timeout(x) | WithKind::Shield(x) => {
                     // A cancel scope can expire (R472).
                     names.fails.insert("Timeout".into());
                     e(x, names, bound)

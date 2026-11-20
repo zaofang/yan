@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1454,
+   "out": 1106,
+   "reasoning": 927,
+   "out_bytes": 442
+  },
+  "body": {
+   "in": 1706,
+   "out": 452,
+   "reasoning": 246,
+   "out_bytes": 514
+  }
+ },
+ "final": "-- Pure formatter: declares no capabilities, so it cannot print or touch files.\nformat_line(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  post out.char_count() >= 3\n  ex format_line(\"INFO\", \"ready\") == \"[INFO] ready\"\n  \"[\\(level)] \\(message)\"\n\n-- Prints one formatted line through io only. Declares no fs, so it cannot write a log file.\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  let line = format_line(level: level, message: message)\n  io.print(line)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1454,
+    "out": 1106,
+    "reasoning": 927
+   },
+   "out_bytes": 442,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1706,
+    "out": 452,
+    "reasoning": 246
+   },
+   "out_bytes": 514,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

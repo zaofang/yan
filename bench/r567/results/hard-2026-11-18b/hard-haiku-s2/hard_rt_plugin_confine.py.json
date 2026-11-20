@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 3053,
+   "reasoning": 1895,
+   "out_bytes": 2630
+  },
+  "body": {
+   "in": 2470,
+   "out": 2042,
+   "reasoning": 762,
+   "out_bytes": 2982
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef safe_reader(base: str) -> Callable[[str], str]:\n    \"\"\"Return a reader that reads paths relative to base.\n\n    Each requested path is joined onto base and resolved. If the resolved\n    path is not inside base (via \"..\", an absolute path, or a symlink that\n    points out), the reader returns \"\". A path inside base that cannot be\n    read as a text file also returns \"\".\n    \"\"\"\n    root = Path(base).resolve()\n\n    def reader(p: str) -> str:\n        target = (root / p).resolve()\n        if not target.is_relative_to(root):\n            return \"\"\n        try:\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, UnicodeDecodeError):\n            return \"\"\n\n    return reader\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run plugin(path, reader) where reader is confined to the 'notes' directory.\n\n    Returns the plugin's result when each read(p) gives the text of p relative\n    to 'notes', or \"\" for any p that cannot be read inside 'notes'.\n    \"\"\"\n    return plugin(path, safe_reader(\"notes\"))\n\n\ndef test_safe_reader_reads_inside(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    reader = safe_reader(str(notes))\n    assert reader(\"a.txt\") == \"hi\"\n\n\ndef test_safe_reader_blocks_dotdot(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    reader = safe_reader(str(notes))\n    assert reader(\"../secret.txt\") == \"\"\n\n\ndef test_safe_reader_blocks_absolute(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"S\", encoding=\"utf-8\")\n    reader = safe_reader(str(notes))\n    assert reader(str(secret)) == \"\"\n\n\ndef test_safe_reader_missing_file(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    reader = safe_reader(str(notes))\n    assert reader(\"nope.txt\") == \"\"\n\n\ndef test_run_plugin_reads_inside_only(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    # The plugin's own read of 'notes/../secret.txt' resolves to notes/secret.txt,\n    # which does not exist, so it yields \"\".\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_run_plugin_escape_request_gets_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    assert run_plugin(\"../secret.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 3053,
+    "reasoning": 1895
+   },
+   "out_bytes": 2630,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2470,
+    "out": 2042,
+    "reasoning": 762
+   },
+   "out_bytes": 2982,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,125 @@
+{
+ "final": "def confined(path: str) -> bool:\n    \"\"\"True when path, taken relative to its directory, stays inside that directory.\"\"\"\n    ex confined(\"a.txt\") == True\n    ex confined(\"sub/../a.txt\") == True\n    ex confined(\"../x\") == False\n    ex confined(\"sub/../../x\") == False\n    ex confined(\"/etc/passwd\") == False\n    if path.startswith(\"/\"):\n        return False\n    depth = 0\n    for part in path.split(\"/\"):\n        if part == \"\" or part == \".\":\n            continue\n        if part == \"..\":\n            depth -= 1\n            if depth < 0:\n                return False\n        else:\n            depth += 1\n    return True\n\ndef read_public(path: str) -> str uses fs:\n    \"\"\"Text of notes/path, or \"\" when path leaves notes or the file cannot be read.\n    Reads go through fs narrowed to the directory notes.\"\"\"\n    post confined(path) or out == \"\"\n    if not confined(path):\n        return \"\"\n    text = \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(path) else \"\"\n    return text\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpb4z2gkw5/work/task.yag:15:8 read_public: `assert read_public(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_public`\n#2 E301 /tmp/tmpb4z2gkw5/work/task.yag:16:8 read_public: `assert read_public(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_public`\n#3 E301 /tmp/tmpb4z2gkw5/work/task.yag:17:8 read_public: `assert read_public(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `read_public`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2196,
+    "out": 1346,
+    "reasoning": 1079
+   },
+   "out_bytes": 681
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2725,
+    "out": 728,
+    "reasoning": 515
+   },
+   "out_bytes": 559
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3036,
+    "out": 1169,
+    "reasoning": 812
+   },
+   "out_bytes": 1003
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_dotdot_forms",
+ "tokens": {
+  "body": {
+   "in": 3036,
+   "out": 1169,
+   "reasoning": 812,
+   "out_bytes": 1003
+  },
+  "spec": {
+   "in": 4921,
+   "out": 2074,
+   "reasoning": 1594,
+   "out_bytes": 1240
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpb4z2gkw5/work/task.yag:15:8 read_public: `assert read_public(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_public`\n#2 E301 /tmp/tmpb4z2gkw5/work/task.yag:16:8 read_public: `assert read_public(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_public`\n#3 E301 /tmp/tmpb4z2gkw5/work/task.yag:17:8 read_public: `assert read_public(\"missing.txt\")` c"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

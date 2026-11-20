@@ -1,0 +1,128 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when `name` is a plain, single-component file name that stays inside `notes`.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"..\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"sub/a.txt\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"a\\\\b\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`, or \"\" if it is missing or unreadable. Any name that would reach outside `notes` (such as \"../x\" or an absolute path) also gives \"\".\"\"\"\n    if not is_safe_name(name):\n        return \"\"\n    text = \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else \"\"\n    return text\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpc_s86vsu/work/task.yag:3:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpc_s86vsu/work/task.yag:4:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpc_s86vsu/work/task.yag:5:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmpc_s86vsu/work/task.yag:6:8 read_note: `assert read_note(\"\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 353,
+    "reasoning": 187
+   },
+   "out_bytes": 403
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2617,
+    "out": 577,
+    "reasoning": 301
+   },
+   "out_bytes": 668
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2991,
+    "out": 917,
+    "reasoning": 543
+   },
+   "out_bytes": 948
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 2991,
+   "out": 917,
+   "reasoning": 543,
+   "out_bytes": 948
+  },
+  "spec": {
+   "in": 4737,
+   "out": 930,
+   "reasoning": 488,
+   "out_bytes": 1071
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpc_s86vsu/work/task.yag:3:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpc_s86vsu/work/task.yag:4:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpc_s86vsu/work/task.yag:5:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

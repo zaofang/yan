@@ -1,0 +1,214 @@
+{
+ "final": "# uint8 is modelled as int in the range 0..255; k is the rotation count in 0..7.\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping the high bits to the low end.\"\"\"\n    pre 0 <= x and x <= 255\n    pre 0 <= k and k <= 7\n    post 0 <= out and out <= 255\n    post (((out << ((8 - k) % 8)) | (out >> k)) & 0xFF) == x\n    ex rotl8(0x81, 1) == 0x03\n    ex rotl8(0x80, 1) == 0x01\n    ex rotl8(0x0F, 4) == 0xF0\n    ex rotl8(0x12, 0) == 0x12\n    return ((x << k) | (x >> (8 - k))) & 0xFF\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "N22",
+      "N22",
+      "N22"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2034,
+    "out": 1417,
+    "reasoning": 1170
+   },
+   "out_bytes": 449
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "FAIL task.rotl8#ex1 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex1\nFAIL task.rotl8#ex2 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex2\nFAIL task.rotl8#ex3 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex3\nFAIL task.rotl8#ex4 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex4\n0 of 4 tests passed",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [
+      "task.rotl8#ex1",
+      "task.rotl8#ex2",
+      "task.rotl8#ex3",
+      "task.rotl8#ex4"
+     ],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2379,
+    "out": 722,
+    "reasoning": 452
+   },
+   "out_bytes": 487
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: rotl8. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 1,
+   "tools": [],
+   "usage": {
+    "in": 2883,
+    "out": 985,
+    "reasoning": 702
+   },
+   "out_bytes": 508
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "FAIL task.rotl8#ex1 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex1\nFAIL task.rotl8#ex2 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex2\nFAIL task.rotl8#ex3 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex3\nFAIL task.rotl8#ex4 (proposed) ran out of its step budget | repro: yan test --only task.rotl8#ex4\n0 of 4 tests passed",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [
+      "task.rotl8#ex1",
+      "task.rotl8#ex2",
+      "task.rotl8#ex3",
+      "task.rotl8#ex4"
+     ],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3253,
+    "out": 821,
+    "reasoning": 551
+   },
+   "out_bytes": 487
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 3,
+   "stop": "the accepted post `rotl8(out, (8 - k) % 8) == x` calls rotl8 itself, so checking it re-enters rotl8 without end and every ex test exhausts its step budget. The body cannot fix this, and the spec is frozen, so the contract needs an owner's change to be non-recursive (for example, `((out << ((8 - k) % 8)) | (out >> k)) & 0xFF == x`).",
+   "tools": [],
+   "usage": {
+    "in": 3757,
+    "out": 794,
+    "reasoning": 649
+   },
+   "out_bytes": 339
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "N22",
+      "N22",
+      "N22",
+      "N06"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 4202,
+    "out": 690,
+    "reasoning": 430
+   },
+   "out_bytes": 470
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4560,
+    "out": 934,
+    "reasoning": 651
+   },
+   "out_bytes": 508
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rotl8",
+ "tokens": {
+  "body": {
+   "in": 16832,
+   "out": 4256,
+   "reasoning": 3005,
+   "out_bytes": 2329
+  },
+  "spec": {
+   "in": 6236,
+   "out": 2107,
+   "reasoning": 1600,
+   "out_bytes": 919
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

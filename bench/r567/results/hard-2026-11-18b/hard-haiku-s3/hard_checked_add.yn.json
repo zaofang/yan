@@ -1,0 +1,119 @@
+{
+ "status": "body_failed",
+ "rounds_to_green": null,
+ "tokens": {
+  "spec": {
+   "in": 1452,
+   "out": 1296,
+   "reasoning": 1113,
+   "out_bytes": 392
+  },
+  "body": {
+   "in": 10827,
+   "out": 4284,
+   "reasoning": 3065,
+   "out_bytes": 2645
+  }
+ },
+ "final": "-- Spec: checked 64-bit signed addition that reports overflow as None.\n\nchecked_add(a: int, b: int) -> int? =\n  post out == None or (out else 0) - b == a\n  ex checked_add(1, 2) == 3\n  ex checked_add(-5, 5) == 0\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775808, -1) == None\n  let hi = 9223372036854775807\n  let lo = -9223372036854775807 - 1\n  -- Only subtractions that cannot overflow are used:\n  -- for b >= 0, hi - b is in range; for b < 0, lo - a is in range.\n  if b >= 0\n    if a > hi - b\n      return None\n  if b < 0\n    if b < lo - a\n      return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 1296,
+    "reasoning": 1113
+   },
+   "out_bytes": 392,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1708,
+    "out": 1793,
+    "reasoning": 1485
+   },
+   "out_bytes": 670,
+   "ok": false,
+   "report": "E201 task.yn:4:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 task.yn:4:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 task.yn:4:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE221 task.yn:5:35 checked_add: `out >= a` `int?` does not implement `Ord`\nE221 task.yn:5:35 checked_add: `out >= a` `int?` does not implement `Ord`\nE221 task.yn:5:35 checked_add: `out >= a` `int?` does not implement `Ord`\nE221 task.yn:5:59 checked_add: `out < a` `int?` does not implement `Ord`\nE221 task.yn:5:59 checked_add: `out < a` `int?` does not implement `Ord`\nE221 task.yn:5:59 checked_add: `out < a` `int?` does not implement `Ord`",
+   "codes": [
+    "E201",
+    "E221"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2464,
+    "out": 739,
+    "reasoning": 416
+   },
+   "out_bytes": 697,
+   "ok": false,
+   "report": "E401 task.yn:5:8 task.checked_add: `post out == None or (b >= 0 and (out else 0) >= a)` `_out4` is used after `_out4.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:5:8 task.checked_add: `post out == None or (b >= 0 and (out else 0) >= a)` `_out35` is used after `_out35.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:5:8 task.checked_add: `post out == None or (b >= 0 and (out else 0) >= a)` `_t64` is used after `_t64.Some.value` was moved out of it | moved at 4:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3052,
+    "out": 968,
+    "reasoning": 661
+   },
+   "out_bytes": 666,
+   "ok": false,
+   "report": "E401 task.yn:5:8 task.checked_add: `post out == None or ((out else 0) >= a)` `_out4` is used after `_out4.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:5:8 task.checked_add: `post out == None or ((out else 0) >= a)` `_out25` is used after `_out25.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:5:8 task.checked_add: `post out == None or ((out else 0) >= a)` `_t44` is used after `_t44.Some.value` was moved out of it | moved at 4:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 3603,
+    "out": 784,
+    "reasoning": 503
+   },
+   "out_bytes": 612,
+   "ok": false,
+   "report": "E401 task.yn:15:7 task.checked_add: `return None` `_out4` is used after `_out4.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:18:7 task.checked_add: `return None` `_out16` is used after `_out16.Some.value` was moved out of it | moved at 4:24\nE401 task.yn:19:3 task.checked_add: `a + b` `_t26` is used after `_t26.Some.value` was moved out of it | moved at 4:24",
+   "codes": [
+    "E401"
+   ]
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E201 ./task.yn:4:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 ./task.yn:4:23 checked_add: `out - b` `-` on a `int | None`, which may be `None`; unwrap it first with `else` | maybe: out -> (out else 0)\nE201 ./task."
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yn:15:7 task.checked_add: `return None` `_out4` is used after `_out4.Some.value` was moved out of it | moved at 4:24\nE401 ./task.yn:18:7 task.checked_add: `return None` `_out16` is used after `_out16.Some.value` was moved out of it | moved at 4:24\nE401 ./task.yn:19:3 task.checked_add: `a"
+ }
+}

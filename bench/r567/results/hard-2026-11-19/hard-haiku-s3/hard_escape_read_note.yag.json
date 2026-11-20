@@ -1,0 +1,127 @@
+{
+ "final": "def is_note_name(name: str) -> bool:\n    \"\"\"True when `name` is a plain file name that stays inside `notes`.\n\n    Rejects empty names, absolute paths, path separators, and `..` components.\n    \"\"\"\n    pre name.char_count() >= 0\n    ex is_note_name(\"a.txt\") == True\n    ex is_note_name(\"../secret.txt\") == False\n    ex is_note_name(\"/etc/passwd\") == False\n    ex is_note_name(\"sub/a.txt\") == False\n    ex is_note_name(\"\") == False\n    if name.char_count() == 0:\n        return False\n    if \"/\" in name or \"\\\\\" in name:\n        return False\n    if name == \".\" or name == \"..\" or name.startswith(\"..\"):\n        return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of file `name` inside the directory `notes`.\n\n    `name` is untrusted. Only files inside `notes` (relative to the working\n    directory) are read. A missing or unreadable file gives \"\". No name,\n    including one with `..`, absolute paths, or separators, may read a file\n    outside `notes`.\n    \"\"\"\n    pre name.char_count() >= 0\n    post out.char_count() <= out.byte_len()\n    if not is_note_name(name):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(name) else \"\"\n        return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpwmwcveed/work/task.yag:11:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpwmwcveed/work/task.yag:12:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpwmwcveed/work/task.yag:13:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 942,
+    "reasoning": 717
+   },
+   "out_bytes": 578
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2604,
+    "out": 856,
+    "reasoning": 511
+   },
+   "out_bytes": 896
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3047,
+    "out": 1253,
+    "reasoning": 790
+   },
+   "out_bytes": 1243
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 3047,
+   "out": 1253,
+   "reasoning": 790,
+   "out_bytes": 1243
+  },
+  "spec": {
+   "in": 4724,
+   "out": 1798,
+   "reasoning": 1228,
+   "out_bytes": 1474
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpwmwcveed/work/task.yag:11:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpwmwcveed/work/task.yag:12:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpwmwcveed/work/task.yag:13:8 read_note: `assert read_note(\"/etc/passwd\")` capability `"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

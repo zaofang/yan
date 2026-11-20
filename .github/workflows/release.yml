@@ -105,6 +105,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           pre=$(case "$GITHUB_REF_NAME" in *-*) echo --prerelease ;; esac)
+          # shellcheck disable=SC2086 # $pre is empty or one flag
           gh release create "$GITHUB_REF_NAME" dist/out/* --repo "$GITHUB_REPOSITORY" \
             --verify-tag --generate-notes $pre
       - name: Update the project tap

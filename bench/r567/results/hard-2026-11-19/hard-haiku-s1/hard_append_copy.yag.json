@@ -1,0 +1,94 @@
+{
+ "final": "def add_name(var dst: list[str], s: str):\n    \"\"\"Append a copy of s to the borrowed list dst, editing it in place.\n\n    Callers pass the list as &x. Nothing is returned.\n    \"\"\"\n    pre s.byte_len() >= 0\n    dst.append(s.copy())\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 947,
+    "reasoning": 796
+   },
+   "out_bytes": 374
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2284,
+    "out": 159,
+    "reasoning": 0
+   },
+   "out_bytes": 391
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/append_copy",
+ "tokens": {
+  "body": {
+   "in": 2284,
+   "out": 159,
+   "reasoning": 0,
+   "out_bytes": 391
+  },
+  "spec": {
+   "in": 2035,
+   "out": 947,
+   "reasoning": 796,
+   "out_bytes": 374
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

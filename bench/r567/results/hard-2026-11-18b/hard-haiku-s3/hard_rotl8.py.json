@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 993,
+   "reasoning": 558,
+   "out_bytes": 909
+  },
+  "body": {
+   "in": 1583,
+   "out": 836,
+   "reasoning": 369,
+   "out_bytes": 965
+  }
+ },
+ "final": "from typing import Final\n\nimport pytest\n\nWIDTH: Final = 8\nMASK: Final = 0xFF\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits (0 <= k <= 7).\n\n    Bits shifted out of the high end wrap around to the low end.\n    The result is always within 0..255.\n    \"\"\"\n    x &= MASK\n    return ((x << k) | (x >> (WIDTH - k))) & MASK\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"k\", \"expected\"),\n    [\n        (0b10000001, 1, 0b00000011),\n        (0x01, 0, 0x01),\n        (0xFF, 3, 0xFF),\n        (0x12, 4, 0x21),\n        (0x80, 7, 0x40),\n        (0x01, 7, 0x80),\n        (0xA5, 0, 0xA5),\n    ],\n)\ndef test_rotl8(x: int, k: int, expected: int) -> None:\n    assert rotl8(x, k) == expected\n\n\ndef test_rotl8_result_in_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= MASK\n\n\ndef test_rotl8_full_rotation_is_identity() -> None:\n    for x in range(256):\n        assert rotl8(x, 0) == x\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 993,
+    "reasoning": 558
+   },
+   "out_bytes": 909,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1583,
+    "out": 836,
+    "reasoning": 369
+   },
+   "out_bytes": 965,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

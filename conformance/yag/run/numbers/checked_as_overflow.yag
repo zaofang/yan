@@ -1,0 +1,10 @@
+# spec: 3.4, 14.1
+# rows: R1112
+# stdout:
+# before
+# exit: 101
+
+def main() uses io:
+    io.print("before")
+    x = 300
+    io.print(f"{checked_as[uint8](x)}")

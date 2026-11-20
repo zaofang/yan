@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1574,
+   "reasoning": 301,
+   "out_bytes": 3044
+  },
+  "body": {
+   "in": 2409,
+   "out": 1736,
+   "reasoning": 352,
+   "out_bytes": 3413
+  }
+ },
+ "final": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in a `name=value` per-line config text.\n\n    Rules:\n    - Each line is split on its first \"=\", so values may contain \"=\".\n    - Whitespace around the name and around the value is stripped.\n    - Blank lines, lines whose first non-space character is \"#\", and\n      lines without \"=\" are ignored.\n    - Lines with an empty name (e.g. \"=x\") are ignored, so key \"\" always\n      yields \"\".\n    - Key matching is exact and case-sensitive.\n    - If the key appears more than once, the last occurrence wins.\n    - Returns \"\" when the key is absent. A key present with an empty\n      value also yields \"\".\n    - Lines may end in \"\\\\n\" or \"\\\\r\\\\n\".\n    - Never reads files; only `text` is consulted.\n    \"\"\"\n    result = \"\"\n    for raw in text.split(\"\\n\"):\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if not sep:\n            continue\n        name = name.strip()\n        if not name:\n            continue\n        if name == key:\n            result = value.strip()\n    return result\n\n\ndef test_basic_lookup() -> None:\n    text = \"host=example.com\\nport=8080\\n\"\n    assert config_value(text, \"host\") == \"example.com\"\n    assert config_value(text, \"port\") == \"8080\"\n\n\ndef test_missing_key_returns_empty() -> None:\n    assert config_value(\"a=1\\nb=2\", \"c\") == \"\"\n\n\ndef test_empty_text() -> None:\n    assert config_value(\"\", \"a\") == \"\"\n\n\ndef test_whitespace_stripped() -> None:\n    assert config_value(\"  name  =   value with spaces  \\n\", \"name\") == \"value with spaces\"\n\n\ndef test_value_may_contain_equals() -> None:\n    assert config_value(\"url=http://x/?a=b&c=d\", \"url\") == \"http://x/?a=b&c=d\"\n\n\ndef test_empty_value() -> None:\n    assert config_value(\"a=\\nb=2\", \"a\") == \"\"\n\n\ndef test_comments_and_blank_lines_ignored() -> None:\n    text = \"# a=1\\n\\n   # a=2\\na=3\\n\"\n    assert config_value(text, \"a\") == \"3\"\n\n\ndef test_commented_key_not_found() -> None:\n    assert config_value(\"# a=1\", \"a\") == \"\"\n\n\ndef test_lines_without_equals_ignored() -> None:\n    text = \"garbage\\na=1\\nmore garbage\"\n    assert config_value(text, \"a\") == \"1\"\n    assert config_value(text, \"garbage\") == \"\"\n\n\ndef test_duplicate_key_last_wins() -> None:\n    assert config_value(\"a=1\\nb=2\\na=3\", \"a\") == \"3\"\n\n\ndef test_case_sensitive() -> None:\n    assert config_value(\"Key=v\", \"key\") == \"\"\n    assert config_value(\"Key=v\", \"Key\") == \"v\"\n\n\ndef test_exact_match_not_prefix() -> None:\n    text = \"ab=1\\na=2\"\n    assert config_value(text, \"a\") == \"2\"\n    assert config_value(\"ab=1\", \"a\") == \"\"\n\n\ndef test_crlf_line_endings() -> None:\n    text = \"a=1\\r\\nb=2\\r\\n\"\n    assert config_value(text, \"a\") == \"1\"\n    assert config_value(text, \"b\") == \"2\"\n\n\ndef test_no_trailing_newline() -> None:\n    assert config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n\n\ndef test_empty_name_line_ignored() -> None:\n    assert config_value(\"=x\\na=1\", \"\") == \"\"\n\n\ndef test_empty_key_argument() -> None:\n    assert config_value(\"a=1\", \"\") == \"\"\n\n\n@pytest.mark.parametrize(\n    (\"text\", \"key\", \"expected\"),\n    [\n        (\"a=1\", \"a\", \"1\"),\n        (\"a = 1\", \"a\", \"1\"),\n        (\"\\ta\\t=\\t1\\t\", \"a\", \"1\"),\n        (\"x=1\\ny=2\", \"y\", \"2\"),\n        (\"x=1\", \"y\", \"\"),\n    ],\n)\ndef test_parametrized(text: str, key: str, expected: str) -> None:\n    assert config_value(text, key) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1574,
+    "reasoning": 301
+   },
+   "out_bytes": 3044,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2409,
+    "out": 1736,
+    "reasoning": 352
+   },
+   "out_bytes": 3413,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

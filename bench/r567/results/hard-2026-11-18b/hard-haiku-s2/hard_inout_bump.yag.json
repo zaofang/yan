@@ -1,0 +1,94 @@
+{
+ "final": "# bump_all mutates its argument, so it takes no ex lines (the spec rule for\n# functions that only change a var parameter). Its behaviour is checked by tests.\n\ndef bump_all(var xs: list[int], by: int):\n    \"\"\"Add `by` to every element of xs, in place. The caller passes &x.\"\"\"\n    for i in range(xs.len()):\n        xs[i] = xs[i] + by\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2021,
+    "out": 1136,
+    "reasoning": 1020
+   },
+   "out_bytes": 301
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2235,
+    "out": 329,
+    "reasoning": 189
+   },
+   "out_bytes": 350
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/inout_bump",
+ "tokens": {
+  "body": {
+   "in": 2235,
+   "out": 329,
+   "reasoning": 189,
+   "out_bytes": 350
+  },
+  "spec": {
+   "in": 2021,
+   "out": 1136,
+   "reasoning": 1020,
+   "out_bytes": 301
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

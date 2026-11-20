@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 1418,
+   "reasoning": 1050,
+   "out_bytes": 942
+  },
+  "body": {
+   "in": 4586,
+   "out": 3438,
+   "reasoning": 2395,
+   "out_bytes": 2683
+  }
+ },
+ "final": "-- Declarations and implementations for first_readable.\n\n-- True only for a single file name with no path parts,\n-- so a name cannot step outside the confined directory.\nis_plain_name(name: str) -> bool =\n  pre True\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"\") == False\n  name.char_count() > 0 and name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- Text of notes/name, or \"\" when the name is not plain or the file\n-- is missing or unreadable. Reads only through the fs capability,\n-- which the caller has already narrowed to the notes directory.\nread_note(name: str) -> str uses fs =\n  pre is_plain_name(name)\n  ex read_note(\"no-such-file-xyz\") == \"\"\n  fs.read(name) else \"\"\n\n-- Text of the first name in names that reads from notes, or \"\" if none do.\n-- The capability is narrowed to notes before any name is read.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if is_plain_name(name)\n        let text = read_note(name)\n        if text != \"\"\n          return text\n  \"\"\n\ntest_plain_names() =\n  assert is_plain_name(\"a.txt\")\n  assert is_plain_name(\"../x\") == False\n  assert is_plain_name(\"sub/x\") == False\n  assert is_plain_name(\"..\") == False\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 1418,
+    "reasoning": 1050
+   },
+   "out_bytes": 942,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1999,
+    "out": 2190,
+    "reasoning": 1668
+   },
+   "out_bytes": 1342,
+   "ok": false,
+   "report": "E100 task.yn:24:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2587,
+    "out": 1248,
+    "reasoning": 727
+   },
+   "out_bytes": 1341,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:24:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

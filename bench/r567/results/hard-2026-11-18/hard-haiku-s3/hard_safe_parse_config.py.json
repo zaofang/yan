@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 953,
+   "reasoning": 457,
+   "out_bytes": 1290
+  },
+  "body": {
+   "in": 1632,
+   "out": 750,
+   "reasoning": 173,
+   "out_bytes": 1543
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for ``key`` in ``name=value`` config text.\n\n    ``text`` is parsed line by line. Each line holds one ``name=value``\n    pair, split on the first ``=``. Surrounding whitespace is stripped from\n    both name and value. Blank lines and lines whose first non-space\n    character is ``#`` are ignored. If ``key`` does not appear, return an\n    empty string. This function never reads files; it works only on\n    ``text``.\n    \"\"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        name, sep, value = line.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_returns_value_for_existing_key() -> None:\n    assert config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_returns_empty_string_for_missing_key() -> None:\n    assert config_value(\"host=localhost\", \"port\") == \"\"\n\n\ndef test_returns_empty_string_for_empty_text() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_value_may_contain_equals_sign() -> None:\n    assert config_value(\"expr=a=b\", \"expr\") == \"a=b\"\n\n\ndef test_strips_whitespace_around_key_and_value() -> None:\n    assert config_value(\"  name  =  alice  \", \"name\") == \"alice\"\n\n\ndef test_ignores_comment_lines() -> None:\n    assert config_value(\"# port=1\\nport=2\", \"port\") == \"2\"\n\n\ndef test_ignores_blank_lines() -> None:\n    assert config_value(\"\\n\\nkey=val\\n\\n\", \"key\") == \"val\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 953,
+    "reasoning": 457
+   },
+   "out_bytes": 1290,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1632,
+    "out": 750,
+    "reasoning": 173
+   },
+   "out_bytes": 1543,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
