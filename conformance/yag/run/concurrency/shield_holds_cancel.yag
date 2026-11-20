@@ -9,7 +9,7 @@
 class Bad:
     n: int
 
-def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout uses io, nondet, time:
+def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout uses io, nondet, shield, time:
     with shield(1 * s):
         a.wait(0, LoadOrdering.Acquire()) else e -> io.print(f"caught {e}")
     a.wait(0, LoadOrdering.Acquire())?
@@ -18,14 +18,14 @@ def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout uses io, nondet, ti
 def boom(n: int) -> None fail Bad:
     fail Bad(n=n)
 
-def run() -> str fail Cancelled | Timeout | Bad uses io, nondet, time:
+def run() -> str fail Cancelled | Timeout | Bad uses io, nondet, shield, time:
     a = Atomic[uint32](0)
     par concurrent:
         boom(7)?
         hold(a)?
     return "ok"
 
-pub def main() uses io, nondet, time:
+pub def main() uses io, nondet, shield, time:
     with time = virtual(time.now()):
         with sched = sequential():
             io.print(run() else err -> f"{err}")
