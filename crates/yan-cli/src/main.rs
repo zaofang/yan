@@ -422,7 +422,7 @@ enum Command {
         format: ReviewFormat,
     },
     /// List the claims taken on trust: `unsafe` items and preconditions, extern `safe`,
-    /// `uses none` and `@access` claims (6, 11.2, 12).
+    /// `uses none` and `@access` claims, and shields (6, 9.4, 11.2, 12).
     Audit {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
