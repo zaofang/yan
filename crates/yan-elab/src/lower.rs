@@ -2288,6 +2288,7 @@ const NONDET_OPS: &[&str] = &[
     "std.sync.atomic.wait",
     "std.sync.atomic.notify_one",
     "std.sync.atomic.notify_all",
+    "std.scope.drain",
 ];
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).

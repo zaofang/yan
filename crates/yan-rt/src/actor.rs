@@ -979,6 +979,7 @@ pub fn deliver_stopped(ch: usize, text: u64) {
 
 /// The program ends: the root supervisor's children stop, the last started first (R957).
 pub fn end_root() {
+    crate::scope::reset();
     with(|st| {
         for c in st.sups[0].children.clone().into_iter().rev() {
             st.actors[c].end();

@@ -10444,6 +10444,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/scope_drain_root.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1124",
+    "R1125"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "before False\nafter True\nagain True\nintake Draining()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/set_add_discard_contains.yag",
    "kind": "run",
    "milestone": "M1",

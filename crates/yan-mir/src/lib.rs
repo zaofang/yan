@@ -752,6 +752,10 @@ pub enum RtFn {
     DeadlineEnd,
     /// `(depth)`: end the deadline scopes past `depth`.
     DeadlineEndTo,
+    /// `(id)`: drain scope `id` (9.4).
+    ScopeDrain,
+    /// `(id) -> i64`: 1 when scope `id` is draining.
+    ScopeDraining,
     /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
     FfiCall,
     /// As `FfiCall`, `-> f64`.

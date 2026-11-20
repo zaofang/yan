@@ -1,0 +1,18 @@
+"""Cancel scopes and their drain phase (9.4)."""
+
+@since("1.0")
+pub class Scope:
+    """A handle to a cancel scope; `root()` is the scope std binds before `main`."""
+    id: int
+
+@since("1.0")
+pub def root() -> Scope:
+    return Scope(0)
+
+@intrinsic
+@since("1.0")
+pub def drain(self: Scope, grace: Duration) -> None: ...
+
+@intrinsic
+@since("1.0")
+pub def is_draining(self: Scope) -> bool: ...
