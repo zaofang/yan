@@ -301,17 +301,26 @@ pub(crate) fn timeout(it: &Interp) -> Value {
 /// The grace end of a drain around the running task came before the deadline in force and has
 /// passed (9.4).
 fn drain_cut(it: &Interp) -> bool {
+    let deadline = deadline(it);
     it.scopes
         .cancel_at(it.scope)
-        .is_some_and(|c| it.deadline.is_none_or(|d| c < d) && mono_now(it) >= c)
+        .is_some_and(|c| deadline.is_none_or(|d| c < d) && mono_now(it) >= c)
+}
+
+/// The deadline in force: under drain a shield runs no later than the end of the cancel grace of
+/// the scopes it holds back (R812).
+pub(crate) fn deadline(it: &Interp) -> Option<i128> {
+    let limit = it.scopes.shield_limit(it.scope);
+    it.deadline.map(|d| limit.map_or(d, |l| l.min(d)))
 }
 
 /// The instant that cuts a wait short: the deadline in force, or the grace end of a drain around
 /// the running task when that comes first; [`timeout`] is the failure of a wait it cut.
 pub(crate) fn cut(it: &Interp) -> Option<i128> {
+    let deadline = deadline(it);
     match it.scopes.cancel_at(it.scope) {
-        Some(c) => Some(it.deadline.map_or(c, |d| d.min(c))),
-        None => it.deadline,
+        Some(c) => Some(deadline.map_or(c, |d| d.min(c))),
+        None => deadline,
     }
 }
 

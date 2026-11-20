@@ -21,7 +21,10 @@ thread_local! {
 /// The instant that cuts a wait short: the deadline in force, or the grace end of a drain around
 /// the running task when that comes first (9.4).
 pub fn current() -> Option<i128> {
-    let deadline = STACK.with(|s| s.borrow().last().map(|e| (e.0, e.2)));
+    let limit = crate::scope::shield_limit();
+    let deadline = STACK
+        .with(|s| s.borrow().last().map(|e| (e.0, e.2)))
+        .map(|(at, shield)| (limit.map_or(at, |l| l.min(at)), shield));
     let cancel = crate::scope::cancel_at().filter(|c| deadline.is_none_or(|d| *c < d.0));
     DRAIN.with(|d| d.set(cancel.is_some()));
     HIT.with(|h| h.set(cancel.is_none() && deadline.is_some_and(|d| d.1)));
@@ -30,7 +33,10 @@ pub fn current() -> Option<i128> {
 
 /// The deadline in force without drains, if a scope is open.
 pub(crate) fn in_force() -> Option<i128> {
-    STACK.with(|s| s.borrow().last().map(|e| e.0))
+    let limit = crate::scope::shield_limit();
+    STACK
+        .with(|s| s.borrow().last().map(|e| e.0))
+        .map(|at| limit.map_or(at, |l| l.min(at)))
 }
 
 /// The status of a wait that ended unfulfilled after [`current`]: `cancelled` when a drain's

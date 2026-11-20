@@ -2315,3 +2315,8 @@ sections = "9.4"
 rows = "R1128"
 topic = "the cancel grace is 10 s: a task that reaches a cancellation point after the cancel grace that follows its scope's drain cancel aborts the program with a panic of kind `shutdown`, exit status 134 on every backend (D3 of #1820)"
 sections = "8.3, 9.4"
+
+[[entry]]
+rows = "R1129"
+topic = "under drain a shield's instant is clamped to the end of the cancel grace of the scopes it holds back: the earliest of their drain grace ends plus 10 s, whether the drain came before or after the shield opened; expiry at the clamp is `ShieldTimeout` (#1803 item 4, #1820)"
+sections = "9.4"
