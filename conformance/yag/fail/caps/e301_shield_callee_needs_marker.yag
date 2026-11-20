@@ -1,12 +1,13 @@
 # spec: 9.4
 # rows: R812
-# expect: E301 at 10:12
+# expect: E301 at 11:12
 
-def hold() -> int fail Timeout | ShieldTimeout uses time, shield:
+def hold() -> int fail Cancelled | Timeout | ShieldTimeout uses time, shield:
     with shield(1 * s):
+        time.sleep(1 * ms)?
         return 1
 
-def caller() -> int fail Timeout | ShieldTimeout uses time:
+def caller() -> int fail Cancelled | Timeout | ShieldTimeout uses time:
     return hold()?
 
 pub def main() uses io, time:
