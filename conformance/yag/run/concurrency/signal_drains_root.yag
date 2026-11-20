@@ -1,0 +1,34 @@
+# spec: 9.4, 24.1
+# rows: R1130
+# note: the first SIGINT or SIGTERM drains the root scope, so every scope is draining and work goes on; a second signal exits at once with status 128 plus its number (#1820)
+# signal: INT after ready
+# signal: TERM after draining True True
+# exit: 143
+# stdout:
+# ready
+# draining True True
+
+def nap(d: Duration) -> str fail Cancelled | Timeout uses time:
+    time.sleep(d)?
+    return "ok"
+
+def await_drain() -> bool uses time:
+    n = 0
+    while n < 40 and not scope.root().is_draining():
+        _ = nap(50 * ms) else e -> f"{e}"
+        n = n + 1
+    return scope.root().is_draining()
+
+def inner() -> bool fail Timeout uses time:
+    with timeout(60 * s):
+        return scope.current().is_draining()
+
+def main() uses io, time:
+    io.print("ready")
+    if not await_drain():
+        io.print("no signal")
+        return
+    inside = inner() else e -> False
+    io.print(f"draining {scope.root().is_draining()} {inside}")
+    b = nap(3 * s) else e -> f"{e}"
+    io.print(f"no second signal, slept {b}")

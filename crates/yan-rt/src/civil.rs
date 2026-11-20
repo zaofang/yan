@@ -738,20 +738,28 @@ pub fn wait_until(t: i128) {
     if clocks_last().is_some() {
         clocks_advance_to(t);
     } else if let Ok(ns) = u64::try_from(t - host_monotonic()) {
-        std::thread::sleep(std::time::Duration::from_nanos(ns));
+        crate::signal::sleep(ns);
     }
 }
 
 /// Sleeps `ns` on handler `h`, or until the enclosing deadline when that comes first; whether it
 /// was cut short, which fails `Timeout`, or `Cancelled` when a drain's grace end cut it (9.4).
 fn clock_sleep(h: i64, ns: i128) -> Done {
-    let now = clock_monotonic(h);
-    let cut = crate::deadline::current().filter(|d| now + ns > *d);
-    sleep_for(h, cut.map_or(ns, |d| d - now));
-    match cut {
-        None => int(0),
-        Some(_) if crate::deadline::cut_status(0, 1) == 1 => Done::Fail(Vec::new()),
-        Some(_) => Done::Timeout,
+    let end = clock_monotonic(h) + ns;
+    // A signal wakes a host sleep early (9.4): the drain it starts may cut the rest short.
+    loop {
+        let now = clock_monotonic(h);
+        let cut = crate::deadline::current().filter(|d| end > *d);
+        let until = cut.unwrap_or(end);
+        if now < until {
+            sleep_for(h, until - now);
+            continue;
+        }
+        return match cut {
+            None => int(0),
+            Some(_) if crate::deadline::cut_status(0, 1) == 1 => Done::Fail(Vec::new()),
+            Some(_) => Done::Timeout,
+        };
     }
 }
 
@@ -764,7 +772,7 @@ fn sleep_for(h: i64, ns: i128) {
         Some(c) => c.slept += ns,
         None => {
             drop(c);
-            std::thread::sleep(std::time::Duration::from_nanos(ns as u64));
+            crate::signal::sleep(ns as u64);
         }
     }
 }

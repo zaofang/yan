@@ -1169,6 +1169,7 @@ fn run_program(
         Ok(m) => m,
         Err(code) => return code,
     };
+    yan_rt::signal::yan_rt_signals();
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
     }
