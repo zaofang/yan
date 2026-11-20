@@ -72,7 +72,7 @@ pub(crate) fn idle_or_deadlock() -> u64 {
             deadlock();
         };
         crate::civil::wait_until(d);
-        return TIMEOUT;
+        return crate::deadline::cut_status(TIMEOUT, CANCELLED);
     }
     crate::actor::WORK
 }
@@ -296,7 +296,7 @@ pub fn select_wait(keys: &[u64], at: &[u64], in_task: bool) -> (u64, u64) {
         match (wake, crate::deadline::current()) {
             (Some(w), Some(d)) if d < w => {
                 crate::civil::wait_until(d);
-                return (TIMEOUT, 0);
+                return (crate::deadline::cut_status(TIMEOUT, CANCELLED), 0);
             }
             (Some(w), _) => crate::civil::wait_until(w),
             (None, _) => return (idle_or_deadlock(), 0),

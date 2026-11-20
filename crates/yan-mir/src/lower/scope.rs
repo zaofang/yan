@@ -15,13 +15,16 @@ impl Fn<'_, '_> {
         let v = match (id, args.as_slice()) {
             (id::STD_SCOPE_ROOT, []) => Operand::Int(0),
             (id::STD_SCOPE_CURRENT, []) => self.rt(RtFn::ScopeCurrent, I64, Vec::new()),
-            // The grace starts the cancel timer, which no backend runs yet (#1820).
-            (id::STD_SCOPE_DRAIN, [(_, s), _]) => {
+            (id::STD_SCOPE_DRAIN, [(_, s), (_, grace)]) => {
                 let s = self.atom_any(s)?.0[0].clone();
+                let (g, _) = self.atom_any(grace)?;
+                let [hi, lo] = g.as_slice() else {
+                    return unsupported("a drain grace that is not a `Duration`");
+                };
                 self.emit(Inst::Rt {
                     dst: None,
                     f: RtFn::ScopeDrain,
-                    args: vec![s],
+                    args: vec![s, hi.clone(), lo.clone()],
                 });
                 return Ok(());
             }

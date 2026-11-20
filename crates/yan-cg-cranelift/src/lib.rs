@@ -2561,7 +2561,7 @@ fn rt_fn(
         RtFn::ScopeDrain => (
             "yan_rt_scope_drain",
             yan_rt::scope::yan_rt_scope_drain as *const u8,
-            &[I64],
+            &[I64, I64, I64],
             None,
         ),
         RtFn::ScopeDraining => (

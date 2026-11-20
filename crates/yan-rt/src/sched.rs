@@ -115,6 +115,9 @@ pub(crate) fn progressed() {
 
 /// The running task is cancelled: its block or one around it is.
 pub(crate) fn cancelled() -> bool {
+    if crate::scope::cancelled_or_abort() {
+        return true;
+    }
     let held = crate::deadline::floor();
     with(|st| {
         let mut chain = Vec::new();
@@ -201,7 +204,7 @@ pub(crate) fn park_until(p: Park, timer: Option<i128>, in_task: bool) -> bool {
 /// task that can suspend.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
-    let scope = crate::scope::open();
+    let scope = crate::scope::open(false);
     with(|st| {
         let prios = match st.pct.as_mut() {
             Some(p) => p.priorities(n as usize),

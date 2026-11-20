@@ -1226,7 +1226,7 @@ fn run_program(
         }
         Err(Stop::Panic(p)) => {
             eprintln!("{}", p.render(&file.display().to_string()));
-            ExitCode::from(EXIT_PANIC as u8)
+            ExitCode::from(yan_rt::abi::panic_exit(&p.kind) as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
         Err(Stop::Limit(what)) => tool_failure(&format!("stage-0 {what} limit at run time")),
