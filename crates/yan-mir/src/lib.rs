@@ -754,7 +754,7 @@ pub enum RtFn {
     DeadlineEndTo,
     /// `() -> id`: the innermost cancel scope open in the running task (`std.scope`, 9.4).
     ScopeCurrent,
-    /// `(id)`: drain the scope, if it is open.
+    /// `(id, hi, lo)`: drain the scope, if it is open, to be cancelled after the grace `(hi, lo)`.
     ScopeDrain,
     /// `(id) -> bool`: the scope, or one around it, is draining.
     ScopeDraining,

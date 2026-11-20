@@ -7302,6 +7302,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/scope_drain_abort_after_cancel_grace.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1128"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "slow done\n",
+   "exit": 134
+  },
+  {
+   "path": "yag/run/concurrency/scope_drain_cancel_after_grace.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1127"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "boss first ok after PT1S\nboss second Cancelled() after PT2S\nboss third Cancelled() after PT2S\nworker recv -1 after PT0S True\nworker again -2 after PT0S\nafter par ok False\nTimeout() at PT2S\nCancelled() at PT3S\nroot Cancelled() at PT4S\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_expiry_is_shield_timeout.yag",
    "kind": "run",
    "milestone": "M1",

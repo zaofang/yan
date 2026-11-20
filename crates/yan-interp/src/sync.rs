@@ -235,7 +235,7 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
         })
         .collect();
     loop {
-        if let Some(e) = cancelled(&vm.it) {
+        if let Some(e) = cancelled(&vm.it)? {
             return Ok(Err(e));
         }
         crate::simfault::sweep(&mut vm.it);
@@ -273,7 +273,7 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
             it.park_timer = wake;
             return Ok(Ok(Value::Unit));
         }
-        match (wake, it.deadline) {
+        match (wake, super::time::cut(it)) {
             (Some(w), Some(d)) if d < w => return Ok(Err(wait_until(it, d))),
             (Some(w), _) => advance_to(it, w),
             (None, _) => {
@@ -288,15 +288,13 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
 }
 
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
-fn cancelled(it: &Interp) -> Option<Value> {
-    it.cancel
-        .iter()
-        .skip(it.shield_floor)
-        .any(|c| *c)
-        .then(|| Value::Data {
-            name: "Cancelled".into(),
-            fields: Vec::new(),
-        })
+fn cancelled(it: &Interp) -> R<Option<Value>> {
+    let cancelled =
+        super::time::drain_cancelled(it)? || it.cancel.iter().skip(it.shield_floor).any(|c| *c);
+    Ok(cancelled.then(|| Value::Data {
+        name: "Cancelled".into(),
+        fields: Vec::new(),
+    }))
 }
 
 /// What a send to a full mailbox does (R974).
@@ -471,6 +469,8 @@ fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>
             ));
         }
     };
+    // A drain's grace end cuts the wait when it comes first.
+    let d = super::time::cut(it).map_or(d, |c| c.min(d));
     unwait(it, me);
     Ok(Some(wait_until(it, d)))
 }
@@ -680,7 +680,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     // A full mailbox parks a `Block` sender, so the actor runs its oldest
                     // message first; waiting is a cancellation point (9.6).
                     Policy::Block => {
-                        if let Some(c) = cancelled(&vm.it) {
+                        if let Some(c) = cancelled(&vm.it)? {
                             return Ok(Err(undelivered(c, std::mem::take(&mut a[1]))));
                         }
                         if !run_queued(vm, id)? {
@@ -770,7 +770,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
             loop {
-                if let Some(e) = cancelled(&vm.it) {
+                if let Some(e) = cancelled(&vm.it)? {
                     return Ok(Err(e));
                 }
                 crate::simfault::sweep(&mut vm.it);
@@ -791,7 +791,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_CHAN_RECEIVER_TRY_RECV,
         Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
-            if let Some(e) = cancelled(&vm.it) {
+            if let Some(e) = cancelled(&vm.it)? {
                 return Ok(Err(e));
             }
             crate::simfault::sweep(&mut vm.it);
@@ -842,7 +842,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let c = open_sender(&a[0])?;
             loop {
                 let it = &mut vm.it;
-                if let Some(e) = cancelled(it) {
+                if let Some(e) = cancelled(it)? {
                     return Ok(Err(e));
                 }
                 if send_room(it, c) {
@@ -861,7 +861,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::VmFallible(|vm, a| {
             let c = open_sender(&a[0])?;
             let it = &mut vm.it;
-            if let Some(e) = cancelled(it) {
+            if let Some(e) = cancelled(it)? {
                 return Ok(Err(e));
             }
             if !send_room(it, c) {
@@ -1026,7 +1026,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let me = vm.task_path.clone();
             loop {
                 let it = &mut vm.it;
-                if let Some(e) = cancelled(it) {
+                if let Some(e) = cancelled(it)? {
                     it.futex.retain(|(p, _)| *p != me);
                     return Ok(Err(e));
                 }

@@ -1,0 +1,65 @@
+# spec: 9.4
+# rows: R1127
+# note: a drained scope is cancelled when its grace ends on the bound time handler's clock: a blocking operation that would wait past it fails Cancelled there, later ones at once; the first drain's grace stands; an earlier deadline still fails Timeout; a drain reaches only its own scope (#1820)
+# stdout:
+# boss first ok after PT1S
+# boss second Cancelled() after PT2S
+# boss third Cancelled() after PT2S
+# worker recv -1 after PT0S True
+# worker again -2 after PT0S
+# after par ok False
+# Timeout() at PT2S
+# Cancelled() at PT3S
+# root Cancelled() at PT4S
+
+def nap(d: Duration) -> str fail Cancelled | Timeout uses time:
+    time.sleep(d)?
+    return "ok"
+
+def worker(var rx: Receiver[int]) -> None uses io, time:
+    t0 = time.monotonic()
+    r = rx.recv() else e -> -1
+    io.print(f"worker recv {r} after {time.monotonic() - t0} {scope.current().is_draining()}")
+    r2 = rx.recv() else e -> -2
+    io.print(f"worker again {r2} after {time.monotonic() - t0}")
+
+def boss() -> None uses io, time, nondet:
+    t0 = time.monotonic()
+    scope.current().drain(2 * s)
+    scope.current().drain(9 * s)
+    a = nap(1 * s) else e -> f"{e}"
+    io.print(f"boss first {a} after {time.monotonic() - t0}")
+    b = nap(5 * s) else e -> f"{e}"
+    io.print(f"boss second {b} after {time.monotonic() - t0}")
+    c = nap(5 * s) else e -> f"{e}"
+    io.print(f"boss third {c} after {time.monotonic() - t0}")
+
+def deadline_first() -> str fail Timeout uses time, nondet:
+    with timeout(1 * s):
+        scope.current().drain(3 * s)
+        r = nap(5 * s) else e -> f"{e}"
+        return r
+
+def drain_first() -> str fail Timeout uses time, nondet:
+    with timeout(4 * s):
+        scope.current().drain(1 * s)
+        r = nap(5 * s) else e -> f"{e}"
+        return r
+
+def main() uses io, time, nondet:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            _, rx = Channel[int](1)
+            par concurrent:
+                boss()
+                worker(&rx)
+            t0 = time.monotonic()
+            x = nap(1 * s) else e -> f"{e}"
+            io.print(f"after par {x} {scope.current().is_draining()}")
+            a = deadline_first() else e -> "timeout"
+            io.print(f"{a} at {time.monotonic() - t0}")
+            b = drain_first() else e -> "timeout"
+            io.print(f"{b} at {time.monotonic() - t0}")
+            scope.root().drain(1 * s)
+            y = nap(3 * s) else e -> f"{e}"
+            io.print(f"root {y} at {time.monotonic() - t0}")

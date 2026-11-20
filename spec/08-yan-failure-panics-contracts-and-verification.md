@@ -24,7 +24,7 @@ Integer overflow and failed strict casts inside a table query end the query with
 
 The causes are: integer overflow, division by zero, a failed `requires`, `ensures`, `assert` or `invariant`, a failed runtime exclusivity check, `unreachable`, unproven indexing in `check` mode, a shape mismatch, an out-of-range time value, and a global deadlock (R396).
 
-A panic aborts the process. It prints `panic(kind): message` and the panicking task's stack trace, writes the record-and-replay ring buffer if one is bound, and exits with status 101. There is no unwinding, no landing pads and no catch, and drops do not run. Isolation from bugs is a process boundary: std's process supervisor uses it, and `yan test` runs each test file in its own process.
+A panic aborts the process. It prints `panic(kind): message` and the panicking task's stack trace, writes the record-and-replay ring buffer if one is bound, and exits with status 101, or 134 for kind `shutdown` (9.4, R1128). There is no unwinding, no landing pads and no catch, and drops do not run. Isolation from bugs is a process boundary: std's process supervisor uses it, and `yan test` runs each test file in its own process.
 
 Panic kinds: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`.
 

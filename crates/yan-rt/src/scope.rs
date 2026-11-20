@@ -1,6 +1,7 @@
 //! Cancel scopes as values (9.4, `std.scope`): the root scope, each `par concurrent` block and
 //! each deadline, timeout or shield scope has an id, and a scope drains when it or a scope
-//! around it was drained. The interpreter keeps its own [`Scopes`]; native code and the
+//! around it was drained. A drained scope is cancelled once its grace has passed on the bound
+//! `time` handler's monotonic clock. The interpreter keeps its own [`Scopes`]; native code and the
 //! machine share the thread's.
 
 use std::cell::RefCell;
@@ -9,18 +10,35 @@ use std::collections::BTreeMap;
 /// The scope std binds around `main`; it never closes.
 pub const ROOT: u64 = 0;
 
-/// The open scopes: each one's parent and whether it was drained.
+/// The cancel grace in nanoseconds (9.4): a task alive this long after its drained scope was
+/// cancelled aborts the process with a panic of kind `shutdown`.
+pub const CANCEL_GRACE: i128 = 10_000_000_000;
+
+struct Scope {
+    parent: u64,
+    /// A shield holds the cancellation of the scopes around it (R811).
+    shield: bool,
+    /// Set by the first drain: the monotonic reading its grace ends at.
+    cancel_at: Option<i128>,
+}
+
+/// The open scopes.
 #[derive(Default)]
 pub struct Scopes {
     last: u64,
-    open: BTreeMap<u64, (u64, bool)>,
-    root_drained: bool,
+    open: BTreeMap<u64, Scope>,
+    root_cancel_at: Option<i128>,
 }
 
 impl Scopes {
-    pub fn open(&mut self, parent: u64) -> u64 {
+    pub fn open(&mut self, parent: u64, shield: bool) -> u64 {
         self.last += 1;
-        self.open.insert(self.last, (parent, false));
+        let s = Scope {
+            parent,
+            shield,
+            cancel_at: None,
+        };
+        self.open.insert(self.last, s);
         self.last
     }
 
@@ -32,18 +50,19 @@ impl Scopes {
     pub fn close_to(&mut self, mut id: u64, outer: u64) {
         while id != outer {
             match self.open.remove(&id) {
-                Some((parent, _)) => id = parent,
+                Some(s) => id = s.parent,
                 None => break,
             }
         }
     }
 
-    /// Draining a scope that has ended does nothing.
-    pub fn drain(&mut self, id: u64) {
+    /// Drain `id`, to be cancelled at monotonic reading `cancel_at`. Draining a scope again, or
+    /// one that has ended, does nothing.
+    pub fn drain(&mut self, id: u64, cancel_at: i128) {
         if id == ROOT {
-            self.root_drained = true;
-        } else if let Some(e) = self.open.get_mut(&id) {
-            e.1 = true;
+            self.root_cancel_at.get_or_insert(cancel_at);
+        } else if let Some(s) = self.open.get_mut(&id) {
+            s.cancel_at.get_or_insert(cancel_at);
         }
     }
 
@@ -51,14 +70,34 @@ impl Scopes {
     pub fn draining(&self, mut id: u64) -> bool {
         loop {
             if id == ROOT {
-                return self.root_drained;
+                return self.root_cancel_at.is_some();
             }
             match self.open.get(&id) {
-                Some((_, true)) => return true,
-                Some((parent, false)) => id = *parent,
+                Some(s) if s.cancel_at.is_some() => return true,
+                Some(s) => id = s.parent,
                 None => return false,
             }
         }
+    }
+
+    /// The monotonic reading at which a task whose innermost scope is `id` is cancelled: the
+    /// earliest grace end of the draining scopes from `id` out to the innermost shield.
+    pub fn cancel_at(&self, mut id: u64) -> Option<i128> {
+        let mut at: Option<i128> = None;
+        let mut earliest = |c: Option<i128>| at = [at, c].into_iter().flatten().min();
+        loop {
+            if id == ROOT {
+                earliest(self.root_cancel_at);
+                break;
+            }
+            let Some(s) = self.open.get(&id) else { break };
+            earliest(s.cancel_at);
+            if s.shield {
+                break;
+            }
+            id = s.parent;
+        }
+        at
     }
 }
 
@@ -67,9 +106,35 @@ thread_local! {
 }
 
 /// Open a scope inside the running task's innermost one.
-pub(crate) fn open() -> u64 {
+pub(crate) fn open(shield: bool) -> u64 {
     let parent = yan_rt_scope_current();
-    SCOPES.with(|s| s.borrow_mut().open(parent))
+    SCOPES.with(|s| s.borrow_mut().open(parent, shield))
+}
+
+/// When the running task is cancelled by a drain, if a scope it is in drains.
+pub(crate) fn cancel_at() -> Option<i128> {
+    let id = yan_rt_scope_current();
+    SCOPES.with(|s| s.borrow().cancel_at(id))
+}
+
+/// The grace of a drain around the running task has passed (9.4).
+pub(crate) fn cancelled() -> bool {
+    cancel_at().is_some_and(|c| crate::civil::mono_now() >= c)
+}
+
+/// As [`cancelled`], at a cancellation point: a task still alive once the cancel grace has also
+/// passed aborts the process.
+pub(crate) fn cancelled_or_abort() -> bool {
+    let Some(c) = cancel_at() else {
+        return false;
+    };
+    let now = crate::civil::mono_now();
+    if now >= c + CANCEL_GRACE {
+        let k = "shutdown";
+        // SAFETY: a static string.
+        unsafe { crate::abi::yan_rt_panic(k.as_ptr(), k.len()) }
+    }
+    now >= c
 }
 
 /// The program ends: the next one on this thread starts with a fresh root.
@@ -87,10 +152,11 @@ pub extern "C" fn yan_rt_scope_current() -> u64 {
     crate::deadline::scope().unwrap_or_else(crate::sched::scope)
 }
 
-/// `Scope.drain`.
+/// `Scope.drain`: the grace `(hi, lo)` runs on the innermost `time` handler's clock.
 #[unsafe(no_mangle)]
-pub extern "C" fn yan_rt_scope_drain(id: u64) {
-    SCOPES.with(|s| s.borrow_mut().drain(id));
+pub extern "C" fn yan_rt_scope_drain(id: u64, hi: i64, lo: i64) {
+    let at = crate::civil::mono_now().saturating_add(crate::timeabi::join(hi, lo));
+    SCOPES.with(|s| s.borrow_mut().drain(id, at));
 }
 
 /// `Scope.is_draining`.
@@ -106,26 +172,42 @@ mod tests {
     #[test]
     fn a_drain_reaches_the_scopes_inside() {
         let mut s = Scopes::default();
-        let a = s.open(ROOT);
-        let b = s.open(a);
-        let c = s.open(ROOT);
-        s.drain(a);
+        let a = s.open(ROOT, false);
+        let b = s.open(a, false);
+        let c = s.open(ROOT, false);
+        s.drain(a, 5);
         assert!(s.draining(a) && s.draining(b));
         assert!(!s.draining(c) && !s.draining(ROOT));
-        s.drain(ROOT);
+        s.drain(ROOT, 9);
         assert!(s.draining(c));
+        assert_eq!((s.cancel_at(b), s.cancel_at(c)), (Some(5), Some(9)));
+        s.drain(a, 1);
+        assert_eq!(s.cancel_at(a), Some(5));
     }
 
     #[test]
     fn an_ended_scope_is_not_draining() {
         let mut s = Scopes::default();
-        let a = s.open(ROOT);
-        let b = s.open(a);
-        s.drain(a);
+        let a = s.open(ROOT, false);
+        let b = s.open(a, false);
+        s.drain(a, 5);
         s.close_to(b, ROOT);
         assert!(!s.draining(a) && !s.draining(b));
-        s.drain(a);
+        s.drain(a, 5);
         assert!(!s.draining(a));
-        assert_eq!(s.open(ROOT), 3);
+        assert_eq!(s.open(ROOT, false), 3);
+    }
+
+    #[test]
+    fn a_shield_holds_the_cancel_of_the_scopes_around_it() {
+        let mut s = Scopes::default();
+        let a = s.open(ROOT, false);
+        let sh = s.open(a, true);
+        let in_sh = s.open(sh, false);
+        s.drain(a, 5);
+        assert!(s.draining(in_sh));
+        assert_eq!(s.cancel_at(in_sh), None);
+        s.drain(sh, 7);
+        assert_eq!(s.cancel_at(in_sh), Some(7));
     }
 }

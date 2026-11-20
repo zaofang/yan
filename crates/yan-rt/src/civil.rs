@@ -743,12 +743,16 @@ pub fn wait_until(t: i128) {
 }
 
 /// Sleeps `ns` on handler `h`, or until the enclosing deadline when that comes first; whether it
-/// was cut short, which fails `Timeout` (9.4).
-fn clock_sleep(h: i64, ns: i128) -> bool {
+/// was cut short, which fails `Timeout`, or `Cancelled` when a drain's grace end cut it (9.4).
+fn clock_sleep(h: i64, ns: i128) -> Done {
     let now = clock_monotonic(h);
     let cut = crate::deadline::current().filter(|d| now + ns > *d);
     sleep_for(h, cut.map_or(ns, |d| d - now));
-    cut.is_some()
+    match cut {
+        None => int(0),
+        Some(_) if crate::deadline::cut_status(0, 1) == 1 => Done::Fail(Vec::new()),
+        Some(_) => Done::Timeout,
+    }
 }
 
 fn sleep_for(h: i64, ns: i128) {
@@ -845,9 +849,9 @@ fn run_more(op: &str, a: &[i64], text: &dyn Fn(i64) -> String) -> Done {
             } else {
                 ns - clock_monotonic(a[0])
             };
-            let cut = clock_sleep(a[0], ns);
+            let done = clock_sleep(a[0], ns);
             crate::cluster::sweep();
-            if cut { Done::Timeout } else { int(0) }
+            done
         }
         "mono.add" => Done::Ok(words(join(a[0], a[1]) + join(a[2], a[3])).to_vec()),
         "mono.sub" | "mono.since" => Done::Ok(words(join(a[0], a[1]) - join(a[2], a[3])).to_vec()),
