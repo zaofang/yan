@@ -1,8 +1,8 @@
 # 0099: The tail value of `with` and `unsafe` blocks, and diverging branches of a conditional
 
-- Status: draft
+- Status: accepted
 - Research: #1836 (gap issue); R567 hard run 2026-11-20 (`bench/r567/results/hard-2026-11-20`, branch `bench/r567-hard-2026-11-20b`, main 4556487); report `r567-hard-gap-2026-11-20`
-- Rows: filled in when accepted
+- Rows: R1130 (D1); D2 pending, numbered with its implementation
 
 ## Summary
 
@@ -47,8 +47,8 @@ Consequences of A the lead should see before deciding:
 - Two existing conformance cases assert today's rejection of a `with` tail value (`yn/fail/failure/e312_with_tail_value`, and the bare-name case added in #1837). Under A both programs become valid. Those cases are the lead's to edit or retire; the loop half of the same diagnostic keeps its cases.
 - `with deadline(d)`, `with timeout(d)` and `with shield(d)` are `with` blocks and follow the same rule.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended: A (lead, 2026-11-20)
+- Row: R1130
 
 ### D2: a diverging form as a branch of the conditional expression
 
@@ -62,11 +62,11 @@ Options:
 
 Recommended: A, on consistency with `fallback`. It is independent of D1 and can be deferred without affecting it.
 
-- Decision:
-- Row:
+- Decision: accepted as recommended: A (lead, 2026-11-20)
+- Row: pending, numbered with the implementation
 
 ## Spec changes
 
-If D1 is accepted: section 15 (Functions: which blocks pass the tail on; grammar comment on `withstmt` and `unsafestmt`), section 8 (the discarded-result paragraph, which names `with` in its hint), section 16 (projection: a tail value inside `with` prints as `return` in Yan Agent).
+D1: section 15.3, Functions (R1130). The two cases that asserted the rejection of a `with` tail value are now passing cases of R1130 (lead's word, 2026-11-20).
 
-If D2 is accepted: section 15 grammar (`cond`) and the Failure paragraph.
+D2: section 15 grammar (`cond`) and the Failure paragraph, with its implementation.

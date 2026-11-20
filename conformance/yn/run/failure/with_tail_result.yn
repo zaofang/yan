@@ -1,0 +1,26 @@
+-- spec: 15.3
+-- rows: R1130
+-- note: a `with` block in tail position passes its last expression on, through a nested `if`; a loop does not
+-- stdout:
+-- 8
+-- 0
+-- 3
+
+twice(n: int) -> int uses time =
+  with timeout(1s)
+    if n > 0
+      n * 2
+    else
+      0
+
+first_big(xs: List[int]) -> int uses time =
+  with timeout(1s)
+    for x in xs
+      if x > 2
+        return x
+    0
+
+main() uses io, time =
+  print(twice(4) else -1)
+  print(twice(0) else -1)
+  print(first_big([1, 3, 5]) else -1)
