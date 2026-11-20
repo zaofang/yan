@@ -35,6 +35,8 @@ struct Block {
     /// The task of `parent` that was running when this block began.
     parent_task: Option<usize>,
     cancelled: bool,
+    /// The block's `std.scope` id.
+    scope: u64,
     /// The deadline scopes of the enclosing task, restored when the block returns to it.
     outer: crate::deadline::Stack,
     /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
@@ -127,6 +129,14 @@ pub(crate) fn cancelled() -> bool {
     })
 }
 
+/// The `std.scope` id of the block whose task is running; the root's outside every block.
+pub(crate) fn scope() -> u64 {
+    with(|st| {
+        st.cur
+            .map_or(crate::scope::ROOT, |h| block(st, h as u64).scope)
+    })
+}
+
 /// The count of `par` blocks the running task is inside.
 pub(crate) fn depth() -> usize {
     with(|st| {
@@ -191,13 +201,19 @@ pub(crate) fn park_until(p: Park, timer: Option<i128>, in_task: bool) -> bool {
 /// task that can suspend.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
+    let scope = crate::scope::open();
     with(|st| {
         let prios = match st.pct.as_mut() {
             Some(p) => p.priorities(n as usize),
             None => vec![0; n as usize],
         };
         let outer = crate::deadline::snapshot();
-        let inherited: crate::deadline::Stack = outer.last().copied().into_iter().collect();
+        // A task's inherited deadline stands for the block, so the block is its innermost scope.
+        let inherited: crate::deadline::Stack = outer
+            .last()
+            .map(|e| (e.0, e.1, e.2, scope))
+            .into_iter()
+            .collect();
         let b = Block {
             tasks: prios
                 .into_iter()
@@ -213,6 +229,7 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             parent: st.cur,
             parent_task: st.cur.and_then(|c| block(st, c as u64).running),
             cancelled: false,
+            scope,
             kept: None,
         };
         match st.blocks.iter().position(Option::is_none) {
@@ -390,6 +407,12 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
         if st.force == Some(h as usize) {
             st.force = None;
         }
+        // A task that left the function may have left scopes open.
+        let left = crate::deadline::take();
+        for e in b.tasks.iter().flat_map(|t| &t.deadlines).chain(&left) {
+            crate::scope::close(e.3);
+        }
+        crate::scope::close(b.scope);
         crate::deadline::install(b.outer);
         st.park = None;
         st.cur = b.parent;

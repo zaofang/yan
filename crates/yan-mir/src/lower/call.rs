@@ -307,6 +307,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::scope::SCOPE_IDS.contains(&id) {
+            return self.scope_call(id, c, dst);
+        }
         if super::mutex::MUTEX_IDS.contains(&id) {
             return self.mutex_call(id, c, dst);
         }
@@ -360,22 +363,6 @@ impl<'a, 'm> Fn<'a, 'm> {
                     f: RtFn::Eprint,
                     args: vec![s],
                 });
-            }
-            (id::STD_SCOPE_DRAIN, [(_, a), ..]) => {
-                let s = self.atom_any(a)?.0[0].clone();
-                self.emit(Inst::Rt {
-                    dst: None,
-                    f: RtFn::ScopeDrain,
-                    args: vec![s],
-                });
-            }
-            (id::STD_SCOPE_IS_DRAINING, [(_, a)]) => {
-                let s = self.atom_any(a)?.0[0].clone();
-                let w = self.rt(RtFn::ScopeDraining, I64, vec![s]);
-                let b = self.scalar_op(ScalarOp::Ne, I64, vec![w, Operand::Int(0)]);
-                if let Some(d) = &dst {
-                    self.copy_to(&d.locals.clone(), vec![b]);
-                }
             }
             (id::STD_FS_READ | id::STD_FS_LIST_DIR, [(_, path)]) => {
                 let (name, f) = match id {

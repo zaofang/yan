@@ -7287,6 +7287,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/scope_current_drain.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1126"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "False True\nboss True True False True True\nworker True True False\nFalse True\nTrue True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_expiry_is_shield_timeout.yag",
    "kind": "run",
    "milestone": "M1",

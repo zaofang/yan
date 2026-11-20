@@ -927,9 +927,10 @@ const RT: &[RtFn] = &[
     RtFn::ShieldBegin,
     RtFn::ShieldHit,
     RtFn::DeadlineEnd,
+    RtFn::DeadlineEndTo,
+    RtFn::ScopeCurrent,
     RtFn::ScopeDrain,
     RtFn::ScopeDraining,
-    RtFn::DeadlineEndTo,
     RtFn::FfiCall,
     RtFn::FfiCallF64,
 ];
@@ -2551,11 +2552,11 @@ fn rt_fn(
             &[],
             None,
         ),
-        RtFn::DeadlineEndTo => (
-            "yan_rt_deadline_end_to",
-            deadline::yan_rt_deadline_end_to as *const u8,
-            &[I64],
-            None,
+        RtFn::ScopeCurrent => (
+            "yan_rt_scope_current",
+            yan_rt::scope::yan_rt_scope_current as *const u8,
+            &[],
+            Some(I64),
         ),
         RtFn::ScopeDrain => (
             "yan_rt_scope_drain",
@@ -2568,6 +2569,12 @@ fn rt_fn(
             yan_rt::scope::yan_rt_scope_draining as *const u8,
             &[I64],
             Some(I64),
+        ),
+        RtFn::DeadlineEndTo => (
+            "yan_rt_deadline_end_to",
+            deadline::yan_rt_deadline_end_to as *const u8,
+            &[I64],
+            None,
         ),
         RtFn::CostBegin => (
             "yan_rt_cost_begin",

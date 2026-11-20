@@ -71,6 +71,8 @@ struct Saved {
     shielded: bool,
     /// The blocks of `it.cancel` below it that a `shield` open in the frame holds.
     floor: usize,
+    /// The innermost cancel scope open in the frame.
+    scope: u64,
 }
 
 struct Task {
@@ -86,6 +88,8 @@ struct Task {
     chain: Vec<Saved>,
     seg: Vec<Value>,
     height: usize,
+    /// The innermost cancel scope open in the task's own frame.
+    scope: u64,
 }
 
 /// A `par concurrent` block that yielded mid-run.
@@ -95,6 +99,8 @@ struct Suspended {
     /// Per task index: the failure it left the block with, if any.
     failed: Vec<Option<Value>>,
     cancel: bool,
+    /// The block's `std.scope` id.
+    scope: u64,
 }
 
 /// How a `par concurrent` block stopped.
@@ -517,9 +523,10 @@ impl<'o> Vm<'o> {
     /// the block ends with its outcome (R390, R394, 9.4).
     fn run_tasks(&mut self, code: &mut Rc<Code>, base: usize, entries: &[u32]) -> R<Flow> {
         let key = (self.task_path.clone(), entries[0]);
-        let (mut tasks, mut first, mut failed, cancel) = match self.suspended.remove(&key) {
-            Some(s) => (s.tasks, s.first, s.failed, s.cancel),
+        let (mut tasks, mut first, mut failed, cancel, scope) = match self.suspended.remove(&key) {
+            Some(s) => (s.tasks, s.first, s.failed, s.cancel, s.scope),
             None => {
+                let scope = self.it.scopes.open(self.it.scope);
                 let prios = match self.it.pct.as_mut() {
                     Some(p) => p.priorities(entries.len()),
                     None => vec![0; entries.len()],
@@ -538,11 +545,13 @@ impl<'o> Vm<'o> {
                             chain: Vec::new(),
                             seg: Vec::new(),
                             height: 0,
+                            scope,
                         })
                         .collect(),
                     None,
                     vec![None; entries.len()],
                     false,
+                    scope,
                 )
             }
         };
@@ -551,6 +560,7 @@ impl<'o> Vm<'o> {
         let can_yield = outer == Some(base) && !self.it.force;
         self.it.in_par += 1;
         self.it.cancel.push(cancel);
+        let outer_scope = self.it.scope;
         let mut yielded = false;
         let out = loop {
             let progress = self.it.progress;
@@ -622,7 +632,9 @@ impl<'o> Vm<'o> {
             self.unwinding.clear();
             self.task_path.push(i);
             let prev_chain = mem::replace(&mut self.chain, true);
+            self.it.scope = tasks[i].scope;
             let r = self.resume_into(code, &mut pc, base, &chain);
+            tasks[i].scope = mem::replace(&mut self.it.scope, outer_scope);
             self.chain = prev_chain;
             self.task_path.pop();
             self.it.force = false;
@@ -685,11 +697,17 @@ impl<'o> Vm<'o> {
                     first,
                     failed,
                     cancel,
+                    scope,
                 },
             );
             self.it.park = Some((false, usize::MAX));
             return Ok(Flow::Yield);
         }
+        // A task that left the function may have left scopes open.
+        for t in &tasks {
+            self.it.scopes.close_to(t.scope, scope);
+        }
+        self.it.scopes.close(scope);
         for t in &tasks {
             if let Some((true, c)) = t.park
                 && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
@@ -717,7 +735,8 @@ impl<'o> Vm<'o> {
         let mut code = self.codes[f].clone();
         let (deadline, shielded, floor) =
             (self.it.deadline, self.it.shielded, self.it.shield_floor);
-        self.run_framed(&mut code, 0, base, (deadline, shielded), floor, &[])
+        let scope = self.it.scope;
+        self.run_framed(&mut code, 0, base, (deadline, shielded, scope), floor, &[])
     }
 
     /// Run a called frame from `pc`, with the frames it had called when it parked in `callee`
@@ -727,11 +746,12 @@ impl<'o> Vm<'o> {
         code: &mut Rc<Code>,
         mut pc: usize,
         base: usize,
-        (deadline, shielded): (Option<i128>, bool),
+        (deadline, shielded, scope): (Option<i128>, bool, u64),
         floor: usize,
         callee: &[Saved],
     ) -> R<Result<Value, Value>> {
         // A deadline scope ends with its function, however that returns.
+        let outer_scope = mem::replace(&mut self.it.scope, scope);
         let outer = mem::replace(&mut self.it.deadline, deadline);
         let outer_shielded = mem::replace(&mut self.it.shielded, shielded);
         let outer_floor = mem::replace(&mut self.it.shield_floor, floor);
@@ -739,6 +759,10 @@ impl<'o> Vm<'o> {
         let inner_floor = mem::replace(&mut self.it.shield_floor, outer_floor);
         let inner = mem::replace(&mut self.it.deadline, outer);
         let inner_shielded = mem::replace(&mut self.it.shielded, outer_shielded);
+        let inner_scope = mem::replace(&mut self.it.scope, outer_scope);
+        if self.it.park.is_none() {
+            self.it.scopes.close_to(inner_scope, outer_scope);
+        }
         // So do its `with supervisor` scopes, unless the frame parked to resume later.
         if self.it.park.is_none() {
             crate::supervise::end_frame(&mut self.it, base);
@@ -764,6 +788,7 @@ impl<'o> Vm<'o> {
                 deadline: inner,
                 shielded: inner_shielded,
                 floor: inner_floor,
+                scope: inner_scope,
             });
         }
         match r {
@@ -795,7 +820,7 @@ impl<'o> Vm<'o> {
                 &mut cc,
                 c.pc,
                 c.base,
-                (c.deadline, c.shielded),
+                (c.deadline, c.shielded, c.scope),
                 c.floor,
                 rest,
             )?;
@@ -866,10 +891,14 @@ impl<'o> Vm<'o> {
                         Some(d) => Value::Mono(d),
                         None => Value::Unit,
                     };
-                    // The floor slot also keeps whether the outer deadline was a shield's.
+                    // The floor slot also keeps whether the outer deadline was a shield's, and
+                    // above bit 64 the outer scope.
                     self.stack[base + floor as usize] = Value::Int(
-                        (self.it.shield_floor as i128) << 1 | i128::from(self.it.shielded),
+                        i128::from(self.it.scope) << 64
+                            | (self.it.shield_floor as i128) << 1
+                            | i128::from(self.it.shielded),
                     );
+                    self.it.scope = self.it.scopes.open(self.it.scope);
                     if shield {
                         self.it.deadline = Some(at);
                         self.it.shielded = true;
@@ -887,8 +916,10 @@ impl<'o> Vm<'o> {
                 Op::SupEnd => crate::supervise::end(&mut self.it),
                 Op::DeadlineEnd { saved, floor } => {
                     if let Value::Int(f) = self.stack[base + floor as usize] {
-                        self.it.shield_floor = (f >> 1) as usize;
+                        self.it.shield_floor = (f as u64 >> 1) as usize;
                         self.it.shielded = f & 1 == 1;
+                        self.it.scopes.close(self.it.scope);
+                        self.it.scope = (f >> 64) as u64;
                     }
                     self.it.deadline = match self.stack[base + saved as usize] {
                         Value::Mono(d) => Some(d),

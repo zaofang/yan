@@ -467,6 +467,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1123 | `trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770) | 3.4, 14.1 |
 | R1124 | `std.scope`: `scope.root()` returns the `Scope` handle of the root scope; `Scope.drain(grace)` puts it in its drain phase and needs `uses nondet` (E709), draining again does nothing; `Scope.is_draining()` reads the phase; identical on every backend (D1, D2 of #1820; cancel after the grace, abort and signals follow) | 9.4 |
 | R1125 | `Draining` is a fieldless std failure type declared like `Cancelled`, so a function may declare and raise `fail Draining` (#1820) | 9.4 |
+| R1126 | `scope.current()` returns the `Scope` of the innermost cancel scope open in the calling task: a `with deadline`, `with timeout` or `with shield` scope, a `par concurrent` block, else the root; a scope is draining when it or a scope around it was drained; a `Scope` is `Send` and may outlive its scope, an ended scope is not draining and draining it does nothing; `grace` defaults to 30 s (D1 of #1820) | 9.4 |
 
 <!-- /rows -->
 

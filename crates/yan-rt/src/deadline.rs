@@ -6,9 +6,9 @@ use std::cell::RefCell;
 
 use crate::timeabi::join;
 
-/// An open scope: its instant, and the count of enclosing `par` blocks whose cancellation it
-/// holds (0 unless the scope is a shield).
-pub(crate) type Stack = Vec<(i128, usize, bool)>;
+/// An open scope: its instant, the count of enclosing `par` blocks whose cancellation it
+/// holds (0 unless the scope is a shield), whether it is a shield, and its `std.scope` id.
+pub(crate) type Stack = Vec<(i128, usize, bool, u64)>;
 
 thread_local! {
     static STACK: RefCell<Stack> = const { RefCell::new(Vec::new()) };
@@ -23,6 +23,11 @@ pub fn current() -> Option<i128> {
         HIT.with(|h| h.set(s.last().is_some_and(|e| e.2)));
         s.last().map(|e| e.0)
     })
+}
+
+/// The id of the innermost scope open in the running task.
+pub(crate) fn scope() -> Option<u64> {
+    STACK.with(|s| s.borrow().last().map(|e| e.3))
 }
 
 /// The count of `par` blocks, from the outermost, whose cancellation a shield holds.
@@ -46,12 +51,13 @@ pub(crate) fn snapshot() -> Stack {
 /// `yan_rt_sup_begin`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
+    let id = crate::scope::open();
     STACK.with(|s| {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;
         let at = join(hi, lo);
         let at = s.last().map_or(at, |d| d.0.min(at));
-        s.push((at, 0, false));
+        s.push((at, 0, false, id));
         low.min(depth)
     })
 }
@@ -61,10 +67,11 @@ pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_shield_begin(low: u64, hi: i64, lo: i64) -> u64 {
     let held = crate::sched::depth();
+    let id = crate::scope::open();
     STACK.with(|s| {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;
-        s.push((join(hi, lo), held, true));
+        s.push((join(hi, lo), held, true, id));
         low.min(depth)
     })
 }
@@ -79,15 +86,20 @@ pub extern "C" fn yan_rt_shield_hit() -> u64 {
 /// End the innermost scope.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_deadline_end() {
-    STACK.with(|s| {
-        s.borrow_mut().pop();
-    });
+    if let Some(e) = STACK.with(|s| s.borrow_mut().pop()) {
+        crate::scope::close(e.3);
+    }
 }
 
 /// End the scopes past the first `depth`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_deadline_end_to(depth: u64) {
-    STACK.with(|s| s.borrow_mut().truncate(depth as usize));
+    let ended = STACK.with(|s| {
+        let mut s = s.borrow_mut();
+        let at = s.len().min(depth as usize);
+        s.split_off(at)
+    });
+    ended.iter().for_each(|e| crate::scope::close(e.3));
 }
 
 #[cfg(test)]
