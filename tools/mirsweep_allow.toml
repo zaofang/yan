@@ -2,10 +2,6 @@
 # an entry that no longer fails is stale and fails tools/mirsweep.py, so the list only shrinks.
 
 [[allow]]
-program = "conformance/yag/run/actor/call_back_deadlock.yag"
-issue = "#1810"
-
-[[allow]]
 program = "conformance/yag/run/actor/call_default_deadline.yag"
 issue = "#1810"
 
@@ -18,39 +14,11 @@ program = "conformance/yag/run/actor/call_scope_deadline.yag"
 issue = "#1810"
 
 [[allow]]
-program = "conformance/yag/run/actor/idle_mail_outside_par.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/intensity_exceeded.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/one_for_all_restart.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/one_for_one_restart.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/overflow_policies.yag"
-issue = "#1810"
-
-[[allow]]
 program = "conformance/yag/run/actor/reentrant_actor_crashed.yag"
 issue = "#1810"
 
 [[allow]]
-program = "conformance/yag/run/actor/reentrant_call_back.yag"
-issue = "#1810"
-
-[[allow]]
 program = "conformance/yag/run/actor/reentrant_interleave.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/stop_reasons.yag"
 issue = "#1810"
 
 [[allow]]
@@ -63,14 +31,6 @@ issue = "#1810"
 
 [[allow]]
 program = "conformance/yag/run/concurrency/atomic_wait_notify_all.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/atomic_wait_times_out_under_deadline.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/chan_send_after_close.yag"
 issue = "#1810"
 
 [[allow]]
@@ -114,67 +74,11 @@ program = "conformance/yag/run/concurrency/par_source_order.yag"
 issue = "#1810"
 
 [[allow]]
-program = "conformance/yag/run/concurrency/recv_times_out_under_deadline.yag"
-issue = "#1810"
-
-[[allow]]
 program = "conformance/yag/run/concurrency/shield_holds_cancel.yag"
 issue = "#1810"
 
 [[allow]]
 program = "conformance/yag/run/concurrency/shield_two_deep.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/cluster_group.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_faults_drop_cut.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_monitor_node_down.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_monitor_stopped.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_node_children_stop.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_arg_mismatch.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_inout.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_send_arg_mismatch.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_send_drop.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_start_arg_wire_panic.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_start_args.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_remote_wire_roundtrip.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/dist/sim_two_node_call.yag"
 issue = "#1810"
 
 [[allow]]
@@ -219,18 +123,6 @@ issue = "#1810"
 
 [[allow]]
 program = "conformance/yn/run/concurrency/par_source_order.yn"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yn/run/concurrency/select_first_ready.yn"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yn/run/concurrency/select_one_arm.yn"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yn/run/concurrency/select_stops_at_deadline.yn"
 issue = "#1810"
 
 [[allow]]
