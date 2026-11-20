@@ -73,7 +73,9 @@ impl Lower<'_, '_, '_> {
             }
             K::Expr(e) => {
                 let (rhs, t) = self.rhs(e, None)?;
-                if !matches!(t, Ty::Unit | Ty::Never | Ty::Err) && matches!(rhs, Rhs::Call(_)) {
+                if !matches!(t, Ty::Unit | Ty::Never | Ty::Err)
+                    && (matches!(rhs, Rhs::Call(_)) || matches!(e.kind, j::ExprKind::Name(_)))
+                {
                     let hint = if t == self.sig.ret {
                         "; a block (`with`, `if`, `for`) does not yield the function's value: `return` it"
                     } else {

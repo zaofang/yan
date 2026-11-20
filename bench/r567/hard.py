@@ -35,7 +35,7 @@ FIXTURE = {"notes/a.txt": "alpha", "notes/sub/b.txt": "beta", "secret.txt": "TOP
 LINKS = {"notes/link": "../secret.txt", "notes/abslink": "{ROOT}/secret.txt"}
 NOTE = (
     "Names come from untrusted requests. Read only files inside the directory `notes` (relative to the "
-    "working directory); a missing or unreadable file gives an empty string, and no name, however it is "
+    "working directory), including files in subdirectories (`sub/b.txt` is valid); a missing or unreadable file gives an empty string, and no name, however it is "
     "written, may reach a file outside `notes`."
 )
 YAN_SUB = "A capability narrows for a block: `with fs = fs.sub(dir):` confines `fs` to `dir`. "

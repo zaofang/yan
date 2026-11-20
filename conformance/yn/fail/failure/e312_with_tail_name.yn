@@ -1,0 +1,12 @@
+-- spec: 8.1
+-- rows: R374
+-- note: a bare name as the last line of a `with` block is a discarded value too, not the function's result
+-- expect: E312 at 12:5
+
+plugin(path: str) -> str uses fs =
+  fs.read(path) else ""
+
+run(path: str) -> str uses fs =
+  with fs = fs.sub("notes")
+    t = plugin(path)
+    t
