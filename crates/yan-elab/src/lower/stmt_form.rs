@@ -486,6 +486,16 @@ impl Lower<'_, '_, '_> {
                     e.clone()
                 };
                 let shield = matches!(kind, j::WithKind::Shield(_));
+                if shield && !self.sig.caps.iter().any(|c| c == "shield") {
+                    self.err(
+                        "E301",
+                        at,
+                        format!(
+                            "`{}` opens a shield; declare `uses shield` (R812)",
+                            self.item
+                        ),
+                    );
+                }
                 let name = if shield { "ShieldTimeout" } else { "Timeout" };
                 let timeout = Ty::Data(name.into());
                 let lists = match &self.sig.fail {
