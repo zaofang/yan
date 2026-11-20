@@ -1,0 +1,13 @@
+mir 1
+main fn0
+
+fn 0 "main"() -> (unit) {
+bb0:
+  call fn1(1, 2)
+  ret ()
+}
+
+fn 1 "f"(i64) -> () {
+bb0:
+  ret
+}

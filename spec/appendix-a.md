@@ -455,6 +455,16 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1111 | Every blocking std operation (`recv`, `send`, `sleep`, `sleep_until`, `Atomic.wait`, `select_wait`) declares `fail Cancelled | Timeout`, so a backend that lacks deadline scopes is still typed the same; `?` on such a call in a function whose fail type lacks a member is W863 (RFC 0093 D2, S2a of #1703) | 9.4, 17.3 |
 | R1112 | `checked_as[T](x)` is `x as T` as a call: the value unchanged when it fits `T`, else a panic with kind `overflow`; source and target any integer of at most 64 bits, widening never fails (RFC 0096 D1, D2, #1768) | 3.4, 14.1 |
 | R1113 | `yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513) | 18.1, 22.4 |
+| R1114 | `yan view --as mir --check F` validates the program (R1115 to R1121) and exits 1 with one line per violation on stderr, headed by its I-code; F may be a `.mir` text, which is read, validated and printed in canonical form (RFC 0097 D7, S3 of #1513) | 18.1, 22.4 |
+| R1115 | I101: every local, function, string and pinned-group member a MIR program names exists, `main` takes no parameters and returns `unit`, and `lines` and `insts` of a block have one length | 22.4, 25.12 |
+| R1116 | I102: every MIR function has an entry block and every terminator names a block that exists | 22.4, 25.12 |
+| R1117 | I103: a MIR local is read only where it is written on every path from the entry; parameters, pinned locals and `unit` locals count as written | 22.4, 25.12 |
+| R1118 | I104: a MIR call or tail call passes as many arguments as the callee has parameters and binds as many results as it returns; a return carries as many values as the function has results | 22.4, 25.12 |
+| R1119 | I105: a MIR argument, bound result or returned value has the type of the slot it fills; an integer literal fits any integer or pointer slot | 22.4, 25.12 |
+| R1120 | I106: `Par`, `Suspend`, `TaskEnd` and `Unwind` do not appear in the MIR form backends read, which follows the task transform | 22.4, 25.12 |
+| R1121 | I107: `AddrOf` names a local that a pinned group holds, and no local is in two pinned groups | 22.4, 25.12 |
+| R1122 | `try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770) | 3.4, 14.1 |
+| R1123 | `trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770) | 3.4, 14.1 |
 
 <!-- /rows -->
 

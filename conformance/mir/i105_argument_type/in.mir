@@ -1,0 +1,16 @@
+mir 1
+main fn0
+
+fn 0 "main"() -> (unit) {
+  local %0: bool
+  local %1: i64
+bb0:
+  %0 = copy true
+  %1 = call fn1(%0)
+  ret ()
+}
+
+fn 1 "f"(i64) -> (i64) {
+bb0:
+  ret %0
+}
