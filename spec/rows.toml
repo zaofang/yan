@@ -2322,6 +2322,6 @@ topic = "under drain a shield's instant is clamped to the end of the cancel grac
 sections = "9.4"
 
 [[entry]]
-rows = "R1130"
+rows = "R1131"
 topic = "in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1)"
 sections = "15.3"

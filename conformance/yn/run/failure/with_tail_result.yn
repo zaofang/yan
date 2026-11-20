@@ -1,5 +1,5 @@
 -- spec: 15.3
--- rows: R1130
+-- rows: R1131
 -- note: a `with` block in tail position passes its last expression on, through a nested `if`; a loop does not
 -- stdout:
 -- 8

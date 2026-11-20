@@ -1,5 +1,5 @@
 -- spec: 15.3
--- rows: R1130
+-- rows: R1131
 -- note: a bare name as the last line of a `with` block in tail position is the function's result
 
 plugin(path: str) -> str uses fs =
