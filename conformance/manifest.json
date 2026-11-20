@@ -14213,6 +14213,21 @@
    "exit": 0
   },
   {
+   "path": "yn/run/concurrency/select_one_arm.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R342"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "got 4\n",
+   "exit": 0
+  },
+  {
    "path": "yn/run/concurrency/select_stops_at_deadline.yn",
    "kind": "run",
    "milestone": "M3",
