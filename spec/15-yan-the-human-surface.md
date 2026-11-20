@@ -83,7 +83,7 @@ parstmt   = "par" ["concurrent"] NEWLINE INDENT stmt {stmt} DEDENT | parfor
 parfor    = "par" ["concurrent"] ["(" "limit" ":" expr ")"] "for" pattern "in" expr block   -- also a let value
 selectstmt = "select" NEWLINE INDENT selarm {selarm} DEDENT
 selarm    = postfix ["is" pattern] "->" (expr NEWLINE | block)            -- recv(), send(v), after(d), deadline(t)
-withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout") "(" expr ")") block   -- R444
+withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout" | "shield") "(" expr ")") block   -- R444
 unsafestmt   = "unsafe" block
 stagestmt = "#" "for" pattern "in" expr block | "#" "if" expr block ["else" block]
 block     = NEWLINE INDENT stmt {stmt} DEDENT
