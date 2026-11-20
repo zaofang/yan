@@ -1819,13 +1819,14 @@ impl Machine<'_> {
                 yan_rt::deadline::yan_rt_deadline_end_to(a[0].addr());
                 Val::U
             }
+            RtFn::ScopeCurrent => Val::I(i128::from(yan_rt::scope::yan_rt_scope_current())),
             RtFn::ScopeDrain => {
-                yan_rt::scope::drain(a[0].int() as i64);
+                yan_rt::scope::yan_rt_scope_drain(a[0].addr());
                 Val::U
             }
-            RtFn::ScopeDraining => {
-                Val::I(i128::from(yan_rt::scope::is_draining(a[0].int() as i64)))
-            }
+            RtFn::ScopeDraining => Val::I(i128::from(yan_rt::scope::yan_rt_scope_draining(
+                a[0].addr(),
+            ))),
             RtFn::ParBegin => {
                 let n = a[0].addr();
                 let h = sched::yan_rt_par_begin(n, a[1].addr());

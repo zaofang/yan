@@ -333,6 +333,7 @@ mnemonics!(RtFn {
     ShieldHit = "shield_hit",
     DeadlineEnd = "deadline_end",
     DeadlineEndTo = "deadline_end_to",
+    ScopeCurrent = "scope_current",
     ScopeDrain = "scope_drain",
     ScopeDraining = "scope_draining",
     FfiCall = "ffi_call",
@@ -446,7 +447,7 @@ mod tests {
 
     #[test]
     fn rt_fns() {
-        check(RtFn::MNEMONICS, 273, RtFn::mnemonic, RtFn::from_mnemonic);
+        check(RtFn::MNEMONICS, 274, RtFn::mnemonic, RtFn::from_mnemonic);
     }
 
     #[test]

@@ -752,9 +752,11 @@ pub enum RtFn {
     DeadlineEnd,
     /// `(depth)`: end the deadline scopes past `depth`.
     DeadlineEndTo,
-    /// `(id)`: drain scope `id` (9.4).
+    /// `() -> id`: the innermost cancel scope open in the running task (`std.scope`, 9.4).
+    ScopeCurrent,
+    /// `(id)`: drain the scope, if it is open.
     ScopeDrain,
-    /// `(id) -> i64`: 1 when scope `id` is draining.
+    /// `(id) -> bool`: the scope, or one around it, is draining.
     ScopeDraining,
     /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
     FfiCall,

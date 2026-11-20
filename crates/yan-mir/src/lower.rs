@@ -36,6 +36,7 @@ mod proc;
 mod ptr;
 mod rand;
 mod regex;
+mod scope;
 mod sets;
 mod shape;
 mod show;

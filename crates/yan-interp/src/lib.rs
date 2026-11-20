@@ -43,6 +43,7 @@ mod proc;
 mod ptr;
 mod rand;
 mod regex;
+mod scope;
 mod simcheck;
 mod simfault;
 #[cfg(test)]
@@ -309,6 +310,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             force: false,
             in_par: 0,
             cancel: Vec::new(),
+            scopes: yan_rt::scope::Scopes::default(),
+            scope: yan_rt::scope::ROOT,
             shield_floor: 0,
             shielded: false,
             shield_hit: std::cell::Cell::new(false),
@@ -500,6 +503,10 @@ pub(crate) struct Interp<'o> {
     /// Per running `par concurrent` block, innermost last: a task left it and cancelled the
     /// rest (9.4).
     cancel: Vec<bool>,
+    /// The open cancel scopes by `std.scope` id (9.4).
+    scopes: yan_rt::scope::Scopes,
+    /// The innermost cancel scope open in the running task.
+    scope: u64,
     /// The blocks of `cancel` below this index are held by a `shield` (9.4).
     shield_floor: usize,
     /// Set when a task's branch ends.
@@ -941,6 +948,8 @@ fn entry(
         force: false,
         in_par: 0,
         cancel: Vec::new(),
+        scopes: yan_rt::scope::Scopes::default(),
+        scope: yan_rt::scope::ROOT,
         shield_floor: 0,
         shielded: false,
         shield_hit: std::cell::Cell::new(false),
@@ -1174,25 +1183,6 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
                     Err(e) => unsupported(format!("stdout: {e}")),
                 },
                 _ => bad_args(STD_IO_PRINT),
-            }),
-        ),
-        (
-            STD_SCOPE_DRAIN,
-            Bind::Plain(|a| match a {
-                [Value::Data { fields, .. }, ..] if let [(_, Value::Int(id))] = &fields[..] => {
-                    yan_rt::scope::drain(*id as i64);
-                    Ok(Value::Unit)
-                }
-                _ => bad_args(STD_SCOPE_DRAIN),
-            }),
-        ),
-        (
-            STD_SCOPE_IS_DRAINING,
-            Bind::Plain(|a| match a {
-                [Value::Data { fields, .. }] if let [(_, Value::Int(id))] = &fields[..] => {
-                    Ok(Value::Bool(yan_rt::scope::is_draining(*id as i64)))
-                }
-                _ => bad_args(STD_SCOPE_IS_DRAINING),
             }),
         ),
         (

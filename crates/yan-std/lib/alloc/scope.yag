@@ -1,17 +1,23 @@
-"""Cancel scopes and their drain phase (9.4)."""
+"""Cancel scopes as values (9.4): a `Scope` names the root scope, a `par concurrent` block or a
+deadline, timeout or shield scope, and `drain` starts its drain phase. `drain` needs
+`uses nondet` (E709)."""
 
 @since("1.0")
 pub class Scope:
-    """A handle to a cancel scope; `root()` is the scope std binds before `main`."""
+    """A handle to a cancel scope; `Send`. It may outlive its scope: an ended scope is not draining and draining it does nothing."""
     id: int
-
-@since("1.0")
-pub def root() -> Scope:
-    return Scope(0)
 
 @intrinsic
 @since("1.0")
-pub def drain(self: Scope, grace: Duration) -> None: ...
+pub def root() -> Scope: ...
+
+@intrinsic
+@since("1.0")
+pub def current() -> Scope: ...
+
+@intrinsic
+@since("1.0")
+pub def drain(self: Scope, grace: Duration = 30 * s) -> None: ...
 
 @intrinsic
 @since("1.0")

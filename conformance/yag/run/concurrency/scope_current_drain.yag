@@ -1,0 +1,42 @@
+# spec: 9.4
+# rows: R1126
+# note: scope.current() is the innermost cancel scope (root, par concurrent block, timeout); a drain reaches the scopes inside it and not the ones around it, and the grace defaults (#1820)
+# stdout:
+# False True
+# boss True True False True True
+# worker True True False
+# False True
+# True True
+
+def worker(var rx: Receiver[int]) -> str fail Cancelled | Timeout:
+    me = scope.current()
+    before = me.is_draining()
+    rx.recv()?
+    return f"worker {before} {me.is_draining()} {scope.root().is_draining()}"
+
+def inner(sc: Scope) -> str fail Timeout uses nondet, time:
+    with timeout(5 * s):
+        t = scope.current()
+        sc.drain(1 * s)
+        a = t.is_draining()
+        t.drain()
+        return f"{a} {t.is_draining()} {t == sc}"
+
+def boss(var tx: Sender[int]) -> str fail Timeout uses nondet, time:
+    sc = scope.current()
+    r = inner(sc)?
+    tx.send(1) else e -> None
+    return f"boss {r} {sc.is_draining()} {scope.current() == sc}"
+
+def main() uses io, time, nondet:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            r = scope.root()
+            io.print(f"{r.is_draining()} {scope.current() == r}")
+            tx, rx = Channel[int](1)
+            par concurrent:
+                io.print(boss(&tx) else e -> "timeout")
+                io.print(worker(&rx) else e -> "cancelled")
+            io.print(f"{r.is_draining()} {scope.current() == r}")
+            r.drain()
+            io.print(f"{r.is_draining()} {scope.current().is_draining()}")

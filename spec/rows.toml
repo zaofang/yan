@@ -2300,3 +2300,8 @@ sections = "9.4"
 rows = "R1125"
 topic = "`Draining` is a fieldless std failure type declared like `Cancelled`, so a function may declare and raise `fail Draining` (#1820)"
 sections = "9.4"
+
+[[entry]]
+rows = "R1126"
+topic = "`scope.current()` returns the `Scope` of the innermost cancel scope open in the calling task: a `with deadline`, `with timeout` or `with shield` scope, a `par concurrent` block, else the root; a scope is draining when it or a scope around it was drained; a `Scope` is `Send` and may outlive its scope, an ended scope is not draining and draining it does nothing; `grace` defaults to 30 s (D1 of #1820)"
+sections = "9.4"
