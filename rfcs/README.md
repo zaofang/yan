@@ -121,3 +121,4 @@ conformance case in the same PR set.
 | [0095](0095-handler-bound-examples-and-par-for-statements.md) | Handler-bound `ex` lines and `par for` statements | accepted | pending |
 | [0096](0096-checked-as-conversion.md) | `checked_as`, the checked integer conversion function | accepted | pending |
 | [0097](0097-mir-text-format.md) | Canonical MIR text: printer, parser, validator | accepted | pending |
+| [0098](0098-failable-integer-conversion-and-trunc-as.md) | The failable integer conversion and the meaning of `trunc_as` | draft | |
