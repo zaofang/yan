@@ -67,6 +67,8 @@ struct Saved {
     pc: usize,
     base: usize,
     deadline: Option<i128>,
+    /// Whether `deadline` is a shield's own instant (R812).
+    shielded: bool,
     /// The blocks of `it.cancel` below it that a `shield` open in the frame holds.
     floor: usize,
 }
@@ -713,8 +715,9 @@ impl<'o> Vm<'o> {
 
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
-        let (deadline, floor) = (self.it.deadline, self.it.shield_floor);
-        self.run_framed(&mut code, 0, base, deadline, floor, &[])
+        let (deadline, shielded, floor) =
+            (self.it.deadline, self.it.shielded, self.it.shield_floor);
+        self.run_framed(&mut code, 0, base, (deadline, shielded), floor, &[])
     }
 
     /// Run a called frame from `pc`, with the frames it had called when it parked in `callee`
@@ -724,16 +727,18 @@ impl<'o> Vm<'o> {
         code: &mut Rc<Code>,
         mut pc: usize,
         base: usize,
-        deadline: Option<i128>,
+        (deadline, shielded): (Option<i128>, bool),
         floor: usize,
         callee: &[Saved],
     ) -> R<Result<Value, Value>> {
         // A deadline scope ends with its function, however that returns.
         let outer = mem::replace(&mut self.it.deadline, deadline);
+        let outer_shielded = mem::replace(&mut self.it.shielded, shielded);
         let outer_floor = mem::replace(&mut self.it.shield_floor, floor);
         let r = self.resume_into(code, &mut pc, base, callee);
         let inner_floor = mem::replace(&mut self.it.shield_floor, outer_floor);
         let inner = mem::replace(&mut self.it.deadline, outer);
+        let inner_shielded = mem::replace(&mut self.it.shielded, outer_shielded);
         // So do its `with supervisor` scopes, unless the frame parked to resume later.
         if self.it.park.is_none() {
             crate::supervise::end_frame(&mut self.it, base);
@@ -757,6 +762,7 @@ impl<'o> Vm<'o> {
                 pc,
                 base,
                 deadline: inner,
+                shielded: inner_shielded,
                 floor: inner_floor,
             });
         }
@@ -785,7 +791,14 @@ impl<'o> Vm<'o> {
                 *depth += 1;
             }
             let mut cc = c.code.clone();
-            let r = self.run_framed(&mut cc, c.pc, c.base, c.deadline, c.floor, rest)?;
+            let r = self.run_framed(
+                &mut cc,
+                c.pc,
+                c.base,
+                (c.deadline, c.shielded),
+                c.floor,
+                rest,
+            )?;
             if self.it.park.is_some() {
                 if let Some((_, depth, ..)) = &mut self.limits {
                     *depth -= 1;
@@ -853,12 +866,18 @@ impl<'o> Vm<'o> {
                         Some(d) => Value::Mono(d),
                         None => Value::Unit,
                     };
-                    self.stack[base + floor as usize] = Value::Int(self.it.shield_floor as i128);
+                    // The floor slot also keeps whether the outer deadline was a shield's.
+                    self.stack[base + floor as usize] = Value::Int(
+                        (self.it.shield_floor as i128) << 1 | i128::from(self.it.shielded),
+                    );
                     if shield {
                         self.it.deadline = Some(at);
+                        self.it.shielded = true;
                         self.it.shield_floor = self.it.cancel.len();
-                    } else {
-                        self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
+                    } else if self.it.deadline.is_none_or(|d| at < d) {
+                        // A tie stays with the scope already in force.
+                        self.it.deadline = Some(at);
+                        self.it.shielded = false;
                     }
                 }
                 Op::SupBegin(src) => {
@@ -868,7 +887,8 @@ impl<'o> Vm<'o> {
                 Op::SupEnd => crate::supervise::end(&mut self.it),
                 Op::DeadlineEnd { saved, floor } => {
                     if let Value::Int(f) = self.stack[base + floor as usize] {
-                        self.it.shield_floor = f as usize;
+                        self.it.shield_floor = (f >> 1) as usize;
+                        self.it.shielded = f & 1 == 1;
                     }
                     self.it.deadline = match self.stack[base + saved as usize] {
                         Value::Mono(d) => Some(d),
@@ -937,6 +957,10 @@ impl<'o> Vm<'o> {
                 },
                 Op::Ret(o) => return Ok(Ok(dup(self.val(code, base, o)))),
                 Op::Fail(o) => return Ok(Err(dup(self.val(code, base, o)))),
+                Op::FailShield(o) => {
+                    let e = dup(self.val(code, base, o));
+                    return Ok(Err(self.leave_shield(e)));
+                }
                 Op::Par(i) => {
                     let (entries, join) = code.pars[i as usize].clone();
                     match self.run_tasks(code, base, &entries)? {
@@ -1202,6 +1226,17 @@ impl<'o> Vm<'o> {
         })
     }
 
+    /// A `Timeout` that a shield's own expiry raised becomes `ShieldTimeout` as it leaves (R812).
+    fn leave_shield(&mut self, mut e: Value) -> Value {
+        if let Value::Data { name, .. } = &mut e
+            && name == "Timeout"
+            && self.it.shield_hit.take()
+        {
+            *name = "ShieldTimeout".to_owned();
+        }
+        e
+    }
+
     /// Push the arguments of `s` on the stack; `inout` ones are moved out of the frame.
     fn push_args(&mut self, code: &Code, base: usize, s: &Site) {
         for a in &s.args {
@@ -1247,7 +1282,10 @@ impl<'o> Vm<'o> {
             (Err(e), Mode::Try) => data("Err", "error", e),
             (Ok(v), _) => v,
             (Err(e), Mode::Plain) => return Ok(Some(Err(e))),
-            (Err(e), Mode::Propagate(via)) => return self.via(via, e).map(|e| Some(Err(e))),
+            (Err(e), Mode::Propagate(via)) => {
+                let e = self.via(via, e)?;
+                return Ok(Some(Err(if s.shield { self.leave_shield(e) } else { e })));
+            }
             (Err(_), Mode::Contract) => {
                 return unsupported("a failing call in a contract or assertion");
             }

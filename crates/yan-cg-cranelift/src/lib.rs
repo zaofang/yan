@@ -925,6 +925,7 @@ const RT: &[RtFn] = &[
     RtFn::SupEndTo,
     RtFn::DeadlineBegin,
     RtFn::ShieldBegin,
+    RtFn::ShieldHit,
     RtFn::DeadlineEnd,
     RtFn::DeadlineEndTo,
     RtFn::FfiCall,
@@ -2534,6 +2535,12 @@ fn rt_fn(
             "yan_rt_shield_begin",
             deadline::yan_rt_shield_begin as *const u8,
             &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ShieldHit => (
+            "yan_rt_shield_hit",
+            deadline::yan_rt_shield_hit as *const u8,
+            &[],
             Some(I64),
         ),
         RtFn::DeadlineEnd => (

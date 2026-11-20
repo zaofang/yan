@@ -7233,6 +7233,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/shield_expiry_is_shield_timeout.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R812"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ShieldTimeout()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_holds_cancel.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7260,6 +7275,21 @@
    "flags": [],
    "expect": [],
    "stdout": "1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/shield_nested_deadline_stays_timeout.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R812"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "Timeout()\n",
    "exit": 0
   },
   {

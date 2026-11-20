@@ -746,6 +746,8 @@ pub enum RtFn {
     /// `(low, hi, lo) -> low`: as `DeadlineBegin`, for a `shield`: the instant replaces the
     /// deadline in force and cancellation of the enclosing `par` blocks is held (R811).
     ShieldBegin,
+    /// `() -> i64`: 1 once, when the deadline an operation last read was a shield's own (R812).
+    ShieldHit,
     /// `()`: end the innermost deadline scope.
     DeadlineEnd,
     /// `(depth)`: end the deadline scopes past `depth`.
