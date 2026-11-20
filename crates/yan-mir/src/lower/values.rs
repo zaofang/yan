@@ -1,6 +1,14 @@
 use super::*;
 
 impl<'a, 'm> Fn<'a, 'm> {
+    /// Defines `ls` on every path, for locals the validator cannot see a guard write before a read.
+    pub(super) fn zero_locals(&mut self, ls: &[Local]) {
+        for l in ls {
+            let src = zero(self.locals[*l as usize]);
+            self.emit(Inst::Copy { dst: *l, src });
+        }
+    }
+
     pub(super) fn show_fields(
         &mut self,
         name: &str,
