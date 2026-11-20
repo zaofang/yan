@@ -68,7 +68,7 @@ parstmt   = "par" ["concurrent"] NEWLINE INDENT stmt {stmt} DEDENT | parfor ;
 parfor    = "par" ["concurrent"] ["(" "limit" ":" expr ")"] "for" pattern "in" expr block ;
 selectstmt = "select" NEWLINE INDENT selarm {selarm} DEDENT ;
 selarm    = BOL postfix ["is" pattern] "->" (expr NEWLINE | block) ;
-withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout") "(" expr ")") block ;
+withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout" | "shield") "(" expr ")") block ;
 unsafestmt = "unsafe" block ;
 stagestmt = "#" "for" pattern "in" expr block | "#" "if" expr block ["else" block] ;
 block     = NEWLINE INDENT stmt {stmt} DEDENT ;
