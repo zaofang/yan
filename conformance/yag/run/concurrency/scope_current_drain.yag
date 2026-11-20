@@ -28,6 +28,12 @@ def boss(var tx: Sender[int]) -> str fail Timeout uses nondet, time:
     tx.send(1) else e -> None
     return f"boss {r} {sc.is_draining()} {scope.current() == sc}"
 
+def run_boss(var tx: Sender[int]) -> None uses io, nondet, time:
+    io.print(boss(&tx) else e -> "timeout")
+
+def run_worker(var rx: Receiver[int]) -> None uses io:
+    io.print(worker(&rx) else e -> "cancelled")
+
 def main() uses io, time, nondet:
     with time = virtual(time.now()):
         with sched = sequential():
@@ -35,8 +41,8 @@ def main() uses io, time, nondet:
             io.print(f"{r.is_draining()} {scope.current() == r}")
             tx, rx = Channel[int](1)
             par concurrent:
-                io.print(boss(&tx) else e -> "timeout")
-                io.print(worker(&rx) else e -> "cancelled")
+                run_boss(&tx)
+                run_worker(&rx)
             io.print(f"{r.is_draining()} {scope.current() == r}")
             r.drain()
             io.print(f"{r.is_draining()} {scope.current().is_draining()}")
