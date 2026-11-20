@@ -257,7 +257,7 @@ enum Command {
         /// With none, the package in the current directory: `package.yag` and its modules.
         files: Vec<PathBuf>,
     },
-    /// Print a module in another surface: Yan Agent or Yan as Yan Core, Yan as Yan Agent.
+    /// Print a module in another surface: Yan Agent or Yan as Yan Core, Yan as Yan Agent, or as MIR text.
     View {
         #[arg(long = "as")]
         as_: String,
@@ -957,6 +957,9 @@ fn print_diags(diags: &[Diagnostic]) {
 }
 
 fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
+    if as_ == "mir" {
+        return view_mir(file);
+    }
     let as_ = match as_ {
         "yir" => yan_names::Surface::Yir,
         "yag" => yan_names::Surface::Yag,
@@ -985,6 +988,22 @@ fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
             ExitCode::FAILURE
         }
         Err(ViewError::Tool(msg)) => tool_failure(&msg),
+    }
+}
+
+/// Canonical MIR text (RFC 0097) of the optimized module, as native code sees it.
+fn view_mir(file: &Path) -> ExitCode {
+    let mut db = Database::new(false, false);
+    let module = match checked(&mut db, file) {
+        Ok(m) => m,
+        Err(code) => return code,
+    };
+    match lower_native(&file.display().to_string(), module) {
+        Ok(p) => {
+            print!("{p}");
+            ExitCode::SUCCESS
+        }
+        Err(code) => code,
     }
 }
 

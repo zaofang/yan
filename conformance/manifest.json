@@ -18731,6 +18731,48 @@
    }
   },
   {
+   "path": "view/mir_arith",
+   "kind": "view",
+   "milestone": "M1",
+   "spec": [
+    "18.1",
+    "22.4"
+   ],
+   "rows": [
+    "R1113"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1, 22.4",
+    "rows": [
+     "R1113"
+    ],
+    "as": "mir"
+   }
+  },
+  {
+   "path": "view/mir_hello",
+   "kind": "view",
+   "milestone": "M1",
+   "spec": [
+    "18.1",
+    "22.4"
+   ],
+   "rows": [
+    "R1113"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.1, 22.4",
+    "rows": [
+     "R1113"
+    ],
+    "as": "mir"
+   }
+  },
+  {
    "path": "mcp/call",
    "kind": "mcp",
    "milestone": "M1",

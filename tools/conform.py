@@ -11,6 +11,7 @@ An executor is any command that implements:
     CMD semver --format json --base OLD NEW -> JSON object with "bump"
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
     CMD fmt FILE                          -> rewrites FILE in place; exit 1 if it does not load
+    CMD view --as T FILE                  -> stdout is the text of FILE in form T (a view/ case)
     CMD trust; CMD mcp package [FLAGS]    -> run in an mcp/ case's copied root; JSON-RPC lines
                                              on stdin and stdout, or a refusal code on stderr
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
@@ -55,6 +56,7 @@ TOP_KINDS = {
     "patch": "patch",
     "pkg": "pkg",
     "fmt": "fmt",
+    "view": "view",
     "mcp": "mcp",
     "roundtrip": "roundtrip",
     "sim": "sim",
@@ -139,6 +141,8 @@ class Executor(Protocol):
     def tool(self, workdir: Path, args: list[str]) -> tuple[list[dict[str, object]], int]: ...
 
     def fmt(self, path: Path) -> int: ...
+
+    def view_as(self, path: Path, target: str) -> tuple[str, int]: ...
 
     def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]: ...
 
@@ -237,6 +241,14 @@ class CommandExecutor:
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
         return out.returncode
+
+    def view_as(self, path: Path, target: str) -> tuple[str, int]:
+        out = subprocess.run(
+            [*self.argv, "view", "--as", target, str(path)], capture_output=True, text=True
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return out.stdout, out.returncode
 
     def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
         # Serving runs the package's code, so the toolchain refuses an untrusted directory.
@@ -362,7 +374,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver", "pkg", "fmt", "mcp"):
+        if kind in ("patch", "semver", "pkg", "fmt", "view", "mcp"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -454,6 +466,8 @@ def _judge(case: Case, ex: Executor) -> Result:
             return _judge_pkg(case, ex)
         case "fmt":
             return _judge_fmt(case, ex)
+        case "view":
+            return _judge_view(case, ex)
         case "mcp":
             return _judge_mcp(case, ex)
         case "semver":
@@ -523,6 +537,19 @@ def _judge_fmt(case: Case, ex: Executor) -> Result:
         code = ex.fmt(work)
         got = work.read_bytes()
     if code != 0 or got != want_file.read_bytes():
+        return Result(name, ex.name, "fail", f"exit {code}, output {got!r}")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_view(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    target = case.meta.get("as")
+    src = next((p for p in sorted(case.path.glob("in.*")) if p.suffix in COMMENT), None)
+    want_file = case.path / f"out.{target}"
+    if not isinstance(target, str) or src is None or not want_file.is_file():
+        return Result(name, ex.name, "fail", "no `as` in expect.toml, in.<ext> or out.<as>")
+    got, code = ex.view_as(src, target)
+    if code != 0 or got.encode() != want_file.read_bytes():
         return Result(name, ex.name, "fail", f"exit {code}, output {got!r}")
     return Result(name, ex.name, "pass")
 

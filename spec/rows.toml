@@ -2235,3 +2235,8 @@ sections = "9.4, 17.3"
 rows = "R1112"
 topic = "`checked_as[T](x)` is `x as T` as a call: the value unchanged when it fits `T`, else a panic with kind `overflow`; source and target any integer of at most 64 bits, widening never fails (RFC 0096 D1, D2, #1768)"
 sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1113"
+topic = "`yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513)"
+sections = "18.1, 22.4"

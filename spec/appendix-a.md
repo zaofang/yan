@@ -454,6 +454,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1109 | `fs.list_dir(path)` returns `list[Path]` of the directory's entries without `.` and `..`, each joined onto `path`, sorted by name in byte order; failures are `FsError` with reason `not found`, `not a directory` or `NotUnicode`; `fake_fs` directories are implied by its file names; `fs.only` and `fs.sub` attenuate it as they do reads (S0 of #1505, #1737) | 17.3 |
 | R1111 | Every blocking std operation (`recv`, `send`, `sleep`, `sleep_until`, `Atomic.wait`, `select_wait`) declares `fail Cancelled | Timeout`, so a backend that lacks deadline scopes is still typed the same; `?` on such a call in a function whose fail type lacks a member is W863 (RFC 0093 D2, S2a of #1703) | 9.4, 17.3 |
 | R1112 | `checked_as[T](x)` is `x as T` as a call: the value unchanged when it fits `T`, else a panic with kind `overflow`; source and target any integer of at most 64 bits, widening never fails (RFC 0096 D1, D2, #1768) | 3.4, 14.1 |
+| R1113 | `yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513) | 18.1, 22.4 |
 
 <!-- /rows -->
 
