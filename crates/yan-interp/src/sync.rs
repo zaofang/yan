@@ -458,7 +458,7 @@ fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>
         return Ok(None);
     }
     let since = it.wait_since.iter().find(|(p, _)| p == me).map(|w| w.1);
-    let d = match it.deadline {
+    let d = match super::time::deadline(it) {
         Some(d) => d,
         None if it.force || it.in_par == 0 => {
             since.unwrap_or_else(|| mono_now(it)) + DEFAULT_DEADLINE

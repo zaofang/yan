@@ -99,6 +99,18 @@ impl Scopes {
         }
         at
     }
+
+    /// The latest instant the innermost shield around `id` may run to: the end of the cancel
+    /// grace of the draining scopes it holds back, if any drains (R812).
+    pub fn shield_limit(&self, mut id: u64) -> Option<i128> {
+        loop {
+            let s = self.open.get(&id)?;
+            if s.shield {
+                return self.cancel_at(s.parent).map(|c| c + CANCEL_GRACE);
+            }
+            id = s.parent;
+        }
+    }
 }
 
 thread_local! {
@@ -115,6 +127,12 @@ pub(crate) fn open(shield: bool) -> u64 {
 pub(crate) fn cancel_at() -> Option<i128> {
     let id = yan_rt_scope_current();
     SCOPES.with(|s| s.borrow().cancel_at(id))
+}
+
+/// Where a drain clamps the shield the running task is in.
+pub(crate) fn shield_limit() -> Option<i128> {
+    let id = yan_rt_scope_current();
+    SCOPES.with(|s| s.borrow().shield_limit(id))
 }
 
 /// The grace of a drain around the running task has passed (9.4).
@@ -207,6 +225,8 @@ mod tests {
         s.drain(a, 5);
         assert!(s.draining(in_sh));
         assert_eq!(s.cancel_at(in_sh), None);
+        assert_eq!(s.shield_limit(in_sh), Some(5 + CANCEL_GRACE));
+        assert_eq!(s.shield_limit(a), None);
         s.drain(sh, 7);
         assert_eq!(s.cancel_at(in_sh), Some(7));
     }

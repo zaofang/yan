@@ -7332,6 +7332,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/shield_clamped_under_drain.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R1129"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "short ok True at PT3S\ntight ShieldTimeout() at PT7S\nlong ShieldTimeout() at PT11S\nother\ndone\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_expiry_is_shield_timeout.yag",
    "kind": "run",
    "milestone": "M1",

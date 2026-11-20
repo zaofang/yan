@@ -470,6 +470,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1126 | `scope.current()` returns the `Scope` of the innermost cancel scope open in the calling task: a `with deadline`, `with timeout` or `with shield` scope, a `par concurrent` block, else the root; a scope is draining when it or a scope around it was drained; a `Scope` is `Send` and may outlive its scope, an ended scope is not draining and draining it does nothing; `grace` defaults to 30 s (D1 of #1820) | 9.4 |
 | R1127 | a drained scope is cancelled when its grace ends, measured from the drain on the bound `time` handler's monotonic clock: a blocking operation in it that would wait past that instant fails `Cancelled` there, and later ones fail at once; an earlier deadline still fails `Timeout`; the first drain's grace stands; a shield holds the cancel of the scopes around it (D4 of #1820) | 9.4 |
 | R1128 | the cancel grace is 10 s: a task that reaches a cancellation point after the cancel grace that follows its scope's drain cancel aborts the program with a panic of kind `shutdown`, exit status 134 on every backend (D3 of #1820) | 8.3, 9.4 |
+| R1129 | under drain a shield's instant is clamped to the end of the cancel grace of the scopes it holds back: the earliest of their drain grace ends plus 10 s, whether the drain came before or after the shield opened; expiry at the clamp is `ShieldTimeout` (#1803 item 4, #1820) | 9.4 |
 
 <!-- /rows -->
 
