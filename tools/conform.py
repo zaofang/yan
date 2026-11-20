@@ -12,8 +12,9 @@ An executor is any command that implements:
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
     CMD fmt FILE                          -> rewrites FILE in place; exit 1 if it does not load
     CMD view --as T FILE                  -> stdout is the text of FILE in form T (a view/ case)
-    CMD view --as mir --check FILE.mir    -> exit 0 and the canonical text on stdout, or exit 1 and
-                                             one `I1nn: ...` line per violation on stderr (a mir/ case)
+    CMD view --as mir --check FILE.mir    -> exit 0 and the canonical text on stdout, or exit 1
+                                             and an `I1nn: ...` line per violation on stderr
+                                             (a mir/ case)
     CMD trust; CMD mcp package [FLAGS]    -> run in an mcp/ case's copied root; JSON-RPC lines
                                              on stdin and stdout, or a refusal code on stderr
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
