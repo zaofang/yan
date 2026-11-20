@@ -70,7 +70,7 @@ fn is_profile(g: &Globals, t: &Ty, owned: bool) -> bool {
 }
 
 /// The built-in capability names (7.1), which a library's capability must not shadow.
-const BUILTIN_CAPABILITIES: [&str; 21] = [
+const BUILTIN_CAPABILITIES: [&str; 22] = [
     "alloc",
     "sched",
     "rand",
@@ -89,6 +89,7 @@ const BUILTIN_CAPABILITIES: [&str; 21] = [
     "py",
     "toolchain",
     "nondet",
+    "shield",
     "gpu",
     "critical_section",
     "cluster",
