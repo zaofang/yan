@@ -1,0 +1,31 @@
+# spec: 9.4
+# rows: R811
+# note: a shield holds the cancel a failed sibling sent: the wait inside runs to the shield's own deadline and fails Timeout, and the next wait after the block fails Cancelled
+# stdout:
+# caught Timeout()
+# Bad(n=7)
+
+@derive(Show)
+class Bad:
+    n: int
+
+def hold(a: Atomic[uint32]) -> None fail Cancelled | Timeout uses io, nondet, time:
+    with shield(1 * s):
+        a.wait(0, LoadOrdering.Acquire()) else e -> io.print(f"caught {e}")
+    a.wait(0, LoadOrdering.Acquire())?
+    io.print("unreachable")
+
+def boom(n: int) -> None fail Bad:
+    fail Bad(n=n)
+
+def run() -> str fail Cancelled | Timeout | Bad uses io, nondet, time:
+    a = Atomic[uint32](0)
+    par concurrent:
+        boom(7)?
+        hold(a)?
+    return "ok"
+
+pub def main() uses io, nondet, time:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            io.print(run() else err -> f"{err}")
