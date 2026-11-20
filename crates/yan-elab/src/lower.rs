@@ -698,6 +698,7 @@ fn falls_through(stmts: &[j::Stmt]) -> bool {
             els: Some(els),
         }) => arms.iter().any(|(_, b)| falls_through(&b.stmts)) || falls_through(&els.stmts),
         Some(K::Match { cases, .. }) => cases.iter().any(|c| falls_through(&c.body.stmts)),
+        Some(K::Select(arms)) => arms.iter().any(|a| falls_through(&a.body.stmts)),
         Some(K::With { body, .. }) => falls_through(&body.stmts),
         Some(K::Unsafe(b)) => falls_through(b),
         Some(K::While { cond, body, .. }) => {
@@ -1054,18 +1055,27 @@ fn function_body_with(
             l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
             l.olds.push((p, v));
         }
-        if !l.cx.yn && !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts) {
+        let falls = !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts);
+        let reach_end = |l: &mut Lower, fix: &str| {
             let at = body.stmts.last().map_or(f.name_span, |s| s.span);
             l.err(
                 "E201",
                 at,
                 format!(
-                    "`{}` can reach its end without returning its `{}`; add a `return`",
+                    "`{}` can reach its end without returning its `{}`; {fix}",
                     f.name, sig.ret
                 ),
             );
+        };
+        if falls && !l.cx.yn {
+            reach_end(l, "add a `return`");
         }
+        let before = l.cx.diags.len();
         l.stmts(&body.stmts)?;
+        // In Yan the usual cause is a discarded tail value, which E312 already names.
+        if falls && l.cx.yn && !l.cx.diags[before..].iter().any(|d| d.code == "E312") {
+            reach_end(l, "end with a value, or `return` one");
+        }
         if matches!(body.stmts.as_slice(), [s] if is_hole(s)) && !matches!(sig.ret, Ty::Unit) {
             l.check_posts_of_hole(f.name_span)?;
         }
