@@ -267,6 +267,9 @@ enum Command {
         /// Raise without spelling marks (the bare check of RFC 0034 D7).
         #[arg(long)]
         bare: bool,
+        /// With `--as mir`, validate the printed program (RFC 0097 D7) and fail on any violation.
+        #[arg(long)]
+        check: bool,
         file: PathBuf,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
@@ -663,7 +666,8 @@ fn main() -> ExitCode {
             file,
             strict,
             bare,
-        } => view(&as_, &file, yan_ide::Marks { strict, bare }),
+            check,
+        } => view(&as_, &file, yan_ide::Marks { strict, bare }, check),
         Command::Export { file, .. } => export::run(&file),
         Command::Import { file, .. } => pyimport::run(&file),
         Command::Grammar { surface, format } => {
@@ -956,9 +960,12 @@ fn print_diags(diags: &[Diagnostic]) {
         .for_each(|d| eprintln!("{}", d.render_line(None)));
 }
 
-fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
+fn view(as_: &str, file: &Path, marks: yan_ide::Marks, check: bool) -> ExitCode {
     if as_ == "mir" {
-        return view_mir(file);
+        return view_mir(file, check);
+    }
+    if check {
+        return tool_failure("--check applies to --as mir");
     }
     let as_ = match as_ {
         "yir" => yan_names::Surface::Yir,
@@ -992,7 +999,7 @@ fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
 }
 
 /// Canonical MIR text (RFC 0097) of the optimized module, as native code sees it.
-fn view_mir(file: &Path) -> ExitCode {
+fn view_mir(file: &Path, check: bool) -> ExitCode {
     let mut db = Database::new(false, false);
     let module = match checked(&mut db, file) {
         Ok(m) => m,
@@ -1001,7 +1008,17 @@ fn view_mir(file: &Path) -> ExitCode {
     match lower_native(&file.display().to_string(), module) {
         Ok(p) => {
             print!("{p}");
-            ExitCode::SUCCESS
+            let violations = if check {
+                p.validate(yan_mir::Form::Backend)
+            } else {
+                Vec::new()
+            };
+            violations.iter().for_each(|v| eprintln!("{v}"));
+            if violations.is_empty() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
         }
         Err(code) => code,
     }
