@@ -4,12 +4,12 @@
 # stdout:
 # Timeout()
 
-def nested() -> str fail Cancelled | Timeout | ShieldTimeout uses io, time:
+def nested() -> str fail Cancelled | Timeout | ShieldTimeout uses io, time, shield:
     with shield(1 * s):
         with timeout(10 * ms):
             time.sleep(100 * ms)?
     return "ok"
 
-pub def main() uses io, time:
+pub def main() uses io, time, shield:
     with time = virtual(time.now()):
         io.print(nested() else err -> f"{err}")
