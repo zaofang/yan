@@ -340,5 +340,12 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P006 | patch touches a protected target without a human confirmation token |
 | N01 to N57 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yan validator failures |
+| I101 | a MIR local, function, string, pinned member or `main` signature that does not exist or does not fit (R1115) |
+| I102 | a MIR function with no entry block, or a terminator naming a block that does not exist (R1116) |
+| I103 | a MIR local read where it is not written on every path from the entry (R1117) |
+| I104 | a MIR call, tail call or return with the wrong number of arguments, results or values (R1118) |
+| I105 | a MIR argument, result or returned value of a type the callee or function does not have (R1119) |
+| I106 | a MIR `Par`, `Suspend`, `TaskEnd` or `Unwind` terminator in the backend form (R1120) |
+| I107 | a MIR `AddrOf` of a local no pinned group holds, or a local in two pinned groups (R1121) |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.

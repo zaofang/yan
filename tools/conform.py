@@ -12,6 +12,8 @@ An executor is any command that implements:
     CMD ARGS... --format json             -> run in a pkg/ case's copied root; JSON records
     CMD fmt FILE                          -> rewrites FILE in place; exit 1 if it does not load
     CMD view --as T FILE                  -> stdout is the text of FILE in form T (a view/ case)
+    CMD view --as mir --check FILE.mir    -> exit 0 and the canonical text on stdout, or exit 1 and
+                                             one `I1nn: ...` line per violation on stderr (a mir/ case)
     CMD trust; CMD mcp package [FLAGS]    -> run in an mcp/ case's copied root; JSON-RPC lines
                                              on stdin and stdout, or a refusal code on stderr
 Exit status 2 or above from either command is a failure of the tool, never a verdict.
@@ -57,6 +59,7 @@ TOP_KINDS = {
     "pkg": "pkg",
     "fmt": "fmt",
     "view": "view",
+    "mir": "mir",
     "mcp": "mcp",
     "roundtrip": "roundtrip",
     "sim": "sim",
@@ -143,6 +146,8 @@ class Executor(Protocol):
     def fmt(self, path: Path) -> int: ...
 
     def view_as(self, path: Path, target: str) -> tuple[str, int]: ...
+
+    def mir_check(self, path: Path) -> tuple[str, str, int]: ...
 
     def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]: ...
 
@@ -249,6 +254,16 @@ class CommandExecutor:
         if out.returncode >= TOOL_FAILURE:
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.returncode
+
+    def mir_check(self, path: Path) -> tuple[str, str, int]:
+        out = subprocess.run(
+            [*self.argv, "view", "--as", "mir", "--check", str(path)],
+            capture_output=True,
+            text=True,
+        )
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return out.stdout, out.stderr, out.returncode
 
     def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
         # Serving runs the package's code, so the toolchain refuses an untrusted directory.
@@ -374,7 +389,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver", "pkg", "fmt", "view", "mcp"):
+        if kind in ("patch", "semver", "pkg", "fmt", "view", "mir", "mcp"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -468,6 +483,8 @@ def _judge(case: Case, ex: Executor) -> Result:
             return _judge_fmt(case, ex)
         case "view":
             return _judge_view(case, ex)
+        case "mir":
+            return _judge_mir(case, ex)
         case "mcp":
             return _judge_mcp(case, ex)
         case "semver":
@@ -551,6 +568,23 @@ def _judge_view(case: Case, ex: Executor) -> Result:
     got, code = ex.view_as(src, target)
     if code != 0 or got.encode() != want_file.read_bytes():
         return Result(name, ex.name, "fail", f"exit {code}, output {got!r}")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_mir(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    src = case.path / "in.mir"
+    if not src.is_file():
+        return Result(name, ex.name, "fail", "no in.mir")
+    out, err, code = ex.mir_check(src)
+    want = case.meta.get("code")
+    if want is None:
+        if code != 0 or out.encode() != src.read_bytes():
+            return Result(name, ex.name, "fail", f"exit {code}, output {out!r}, stderr {err!r}")
+        return Result(name, ex.name, "pass")
+    first = err.splitlines()[0] if err else ""
+    if code != 1 or not first.startswith(f"{want}: "):
+        return Result(name, ex.name, "fail", f"expected {want}, exit {code}, stderr {err!r}")
     return Result(name, ex.name, "pass")
 
 
