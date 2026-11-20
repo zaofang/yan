@@ -99,7 +99,7 @@ const ITERTOOLS_IDS: &[registry::Id] = &[
 
 pub(crate) type Fields = Vec<(String, Shape)>;
 
-fn zero(t: Ty) -> Operand {
+pub(crate) fn zero(t: Ty) -> Operand {
     match t {
         Ty::Int(_) | Ty::Ptr => Operand::Int(0),
         Ty::F64 => Operand::F64(0.0),

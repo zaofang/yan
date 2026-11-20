@@ -2,67 +2,11 @@
 # an entry that no longer fails is stale and fails tools/mirsweep.py, so the list only shrinks.
 
 [[allow]]
-program = "conformance/yag/run/actor/call_default_deadline.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/call_inherits_shield_deadline.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/actor/call_scope_deadline.yag"
-issue = "#1810"
-
-[[allow]]
 program = "conformance/yag/run/actor/reentrant_actor_crashed.yag"
 issue = "#1810"
 
 [[allow]]
 program = "conformance/yag/run/actor/reentrant_interleave.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/atomic_wait_cancelled.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/atomic_wait_notify.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/atomic_wait_notify_all.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/chan_sender_close.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/par_concurrent_channel_progress.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/par_concurrent_exit_drops_once.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/par_concurrent_failure_order.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/shield_holds_cancel.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/concurrency/shield_two_deep.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/ownership/par_return_flagged_local.yag"
-issue = "#1810"
-
-[[allow]]
-program = "conformance/yag/run/sim/pct_lost_update.yag"
 issue = "#1810"
 
 [[allow]]
@@ -89,10 +33,3 @@ issue = "#1810"
 program = "conformance/yir/run/jp_falls_through_two_statements.yir"
 issue = "#1810"
 
-[[allow]]
-program = "conformance/yn/run/ffi/ptr_of_across_suspend.yn"
-issue = "#1810"
-
-[[allow]]
-program = "examples/real/pipeline.yag"
-issue = "#1810"
