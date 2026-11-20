@@ -124,6 +124,8 @@ struct Lower<'a, 'c, 's> {
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
     in_unsafe: bool,
+    /// A call that can fail `Cancelled` was lowered since the innermost open shield began (W855).
+    blocking_seen: bool,
     /// Lowering `gpu.launch`, the one place a `TileOrigin` is built and a kernel called.
     in_launch: bool,
     /// The handle a message of `actor.send` calls through, which may be a `SendOnly` (R975).
@@ -859,6 +861,7 @@ fn function_body_with(
         pending: HashMap::new(),
         target: None,
         in_unsafe: false,
+        blocking_seen: false,
         stage,
         narrow: Vec::new(),
         posts: Vec::new(),
@@ -2230,6 +2233,48 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
     ("mol", "amount", 1.0, None),
     ("cd", "luminosity", 1.0, None),
 ];
+
+/// The seconds of a duration written `N * unit`, `unit * N` or `Duration.ctor(N)` with a literal
+/// `N`; `None` for any other expression.
+fn literal_seconds(e: &j::Expr) -> Option<f64> {
+    use j::ExprKind as K;
+    let num = |e: &j::Expr| match &e.kind {
+        K::Lit(j::Lit::Int(s) | j::Lit::Float(s)) => s.replace('_', "").parse::<f64>().ok(),
+        _ => None,
+    };
+    let unit = |e: &j::Expr| match &e.kind {
+        K::Name(n) => UNITS
+            .iter()
+            .find(|u| u.0 == n && u.1 == "time")
+            .map(|u| u.2),
+        _ => None,
+    };
+    match &e.kind {
+        K::Binary("*", a, b) => match (num(a), unit(b), unit(a), num(b)) {
+            (Some(n), Some(u), _, _) | (_, _, Some(u), Some(n)) => Some(n * u),
+            _ => None,
+        },
+        K::Call(f, args) if args.len() == 1 => {
+            let K::Attr(d, ctor, _) = &f.kind else {
+                return None;
+            };
+            if !matches!(&d.kind, K::Name(n) if n == "Duration") {
+                return None;
+            }
+            let (_, _, scale, _) = UNITS
+                .iter()
+                .find(|u| matches!(u.3, Some((c, 1)) if c == ctor))?;
+            let j::ArgKind::Expr(a) = &args[0].kind else {
+                return None;
+            };
+            Some(num(a)? * scale)
+        }
+        _ => None,
+    }
+}
+
+/// The default cancel grace in seconds (9.4).
+const DEFAULT_CANCEL_GRACE: f64 = 10.0;
 
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[

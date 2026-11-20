@@ -513,8 +513,34 @@ impl Lower<'_, '_, '_> {
                         ),
                     );
                 }
+                if shield && literal_seconds(e).is_some_and(|d| d >= DEFAULT_CANCEL_GRACE) {
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W856",
+                        e.span,
+                        &item,
+                        "this shield lasts at least the default cancel grace (10 s), so drain \
+                         clamps it; use a shorter duration (R812)"
+                            .to_owned(),
+                    );
+                }
                 let (a, _) = self.atom(&at_expr, None)?;
-                let b = self.block(&body.stmts)?;
+                let outer = mem::replace(&mut self.blocking_seen, false);
+                let b = self.block(&body.stmts);
+                let blocks = self.blocking_seen;
+                self.blocking_seen = outer || blocks;
+                let b = b?;
+                if shield && !blocks {
+                    let item = self.item.clone();
+                    self.cx.warn(
+                        "W855",
+                        at,
+                        &item,
+                        "this shield has no blocking operation, so it holds back nothing; \
+                         remove it (R812)"
+                            .to_owned(),
+                    );
+                }
                 self.emit(
                     StmtKind::Deadline {
                         at: a,

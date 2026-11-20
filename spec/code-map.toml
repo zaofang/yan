@@ -247,8 +247,8 @@ W851 = "crates/yan-elab/src/cost.rs"
 W852 = "crates/yan-elab/src/accuracy.rs"
 W853 = "crates/yan-elab/src/lower/matching.rs"
 W854 = "crates/yan-diag/src/habit.rs"
-W855 = { unimplemented = "#825" }
-W856 = { unimplemented = "#825" }
+W855 = "crates/yan-elab/src/lower/stmt_form.rs"
+W856 = "crates/yan-elab/src/lower/stmt_form.rs"
 W857 = { unimplemented = "#825" }
 W858 = { unimplemented = "#825" }
 W859 = { unimplemented = "#825" }
