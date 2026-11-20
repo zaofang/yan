@@ -16,11 +16,13 @@ mod parse;
 mod pool;
 mod tasks;
 mod text;
+mod validate;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
 pub use parse::ParseError;
 pub use text::VERSION as TEXT_VERSION;
+pub use validate::{Form, Rule, Violation};
 
 pub type Local = u32;
 pub type BlockId = u32;
