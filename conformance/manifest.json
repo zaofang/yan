@@ -18773,6 +18773,173 @@
    }
   },
   {
+   "path": "mir/i101_local_out_of_range",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1115"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1115"
+    ],
+    "code": "I101"
+   }
+  },
+  {
+   "path": "mir/i102_missing_block",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1116"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1116"
+    ],
+    "code": "I102"
+   }
+  },
+  {
+   "path": "mir/i103_read_before_write",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1117"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1117"
+    ],
+    "code": "I103"
+   }
+  },
+  {
+   "path": "mir/i104_argument_count",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1118"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1118"
+    ],
+    "code": "I104"
+   }
+  },
+  {
+   "path": "mir/i105_argument_type",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1119"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1119"
+    ],
+    "code": "I105"
+   }
+  },
+  {
+   "path": "mir/i106_task_end_in_backend_form",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1120"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1120"
+    ],
+    "code": "I106"
+   }
+  },
+  {
+   "path": "mir/i107_addr_of_unpinned",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1121"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1121"
+    ],
+    "code": "I107"
+   }
+  },
+  {
+   "path": "mir/valid",
+   "kind": "mir",
+   "milestone": "M1",
+   "spec": [
+    "22.4",
+    "25.12"
+   ],
+   "rows": [
+    "R1114"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "22.4, 25.12",
+    "rows": [
+     "R1114"
+    ]
+   }
+  },
+  {
    "path": "mcp/call",
    "kind": "mcp",
    "milestone": "M1",

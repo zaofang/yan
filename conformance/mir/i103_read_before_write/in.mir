@@ -1,0 +1,15 @@
+mir 1
+main fn0
+
+fn 0 "main"() -> (unit) {
+  local %0: i64
+  local %1: i64
+bb0:
+  br true, bb1, bb2
+bb1:
+  %0 = copy 1
+  jump bb2
+bb2:
+  %1 = copy %0
+  ret ()
+}

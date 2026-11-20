@@ -63,6 +63,9 @@ class Fake:
     def view_as(self, path: Path, target: str) -> tuple[str, int]:
         return "", 0
 
+    def mir_check(self, path: Path) -> tuple[str, str, int]:
+        return "", "", 0
+
     mcp_result: tuple[str, str, int] = ("", "", 0)
     seen_session: list[str] = field(default_factory=list)
 
