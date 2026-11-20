@@ -3,6 +3,8 @@
 //! the frame. A task's resume points are its entry and the blocks its `Suspend`s name; `state`
 //! picks one when yan-rt's scheduler (`ParNext`) chooses the task.
 
+use crate::co::live_sets;
+use crate::lower::zero;
 use crate::*;
 
 const I64: Ty = Ty::Int(IntTy {
@@ -96,6 +98,24 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
         return;
     }
 
+    // The validator cannot correlate a task's state with the writes before it: a `drops` reached
+    // through `leave` and a resume point reached through the dispatcher read locals some task
+    // wrote earlier. What they read and no path to the region defines starts zeroed.
+    let live = live_sets(f);
+    let mut unset: Vec<Vec<Local>> = vec![Vec::new(); regions.len()];
+    for (b, blk) in f.blocks.iter().enumerate() {
+        let (Some((r, _)), Term::Unwind { drops: t } | Term::Suspend { resume: t }) =
+            (owner[b], &blk.term)
+        else {
+            continue;
+        };
+        unset[r].extend(
+            live[*t as usize]
+                .iter()
+                .filter(|l| !live[regions[r].par as usize].contains(l)),
+        );
+    }
+
     let push = |f: &mut Func, b: BlockId, i: Inst| {
         let b = &mut f.blocks[b as usize];
         b.insts.push(i);
@@ -129,7 +149,7 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
     // Per region: which target of `leave` the kept result takes, and `leave`.
     let mut sites = Vec::new();
     let mut leaves = Vec::new();
-    for r in &regions {
+    for (ri, r) in regions.iter().enumerate() {
         let n = r.tasks.len();
         let can_yield = co || r.parent.is_some();
         let h = new_local(f);
@@ -176,6 +196,20 @@ pub fn split(f: &mut Func, co: bool, ret: &[Ty]) {
                 f.locals.len() as Local - 1
             })
             .collect();
+        unset[ri].extend(&res);
+        unset[ri].sort_unstable();
+        unset[ri].dedup();
+        // At the block's start, so what the block itself writes before the fork stays.
+        let blk = &mut f.blocks[r.par as usize];
+        let zeros: Vec<Inst> = unset[ri]
+            .iter()
+            .map(|l| Inst::Copy {
+                dst: *l,
+                src: zero(f.locals[*l as usize]),
+            })
+            .collect();
+        blk.lines.splice(0..0, vec![0; zeros.len()]);
+        blk.insts.splice(0..0, zeros);
         let ret_res = new_block(
             f,
             Term::Return(res.iter().map(|l| Operand::Local(*l)).collect()),
