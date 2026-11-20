@@ -896,6 +896,44 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e301_shield_callee_needs_marker.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R812"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 10,
+     "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/caps/e301_shield_without_marker.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R812"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E301",
+     "line": 6,
+     "col": 5
+    }
+   ]
+  },
+  {
    "path": "yag/fail/caps/e306_capability_captured.yag",
    "kind": "fail",
    "milestone": "M1",
@@ -7222,6 +7260,21 @@
    "flags": [],
    "expect": [],
    "stdout": "caught Timeout()\nBad(n=7)\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/shield_marker_forwarded.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R812"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1\n",
    "exit": 0
   },
   {
