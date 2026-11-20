@@ -2240,3 +2240,53 @@ sections = "3.4, 14.1"
 rows = "R1113"
 topic = "`yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513)"
 sections = "18.1, 22.4"
+
+[[entry]]
+rows = "R1114"
+topic = "`yan view --as mir --check F` validates the program (R1115 to R1121) and exits 1 with one line per violation on stderr, headed by its I-code; F may be a `.mir` text, which is read, validated and printed in canonical form (RFC 0097 D7, S3 of #1513)"
+sections = "18.1, 22.4"
+
+[[entry]]
+rows = "R1115"
+topic = "I101: every local, function, string and pinned-group member a MIR program names exists, `main` takes no parameters and returns `unit`, and `lines` and `insts` of a block have one length"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1116"
+topic = "I102: every MIR function has an entry block and every terminator names a block that exists"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1117"
+topic = "I103: a MIR local is read only where it is written on every path from the entry; parameters, pinned locals and `unit` locals count as written"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1118"
+topic = "I104: a MIR call or tail call passes as many arguments as the callee has parameters and binds as many results as it returns; a return carries as many values as the function has results"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1119"
+topic = "I105: a MIR argument, bound result or returned value has the type of the slot it fills; an integer literal fits any integer or pointer slot"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1120"
+topic = "I106: `Par`, `Suspend`, `TaskEnd` and `Unwind` do not appear in the MIR form backends read, which follows the task transform"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1121"
+topic = "I107: `AddrOf` names a local that a pinned group holds, and no local is in two pinned groups"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1122"
+topic = "`try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1123"
+topic = "`trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770)"
+sections = "3.4, 14.1"

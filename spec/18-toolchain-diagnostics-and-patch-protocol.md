@@ -28,6 +28,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
 | `yan skill` | print the agent skill file | M1 |
 | `yan view --as mir F` | print the canonical MIR text of F, as the native backends receive it: the optimized module lowered to MIR, first line `mir 1` (22.4, R1113) | M1b |
+| `yan view --as mir --check F` | validate the MIR of F, or F itself when it is a `.mir` text, against the rules of 22.4 (R1114 to R1121); one line per violation on stderr, exit 1 | M1b |
 | `yan grammar --as yag\|yn [--format lark\|gbnf]` | print the canonical-form grammar generated from the reader, for constrained decoding (14.3, R994) | M3 |
 | `yan build [--release] [--target t] [--verify]` | native build: LLVM for debug (`-O0`) and release (Cranelift for debug in stage 0, R968); `--verify` builds twice and compares | M1b, M2 |
 | `yan replay f.trace` | deterministic replay (7.6) | M1 (interpreter), M2a (native) (R378) |
