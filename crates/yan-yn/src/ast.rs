@@ -434,6 +434,7 @@ pub enum WithKind {
     },
     Deadline(Expr),
     Timeout(Expr),
+    Shield(Expr),
     Supervisor(Expr),
 }
 

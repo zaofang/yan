@@ -739,6 +739,9 @@ pub enum RtFn {
     SupEndTo,
     /// `(low, hi, lo) -> low`: open a deadline scope ending at the instant `(hi, lo)`.
     DeadlineBegin,
+    /// `(low, hi, lo) -> low`: as `DeadlineBegin`, for a `shield`: the instant replaces the
+    /// deadline in force and cancellation of the enclosing `par` blocks is held (R811).
+    ShieldBegin,
     /// `()`: end the innermost deadline scope.
     DeadlineEnd,
     /// `(depth)`: end the deadline scopes past `depth`.

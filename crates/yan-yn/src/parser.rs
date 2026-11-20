@@ -1360,16 +1360,19 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let kind = match self.peek() {
                     Tok::Name(w)
-                        if (w == "deadline" || w == "timeout")
+                        if (w == "deadline" || w == "timeout" || w == "shield")
                             && *self.peek_n(1) == Tok::Punct("(") =>
                     {
                         let deadline = w == "deadline";
+                        let shield = w == "shield";
                         self.bump();
                         self.bump();
                         let e = self.expr()?;
                         self.expect_p(")")?;
                         if deadline {
                             WithKind::Deadline(e)
+                        } else if shield {
+                            WithKind::Shield(e)
                         } else {
                             WithKind::Timeout(e)
                         }

@@ -1965,14 +1965,19 @@ impl Parser {
             "with" => {
                 self.bump();
                 let kind =
-                    if (self.is_kw("deadline") || self.is_kw("timeout")) && self.is_op_at(1, "(") {
+                    if (self.is_kw("deadline") || self.is_kw("timeout") || self.is_kw("shield"))
+                        && self.is_op_at(1, "(")
+                    {
                         let deadline = self.is_kw("deadline");
+                        let shield = self.is_kw("shield");
                         self.bump();
                         self.bump();
                         let e = self.expr()?;
                         self.expect_op(")")?;
                         if deadline {
                             WithKind::Deadline(e)
+                        } else if shield {
+                            WithKind::Shield(e)
                         } else {
                             WithKind::Timeout(e)
                         }

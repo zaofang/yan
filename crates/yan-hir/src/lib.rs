@@ -491,6 +491,9 @@ pub enum WithKind {
     Bind(Name, Expr),
     Deadline(Expr),
     Timeout(Expr),
+    /// `with shield(d):` holds enclosing cancellation for the block, which runs under its own
+    /// deadline `d` from entry (9.4, R811). Core form: `shield at { ... }`.
+    Shield(Expr),
     /// `with supervisor(spec):` binds the supervisor of the actors started in the body (9.6).
     Supervisor(Expr),
 }
