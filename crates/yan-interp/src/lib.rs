@@ -1177,6 +1177,25 @@ static BUILTINS: &[(yan_std::registry::Id, bind::Bind)] = {
             }),
         ),
         (
+            STD_SCOPE_DRAIN,
+            Bind::Plain(|a| match a {
+                [Value::Data { fields, .. }, ..] if let [(_, Value::Int(id))] = &fields[..] => {
+                    yan_rt::scope::drain(*id as i64);
+                    Ok(Value::Unit)
+                }
+                _ => bad_args(STD_SCOPE_DRAIN),
+            }),
+        ),
+        (
+            STD_SCOPE_IS_DRAINING,
+            Bind::Plain(|a| match a {
+                [Value::Data { fields, .. }] if let [(_, Value::Int(id))] = &fields[..] => {
+                    Ok(Value::Bool(yan_rt::scope::is_draining(*id as i64)))
+                }
+                _ => bad_args(STD_SCOPE_IS_DRAINING),
+            }),
+        ),
+        (
             STD_IO_EPRINT,
             Bind::Cap(|_, a| match a {
                 [Value::Cap(_), Value::Str(s)] => match writeln!(std::io::stderr(), "{s}") {
