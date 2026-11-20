@@ -60,6 +60,9 @@ class Fake:
             path.write_text(self.formatted)
         return self.fmt_exit
 
+    def view_as(self, path: Path, target: str) -> tuple[str, int]:
+        return "", 0
+
     mcp_result: tuple[str, str, int] = ("", "", 0)
     seen_session: list[str] = field(default_factory=list)
 
