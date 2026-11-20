@@ -32,6 +32,8 @@ struct Block {
     can_yield: bool,
     /// The block whose task was running when this one began.
     parent: Option<usize>,
+    /// The task of `parent` that was running when this block began.
+    parent_task: Option<usize>,
     cancelled: bool,
     /// The deadline scopes of the enclosing task, restored when the block returns to it.
     outer: crate::deadline::Stack,
@@ -83,6 +85,21 @@ fn unwait(st: &mut State, c: usize) -> bool {
 
 fn block(st: &mut State, h: u64) -> &mut Block {
     st.blocks[h as usize].as_mut().expect("a live par block")
+}
+
+/// A task of a block nested in task `i` of block `h`, at any depth, holds `level` in a shield.
+fn nested_held(st: &State, h: usize, i: usize, level: usize) -> bool {
+    st.blocks.iter().enumerate().any(|(c, b)| {
+        b.as_ref().is_some_and(|b| {
+            b.parent == Some(h)
+                && b.parent_task == Some(i)
+                && (b
+                    .tasks
+                    .iter()
+                    .any(|t| !t.done && t.deadlines.iter().any(|e| e.1 >= level))
+                    || (0..b.tasks.len()).any(|j| nested_held(st, c, j, level)))
+        })
+    })
 }
 
 /// A `pct` scheduler is bound: plain `par` stays inline so its order is the handler's.
@@ -194,6 +211,7 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             running: None,
             can_yield: can_yield != 0,
             parent: st.cur,
+            parent_task: st.cur.and_then(|c| block(st, c as u64).running),
             cancelled: false,
             kept: None,
         };
@@ -300,13 +318,17 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             level += 1;
             up = st.blocks[p].as_ref().expect("a live par block").parent;
         }
+        let nested: Vec<bool> = (0..block(st, h).tasks.len())
+            .map(|i| nested_held(st, h as usize, i, level))
+            .collect();
         let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let cancelled = b.cancelled;
         let runnable: Vec<bool> = b
             .tasks
             .iter()
-            .map(|t| {
-                let held = t.deadlines.iter().any(|e| e.1 >= level);
+            .enumerate()
+            .map(|(i, t)| {
+                let held = nested[i] || t.deadlines.iter().any(|e| e.1 >= level);
                 !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
             })
             .collect();
