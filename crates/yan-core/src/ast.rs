@@ -380,6 +380,9 @@ pub enum StmtKind {
     Deadline {
         at: Atom,
         body: Block,
+        /// `shield at { ... }`: the body runs to `at` instead of the earliest enclosing deadline
+        /// and holds the cancellation of enclosing scopes (9.4, R811).
+        shield: bool,
     },
     Par {
         concurrent: bool,

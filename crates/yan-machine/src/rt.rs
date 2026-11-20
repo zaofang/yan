@@ -1805,6 +1805,11 @@ impl Machine<'_> {
                 a[1].int() as i64,
                 a[2].int() as i64,
             ))),
+            RtFn::ShieldBegin => Val::I(i128::from(yan_rt::deadline::yan_rt_shield_begin(
+                a[0].addr(),
+                a[1].int() as i64,
+                a[2].int() as i64,
+            ))),
             RtFn::DeadlineEnd => {
                 yan_rt::deadline::yan_rt_deadline_end();
                 Val::U

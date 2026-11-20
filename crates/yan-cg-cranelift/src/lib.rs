@@ -924,6 +924,7 @@ const RT: &[RtFn] = &[
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
     RtFn::DeadlineBegin,
+    RtFn::ShieldBegin,
     RtFn::DeadlineEnd,
     RtFn::DeadlineEndTo,
     RtFn::FfiCall,
@@ -2526,6 +2527,12 @@ fn rt_fn(
         RtFn::DeadlineBegin => (
             "yan_rt_deadline_begin",
             deadline::yan_rt_deadline_begin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ShieldBegin => (
+            "yan_rt_shield_begin",
+            deadline::yan_rt_shield_begin as *const u8,
             &[I64, I64, I64],
             Some(I64),
         ),

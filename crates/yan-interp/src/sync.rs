@@ -289,10 +289,14 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
 
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
 fn cancelled(it: &Interp) -> Option<Value> {
-    it.cancel.iter().any(|c| *c).then(|| Value::Data {
-        name: "Cancelled".into(),
-        fields: Vec::new(),
-    })
+    it.cancel
+        .iter()
+        .skip(it.shield_floor)
+        .any(|c| *c)
+        .then(|| Value::Data {
+            name: "Cancelled".into(),
+            fields: Vec::new(),
+        })
 }
 
 /// What a send to a full mailbox does (R974).

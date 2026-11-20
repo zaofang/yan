@@ -309,6 +309,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             force: false,
             in_par: 0,
             cancel: Vec::new(),
+            shield_floor: 0,
             task_done: false,
             host: None,
         },
@@ -493,6 +494,8 @@ pub(crate) struct Interp<'o> {
     /// Per running `par concurrent` block, innermost last: a task left it and cancelled the
     /// rest (9.4).
     cancel: Vec<bool>,
+    /// The blocks of `cancel` below this index are held by a `shield` (9.4).
+    shield_floor: usize,
     /// Set when a task's branch ends.
     task_done: bool,
     /// Answers `toolchain` queries; set only by [`query`].
@@ -932,6 +935,7 @@ fn entry(
         force: false,
         in_par: 0,
         cancel: Vec::new(),
+        shield_floor: 0,
         task_done: false,
         host,
     };

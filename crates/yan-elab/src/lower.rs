@@ -367,6 +367,7 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
             j::WithKind::Bind(_, e)
             | j::WithKind::Deadline(e)
             | j::WithKind::Timeout(e)
+            | j::WithKind::Shield(e)
             | j::WithKind::Supervisor(e) => vec![e],
         },
         K::Par {

@@ -6,24 +6,33 @@ use std::cell::RefCell;
 
 use crate::timeabi::join;
 
+/// An open scope: its instant, and the count of enclosing `par` blocks whose cancellation it
+/// holds (0 unless the scope is a shield).
+pub(crate) type Stack = Vec<(i128, usize)>;
+
 thread_local! {
-    static STACK: RefCell<Vec<i128>> = const { RefCell::new(Vec::new()) };
+    static STACK: RefCell<Stack> = const { RefCell::new(Vec::new()) };
 }
 
 /// The deadline in force, if a scope is open.
 pub fn current() -> Option<i128> {
-    STACK.with(|s| s.borrow().last().copied())
+    STACK.with(|s| s.borrow().last().map(|e| e.0))
 }
 
-pub(crate) fn take() -> Vec<i128> {
+/// The count of `par` blocks, from the outermost, whose cancellation a shield holds.
+pub(crate) fn floor() -> usize {
+    STACK.with(|s| s.borrow().iter().map(|e| e.1).max().unwrap_or(0))
+}
+
+pub(crate) fn take() -> Stack {
     STACK.with(|s| std::mem::take(&mut *s.borrow_mut()))
 }
 
-pub(crate) fn install(stack: Vec<i128>) {
+pub(crate) fn install(stack: Stack) {
     STACK.with(|s| *s.borrow_mut() = stack);
 }
 
-pub(crate) fn snapshot() -> Vec<i128> {
+pub(crate) fn snapshot() -> Stack {
     STACK.with(|s| s.borrow().clone())
 }
 
@@ -35,8 +44,21 @@ pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;
         let at = join(hi, lo);
-        let at = s.last().map_or(at, |d| (*d).min(at));
-        s.push(at);
+        let at = s.last().map_or(at, |d| d.0.min(at));
+        s.push((at, 0));
+        low.min(depth)
+    })
+}
+
+/// Open a shield ending at `(hi, lo)`: the instant replaces the deadline in force, and the
+/// cancellation of the `par` blocks around the running task is held until it ends (R811).
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_shield_begin(low: u64, hi: i64, lo: i64) -> u64 {
+    let held = crate::sched::depth();
+    STACK.with(|s| {
+        let mut s = s.borrow_mut();
+        let depth = s.len() as u64;
+        s.push((join(hi, lo), held));
         low.min(depth)
     })
 }
@@ -58,6 +80,15 @@ pub extern "C" fn yan_rt_deadline_end_to(depth: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_shield_replaces_the_deadline() {
+        let low = yan_rt_deadline_begin(u64::MAX, 0, 20);
+        yan_rt_shield_begin(low, 0, 90);
+        assert_eq!(current(), Some(90));
+        yan_rt_deadline_end_to(low);
+        assert_eq!(current(), None);
+    }
 
     #[test]
     fn a_nested_scope_keeps_the_earlier_deadline() {

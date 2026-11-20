@@ -1451,6 +1451,7 @@ impl Lower<'_> {
                     }
                     WithKind::Deadline(e) => h::WithKind::Deadline(self.expr(e)?),
                     WithKind::Timeout(e) => h::WithKind::Timeout(self.expr(e)?),
+                    WithKind::Shield(e) => h::WithKind::Shield(self.expr(e)?),
                     WithKind::Supervisor(e) => h::WithKind::Supervisor(self.expr(e)?),
                 },
                 body: self.block(body)?,
@@ -2502,7 +2503,7 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
                     e(value, names, bound);
                     bound.insert(name.clone());
                 }
-                WithKind::Deadline(x) | WithKind::Timeout(x) => {
+                WithKind::Deadline(x) | WithKind::Timeout(x) | WithKind::Shield(x) => {
                     // A cancel scope can expire (R472).
                     names.fails.insert("Timeout".into());
                     e(x, names, bound)
