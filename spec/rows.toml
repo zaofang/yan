@@ -2320,3 +2320,8 @@ sections = "8.3, 9.4"
 rows = "R1129"
 topic = "under drain a shield's instant is clamped to the end of the cancel grace of the scopes it holds back: the earliest of their drain grace ends plus 10 s, whether the drain came before or after the shield opened; expiry at the clamp is `ShieldTimeout` (#1803 item 4, #1820)"
 sections = "9.4"
+
+[[entry]]
+rows = "R1130"
+topic = "signals on hosted platforms: the first SIGINT or SIGTERM is `scope.root().drain(30 * s)`, observed at the next cancellation point or scope query on the bound `time` handler's clock, and it wakes host sleeps; a second exits at once with status 128 plus its number; a process alive 40 s of host time after the first aborts as a `shutdown` panic; conformance `signal: INT|TERM after LINE` header (#1820)"
+sections = "9.4, 24.1"

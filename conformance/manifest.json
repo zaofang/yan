@@ -7422,6 +7422,32 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/signal_drains_root.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "24.1"
+   ],
+   "rows": [
+    "R1130"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ready\ndraining True True\n",
+   "exit": 143,
+   "signals": [
+    [
+     "INT",
+     "ready"
+    ],
+    [
+     "TERM",
+     "draining True True"
+    ]
+   ]
+  },
+  {
    "path": "yag/run/contracts/assert_panics.yag",
    "kind": "run",
    "milestone": "M1",

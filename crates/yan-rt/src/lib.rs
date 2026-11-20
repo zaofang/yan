@@ -72,6 +72,8 @@ pub mod scope;
 #[allow(unsafe_code)]
 pub mod select;
 #[allow(unsafe_code)]
+pub mod signal;
+#[allow(unsafe_code)]
 pub mod slice;
 pub mod sort;
 pub mod text;
