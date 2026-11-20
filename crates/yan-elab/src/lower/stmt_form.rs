@@ -485,9 +485,8 @@ impl Lower<'_, '_, '_> {
                 } else {
                     e.clone()
                 };
-                if matches!(kind, j::WithKind::Shield(_))
-                    && !self.sig.caps.iter().any(|c| c == "shield")
-                {
+                let shield = matches!(kind, j::WithKind::Shield(_));
+                if shield && !self.sig.caps.iter().any(|c| c == "shield") {
                     self.err(
                         "E301",
                         at,
@@ -497,7 +496,8 @@ impl Lower<'_, '_, '_> {
                         ),
                     );
                 }
-                let timeout = Ty::Data("Timeout".into());
+                let name = if shield { "ShieldTimeout" } else { "Timeout" };
+                let timeout = Ty::Data(name.into());
                 let lists = match &self.sig.fail {
                     Some(Ty::Union(ms)) => ms.contains(&timeout),
                     f => f.as_ref() == Some(&timeout),
@@ -507,15 +507,14 @@ impl Lower<'_, '_, '_> {
                         "E310",
                         at,
                         format!(
-                            "`{}` opens a cancel scope, so it can fail with `Timeout`; \
-                             add `Timeout` to its `fail` type (R472)",
+                            "`{}` opens a cancel scope, so it can fail with `{name}`; \
+                             add `{name}` to its `fail` type (R472)",
                             self.item
                         ),
                     );
                 }
                 let (a, _) = self.atom(&at_expr, None)?;
                 let b = self.block(&body.stmts)?;
-                let shield = matches!(kind, j::WithKind::Shield(_));
                 self.emit(
                     StmtKind::Deadline {
                         at: a,

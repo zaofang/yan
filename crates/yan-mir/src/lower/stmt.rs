@@ -363,7 +363,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`fail` outside a failing function");
                 };
                 let e = fs[0].1.clone();
-                let v = self.atom(a, &e)?;
+                let mut v = self.atom(a, &e)?;
+                if self.shields > 0 {
+                    v = self.shield_failure(&e, v);
+                }
                 self.unwind(&[], Some((&e, &v)));
                 self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())

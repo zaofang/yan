@@ -676,7 +676,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
-        let ev = self.widen_err(ev, &e, &mine_e)?;
+        let mut ev = self.widen_err(ev, &e, &mine_e)?;
+        if self.shields > 0 {
+            ev = self.shield_failure(&mine_e, ev);
+        }
         self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;

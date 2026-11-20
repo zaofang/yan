@@ -310,6 +310,8 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             in_par: 0,
             cancel: Vec::new(),
             shield_floor: 0,
+            shielded: false,
+            shield_hit: std::cell::Cell::new(false),
             task_done: false,
             host: None,
         },
@@ -427,6 +429,10 @@ pub(crate) struct Interp<'o> {
     ceiling: yan_sandbox::Ceiling,
     /// The earliest enclosing `deadline` scope, as monotonic nanoseconds (9.4).
     deadline: Option<i128>,
+    /// Whether `deadline` is the instant of a `shield`, whose expiry is `ShieldTimeout` (R812).
+    shielded: bool,
+    /// Whether the last `Timeout` raised was a shield's own expiry.
+    shield_hit: std::cell::Cell<bool>,
     /// Each channel, by channel.
     chans: Vec<sync::Chan>,
     /// The slots of each arena, by arena; a `Ref` is (arena, slot).
@@ -936,6 +942,8 @@ fn entry(
         in_par: 0,
         cancel: Vec::new(),
         shield_floor: 0,
+        shielded: false,
+        shield_hit: std::cell::Cell::new(false),
         task_done: false,
         host,
     };

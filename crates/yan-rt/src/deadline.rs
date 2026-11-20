@@ -8,15 +8,21 @@ use crate::timeabi::join;
 
 /// An open scope: its instant, and the count of enclosing `par` blocks whose cancellation it
 /// holds (0 unless the scope is a shield).
-pub(crate) type Stack = Vec<(i128, usize)>;
+pub(crate) type Stack = Vec<(i128, usize, bool)>;
 
 thread_local! {
     static STACK: RefCell<Stack> = const { RefCell::new(Vec::new()) };
+    /// Whether the deadline last read by an operation was a shield's own (R812).
+    static HIT: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// The deadline in force, if a scope is open.
 pub fn current() -> Option<i128> {
-    STACK.with(|s| s.borrow().last().map(|e| e.0))
+    STACK.with(|s| {
+        let s = s.borrow();
+        HIT.with(|h| h.set(s.last().is_some_and(|e| e.2)));
+        s.last().map(|e| e.0)
+    })
 }
 
 /// The count of `par` blocks, from the outermost, whose cancellation a shield holds.
@@ -45,7 +51,7 @@ pub extern "C" fn yan_rt_deadline_begin(low: u64, hi: i64, lo: i64) -> u64 {
         let depth = s.len() as u64;
         let at = join(hi, lo);
         let at = s.last().map_or(at, |d| d.0.min(at));
-        s.push((at, 0));
+        s.push((at, 0, false));
         low.min(depth)
     })
 }
@@ -58,9 +64,16 @@ pub extern "C" fn yan_rt_shield_begin(low: u64, hi: i64, lo: i64) -> u64 {
     STACK.with(|s| {
         let mut s = s.borrow_mut();
         let depth = s.len() as u64;
-        s.push((join(hi, lo), held));
+        s.push((join(hi, lo), held, true));
         low.min(depth)
     })
+}
+
+/// Whether the last deadline an operation read was a shield's own, which a failure leaving the
+/// shield reports as `ShieldTimeout`; reading clears it.
+#[unsafe(no_mangle)]
+pub extern "C" fn yan_rt_shield_hit() -> u64 {
+    u64::from(HIT.with(|h| h.take()))
 }
 
 /// End the innermost scope.

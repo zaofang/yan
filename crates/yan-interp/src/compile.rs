@@ -147,6 +147,9 @@ pub(crate) enum Op {
     JmpCont(Reg),
     Ret(Opnd),
     Fail(Opnd),
+    /// `Fail` out of a `shield`: a `Timeout` raised by the shield's own expiry becomes
+    /// `ShieldTimeout` (R812).
+    FailShield(Opnd),
     Call {
         site: u32,
         dst: Reg,
@@ -302,6 +305,8 @@ pub(crate) struct Site {
     /// not looked up by name at run time (R561).
     pub id: Option<Id>,
     pub mode: Mode,
+    /// Whether a `shield` is open around the call, in its frame (R812).
+    pub shield: bool,
 }
 
 #[derive(Debug)]
@@ -667,6 +672,7 @@ enum Scope {
     Deadline {
         saved: Reg,
         floor: Reg,
+        shield: bool,
     },
     Sup,
     Block {
@@ -1161,7 +1167,12 @@ impl<'g, 'm> FnC<'g, 'm> {
             StmtKind::Ret(a) => self.ret(a),
             StmtKind::Fail(a) => match self.atom(a) {
                 Ok(o) => {
-                    self.emit(Op::Fail(o));
+                    let shielded = self.in_shield();
+                    self.emit(if shielded {
+                        Op::FailShield(o)
+                    } else {
+                        Op::Fail(o)
+                    });
                 }
                 Err(m) => self.unsupported(m),
             },
@@ -1289,7 +1300,11 @@ impl<'g, 'm> FnC<'g, 'm> {
                     floor,
                     shield: *shield,
                 });
-                self.scopes.push(Scope::Deadline { saved, floor });
+                self.scopes.push(Scope::Deadline {
+                    saved,
+                    floor,
+                    shield: *shield,
+                });
                 self.block(body);
                 self.scopes.pop();
                 self.emit(Op::DeadlineEnd { saved, floor });
@@ -1325,6 +1340,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                 id: registry::id("std.rand.split"),
                 name: "std.rand.split".into(),
                 mode: Mode::Plain,
+                shield: false,
             });
             let site = self.code.sites.len() as u32 - 1;
             self.emit(Op::Call { site, dst: reg });
@@ -1392,7 +1408,7 @@ impl<'g, 'm> FnC<'g, 'm> {
                     dst: *reg,
                     src: *saved,
                 }),
-                Scope::Deadline { saved, floor } => Some(Op::DeadlineEnd {
+                Scope::Deadline { saved, floor, .. } => Some(Op::DeadlineEnd {
                     saved: *saved,
                     floor: *floor,
                 }),
@@ -1709,8 +1725,15 @@ impl<'g, 'm> FnC<'g, 'm> {
             id: registry::id(&name),
             name: name.into(),
             mode,
+            shield: self.in_shield(),
         });
         Some(self.code.sites.len() as u32 - 1)
+    }
+
+    fn in_shield(&self) -> bool {
+        self.scopes
+            .iter()
+            .any(|s| matches!(s, Scope::Deadline { shield: true, .. }))
     }
 
     fn call(&mut self, c: &Call, mode: Mode, dst: Reg) {
