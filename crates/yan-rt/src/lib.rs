@@ -68,6 +68,8 @@ pub mod regexabi;
 #[allow(unsafe_code)]
 pub mod sched;
 #[allow(unsafe_code)]
+pub mod scope;
+#[allow(unsafe_code)]
 pub mod select;
 #[allow(unsafe_code)]
 pub mod slice;

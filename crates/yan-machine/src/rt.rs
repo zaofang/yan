@@ -1819,6 +1819,13 @@ impl Machine<'_> {
                 yan_rt::deadline::yan_rt_deadline_end_to(a[0].addr());
                 Val::U
             }
+            RtFn::ScopeDrain => {
+                yan_rt::scope::drain(a[0].int() as i64);
+                Val::U
+            }
+            RtFn::ScopeDraining => {
+                Val::I(i128::from(yan_rt::scope::is_draining(a[0].int() as i64)))
+            }
             RtFn::ParBegin => {
                 let n = a[0].addr();
                 let h = sched::yan_rt_par_begin(n, a[1].addr());

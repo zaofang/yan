@@ -361,6 +361,22 @@ impl<'a, 'm> Fn<'a, 'm> {
                     args: vec![s],
                 });
             }
+            (id::STD_SCOPE_DRAIN, [(_, a), ..]) => {
+                let s = self.atom_any(a)?.0[0].clone();
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::ScopeDrain,
+                    args: vec![s],
+                });
+            }
+            (id::STD_SCOPE_IS_DRAINING, [(_, a)]) => {
+                let s = self.atom_any(a)?.0[0].clone();
+                let w = self.rt(RtFn::ScopeDraining, I64, vec![s]);
+                let b = self.scalar_op(ScalarOp::Ne, I64, vec![w, Operand::Int(0)]);
+                if let Some(d) = &dst {
+                    self.copy_to(&d.locals.clone(), vec![b]);
+                }
+            }
             (id::STD_FS_READ | id::STD_FS_LIST_DIR, [(_, path)]) => {
                 let (name, f) = match id {
                     id::STD_FS_READ => ("fs.read", RtFn::FsRead),

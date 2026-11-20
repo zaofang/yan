@@ -1,0 +1,21 @@
+# spec: 9.4
+# rows: R1124, R1125
+# note: the root scope drains once, drain is idempotent, and Draining is a failure a function can declare (#1820)
+# stdout:
+# before False
+# after True
+# again True
+# intake Draining()
+
+def intake(sc: Scope) -> None fail Draining:
+    if sc.is_draining():
+        fail Draining()
+
+pub def main() -> None uses io, nondet:
+    sc = scope.root()
+    io.print(f"before {sc.is_draining()}")
+    sc.drain(5 * s)
+    io.print(f"after {sc.is_draining()}")
+    sc.drain(1 * s)
+    io.print(f"again {sc.is_draining()}")
+    intake(sc) else e -> io.print(f"intake {e}")
