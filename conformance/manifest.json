@@ -11550,6 +11550,32 @@
    "expect": []
   },
   {
+   "path": "yn/pass/failure/with_tail_name.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
+   "path": "yn/pass/failure/with_tail_value.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yn/pass/ffi/callbacks_and_ownership.yn",
    "kind": "pass",
    "milestone": "M3",
@@ -12018,44 +12044,6 @@
      "code": "E312",
      "line": 7,
      "col": 3
-    }
-   ]
-  },
-  {
-   "path": "yn/fail/failure/e312_with_tail_name.yn",
-   "kind": "fail",
-   "milestone": "M3",
-   "spec": [
-    "8.1"
-   ],
-   "rows": [
-    "R374"
-   ],
-   "flags": [],
-   "expect": [
-    {
-     "code": "E312",
-     "line": 12,
-     "col": 5
-    }
-   ]
-  },
-  {
-   "path": "yn/fail/failure/e312_with_tail_value.yn",
-   "kind": "fail",
-   "milestone": "M3",
-   "spec": [
-    "8.1"
-   ],
-   "rows": [
-    "R374"
-   ],
-   "flags": [],
-   "expect": [
-    {
-     "code": "E312",
-     "line": 10,
-     "col": 5
     }
    ]
   },
@@ -14637,6 +14625,21 @@
    "expect": [],
    "stdout": "start\n",
    "exit": 1
+  },
+  {
+   "path": "yn/run/failure/with_tail_result.yn",
+   "kind": "run",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R1131"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "8\n0\n3\n",
+   "exit": 0
   },
   {
    "path": "yn/run/ffi/ptr_of_across_suspend.yn",

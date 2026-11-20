@@ -2325,3 +2325,8 @@ sections = "9.4"
 rows = "R1130"
 topic = "signals on hosted platforms: the first SIGINT or SIGTERM is `scope.root().drain(30 * s)`, observed at the next cancellation point or scope query on the bound `time` handler's clock, and it wakes host sleeps; a second exits at once with status 128 plus its number; a process alive 40 s of host time after the first aborts as a `shutdown` panic; conformance `signal: INT|TERM after LINE` header (#1820)"
 sections = "9.4, 24.1"
+
+[[entry]]
+rows = "R1131"
+topic = "in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1)"
+sections = "15.3"
