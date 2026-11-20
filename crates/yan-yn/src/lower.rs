@@ -2133,6 +2133,8 @@ fn tail_return(stmts: &mut [h::Stmt]) {
         h::StmtKind::Select(arms) => {
             arms.iter_mut().for_each(|a| tail_return(&mut a.body.stmts));
         }
+        h::StmtKind::With { body, .. } => tail_return(&mut body.stmts),
+        h::StmtKind::Unsafe(body) => tail_return(body),
         _ => {}
     }
 }
