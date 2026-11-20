@@ -34,6 +34,7 @@ pub(crate) static BINDS: &[(Id, Bind)] = &[
         Bind::Cap(|it, a| match (a.first().and_then(id_of), a.get(1)) {
             (Some(s), Some(Value::Duration(grace))) => {
                 let at = super::time::mono_now(it).saturating_add(*grace);
+                super::time::scopes(it);
                 it.scopes.drain(s, at);
                 Ok(Unit)
             }
@@ -43,7 +44,7 @@ pub(crate) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SCOPE_IS_DRAINING,
         Bind::Cap(|it, a| match a.first().and_then(id_of) {
-            Some(s) => Ok(Bool(it.scopes.draining(s))),
+            Some(s) => Ok(Bool(super::time::scopes(it).draining(s))),
             None => bad_args(STD_SCOPE_IS_DRAINING),
         }),
     ),

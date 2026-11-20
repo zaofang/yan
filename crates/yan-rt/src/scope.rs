@@ -60,17 +60,24 @@ impl Scopes {
     /// one that has ended, does nothing.
     pub fn drain(&mut self, id: u64, cancel_at: i128) {
         if id == ROOT {
-            self.root_cancel_at.get_or_insert(cancel_at);
+            if self.root_at().is_none() {
+                self.root_cancel_at = Some(cancel_at);
+            }
         } else if let Some(s) = self.open.get_mut(&id) {
             s.cancel_at.get_or_insert(cancel_at);
         }
+    }
+
+    /// When the root is cancelled: by its own drain, or by a signal's (9.4).
+    fn root_at(&self) -> Option<i128> {
+        self.root_cancel_at.or_else(crate::signal::root_cancel_at)
     }
 
     /// A scope that has ended is not draining.
     pub fn draining(&self, mut id: u64) -> bool {
         loop {
             if id == ROOT {
-                return self.root_cancel_at.is_some();
+                return self.root_at().is_some();
             }
             match self.open.get(&id) {
                 Some(s) if s.cancel_at.is_some() => return true,
@@ -87,7 +94,7 @@ impl Scopes {
         let mut earliest = |c: Option<i128>| at = [at, c].into_iter().flatten().min();
         loop {
             if id == ROOT {
-                earliest(self.root_cancel_at);
+                earliest(self.root_at());
                 break;
             }
             let Some(s) = self.open.get(&id) else { break };
@@ -125,12 +132,14 @@ pub(crate) fn open(shield: bool) -> u64 {
 
 /// When the running task is cancelled by a drain, if a scope it is in drains.
 pub(crate) fn cancel_at() -> Option<i128> {
+    crate::signal::observe(crate::civil::mono_now);
     let id = yan_rt_scope_current();
     SCOPES.with(|s| s.borrow().cancel_at(id))
 }
 
 /// Where a drain clamps the shield the running task is in.
 pub(crate) fn shield_limit() -> Option<i128> {
+    crate::signal::observe(crate::civil::mono_now);
     let id = yan_rt_scope_current();
     SCOPES.with(|s| s.borrow().shield_limit(id))
 }
@@ -173,6 +182,7 @@ pub extern "C" fn yan_rt_scope_current() -> u64 {
 /// `Scope.drain`: the grace `(hi, lo)` runs on the innermost `time` handler's clock.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_scope_drain(id: u64, hi: i64, lo: i64) {
+    crate::signal::observe(crate::civil::mono_now);
     let at = crate::civil::mono_now().saturating_add(crate::timeabi::join(hi, lo));
     SCOPES.with(|s| s.borrow_mut().drain(id, at));
 }
@@ -180,6 +190,7 @@ pub extern "C" fn yan_rt_scope_drain(id: u64, hi: i64, lo: i64) {
 /// `Scope.is_draining`.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_scope_draining(id: u64) -> u64 {
+    crate::signal::observe(crate::civil::mono_now);
     u64::from(SCOPES.with(|s| s.borrow().draining(id)))
 }
 

@@ -61,7 +61,11 @@ Headers are the file's leading comment lines (`#` in Yan Agent, `--` in Yan and 
 # expect: E402 at 11:18   one per expected diagnostic: code, line, column of the primary span
 # stdout:                 expected output, one prefixed line per output line
 # exit: 101
+# signal: INT after ready  run cases: send SIGINT (or TERM) once the program has printed that line
 ```
+
+Several `signal` headers are sent in header order (R1130). A run without signals, as a harness
+that does not send them makes, must still end by itself.
 
 Lines and columns are 1-based and count the header lines. Columns are UTF-8 byte offsets, as in
 the Yan Core text parser; every primary span here is preceded only by ASCII on its line, so code points
