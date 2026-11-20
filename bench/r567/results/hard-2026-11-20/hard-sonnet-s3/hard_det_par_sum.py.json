@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1931,
+   "out": 1297,
+   "reasoning": 525,
+   "out_bytes": 1787
+  },
+  "body": {
+   "in": 3287,
+   "out": 823,
+   "reasoning": 0,
+   "out_bytes": 1910
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int], workers: int = 4) -> int:\n    \"\"\"Sum of square(x) for every x in xs, with the squares computed in\n    parallel on a thread pool of `workers` threads.\n\n    The result is exact (integer arithmetic) and identical for every\n    worker count, since integer addition is order-independent. Returns 0\n    for an empty list. Does not modify xs.\n    \"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return sum(pool.map(square, xs))\n\n\ndef test_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_single() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n\n\ndef test_big_ints_exact() -> None:\n    big = 10**30\n    assert sum_squares([big, big]) == 2 * big * big\n\n\ndef test_default_matches_sequential() -> None:\n    xs = list(range(-50, 50))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 4, 8, 64])\ndef test_same_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-200, 200))\n    expected = sum(x * x for x in xs)\n    assert sum_squares(xs, workers=workers) == expected\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 16])\ndef test_more_workers_than_items(workers: int) -> None:\n    assert sum_squares([2, 3], workers=workers) == 13\n    assert sum_squares([], workers=workers) == 0\n\n\ndef test_input_not_modified() -> None:\n    xs = [3, -1, 2]\n    sum_squares(xs, workers=2)\n    assert xs == [3, -1, 2]\n\n\ndef test_repeatable() -> None:\n    xs = list(range(1000))\n    results = {sum_squares(xs, workers=w) for w in (1, 2, 5, 8) for _ in range(3)}\n    assert results == {sum(x * x for x in xs)}\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1931,
+    "out": 1297,
+    "reasoning": 525
+   },
+   "out_bytes": 1787,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3287,
+    "out": 823,
+    "reasoning": 0
+   },
+   "out_bytes": 1910,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares(xs: list[int], workers: int = 4) -> int:\n    \"\"\"Sum of square(x) for every x in xs, with the squares computed in\n    parallel on a thread pool of `workers` threads.\n\n    The result is exact (integer arithmetic) and identical for every\n    worker count, since integer addition is order-independent. Returns 0\n    for an empty list. Does not modify xs.\n    \"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return sum(pool.map(square, xs))\n\n\ndef test_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_single() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n\n\ndef test_big_ints_exact() -> None:\n    big = 10**30\n    assert sum_squares([big, big]) == 2 * big * big\n\n\ndef test_default_matches_sequential() -> None:\n    xs = list(range(-50, 50))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 4, 8, 64])\ndef test_same_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-200, 200))\n    expected = sum(x * x for x in xs)\n    assert sum_squares(xs, workers=workers) == expected\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 16])\ndef test_more_workers_than_items(workers: int) -> None:\n    assert sum_squares([2, 3], workers=workers) == 13\n    assert sum_squares([], workers=workers) == 0\n\n\ndef test_input_not_modified() -> None:\n    xs = [3, -1, 2]\n    sum_squares(xs, workers=2)\n    assert xs == [3, -1, 2]\n\n\ndef test_repeatable() -> None:\n    xs = list(range(1000))\n    results = {sum_squares(xs, workers=w) for w in (1, 2, 5, 8) for _ in range(3)}\n    assert results == {sum(x * x for x in xs)}\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

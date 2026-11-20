@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2964,
+   "out": 357,
+   "reasoning": 261,
+   "out_bytes": 216
+  },
+  "body": {
+   "in": 7038,
+   "out": 394,
+   "reasoning": 109,
+   "out_bytes": 649
+  }
+ },
+ "final": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let data = fs.read(name) else continue\n      n += 1\n  n\n\ntest_count_readable_empty() uses fs =\n  assert count_readable([]) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2964,
+    "out": 357,
+    "reasoning": 261
+   },
+   "out_bytes": 216,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3396,
+    "out": 143,
+    "reasoning": 0
+   },
+   "out_bytes": 323,
+   "ok": false,
+   "report": "E017 task.yn:8:7 `let _ = fs.read(name) else continue` let-else with a pattern other than `Some(x)` or `Ok(x)`: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3642,
+    "out": 251,
+    "reasoning": 109
+   },
+   "out_bytes": 326,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let _ = fs.read(name) else continue\n      n += 1\n  n\n\ntest_count_readable_empty() uses fs =\n  assert count_readable([]) == 0\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E017 task.yn:8:7 `let _ = fs.read(name) else continue` let-else with a pattern other than `Some(x)` or `Ok(x)`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

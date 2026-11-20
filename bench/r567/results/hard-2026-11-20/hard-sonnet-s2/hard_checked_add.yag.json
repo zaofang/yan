@@ -1,0 +1,95 @@
+{
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Sum of a and b, or None when it does not fit in a 64-bit signed int.\"\"\"\n    post out is None or out == a + b\n    ex checked_add(1, 2) == 3\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    ex checked_add(9223372036854775807, -1) == 9223372036854775806\n    max_int = 9223372036854775807\n    min_int = -9223372036854775807 - 1\n    if b > 0 and a > max_int - b:\n        return None\n    if b < 0 and a < min_int - b:\n        return None\n    return a + b\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3270,
+    "out": 166,
+    "reasoning": 0
+   },
+   "out_bytes": 382
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3535,
+    "out": 563,
+    "reasoning": 321
+   },
+   "out_bytes": 572
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/checked_add",
+ "tokens": {
+  "body": {
+   "in": 3535,
+   "out": 563,
+   "reasoning": 321,
+   "out_bytes": 572
+  },
+  "spec": {
+   "in": 3270,
+   "out": 166,
+   "reasoning": 0,
+   "out_bytes": 382
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Sum of a and b, or None when it does not fit in a 64-bit signed int.\"\"\"\n    ex checked_add(1, 2) == 3\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    ex checked_add(9223372036854775807, -1) == 9223372036854775806\n    post out is None or out == a + b\n    max_int = 9223372036854775807\n    min_int = -9223372036854775807 - 1\n    if b > 0 and a > max_int - b:\n        return None\n    if b < 0 and a < min_int - b:\n        return None\n    return a + b\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1987,
+   "out": 2135,
+   "reasoning": 0,
+   "out_bytes": 4773
+  },
+  "body": {
+   "in": 4180,
+   "out": 2324,
+   "reasoning": 0,
+   "out_bytes": 5345
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first name in `names` that is a readable file\n    inside the directory `notes` (relative to the working directory).\n\n    Subdirectory names such as \"sub/b.txt\" are valid. Names are untrusted:\n    absolute paths, \"..\" segments, symlinks, or any other spelling that\n    resolves to a location outside `notes` must never be read and are\n    skipped. Missing, unreadable, or non-file entries (e.g. directories) are\n    skipped too. Returns \"\" when no name yields a readable file.\n    \"\"\"\n    try:\n        root = Path(NOTES_DIR).resolve(strict=True)\n    except (OSError, RuntimeError):\n        return \"\"\n    for name in names:\n        if not name or \"\\x00\" in name:\n            continue\n        try:\n            candidate = (root / name).resolve(strict=True)\n            if not candidate.is_relative_to(root) or candidate == root:\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text()\n        except (OSError, ValueError, RuntimeError, UnicodeDecodeError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"alpha\")\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"bravo\")\n    (tmp_path / \"secret.txt\").write_text(\"secret\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_empty_list(workdir: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_first_file_read(workdir: Path) -> None:\n    assert first_readable([\"a.txt\"]) == \"alpha\"\n\n\ndef test_subdirectory_file(workdir: Path) -> None:\n    assert first_readable([\"sub/b.txt\"]) == \"bravo\"\n\n\ndef test_skips_missing(workdir: Path) -> None:\n    assert first_readable([\"nope.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_first_readable_wins(workdir: Path) -> None:\n    assert first_readable([\"sub/b.txt\", \"a.txt\"]) == \"bravo\"\n\n\ndef test_none_readable(workdir: Path) -> None:\n    assert first_readable([\"nope.txt\", \"also/missing.txt\"]) == \"\"\n\n\ndef test_directory_is_skipped(workdir: Path) -> None:\n    assert first_readable([\"sub\", \"a.txt\"]) == \"alpha\"\n    assert first_readable([\"sub\"]) == \"\"\n\n\ndef test_empty_name_is_skipped(workdir: Path) -> None:\n    assert first_readable([\"\", \"a.txt\"]) == \"alpha\"\n    assert first_readable([\"\"]) == \"\"\n\n\ndef test_dot_name_is_skipped(workdir: Path) -> None:\n    assert first_readable([\".\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_parent_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n\n\ndef test_parent_traversal_then_valid(workdir: Path) -> None:\n    assert first_readable([\"../secret.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_nested_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n\n\ndef test_traversal_that_stays_inside_is_ok(workdir: Path) -> None:\n    assert first_readable([\"sub/../a.txt\"]) == \"alpha\"\n\n\ndef test_absolute_path_blocked(workdir: Path) -> None:\n    assert first_readable([str(workdir / \"secret.txt\")]) == \"\"\n\n\ndef test_absolute_path_inside_notes_blocked_or_read(workdir: Path) -> None:\n    # An absolute spelling must never escape; one pointing inside notes may\n    # be either read or skipped, but must not leak anything outside.\n    result = first_readable([str(workdir / \"notes\" / \"a.txt\")])\n    assert result in (\"\", \"alpha\")\n\n\ndef test_backslash_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"..\\\\secret.txt\"]) == \"\"\n\n\ndef test_null_byte_name_skipped(workdir: Path) -> None:\n    assert first_readable([\"a.txt\\x00\", \"sub/b.txt\"]) == \"bravo\"\n\n\ndef test_symlink_file_escape_blocked(workdir: Path) -> None:\n    (workdir / \"notes\" / \"link.txt\").symlink_to(workdir / \"secret.txt\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_symlink_dir_escape_blocked(workdir: Path) -> None:\n    outside = workdir / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"leak\")\n    (workdir / \"notes\" / \"dirlink\").symlink_to(outside, target_is_directory=True)\n    assert first_readable([\"dirlink/x.txt\"]) == \"\"\n\n\ndef test_symlink_inside_notes_ok(workdir: Path) -> None:\n    (workdir / \"notes\" / \"inner.txt\").symlink_to(workdir / \"notes\" / \"a.txt\")\n    assert first_readable([\"inner.txt\"]) == \"alpha\"\n\n\ndef test_prefix_sibling_directory_blocked(workdir: Path) -> None:\n    sibling = workdir / \"notes2\"\n    sibling.mkdir()\n    (sibling / \"c.txt\").write_text(\"sibling\")\n    assert first_readable([\"../notes2/c.txt\"]) == \"\"\n\n\ndef test_unreadable_file_skipped(workdir: Path) -> None:\n    locked = workdir / \"notes\" / \"locked.txt\"\n    locked.write_text(\"locked\")\n    locked.chmod(0)\n    try:\n        assert first_readable([\"locked.txt\", \"a.txt\"]) == \"alpha\"\n    finally:\n        locked.chmod(0o644)\n\n\ndef test_non_utf8_file_skipped(workdir: Path) -> None:\n    (workdir / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert first_readable([\"bin.dat\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_missing_notes_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1987,
+    "out": 2135,
+    "reasoning": 0
+   },
+   "out_bytes": 4773,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 4180,
+    "out": 2324,
+    "reasoning": 0
+   },
+   "out_bytes": 5345,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first name in `names` that is a readable file\n    inside the directory `notes` (relative to the working directory).\n\n    Subdirectory names such as \"sub/b.txt\" are valid. Names are untrusted:\n    absolute paths, \"..\" segments, symlinks, or any other spelling that\n    resolves to a location outside `notes` must never be read and are\n    skipped. Missing, unreadable, or non-file entries (e.g. directories) are\n    skipped too. Returns \"\" when no name yields a readable file.\n    \"\"\"\n    try:\n        root = Path(NOTES_DIR).resolve(strict=True)\n    except (OSError, RuntimeError):\n        return \"\"\n    for name in names:\n        if not name or \"\\x00\" in name:\n            continue\n        try:\n            candidate = (root / name).resolve(strict=True)\n            if not candidate.is_relative_to(root) or candidate == root:\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text()\n        except (OSError, ValueError, RuntimeError, UnicodeDecodeError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\" / \"sub\").mkdir(parents=True)\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"alpha\")\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"bravo\")\n    (tmp_path / \"secret.txt\").write_text(\"secret\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_empty_list(workdir: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_first_file_read(workdir: Path) -> None:\n    assert first_readable([\"a.txt\"]) == \"alpha\"\n\n\ndef test_subdirectory_file(workdir: Path) -> None:\n    assert first_readable([\"sub/b.txt\"]) == \"bravo\"\n\n\ndef test_skips_missing(workdir: Path) -> None:\n    assert first_readable([\"nope.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_first_readable_wins(workdir: Path) -> None:\n    assert first_readable([\"sub/b.txt\", \"a.txt\"]) == \"bravo\"\n\n\ndef test_none_readable(workdir: Path) -> None:\n    assert first_readable([\"nope.txt\", \"also/missing.txt\"]) == \"\"\n\n\ndef test_directory_is_skipped(workdir: Path) -> None:\n    assert first_readable([\"sub\", \"a.txt\"]) == \"alpha\"\n    assert first_readable([\"sub\"]) == \"\"\n\n\ndef test_empty_name_is_skipped(workdir: Path) -> None:\n    assert first_readable([\"\", \"a.txt\"]) == \"alpha\"\n    assert first_readable([\"\"]) == \"\"\n\n\ndef test_dot_name_is_skipped(workdir: Path) -> None:\n    assert first_readable([\".\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_parent_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n\n\ndef test_parent_traversal_then_valid(workdir: Path) -> None:\n    assert first_readable([\"../secret.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_nested_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n\n\ndef test_traversal_that_stays_inside_is_ok(workdir: Path) -> None:\n    assert first_readable([\"sub/../a.txt\"]) == \"alpha\"\n\n\ndef test_absolute_path_blocked(workdir: Path) -> None:\n    assert first_readable([str(workdir / \"secret.txt\")]) == \"\"\n\n\ndef test_absolute_path_inside_notes_blocked_or_read(workdir: Path) -> None:\n    # An absolute spelling must never escape; one pointing inside notes may\n    # be either read or skipped, but must not leak anything outside.\n    result = first_readable([str(workdir / \"notes\" / \"a.txt\")])\n    assert result in (\"\", \"alpha\")\n\n\ndef test_backslash_traversal_blocked(workdir: Path) -> None:\n    assert first_readable([\"..\\\\secret.txt\"]) == \"\"\n\n\ndef test_null_byte_name_skipped(workdir: Path) -> None:\n    assert first_readable([\"a.txt\\x00\", \"sub/b.txt\"]) == \"bravo\"\n\n\ndef test_symlink_file_escape_blocked(workdir: Path) -> None:\n    (workdir / \"notes\" / \"link.txt\").symlink_to(workdir / \"secret.txt\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_symlink_dir_escape_blocked(workdir: Path) -> None:\n    outside = workdir / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"leak\")\n    (workdir / \"notes\" / \"dirlink\").symlink_to(outside, target_is_directory=True)\n    assert first_readable([\"dirlink/x.txt\"]) == \"\"\n\n\ndef test_symlink_inside_notes_ok(workdir: Path) -> None:\n    (workdir / \"notes\" / \"inner.txt\").symlink_to(workdir / \"notes\" / \"a.txt\")\n    assert first_readable([\"inner.txt\"]) == \"alpha\"\n\n\ndef test_prefix_sibling_directory_blocked(workdir: Path) -> None:\n    sibling = workdir / \"notes2\"\n    sibling.mkdir()\n    (sibling / \"c.txt\").write_text(\"sibling\")\n    assert first_readable([\"../notes2/c.txt\"]) == \"\"\n\n\ndef test_unreadable_file_skipped(workdir: Path) -> None:\n    locked = workdir / \"notes\" / \"locked.txt\"\n    locked.write_text(\"locked\")\n    locked.chmod(0)\n    try:\n        assert first_readable([\"locked.txt\", \"a.txt\"]) == \"alpha\"\n    finally:\n        locked.chmod(0o644)\n\n\ndef test_non_utf8_file_skipped(workdir: Path) -> None:\n    (workdir / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert first_readable([\"bin.dat\", \"a.txt\"]) == \"alpha\"\n\n\ndef test_missing_notes_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

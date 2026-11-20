@@ -1,0 +1,81 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1991,
+   "out": 1226,
+   "reasoning": 0,
+   "out_bytes": 2841
+  },
+  "body": {
+   "in": 8853,
+   "out": 3042,
+   "reasoning": 379,
+   "out_bytes": 6292
+  }
+ },
+ "final": "import threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order when all are even. If any\n    element is bad, raises the Bad of the lowest-index bad element,\n    regardless of which thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Reading results in input order means the first exception\n        # encountered belongs to the lowest-index bad element.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 5, 6])\n    assert ei.value.n == 5\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5, 7])\n    assert ei.value.n == 3\n\n\ndef test_all_even_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([9, 1, 3])\n    assert ei.value.n == 9\n\n\ndef test_all_even_lowest_index_when_later_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    \"\"\"The lowest-index bad element is slow; a later bad one finishes first.\"\"\"\n    later_done = threading.Event()\n\n    def slow_check(x: int) -> int:\n        if x == 1:\n            # Wait until the later bad element has already failed.\n            assert later_done.wait(timeout=5)\n            time.sleep(0.05)\n            raise Bad(x)\n        if x == 3:\n            later_done.set()\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 1, 4, 3])\n    assert ei.value.n == 1\n\n\ndef test_all_even_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    \"\"\"All elements must be in flight at once; a barrier fails if serial.\"\"\"\n    n = 4\n    barrier = threading.Barrier(n, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", barrier_check)\n    assert all_even([0, 2, 4, 6]) == [0, 2, 4, 6]\n\n\ndef test_all_even_checks_every_element(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n    original_check = check\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        return original_check(x)\n\n    monkeypatch.setattr(f\"{__name__}.check\", recording_check)\n    with pytest.raises(Bad):\n        all_even([1, 2, 3, 4, 5])\n    assert sorted(seen) == [1, 2, 3, 4, 5]\n\n\ndef test_all_even_negative_odd() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, -3, 4])\n    assert ei.value.n == -3\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1991,
+    "out": 1226,
+    "reasoning": 0
+   },
+   "out_bytes": 2841,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3275,
+    "out": 1643,
+    "reasoning": 316
+   },
+   "out_bytes": 3128,
+   "ok": false,
+   "report": "    return [f.result() for f in futures]\n            ^^^^^^^^^^\n/Users/antonio/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/concurrent/futures/_base.py:443: in result\n    return self.__get_result()\n           ^^^^^^^^^^^^^^^^^^^\n/Users/antonio/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/concurrent/futures/_base.py:395: in __get_result\n    raise self._exception\n/Users/antonio/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/concurrent/futures/thread.py:86: in run\n    result = ctx.run(self.task)\n             ^^^^^^^^^^^^^^^^^^\n/Users/antonio/.local/share/uv/python/cpython-3.14.2-macos-aarch64-none/lib/python3.14/concurrent/futures/thread.py:73: in run\n    return fn(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^\ntest_task.py:102: in recording_check\n    return check(x)\n           ^^^^^^^^\ntest_task.py:102: in recording_check\n    return check(x)\n           ^^^^^^^^\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n=========================== short test summary info ============================\nFAILED test_task.py::test_all_even_checks_every_element - RecursionError: max...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 7 passed in 0.09s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 5578,
+    "out": 1399,
+    "reasoning": 63
+   },
+   "out_bytes": 3164,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "import threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order when all are even. If any\n    element is bad, raises the Bad of the lowest-index bad element,\n    regardless of which thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Reading results in input order means the first exception\n        # encountered belongs to the lowest-index bad element.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 5, 6])\n    assert ei.value.n == 5\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5, 7])\n    assert ei.value.n == 3\n\n\ndef test_all_even_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([9, 1, 3])\n    assert ei.value.n == 9\n\n\ndef test_all_even_lowest_index_when_later_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    \"\"\"The lowest-index bad element is slow; a later bad one finishes first.\"\"\"\n    later_done = threading.Event()\n\n    def slow_check(x: int) -> int:\n        if x == 1:\n            # Wait until the later bad element has already failed.\n            assert later_done.wait(timeout=5)\n            time.sleep(0.05)\n            raise Bad(x)\n        if x == 3:\n            later_done.set()\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 1, 4, 3])\n    assert ei.value.n == 1\n\n\ndef test_all_even_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    \"\"\"All elements must be in flight at once; a barrier fails if serial.\"\"\"\n    n = 4\n    barrier = threading.Barrier(n, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", barrier_check)\n    assert all_even([0, 2, 4, 6]) == [0, 2, 4, 6]\n\n\ndef test_all_even_checks_every_element(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        return check(x)\n\n    monkeypatch.setattr(f\"{__name__}.check\", recording_check)\n    with pytest.raises(Bad):\n        all_even([1, 2, 3, 4, 5])\n    assert sorted(seen) == [1, 2, 3, 4, 5]\n\n\ndef test_all_even_negative_odd() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, -3, 4])\n    assert ei.value.n == -3\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": ".......F..                                                               [100%]\n=================================== FAILURES ===================================\nE   RecursionError: maximum recursion depth exceeded\n!!! Recursion detected (same locals & position)\n/private/var/folders/tz/w6ww66wn20b65n"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

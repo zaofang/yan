@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1921,
+   "out": 890,
+   "reasoning": 262,
+   "out_bytes": 1402
+  },
+  "body": {
+   "in": 2870,
+   "out": 720,
+   "reasoning": 0,
+   "out_bytes": 1632
+  }
+ },
+ "final": "import queue\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it is full.\n\n    Create a queue.Queue[int] holding at most cap items and try to put each\n    element of xs in order without blocking (put_nowait). Stop at the first\n    queue.Full and return the number of puts accepted so far. Nothing is ever\n    taken from the queue. A cap of zero or less accepts nothing (it is not\n    treated as unbounded).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_stops_when_full() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_cap_larger_than_input() -> None:\n    assert accepted(10, [1, 2, 3]) == 3\n\n\ndef test_cap_equals_len() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_counted() -> None:\n    assert accepted(3, [7, 7, 7, 7, 7]) == 3\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [5, 6]) == 1\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3, 4]\n    accepted(2, xs)\n    assert xs == [1, 2, 3, 4]\n\n\ndef test_returns_int_type() -> None:\n    assert isinstance(accepted(1, [1]), int)\n    assert isinstance(queue.Queue(maxsize=1), queue.Queue)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1921,
+    "out": 890,
+    "reasoning": 262
+   },
+   "out_bytes": 1402,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2870,
+    "out": 720,
+    "reasoning": 0
+   },
+   "out_bytes": 1632,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import queue\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it is full.\n\n    Create a queue.Queue[int] holding at most cap items and try to put each\n    element of xs in order without blocking (put_nowait). Stop at the first\n    queue.Full and return the number of puts accepted so far. Nothing is ever\n    taken from the queue. A cap of zero or less accepts nothing (it is not\n    treated as unbounded).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_stops_when_full() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_cap_larger_than_input() -> None:\n    assert accepted(10, [1, 2, 3]) == 3\n\n\ndef test_cap_equals_len() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_counted() -> None:\n    assert accepted(3, [7, 7, 7, 7, 7]) == 3\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [5, 6]) == 1\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3, 4]\n    accepted(2, xs)\n    assert xs == [1, 2, 3, 4]\n\n\ndef test_returns_int_type() -> None:\n    assert isinstance(accepted(1, [1]), int)\n    assert isinstance(queue.Queue(maxsize=1), queue.Queue)\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

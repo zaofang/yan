@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 4760,
+   "out": 1708,
+   "reasoning": 0,
+   "out_bytes": 3884
+  },
+  "body": {
+   "in": 3773,
+   "out": 881,
+   "reasoning": 0,
+   "out_bytes": 2002
+  }
+ },
+ "final": "import pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print a log line formatted as `[level] message` to stdout.\n\n    Console output only: must not read or write any files.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_basic_format(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"started\")\n    out = capsys.readouterr()\n    assert out.out == \"[INFO] started\\n\"\n    assert out.err == \"\"\n\n\ndef test_level_not_altered(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"warn\", \"disk low\")\n    assert capsys.readouterr().out == \"[warn] disk low\\n\"\n\n\ndef test_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_empty_level(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"\", \"hello\")\n    assert capsys.readouterr().out == \"[] hello\\n\"\n\n\ndef test_message_with_brackets_and_unicode(\n    capsys: pytest.CaptureFixture[str],\n) -> None:\n    log_line(\"ERROR\", \"bad [value] \u2717\")\n    assert capsys.readouterr().out == \"[ERROR] bad [value] \u2717\\n\"\n\n\ndef test_prints_exactly_one_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"x\")\n    out = capsys.readouterr().out\n    assert out.count(\"\\n\") == 1\n    assert out.endswith(\"\\n\")\n\n\ndef test_does_not_touch_filesystem(\n    capsys: pytest.CaptureFixture[str],\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    import builtins\n    import io\n    import pathlib\n\n    def forbidden(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"log_line must not touch the file system\")\n\n    monkeypatch.setattr(builtins, \"open\", forbidden)\n    monkeypatch.setattr(io, \"open\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"open\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"write_text\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"write_bytes\", forbidden)\n\n    log_line(\"INFO\", \"console only\")\n    assert capsys.readouterr().out == \"[INFO] console only\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1914,
+    "out": 838,
+    "reasoning": 0
+   },
+   "out_bytes": 1908,
+   "ok": false,
+   "report": "test_task.py:42: error: \"log_line\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2846,
+    "out": 870,
+    "reasoning": 0
+   },
+   "out_bytes": 1976,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3773,
+    "out": 881,
+    "reasoning": 0
+   },
+   "out_bytes": 2002,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef log_line(level: str, message: str) -> None:\n    \"\"\"Print a log line formatted as `[level] message` to stdout.\n\n    Console output only: must not read or write any files.\n    \"\"\"\n    print(f\"[{level}] {message}\")\n\n\ndef test_basic_format(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"started\")\n    out = capsys.readouterr()\n    assert out.out == \"[INFO] started\\n\"\n    assert out.err == \"\"\n\n\ndef test_level_not_altered(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"warn\", \"disk low\")\n    assert capsys.readouterr().out == \"[warn] disk low\\n\"\n\n\ndef test_empty_message(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"DEBUG\", \"\")\n    assert capsys.readouterr().out == \"[DEBUG] \\n\"\n\n\ndef test_empty_level(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"\", \"hello\")\n    assert capsys.readouterr().out == \"[] hello\\n\"\n\n\ndef test_message_with_brackets_and_unicode(\n    capsys: pytest.CaptureFixture[str],\n) -> None:\n    log_line(\"ERROR\", \"bad [value] \u2717\")\n    assert capsys.readouterr().out == \"[ERROR] bad [value] \u2717\\n\"\n\n\ndef test_prints_exactly_one_line(capsys: pytest.CaptureFixture[str]) -> None:\n    log_line(\"INFO\", \"x\")\n    out = capsys.readouterr().out\n    assert out.count(\"\\n\") == 1\n    assert out.endswith(\"\\n\")\n\n\ndef test_does_not_touch_filesystem(\n    capsys: pytest.CaptureFixture[str],\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    import builtins\n    import io\n    import pathlib\n\n    def forbidden(*args: object, **kwargs: object) -> None:\n        raise AssertionError(\"log_line must not touch the file system\")\n\n    monkeypatch.setattr(builtins, \"open\", forbidden)\n    monkeypatch.setattr(io, \"open\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"open\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"write_text\", forbidden)\n    monkeypatch.setattr(pathlib.Path, \"write_bytes\", forbidden)\n\n    log_line(\"INFO\", \"console only\")\n    assert capsys.readouterr().out == \"[INFO] console only\\n\"\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

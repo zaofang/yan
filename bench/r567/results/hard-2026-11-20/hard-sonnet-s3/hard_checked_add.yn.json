@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2857,
+   "out": 534,
+   "reasoning": 419,
+   "out_bytes": 237
+  },
+  "body": {
+   "in": 7468,
+   "out": 901,
+   "reasoning": 446,
+   "out_bytes": 1023
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post out == None or out == a + b\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807 - 1, -1) == None\n  let hi = 9223372036854775807\n  let lo = -9223372036854775807 - 1\n  if b > 0 and a > hi - b\n    return None\n  if b < 0 and a < lo - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2857,
+    "out": 534,
+    "reasoning": 419
+   },
+   "out_bytes": 237,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3466,
+    "out": 331,
+    "reasoning": 147
+   },
+   "out_bytes": 382,
+   "ok": false,
+   "report": "E401 task.yn:9:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:11:5 task.checked_add: `return None` `_out20` is used after `_out20.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:12:3 task.checked_add: `a + b` `_t30` is used after `_t30.Some.value` was moved out of it | moved at 2:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 4002,
+    "out": 570,
+    "reasoning": 299
+   },
+   "out_bytes": 641,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "checked_add(a: int, b: int) -> int? =\n  post out == None or (out else 0) - a == b\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807 - 1, -1) == None\n  let hi = 9223372036854775807\n  let lo = -9223372036854775807 - 1\n  if b > 0 and a > hi - b\n    return None\n  if b < 0 and a < lo - b\n    return None\n  a + b\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yn:9:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:11:5 task.checked_add: `return None` `_out20` is used after `_out20.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:12:3 task.checked_add: `a "
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

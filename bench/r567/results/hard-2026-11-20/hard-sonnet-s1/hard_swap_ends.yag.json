@@ -1,0 +1,95 @@
+{
+ "final": "def swap_ends(var xs: list[int]):\n    \"\"\"Swap the first and last elements of xs in place. An empty or one-element list is unchanged.\"\"\"\n    n = xs.len()\n    if n < 2:\n        return\n    tmp = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = tmp\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3263,
+    "out": 235,
+    "reasoning": 170
+   },
+   "out_bytes": 162
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3598,
+    "out": 194,
+    "reasoning": 72
+   },
+   "out_bytes": 258
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/swap_ends",
+ "tokens": {
+  "body": {
+   "in": 3598,
+   "out": 194,
+   "reasoning": 72,
+   "out_bytes": 258
+  },
+  "spec": {
+   "in": 3263,
+   "out": 235,
+   "reasoning": 170,
+   "out_bytes": 162
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def swap_ends(var xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place. An empty or one-element list is unchanged.\"\"\"\n    n = xs.len()\n    if n < 2:\n        return\n    tmp = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = tmp\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

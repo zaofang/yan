@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2841,
+   "out": 109,
+   "reasoning": 0,
+   "out_bytes": 248
+  },
+  "body": {
+   "in": 6729,
+   "out": 772,
+   "reasoning": 432,
+   "out_bytes": 783
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n  ex title_of(\"<html></html>\") == \"\"\n  ex title_of(\"<title></title>\") == \"\"\n  let parts = html.split(\"<title>\")\n  let after = parts.get(1) else \"\"\n  let inner = after.split(\"</title>\")\n  if inner.len() < 2\n    return \"\"\n  copy inner[0]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2841,
+    "out": 109,
+    "reasoning": 0
+   },
+   "out_bytes": 248,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3024,
+    "out": 559,
+    "reasoning": 390
+   },
+   "out_bytes": 389,
+   "ok": false,
+   "report": "E413 task.yn:11:3 title_of: `inner[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 11:3 | fix: inner[0] -> inner[0].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3705,
+    "out": 213,
+    "reasoning": 42
+   },
+   "out_bytes": 394,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n  ex title_of(\"<html></html>\") == \"\"\n  ex title_of(\"<title></title>\") == \"\"\n  let parts = html.split(\"<title>\")\n  let after = parts.get(1) else \"\"\n  let inner = after.split(\"</title>\")\n  if inner.len() < 2\n    return \"\"\n  inner[0]\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:11:3 title_of: `inner[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 11:3 | fix: inner[0] -> inner[0].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

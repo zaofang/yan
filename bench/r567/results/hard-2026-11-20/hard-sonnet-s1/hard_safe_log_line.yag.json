@@ -1,0 +1,127 @@
+{
+ "final": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as level in square brackets, a space, then message.\"\"\"\n    post out.startswith(\"[\")\n    ex format_line(\"info\", \"started\") == \"[info] started\"\n    ex format_line(\"warn\", \"\") == \"[warn] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print the formatted log line to standard output. Uses only io, never fs.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 W831 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885qxt0/work/task.yag:2:31 format_line: `as `[level] message`` `[level]` links to nothing\n#2 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885qxt0/work/task.yag:5:14 format_line: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#3 W831 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885qxt0/work/task.yag:9:16 log_line: `Print `[level] message`` `[level]` links to nothing",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "E203",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3278,
+    "out": 486,
+    "reasoning": 336
+   },
+   "out_bytes": 393
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 4069,
+    "out": 155,
+    "reasoning": 0
+   },
+   "out_bytes": 427
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4324,
+    "out": 361,
+    "reasoning": 182
+   },
+   "out_bytes": 507
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 4324,
+   "out": 361,
+   "reasoning": 182,
+   "out_bytes": 507
+  },
+  "spec": {
+   "in": 7347,
+   "out": 641,
+   "reasoning": 336,
+   "out_bytes": 820
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E203",
+    "W831"
+   ],
+   "report": "#1 W831 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885qxt0/work/task.yag:2:31 format_line: `as `[level] message`` `[level]` links to nothing\n#2 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885qxt0/work/task.yag:5:14 format_line: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#3 W831 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmps885q"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as level in square brackets, a space, then message.\"\"\"\n    ex format_line(\"info\", \"started\") == \"[info] started\"\n    ex format_line(\"warn\", \"\") == \"[warn] \"\n    post out.startswith(\"[\")\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) -> None uses io:\n    \"\"\"Print the formatted log line to standard output. Uses only io, never fs.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

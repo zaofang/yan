@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2973,
+   "out": 48,
+   "reasoning": 0,
+   "out_bytes": 103
+  },
+  "body": {
+   "in": 6662,
+   "out": 1213,
+   "reasoning": 706,
+   "out_bytes": 1329
+  }
+ },
+ "final": "can_read(name: str) -> bool uses fs =\n  let t = fs.read(name) else return False\n  True\n\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if can_read(name)\n        result = fs.read(name) else \"\"\n        break\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2973,
+    "out": 48,
+    "reasoning": 0
+   },
+   "out_bytes": 103,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3095,
+    "out": 372,
+    "reasoning": 0
+   },
+   "out_bytes": 998,
+   "ok": false,
+   "report": "E201 task.yn:5:37 first_readable: `else None` expected `str`, found `()`\nE201 task.yn:6:18 first_readable: `= None` cannot compare `str` with `()`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3567,
+    "out": 841,
+    "reasoning": 706
+   },
+   "out_bytes": 331,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let text = fs.read(name) else None\n      if text != None\n        return text\n  \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 task.yn:5:37 first_readable: `None` expected `str`, found `()`\nE201 task.yn:6:18 first_readable: `None` cannot compare `str` with `()`"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

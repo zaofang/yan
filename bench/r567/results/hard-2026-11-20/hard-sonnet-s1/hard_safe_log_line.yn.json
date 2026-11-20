@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2835,
+   "out": 429,
+   "reasoning": 310,
+   "out_bytes": 301
+  },
+  "body": {
+   "in": 3339,
+   "out": 135,
+   "reasoning": 0,
+   "out_bytes": 339
+  }
+ },
+ "final": "format_line(level: str, message: str) -> str =\n  post out.char_count() == level.char_count() + message.char_count() + 3\n  ex format_line(\"info\", \"started\") == \"[info] started\"\n  ex format_line(\"warn\", \"\") == \"[warn] \"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  io.print(format_line(level, message))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2835,
+    "out": 429,
+    "reasoning": 310
+   },
+   "out_bytes": 301,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3339,
+    "out": 135,
+    "reasoning": 0
+   },
+   "out_bytes": 339,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "format_line(level: str, message: str) -> str =\n  post out.char_count() == level.char_count() + message.char_count() + 3\n  ex format_line(\"info\", \"started\") == \"[info] started\"\n  ex format_line(\"warn\", \"\") == \"[warn] \"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  io.print(format_line(level, message))\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

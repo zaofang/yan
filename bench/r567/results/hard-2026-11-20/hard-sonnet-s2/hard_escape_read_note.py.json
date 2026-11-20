@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1976,
+   "out": 1840,
+   "reasoning": 290,
+   "out_bytes": 3446
+  },
+  "body": {
+   "in": 3875,
+   "out": 2229,
+   "reasoning": 547,
+   "out_bytes": 3841
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the `notes` directory.\n\n    `notes` is relative to the current working directory. `name` is untrusted\n    and may contain subdirectories such as \"sub/b.txt\". A missing, unreadable,\n    or non-file target gives \"\". Any name that resolves outside `notes`\n    (\"..\" segments, absolute paths, symlinks leading out, embedded NUL bytes,\n    and so on) also gives \"\" and is never read.\n    \"\"\"\n    try:\n        if \"\\x00\" in name or Path(name).is_absolute():\n            return \"\"\n        root = Path(\"notes\").resolve()\n        target = (root / name).resolve()\n        if not target.is_relative_to(root):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"alpha\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"beta\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\")\n    return notes\n\n\ndef test_reads_top_level_file(notes_dir: Path) -> None:\n    assert read_note(\"a.txt\") == \"alpha\"\n\n\ndef test_reads_subdirectory_file(notes_dir: Path) -> None:\n    assert read_note(\"sub/b.txt\") == \"beta\"\n\n\ndef test_missing_file_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n    assert read_note(\"sub/nope.txt\") == \"\"\n    assert read_note(\"nodir/x.txt\") == \"\"\n\n\ndef test_empty_name_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal_blocked(notes_dir: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n    assert read_note(\"./../secret.txt\") == \"\"\n    assert read_note(\"..\") == \"\"\n\n\ndef test_backslash_traversal_blocked(notes_dir: Path) -> None:\n    assert read_note(\"..\\\\secret.txt\") == \"\"\n    assert read_note(\"sub\\\\..\\\\..\\\\secret.txt\") == \"\"\n\n\ndef test_dotdot_staying_inside_is_allowed(notes_dir: Path) -> None:\n    assert read_note(\"sub/../a.txt\") == \"alpha\"\n\n\ndef test_absolute_path_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    assert read_note(str(tmp_path / \"secret.txt\")) == \"\"\n    assert read_note(str(notes_dir / \"a.txt\")) == \"\"\n    assert read_note(\"/etc/passwd\") == \"\"\n\n\ndef test_sibling_prefix_directory_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    other = tmp_path / \"notes_evil\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"EVIL\")\n    assert read_note(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_symlink_file_escape_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    (notes_dir / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_dir_escape_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    outside = tmp_path / \"outside\"\n    outside.mkdir()\n    (outside / \"o.txt\").write_text(\"OUT\")\n    (notes_dir / \"escape\").symlink_to(outside, target_is_directory=True)\n    assert read_note(\"escape/o.txt\") == \"\"\n\n\ndef test_nul_byte_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"a\\x00.txt\") == \"\"\n\n\ndef test_unreadable_file_is_empty(notes_dir: Path) -> None:\n    f = notes_dir / \"locked.txt\"\n    f.write_text(\"hidden\")\n    f.chmod(0)\n    try:\n        assert read_note(\"locked.txt\") in (\"\", \"hidden\")  # root may still read\n    finally:\n        f.chmod(0o644)\n\n\ndef test_very_long_name_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"x\" * 10000) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1976,
+    "out": 1840,
+    "reasoning": 290
+   },
+   "out_bytes": 3446,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3875,
+    "out": 2229,
+    "reasoning": 547
+   },
+   "out_bytes": 3841,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from pathlib import Path\n\nimport pytest\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the `notes` directory.\n\n    `notes` is relative to the current working directory. `name` is untrusted\n    and may contain subdirectories such as \"sub/b.txt\". A missing, unreadable,\n    or non-file target gives \"\". Any name that resolves outside `notes`\n    (\"..\" segments, absolute paths, symlinks leading out, embedded NUL bytes,\n    and so on) also gives \"\" and is never read.\n    \"\"\"\n    try:\n        if \"\\x00\" in name or Path(name).is_absolute():\n            return \"\"\n        root = Path(\"notes\").resolve()\n        target = (root / name).resolve()\n        if not target.is_relative_to(root):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"alpha\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"beta\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\")\n    return notes\n\n\ndef test_reads_top_level_file(notes_dir: Path) -> None:\n    assert read_note(\"a.txt\") == \"alpha\"\n\n\ndef test_reads_subdirectory_file(notes_dir: Path) -> None:\n    assert read_note(\"sub/b.txt\") == \"beta\"\n\n\ndef test_missing_file_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n    assert read_note(\"sub/nope.txt\") == \"\"\n    assert read_note(\"nodir/x.txt\") == \"\"\n\n\ndef test_empty_name_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal_blocked(notes_dir: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n    assert read_note(\"./../secret.txt\") == \"\"\n    assert read_note(\"..\") == \"\"\n\n\ndef test_backslash_traversal_blocked(notes_dir: Path) -> None:\n    assert read_note(\"..\\\\secret.txt\") == \"\"\n    assert read_note(\"sub\\\\..\\\\..\\\\secret.txt\") == \"\"\n\n\ndef test_dotdot_staying_inside_is_allowed(notes_dir: Path) -> None:\n    assert read_note(\"sub/../a.txt\") == \"alpha\"\n\n\ndef test_absolute_path_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    assert read_note(str(tmp_path / \"secret.txt\")) == \"\"\n    assert read_note(str(notes_dir / \"a.txt\")) == \"\"\n    assert read_note(\"/etc/passwd\") == \"\"\n\n\ndef test_sibling_prefix_directory_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    other = tmp_path / \"notes_evil\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"EVIL\")\n    assert read_note(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_symlink_file_escape_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    (notes_dir / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_dir_escape_blocked(notes_dir: Path, tmp_path: Path) -> None:\n    outside = tmp_path / \"outside\"\n    outside.mkdir()\n    (outside / \"o.txt\").write_text(\"OUT\")\n    (notes_dir / \"escape\").symlink_to(outside, target_is_directory=True)\n    assert read_note(\"escape/o.txt\") == \"\"\n\n\ndef test_nul_byte_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"a\\x00.txt\") == \"\"\n\n\ndef test_unreadable_file_is_empty(notes_dir: Path) -> None:\n    f = notes_dir / \"locked.txt\"\n    f.write_text(\"hidden\")\n    f.chmod(0)\n    try:\n        assert read_note(\"locked.txt\") in (\"\", \"hidden\")  # root may still read\n    finally:\n        f.chmod(0o644)\n\n\ndef test_very_long_name_is_empty(notes_dir: Path) -> None:\n    assert read_note(\"x\" * 10000) == \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

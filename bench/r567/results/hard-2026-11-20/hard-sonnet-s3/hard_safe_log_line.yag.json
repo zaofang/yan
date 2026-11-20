@@ -1,0 +1,98 @@
+{
+ "final": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as `[level] message`.\"\"\"\n    ex format_line(\"info\", \"started\") == \"[info] started\"\n    ex format_line(\"error\", \"\") == \"[error] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print the log line `[level] message` to standard output. Uses only io, never fs.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3283,
+    "out": 356,
+    "reasoning": 217
+   },
+   "out_bytes": 378
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3739,
+    "out": 336,
+    "reasoning": 173
+   },
+   "out_bytes": 458
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 3739,
+   "out": 336,
+   "reasoning": 173,
+   "out_bytes": 458
+  },
+  "spec": {
+   "in": 3283,
+   "out": 356,
+   "reasoning": 217,
+   "out_bytes": 378
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as `[level] message`.\"\"\"\n    ex format_line(\"info\", \"started\") == \"[info] started\"\n    ex format_line(\"error\", \"\") == \"[error] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) -> None uses io:\n    \"\"\"Print the log line `[level] message` to standard output. Uses only io, never fs.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1987,
+   "out": 1505,
+   "reasoning": 680,
+   "out_bytes": 1879
+  },
+  "body": {
+   "in": 3551,
+   "out": 1363,
+   "reasoning": 412,
+   "out_bytes": 2232
+  }
+ },
+ "final": "import sys\nimport threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order when all pass. If any\n    element is bad, raises the Bad of the lowest-index bad element,\n    regardless of which thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in input order: the first failing future in index order\n        # is the lowest-index bad element, independent of finish order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_wins_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([9, 2, 3])\n    assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_it_finishes_last(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        if x == 3:\n            time.sleep(0.3)\n            raise Bad(x)\n        if x == 5:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_checks_run_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(2, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", barrier_check)\n    assert all_even([2, 4]) == [2, 4]\n\n\ndef test_all_bad_raises_first_index() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([5, 3, 1])\n    assert ei.value.n == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1987,
+    "out": 1505,
+    "reasoning": 680
+   },
+   "out_bytes": 1879,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3551,
+    "out": 1363,
+    "reasoning": 412
+   },
+   "out_bytes": 2232,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "import sys\nimport threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order when all pass. If any\n    element is bad, raises the Bad of the lowest-index bad element,\n    regardless of which thread finishes first.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max(1, len(xs))) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in input order: the first failing future in index order\n        # is the lowest-index bad element, independent of finish order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_wins_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([9, 2, 3])\n    assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_it_finishes_last(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        if x == 3:\n            time.sleep(0.3)\n            raise Bad(x)\n        if x == 5:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_checks_run_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(2, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", barrier_check)\n    assert all_even([2, 4]) == [2, 4]\n\n\ndef test_all_bad_raises_first_index() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([5, 3, 1])\n    assert ei.value.n == 5\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

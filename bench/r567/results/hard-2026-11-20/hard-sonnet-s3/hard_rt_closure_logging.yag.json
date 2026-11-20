@@ -1,0 +1,125 @@
+{
+ "final": "def wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job once and return \"start:\" + its result + \":end\".\n\n    Pure helper: it declares no capabilities and prints and logs nothing.\n    Any capabilities the job uses come from the caller's closure.\n    \"\"\"\n    post out.startswith(\"start:\")\n    post out.endswith(\":end\")\n    ex wrapped(lambda: \"x\") == \"start:x:end\"\n    ex wrapped(lambda: \"\") == \"start::end\"\n    r = job()\n    return \"start:\" + r + \":end\"\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp8ud1lp0k/work/task.yag:7:14 wrapped: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#2 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp8ud1lp0k/work/task.yag:8:14 wrapped: `ends_with` `str` has no method `ends_with` | maybe: ends_with -> endswith",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E203",
+      "E203"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3315,
+    "out": 480,
+    "reasoning": 305
+   },
+   "out_bytes": 428
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 4034,
+    "out": 173,
+    "reasoning": 0
+   },
+   "out_bytes": 426
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4307,
+    "out": 189,
+    "reasoning": 0
+   },
+   "out_bytes": 465
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_closure_logging",
+ "tokens": {
+  "body": {
+   "in": 4307,
+   "out": 189,
+   "reasoning": 0,
+   "out_bytes": 465
+  },
+  "spec": {
+   "in": 7349,
+   "out": 653,
+   "reasoning": 305,
+   "out_bytes": 854
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E203"
+   ],
+   "report": "#1 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp8ud1lp0k/work/task.yag:7:14 wrapped: `starts_with` `str` has no method `starts_with` | maybe: starts_with -> startswith\n#2 E203 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp8ud1lp0k/work/task.yag:8:14 wrapped: `ends_with` `str` has no method `ends_with` | maybe: ends_with -> endswith"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job once and return \"start:\" + its result + \":end\".\n\n    Pure helper: it declares no capabilities and prints and logs nothing.\n    Any capabilities the job uses come from the caller's closure.\n    \"\"\"\n    post out.startswith(\"start:\")\n    post out.endswith(\":end\")\n    ex wrapped(lambda: \"x\") == \"start:x:end\"\n    ex wrapped(lambda: \"\") == \"start::end\"\n    r = job()\n    return \"start:\" + r + \":end\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

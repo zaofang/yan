@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 4986,
+   "out": 1241,
+   "reasoning": 0,
+   "out_bytes": 2814
+  },
+  "body": {
+   "in": 3728,
+   "out": 651,
+   "reasoning": 0,
+   "out_bytes": 1478
+  }
+ },
+ "final": "from typing import Any\n\nimport pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, computed in\n    parallel with a thread pool. The result is in input order, regardless\n    of the number of workers or task completion order.\"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_large_ints() -> None:\n    assert parities([10**30, 10**30 + 1]) == [0, 1]\n\n\ndef test_parities_order_large_input() -> None:\n    xs = list(range(-500, 500))\n    assert parities(xs) == [parity(x) for x in xs]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    parities(xs)\n    assert xs == [5, 6, 7]\n\n\ndef test_parities_uses_thread_pool(monkeypatch: pytest.MonkeyPatch) -> None:\n    used: list[bool] = []\n    original: Any = ThreadPoolExecutor.__init__\n\n    def spy(self: ThreadPoolExecutor, *args: Any, **kwargs: Any) -> None:\n        used.append(True)\n        original(self, *args, **kwargs)\n\n    monkeypatch.setattr(ThreadPoolExecutor, \"__init__\", spy)\n    assert parities([1, 2, 3]) == [1, 0, 1]\n    assert used\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1935,
+    "out": 621,
+    "reasoning": 0
+   },
+   "out_bytes": 1409,
+   "ok": false,
+   "report": "test_task.py:50: error: Unused \"type: ignore\" comment  [unused-ignore]\ntest_task.py:50: error: No overload variant matches argument types \"ThreadPoolExecutor\", \"tuple[object, ...]\", \"dict[str, object]\"  [call-overload]\ntest_task.py:50: note: Error code \"call-overload\" not covered by \"type: ignore[arg-type]\" comment\ntest_task.py:50: note: Possible overload variants:\ntest_task.py:50: note:     def __init__(self: ThreadPoolExecutor, max_workers: int | None = ..., thread_name_prefix: str = ..., initializer: Callable[[], object] | None = ..., initargs: tuple[()] = ...) -> None\ntest_task.py:50: note:     def [_Ts] __init__(self: ThreadPoolExecutor, max_workers: int | None = ..., thread_name_prefix: str = ..., *, initializer: def (*args: *_Ts) -> object, initargs: tuple[*_Ts]) -> None\ntest_task.py:50: note:     def [_Ts] __init__(self: ThreadPoolExecutor, max_workers: int | None, thread_name_prefix: str, initializer: def (*args: *_Ts) -> object, initargs: tuple[*_Ts]) -> None\nFound 2 errors in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 3051,
+    "out": 620,
+    "reasoning": 0
+   },
+   "out_bytes": 1405,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3728,
+    "out": 651,
+    "reasoning": 0
+   },
+   "out_bytes": 1478,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from typing import Any\n\nimport pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, computed in\n    parallel with a thread pool. The result is in input order, regardless\n    of the number of workers or task completion order.\"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_large_ints() -> None:\n    assert parities([10**30, 10**30 + 1]) == [0, 1]\n\n\ndef test_parities_order_large_input() -> None:\n    xs = list(range(-500, 500))\n    assert parities(xs) == [parity(x) for x in xs]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    parities(xs)\n    assert xs == [5, 6, 7]\n\n\ndef test_parities_uses_thread_pool(monkeypatch: pytest.MonkeyPatch) -> None:\n    used: list[bool] = []\n    original: Any = ThreadPoolExecutor.__init__\n\n    def spy(self: ThreadPoolExecutor, *args: Any, **kwargs: Any) -> None:\n        used.append(True)\n        original(self, *args, **kwargs)\n\n    monkeypatch.setattr(ThreadPoolExecutor, \"__init__\", spy)\n    assert parities([1, 2, 3]) == [1, 0, 1]\n    assert used\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

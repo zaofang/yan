@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1934,
+   "out": 687,
+   "reasoning": 0,
+   "out_bytes": 1567
+  },
+  "body": {
+   "in": 2679,
+   "out": 1213,
+   "reasoning": 477,
+   "out_bytes": 1690
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return parity (0 or 1) of each element of xs, computed in parallel\n    with a thread pool. Results are in input order regardless of the\n    number of workers.\"\"\"\n    import concurrent.futures\n\n    with concurrent.futures.ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3]) == [1, 0, 1]\n\n\ndef test_parities_large_values() -> None:\n    assert parities([2**100, 2**100 + 1]) == [0, 1]\n\n\ndef test_parities_order_preserved_large_input() -> None:\n    xs = list(range(10_000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    parities(xs)\n    assert xs == [5, 6, 7]\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [0, 1]\n    out = parities(xs)\n    assert out is not xs\n\n\ndef test_parities_order_independent_of_worker_count(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    xs = [7, 8, 9, 10, 11, 12, 13] * 50\n    expected = [x % 2 for x in xs]\n    real = ThreadPoolExecutor\n    for workers in (1, 2, 3, 8, 32):\n\n        def factory(*args: object, _w: int = workers, **kwargs: object) -> ThreadPoolExecutor:\n            return real(max_workers=_w)\n\n        monkeypatch.setattr(\n            \"concurrent.futures.ThreadPoolExecutor\", factory\n        )\n        assert parities(xs) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1934,
+    "out": 687,
+    "reasoning": 0
+   },
+   "out_bytes": 1567,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2679,
+    "out": 1213,
+    "reasoning": 477
+   },
+   "out_bytes": 1690,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return parity (0 or 1) of each element of xs, computed in parallel\n    with a thread pool. Results are in input order regardless of the\n    number of workers.\"\"\"\n    import concurrent.futures\n\n    with concurrent.futures.ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3]) == [1, 0, 1]\n\n\ndef test_parities_large_values() -> None:\n    assert parities([2**100, 2**100 + 1]) == [0, 1]\n\n\ndef test_parities_order_preserved_large_input() -> None:\n    xs = list(range(10_000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    parities(xs)\n    assert xs == [5, 6, 7]\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [0, 1]\n    out = parities(xs)\n    assert out is not xs\n\n\ndef test_parities_order_independent_of_worker_count(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    xs = [7, 8, 9, 10, 11, 12, 13] * 50\n    expected = [x % 2 for x in xs]\n    real = ThreadPoolExecutor\n    for workers in (1, 2, 3, 8, 32):\n\n        def factory(*args: object, _w: int = workers, **kwargs: object) -> ThreadPoolExecutor:\n            return real(max_workers=_w)\n\n        monkeypatch.setattr(\n            \"concurrent.futures.ThreadPoolExecutor\", factory\n        )\n        assert parities(xs) == expected\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

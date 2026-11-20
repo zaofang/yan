@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2830,
+   "out": 453,
+   "reasoning": 328,
+   "out_bytes": 196
+  },
+  "body": {
+   "in": 3358,
+   "out": 393,
+   "reasoning": 225,
+   "out_bytes": 280
+  }
+ },
+ "final": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0 and k <= 7\n  post bits.count_ones(out) == bits.count_ones(x)\n  ex rotl8(129, 1) == 3\n  ex rotl8(5, 0) == 5\n  ex rotl8(1, 7) == 128\n  let v = int(x)\n  let high = (v << k) % 256\n  let low = v // (1 << (8 - k))\n  (high + low) as u8\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2830,
+    "out": 453,
+    "reasoning": 328
+   },
+   "out_bytes": 196,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3358,
+    "out": 393,
+    "reasoning": 225
+   },
+   "out_bytes": 280,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0 and k <= 7\n  post bits.count_ones(out) == bits.count_ones(x)\n  ex rotl8(129, 1) == 3\n  ex rotl8(5, 0) == 5\n  ex rotl8(1, 7) == 128\n  let v = int(x)\n  let high = (v << k) % 256\n  let low = v // (1 << (8 - k))\n  (high + low) as u8\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}
