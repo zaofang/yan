@@ -1,0 +1,13 @@
+-- spec: 3.4
+-- rows: R1114
+-- stdout:
+-- 200 0 0
+-- 1 200
+
+main() =
+  let a = 200
+  let b = 300
+  let c = -1
+  io.print("\(try_as[u8](a) else 0) \(try_as[u8](b) else 0) \(try_as[u8](c) else 0)")
+  let f: u64 = 18446744073709551615
+  io.print("\(try_as[i32](f) else 1) \(try_as[u32](a) else 0)")

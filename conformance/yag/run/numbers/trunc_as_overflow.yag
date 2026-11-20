@@ -1,0 +1,10 @@
+# spec: 3.4, 14.1
+# rows: R1115
+# stdout:
+# before
+# exit: 101
+
+def main() uses io:
+    io.print("before")
+    z: float = 300.5
+    io.print(f"{trunc_as[uint8](z)}")

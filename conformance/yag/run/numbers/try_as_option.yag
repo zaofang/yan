@@ -1,0 +1,20 @@
+# spec: 3.4, 14.1
+# rows: R1114
+# stdout:
+# 200 none none
+# 7 -5 9
+# 1
+
+def show(v: uint8 | None) -> str:
+    return "none" if v is None else f"{v}"
+
+def main() uses io:
+    a = 200
+    b = 300
+    c = -1
+    io.print(f"{show(try_as[uint8](a))} {show(try_as[uint8](b))} {show(try_as[uint8](c))}")
+    d: uint8 = 7
+    e: int32 = -5
+    io.print(f"{try_as[uint32](d) else 0} {try_as[int8](e) else 0} {try_as[uint16](e) else 9}")
+    f: uint64 = 18446744073709551615
+    io.print(f"{try_as[int32](f) else 1}")

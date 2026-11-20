@@ -2240,3 +2240,13 @@ sections = "3.4, 14.1"
 rows = "R1113"
 topic = "`yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513)"
 sections = "18.1, 22.4"
+
+[[entry]]
+rows = "R1114"
+topic = "`try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1115"
+topic = "`trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770)"
+sections = "3.4, 14.1"

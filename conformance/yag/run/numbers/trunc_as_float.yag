@@ -1,0 +1,9 @@
+# spec: 3.4, 14.1
+# rows: R1115
+# stdout:
+# 3 -3 3990
+
+def main() uses io:
+    x: float = 3.99
+    y: float = -3.99
+    io.print(f"{trunc_as[uint8](x)} {trunc_as[int8](y)} {trunc_as[int32](x * 1000.0)}")
