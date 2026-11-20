@@ -794,7 +794,8 @@ impl Lower<'_, '_, '_> {
             )))),
         }));
         let last = ops.pop().expect("a `select` has an arm");
-        let arms: Vec<(j::Expr, j::Block)> = ops
+        let only = ops.is_empty();
+        let mut arms: Vec<(j::Expr, j::Block)> = ops
             .into_iter()
             .enumerate()
             .map(|(i, b)| {
@@ -809,10 +810,20 @@ impl Lower<'_, '_, '_> {
                 )
             })
             .collect();
-        out.push(st(K::If {
-            arms,
-            els: Some(last),
-        }));
+        // A one-arm `select` has no `else` to fall into: its only arm is index 0.
+        let els = if only {
+            let zero = ex(j::ExprKind::Lit(j::Lit::Int("0".into())));
+            let cond = ex(j::ExprKind::Compare(
+                "==",
+                Box::new(name(&idx)),
+                Box::new(zero),
+            ));
+            arms.push((cond, last));
+            None
+        } else {
+            Some(last)
+        };
+        out.push(st(K::If { arms, els }));
         out
     }
 }
