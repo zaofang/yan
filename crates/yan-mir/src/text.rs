@@ -343,7 +343,7 @@ impl Display for Program {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::{AtomicOp, MemOrder, RtFn};
 
@@ -363,7 +363,7 @@ mod tests {
         Block { insts, lines, term }
     }
 
-    fn sample() -> Program {
+    pub(crate) fn sample() -> Program {
         let main = Func {
             name: "main".into(),
             unsafe_fn: false,
@@ -473,7 +473,7 @@ mod tests {
         }
     }
 
-    const GOLDEN: &str = r#"mir 1
+    pub(crate) const GOLDEN: &str = r#"mir 1
 main fn0
 str 0 "hi\n"
 str 1 "a\"b\\c\u{1}é"
