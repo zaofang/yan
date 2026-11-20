@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 3075,
+   "out": 559,
+   "reasoning": 426,
+   "out_bytes": 271
+  },
+  "body": {
+   "in": 7718,
+   "out": 401,
+   "reasoning": 0,
+   "out_bytes": 819
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n  unreachable\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3075,
+    "out": 559,
+    "reasoning": 426
+   },
+   "out_bytes": 271,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3709,
+    "out": 197,
+    "reasoning": 0
+   },
+   "out_bytes": 399,
+   "ok": false,
+   "report": "E312 task.yn:13:5 run_plugin: `plugin(path)` a result of type `str` is discarded; a block (`with`, `if`, `for`) does not yield the function's value: `return` it",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 4009,
+    "out": 204,
+    "reasoning": 0
+   },
+   "out_bytes": 420,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    plugin(path)\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:13:5 run_plugin: `plugin(path)` a result of type `str` is discarded; a block (`with`, `if`, `for`) does not yield the function's value: `return` it"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

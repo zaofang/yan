@@ -1,0 +1,72 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3027,
+   "out": 94,
+   "reasoning": 0,
+   "out_bytes": 199
+  },
+  "body": {
+   "in": 3195,
+   "out": 115,
+   "reasoning": 0,
+   "out_bytes": 239
+  }
+ },
+ "final": "read_public(path: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_public(\"../x\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(path) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3027,
+    "out": 94,
+    "reasoning": 0
+   },
+   "out_bytes": 199,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3195,
+    "out": 115,
+    "reasoning": 0
+   },
+   "out_bytes": 239,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_public(path: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_public(\"../x\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(path) else \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

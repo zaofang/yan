@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2906,
+   "out": 172,
+   "reasoning": 0,
+   "out_bytes": 312
+  },
+  "body": {
+   "in": 3152,
+   "out": 189,
+   "reasoning": 0,
+   "out_bytes": 344
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  ex all_even([]) == []\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2906,
+    "out": 172,
+    "reasoning": 0
+   },
+   "out_bytes": 312,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3152,
+    "out": 189,
+    "reasoning": 0
+   },
+   "out_bytes": 344,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  ex all_even([]) == []\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

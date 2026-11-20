@@ -1,0 +1,196 @@
+{
+ "final": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Count sends accepted by a channel of capacity cap before it is full.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= cap\n    post out <= xs.len()\n    ch = Channel[int](cap)\n    n = 0\n    for x in xs:\n        if not ch.try_send(x):\n            break\n        n += 1\n    return n\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3291,
+    "out": 282,
+    "reasoning": 180
+   },
+   "out_bytes": 235
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `chan.` cannot find `chan`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `chan.` calling a value: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3673,
+    "out": 347,
+    "reasoning": 194
+   },
+   "out_bytes": 359
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `channel.` cannot find `channel`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `channel.` calling a value: not supported by this toolchain yet",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4301,
+    "out": 437,
+    "reasoning": 284
+   },
+   "out_bytes": 362
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `sync` cannot find `sync`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `sync` calling a value: not supported by this toolchain yet",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 5019,
+    "out": 382,
+    "reasoning": 228
+   },
+   "out_bytes": 363
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:10:16 accepted: `ch.` no function `try_send` takes a `tuple[Sender[int], Receiver[int]]` first",
+   "round": 3,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 5680,
+    "out": 370,
+    "reasoning": 218
+   },
+   "out_bytes": 358
+  }
+ ],
+ "rounds_to_green": null,
+ "schema": 1,
+ "status": "body_failed",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 18673,
+   "out": 1536,
+   "reasoning": 924,
+   "out_bytes": 1442
+  },
+  "spec": {
+   "in": 3291,
+   "out": 282,
+   "reasoning": 180,
+   "out_bytes": 235
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `chan.` cannot find `chan`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `chan.` calling a value: not supported by this toolchain y"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E017",
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `channel.` cannot find `channel`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `channel.` calling a value: not supported by this to"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E017",
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `sync` cannot find `sync`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:7:10 accepted: `sync` calling a value: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmph05n1fnc/work/task.yag:10:16 accepted: `ch.` no function `try_send` takes a `tuple[Sender[int], Receiver[int]]` first"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Count sends accepted by a channel of capacity cap before it is full.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= cap\n    post out <= xs.len()\n    ch = chan.new[int](cap)\n    n = 0\n    for x in xs:\n        if not ch.try_send(x):\n            break\n        n += 1\n    return n\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yag:7:10 accepted: `chan` calling a value: not supported by this toolchain yet\nE200 ./task.yag:7:10 accepted: `chan` cannot find `chan` | maybe: chan -> cap\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E200 ./task.yag:10:16 accepted: `ch` no function `try_send` takes a `tuple[Sender[int], Receiver[int]]` first\n0 of 0 tests passed"
+ }
+}

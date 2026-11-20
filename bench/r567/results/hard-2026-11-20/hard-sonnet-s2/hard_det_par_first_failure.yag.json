@@ -1,0 +1,157 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Returns xs when all are even, otherwise fails with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out == xs\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([7, 4, 9]) == Err(Bad(n=7))\n    results = par [check(x) else -1 for x in xs]\n    for i in range(results.len()):\n        if results[i] < 0:\n            fail Bad(n=xs[i])\n    return xs.copy()\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3340,
+    "out": 264,
+    "reasoning": 0
+   },
+   "out_bytes": 547
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:19:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E312"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3703,
+    "out": 787,
+    "reasoning": 465
+   },
+   "out_bytes": 697
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:19:13 task.all_even: `_ =` a result of type `i64` is discarded",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E312"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4692,
+    "out": 325,
+    "reasoning": 0
+   },
+   "out_bytes": 701
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 5215,
+    "out": 467,
+    "reasoning": 140
+   },
+   "out_bytes": 701
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 13610,
+   "out": 1579,
+   "reasoning": 605,
+   "out_bytes": 2099
+  },
+  "spec": {
+   "in": 3340,
+   "out": 264,
+   "reasoning": 0,
+   "out_bytes": 547
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E312",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:19:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E312",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp_nnnii89/work/task.yag:19:13 task.all_even: `_ =` a result of type `i64` is discarded"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Returns xs when all are even, otherwise fails with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out == xs\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([7, 4, 9]) == Err(Bad(n=7))\n    results = par [check(x) else -1 for x in xs]\n    for i in range(results.len()):\n        if results[i] < 0:\n            check(xs[i])?\n    return xs.copy()\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E312 ./task.yag:19:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded\n0 of 0 tests passed\nE312 ./task.yag:19:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded\n0 of 0 tests passed\nE312 ./task.yag:19:13 task.all_even: `check(xs[i])` a result of type `i64` is discar"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

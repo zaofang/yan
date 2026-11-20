@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2956,
+   "out": 90,
+   "reasoning": 0,
+   "out_bytes": 194
+  },
+  "body": {
+   "in": 6412,
+   "out": 468,
+   "reasoning": 234,
+   "out_bytes": 504
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  ex read_note(\"\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = fs.read(name) else \"\"\n  result\n\ntest_read_note() uses fs =\n  assert read_note(\"../secret.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2956,
+    "out": 90,
+    "reasoning": 0
+   },
+   "out_bytes": 194,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3120,
+    "out": 111,
+    "reasoning": 0
+   },
+   "out_bytes": 234,
+   "ok": false,
+   "report": "yan: task.test_read_note: not supported yet: function body ended without `ret`",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3292,
+    "out": 357,
+    "reasoning": 234
+   },
+   "out_bytes": 270,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_note(name: str) -> str uses fs =\n  ex read_note(\"\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n\ntest_read_note() uses fs =\n  assert read_note(\"../secret.txt\") == \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

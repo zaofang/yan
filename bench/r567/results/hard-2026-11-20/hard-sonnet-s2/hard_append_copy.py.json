@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 4348,
+   "out": 888,
+   "reasoning": 0,
+   "out_bytes": 1953
+  },
+  "body": {
+   "in": 2943,
+   "out": 447,
+   "reasoning": 0,
+   "out_bytes": 979
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append s to dst in place; return None.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_add_name_appends_at_end() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_mutates_same_list() -> None:\n    dst: list[str] = [\"x\"]\n    alias = dst\n    add_name(dst, \"y\")\n    assert alias is dst\n    assert alias == [\"x\", \"y\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\"]\n\n\ndef test_add_name_empty_string() -> None:\n    dst: list[str] = []\n    add_name(dst, \"\")\n    assert dst == [\"\"]\n\n\ndef test_add_name_repeated_calls_preserve_order() -> None:\n    dst: list[str] = []\n    for name in [\"x\", \"y\", \"z\"]:\n        add_name(dst, name)\n    assert dst == [\"x\", \"y\", \"z\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1904,
+    "out": 446,
+    "reasoning": 0
+   },
+   "out_bytes": 984,
+   "ok": false,
+   "report": "test_task.py:8: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2444,
+    "out": 442,
+    "reasoning": 0
+   },
+   "out_bytes": 969,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2943,
+    "out": 447,
+    "reasoning": 0
+   },
+   "out_bytes": 979,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append s to dst in place; return None.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_add_name_appends_at_end() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_mutates_same_list() -> None:\n    dst: list[str] = [\"x\"]\n    alias = dst\n    add_name(dst, \"y\")\n    assert alias is dst\n    assert alias == [\"x\", \"y\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\"]\n\n\ndef test_add_name_empty_string() -> None:\n    dst: list[str] = []\n    add_name(dst, \"\")\n    assert dst == [\"\"]\n\n\ndef test_add_name_repeated_calls_preserve_order() -> None:\n    dst: list[str] = []\n    for name in [\"x\", \"y\", \"z\"]:\n        add_name(dst, name)\n    assert dst == [\"x\", \"y\", \"z\"]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

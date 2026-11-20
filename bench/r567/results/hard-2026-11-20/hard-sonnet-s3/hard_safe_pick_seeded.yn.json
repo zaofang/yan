@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2839,
+   "out": 288,
+   "reasoning": 174,
+   "out_bytes": 204
+  },
+  "body": {
+   "in": 3202,
+   "out": 122,
+   "reasoning": 0,
+   "out_bytes": 212
+  }
+ },
+ "final": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post xs.contains(out)\n  ex pick([7], 5) == 7\n  ex pick([10, 20, 30], 4) == 20\n  xs[seed % xs.len()]\n\ntest_pick() =\n  assert pick([7], 5) == 7\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2839,
+    "out": 288,
+    "reasoning": 174
+   },
+   "out_bytes": 204,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3202,
+    "out": 122,
+    "reasoning": 0
+   },
+   "out_bytes": 212,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post xs.contains(out)\n  ex pick([7], 5) == 7\n  ex pick([10, 20, 30], 4) == 20\n  xs[seed % xs.len()]\n\ntest_pick() =\n  assert pick([7], 5) == 7\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

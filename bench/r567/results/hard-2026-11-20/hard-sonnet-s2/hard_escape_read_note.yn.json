@@ -1,0 +1,72 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2954,
+   "out": 55,
+   "reasoning": 0,
+   "out_bytes": 115
+  },
+  "body": {
+   "in": 3083,
+   "out": 76,
+   "reasoning": 0,
+   "out_bytes": 155
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2954,
+    "out": 55,
+    "reasoning": 0
+   },
+   "out_bytes": 115,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3083,
+    "out": 76,
+    "reasoning": 0
+   },
+   "out_bytes": 155,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

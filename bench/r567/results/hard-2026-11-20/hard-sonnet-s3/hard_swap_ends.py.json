@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 4414,
+   "out": 1020,
+   "reasoning": 0,
+   "out_bytes": 2036
+  },
+  "body": {
+   "in": 3073,
+   "out": 538,
+   "reasoning": 0,
+   "out_bytes": 1053
+  }
+ },
+ "final": "def swap_ends(xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place.\n\n    A list with fewer than two elements is left unchanged.\n    \"\"\"\n    if len(xs) < 2:\n        return\n    xs[0], xs[-1] = xs[-1], xs[0]\n\n\ndef test_swap_ends_basic() -> None:\n    xs = [1, 2, 3, 4]\n    swap_ends(xs)\n    assert xs == [4, 2, 3, 1]\n\n\ndef test_swap_ends_two_elements() -> None:\n    xs = [1, 2]\n    swap_ends(xs)\n    assert xs == [2, 1]\n\n\ndef test_swap_ends_empty() -> None:\n    xs: list[int] = []\n    swap_ends(xs)\n    assert xs == []\n\n\ndef test_swap_ends_single() -> None:\n    xs = [7]\n    swap_ends(xs)\n    assert xs == [7]\n\n\ndef test_swap_ends_mutates_same_object() -> None:\n    xs = [1, 2, 3]\n    original = xs\n    swap_ends(xs)\n    assert xs is original\n    assert xs == [3, 2, 1]\n\n\ndef test_swap_ends_equal_ends() -> None:\n    xs = [5, 1, 5]\n    swap_ends(xs)\n    assert xs == [5, 1, 5]\n\n\ndef test_swap_ends_twice_restores() -> None:\n    xs = [1, 2, 3, 4, 5]\n    swap_ends(xs)\n    swap_ends(xs)\n    assert xs == [1, 2, 3, 4, 5]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1900,
+    "out": 518,
+    "reasoning": 0
+   },
+   "out_bytes": 1044,
+   "ok": false,
+   "report": "test_task.py:36: error: \"swap_ends\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2514,
+    "out": 502,
+    "reasoning": 0
+   },
+   "out_bytes": 992,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3073,
+    "out": 538,
+    "reasoning": 0
+   },
+   "out_bytes": 1053,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def swap_ends(xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place.\n\n    A list with fewer than two elements is left unchanged.\n    \"\"\"\n    if len(xs) < 2:\n        return\n    xs[0], xs[-1] = xs[-1], xs[0]\n\n\ndef test_swap_ends_basic() -> None:\n    xs = [1, 2, 3, 4]\n    swap_ends(xs)\n    assert xs == [4, 2, 3, 1]\n\n\ndef test_swap_ends_two_elements() -> None:\n    xs = [1, 2]\n    swap_ends(xs)\n    assert xs == [2, 1]\n\n\ndef test_swap_ends_empty() -> None:\n    xs: list[int] = []\n    swap_ends(xs)\n    assert xs == []\n\n\ndef test_swap_ends_single() -> None:\n    xs = [7]\n    swap_ends(xs)\n    assert xs == [7]\n\n\ndef test_swap_ends_mutates_same_object() -> None:\n    xs = [1, 2, 3]\n    original = xs\n    swap_ends(xs)\n    assert xs is original\n    assert xs == [3, 2, 1]\n\n\ndef test_swap_ends_equal_ends() -> None:\n    xs = [5, 1, 5]\n    swap_ends(xs)\n    assert xs == [5, 1, 5]\n\n\ndef test_swap_ends_twice_restores() -> None:\n    xs = [1, 2, 3, 4, 5]\n    swap_ends(xs)\n    swap_ends(xs)\n    assert xs == [1, 2, 3, 4, 5]\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

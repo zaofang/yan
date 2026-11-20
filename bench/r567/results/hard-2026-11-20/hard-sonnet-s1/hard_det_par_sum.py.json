@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1929,
+   "out": 1662,
+   "reasoning": 474,
+   "out_bytes": 2668
+  },
+  "body": {
+   "in": 3650,
+   "out": 1282,
+   "reasoning": 0,
+   "out_bytes": 2891
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares_with_workers(xs: list[int], workers: int) -> int:\n    \"\"\"Sum of x*x over xs, squaring in a ThreadPoolExecutor with `workers` threads.\n\n    The result is identical for every workers >= 1. An empty list gives 0.\n    Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as ex:\n        return sum(ex.map(square, xs))\n\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Sum of the squares of every element of xs, computed in parallel.\n\n    Uses a default worker count; the result equals sum(x * x for x in xs)\n    regardless of how many workers are used. An empty list gives 0.\n    \"\"\"\n    return sum_squares_with_workers(xs, 4)\n\n\nWORKER_COUNTS = [1, 2, 3, 4, 8, 64]\n\n\ndef test_sum_squares_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_sum_squares_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n\n\ndef test_sum_squares_big_ints_exact() -> None:\n    big = 10**20\n    assert sum_squares([big, -big, 1]) == 2 * big * big + 1\n\n\ndef test_sum_squares_does_not_mutate_input() -> None:\n    xs = [3, -1, 2]\n    sum_squares(xs)\n    assert xs == [3, -1, 2]\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_same_result_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-500, 500))\n    expected = sum(x * x for x in xs)\n    assert sum_squares_with_workers(xs, workers) == expected\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_workers_exceeding_length(workers: int) -> None:\n    assert sum_squares_with_workers([2, 3], workers) == 13\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_empty_at_every_worker_count(workers: int) -> None:\n    assert sum_squares_with_workers([], workers) == 0\n\n\ndef test_all_worker_counts_agree() -> None:\n    xs = [(i * 7919) % 1001 - 500 for i in range(2000)]\n    results = {sum_squares_with_workers(xs, w) for w in WORKER_COUNTS}\n    assert results == {sum(x * x for x in xs)}\n\n\ndef test_matches_sequential_on_large_input() -> None:\n    xs = list(range(10_000))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_worker_count_raises(workers: int) -> None:\n    with pytest.raises(ValueError):\n        sum_squares_with_workers([1, 2, 3], workers)\n\n\ndef test_square_runs_in_thread_pool_compatible_way() -> None:\n    # square must be a pure function usable with executor.map.\n    with ThreadPoolExecutor(max_workers=2) as ex:\n        assert list(ex.map(square, [1, 2, 3])) == [1, 4, 9]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1929,
+    "out": 1662,
+    "reasoning": 474
+   },
+   "out_bytes": 2668,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3650,
+    "out": 1282,
+    "reasoning": 0
+   },
+   "out_bytes": 2891,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef sum_squares_with_workers(xs: list[int], workers: int) -> int:\n    \"\"\"Sum of x*x over xs, squaring in a ThreadPoolExecutor with `workers` threads.\n\n    The result is identical for every workers >= 1. An empty list gives 0.\n    Raises ValueError if workers < 1.\n    \"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=workers) as ex:\n        return sum(ex.map(square, xs))\n\n\ndef sum_squares(xs: list[int]) -> int:\n    \"\"\"Sum of the squares of every element of xs, computed in parallel.\n\n    Uses a default worker count; the result equals sum(x * x for x in xs)\n    regardless of how many workers are used. An empty list gives 0.\n    \"\"\"\n    return sum_squares_with_workers(xs, 4)\n\n\nWORKER_COUNTS = [1, 2, 3, 4, 8, 64]\n\n\ndef test_sum_squares_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single() -> None:\n    assert sum_squares([7]) == 49\n\n\ndef test_sum_squares_negatives_and_zero() -> None:\n    assert sum_squares([-3, 0, 3]) == 18\n\n\ndef test_sum_squares_big_ints_exact() -> None:\n    big = 10**20\n    assert sum_squares([big, -big, 1]) == 2 * big * big + 1\n\n\ndef test_sum_squares_does_not_mutate_input() -> None:\n    xs = [3, -1, 2]\n    sum_squares(xs)\n    assert xs == [3, -1, 2]\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_same_result_at_every_worker_count(workers: int) -> None:\n    xs = list(range(-500, 500))\n    expected = sum(x * x for x in xs)\n    assert sum_squares_with_workers(xs, workers) == expected\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_workers_exceeding_length(workers: int) -> None:\n    assert sum_squares_with_workers([2, 3], workers) == 13\n\n\n@pytest.mark.parametrize(\"workers\", WORKER_COUNTS)\ndef test_empty_at_every_worker_count(workers: int) -> None:\n    assert sum_squares_with_workers([], workers) == 0\n\n\ndef test_all_worker_counts_agree() -> None:\n    xs = [(i * 7919) % 1001 - 500 for i in range(2000)]\n    results = {sum_squares_with_workers(xs, w) for w in WORKER_COUNTS}\n    assert results == {sum(x * x for x in xs)}\n\n\ndef test_matches_sequential_on_large_input() -> None:\n    xs = list(range(10_000))\n    assert sum_squares(xs) == sum(square(x) for x in xs)\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_worker_count_raises(workers: int) -> None:\n    with pytest.raises(ValueError):\n        sum_squares_with_workers([1, 2, 3], workers)\n\n\ndef test_square_runs_in_thread_pool_compatible_way() -> None:\n    # square must be a pure function usable with executor.map.\n    with ThreadPoolExecutor(max_workers=2) as ex:\n        assert list(ex.map(square, [1, 2, 3])) == [1, 4, 9]\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1911,
+   "out": 727,
+   "reasoning": 0,
+   "out_bytes": 1633
+  },
+  "body": {
+   "in": 2696,
+   "out": 763,
+   "reasoning": 0,
+   "out_bytes": 1719
+  }
+ },
+ "final": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs chosen deterministically\n    from seed, without using randomness.\n\n    The same xs and seed always give the same element, and the result is\n    always a member of xs. Any integer seed is accepted, including negative\n    values and values larger than len(xs). Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"xs must be non-empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_returns_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(-10, 20):\n        assert pick(xs, seed) in xs\n\n\ndef test_deterministic() -> None:\n    xs = [5, 6, 7, 8, 9]\n    for seed in range(-10, 20):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_single_element() -> None:\n    for seed in (-100, -1, 0, 1, 7, 10**18):\n        assert pick([42], seed) == 42\n\n\ndef test_negative_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, -1) in xs\n    assert pick(xs, -(10**30)) in xs\n\n\ndef test_large_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, 10**30) in xs\n    assert pick(xs, 2**100 + 1) in xs\n\n\ndef test_duplicates() -> None:\n    assert pick([7, 7, 7], 5) == 7\n\n\ndef test_does_not_mutate() -> None:\n    xs = [3, 1, 2]\n    pick(xs, 4)\n    assert xs == [3, 1, 2]\n\n\ndef test_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n\n\ndef test_seeds_cover_all_elements() -> None:\n    xs = [10, 20, 30, 40, 50]\n    picked = {pick(xs, seed) for seed in range(1000)}\n    assert picked == set(xs)\n\n\ndef test_varies_with_seed() -> None:\n    xs = list(range(100))\n    picked = {pick(xs, seed) for seed in range(100)}\n    assert len(picked) > 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1911,
+    "out": 727,
+    "reasoning": 0
+   },
+   "out_bytes": 1633,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2696,
+    "out": 763,
+    "reasoning": 0
+   },
+   "out_bytes": 1719,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs chosen deterministically\n    from seed, without using randomness.\n\n    The same xs and seed always give the same element, and the result is\n    always a member of xs. Any integer seed is accepted, including negative\n    values and values larger than len(xs). Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"xs must be non-empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_returns_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(-10, 20):\n        assert pick(xs, seed) in xs\n\n\ndef test_deterministic() -> None:\n    xs = [5, 6, 7, 8, 9]\n    for seed in range(-10, 20):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_single_element() -> None:\n    for seed in (-100, -1, 0, 1, 7, 10**18):\n        assert pick([42], seed) == 42\n\n\ndef test_negative_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, -1) in xs\n    assert pick(xs, -(10**30)) in xs\n\n\ndef test_large_seed() -> None:\n    xs = [1, 2, 3]\n    assert pick(xs, 10**30) in xs\n    assert pick(xs, 2**100 + 1) in xs\n\n\ndef test_duplicates() -> None:\n    assert pick([7, 7, 7], 5) == 7\n\n\ndef test_does_not_mutate() -> None:\n    xs = [3, 1, 2]\n    pick(xs, 4)\n    assert xs == [3, 1, 2]\n\n\ndef test_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n\n\ndef test_seeds_cover_all_elements() -> None:\n    xs = [10, 20, 30, 40, 50]\n    picked = {pick(xs, seed) for seed in range(1000)}\n    assert picked == set(xs)\n\n\ndef test_varies_with_seed() -> None:\n    xs = list(range(100))\n    picked = {pick(xs, seed) for seed in range(100)}\n    assert len(picked) > 1\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

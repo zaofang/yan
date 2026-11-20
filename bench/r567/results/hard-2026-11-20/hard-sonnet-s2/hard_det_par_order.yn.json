@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2855,
+   "out": 342,
+   "reasoning": 204,
+   "out_bytes": 244
+  },
+  "body": {
+   "in": 3272,
+   "out": 155,
+   "reasoning": 0,
+   "out_bytes": 276
+  }
+ },
+ "final": "parity(x: int) -> int = x % 2\n\nparities(xs: List[int]) -> List[int] =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex parities([]) == []\n  ex parities([1, 2, 3]) == [1, 0, 1]\n  ex parities([-3, -2, 0]) == [1, 0, 0]\n  let ys = par for x in xs\n    parity(x)\n  ys\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2855,
+    "out": 342,
+    "reasoning": 204
+   },
+   "out_bytes": 244,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3272,
+    "out": 155,
+    "reasoning": 0
+   },
+   "out_bytes": 276,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "parity(x: int) -> int = x % 2\n\nparities(xs: List[int]) -> List[int] =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex parities([]) == []\n  ex parities([1, 2, 3]) == [1, 0, 1]\n  ex parities([-3, -2, 0]) == [1, 0, 0]\n  let ys = par for x in xs\n    parity(x)\n  ys\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

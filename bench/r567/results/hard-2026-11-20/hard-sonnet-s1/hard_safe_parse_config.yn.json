@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2846,
+   "out": 164,
+   "reasoning": 0,
+   "out_bytes": 343
+  },
+  "body": {
+   "in": 3084,
+   "out": 283,
+   "reasoning": 0,
+   "out_bytes": 687
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  pre key.char_count() >= 0\n  post out.char_count() >= 0\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\", \"z\") == \"\"\n  ex config_value(\"\", \"a\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2\n      let k = parts[0]\n      if k == key\n        var v = \"\"\n        var first = True\n        for i in range(1, parts.len())\n          if first\n            v = copy parts[i]\n            first = False\n          else\n            v = v + \"=\" + parts[i]\n        return v\n  \"\"\n\ntest_config_value() =\n  assert config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  assert config_value(\"a=1\", \"z\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2846,
+    "out": 164,
+    "reasoning": 0
+   },
+   "out_bytes": 343,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3084,
+    "out": 283,
+    "reasoning": 0
+   },
+   "out_bytes": 687,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "config_value(text: str, key: str) -> str =\n  pre key.char_count() >= 0\n  post out.char_count() >= 0\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\", \"z\") == \"\"\n  ex config_value(\"\", \"a\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2\n      let k = parts[0]\n      if k == key\n        var v = \"\"\n        var first = True\n        for i in range(1, parts.len())\n          if first\n            v = copy parts[i]\n            first = False\n          else\n            v = v + \"=\" + parts[i]\n        return v\n  \"\"\n\ntest_config_value() =\n  assert config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  assert config_value(\"a=1\", \"z\") == \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

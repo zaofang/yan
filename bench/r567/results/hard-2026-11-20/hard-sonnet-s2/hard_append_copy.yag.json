@@ -1,0 +1,124 @@
+{
+ "final": "def add_name(var dst: list[str], s: str):\n    \"\"\"Append a copy of s to the caller's list dst, in place.\"\"\"\n    post dst.len() >= 1\n    dst.append(s.copy())\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E100 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpf7r3tdhz/work/task.yag:1:23 `list[str]` unexpected `list`; expected `)`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E100"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3275,
+    "out": 64,
+    "reasoning": 0
+   },
+   "out_bytes": 149
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3456,
+    "out": 296,
+    "reasoning": 228
+   },
+   "out_bytes": 157
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3852,
+    "out": 76,
+    "reasoning": 0
+   },
+   "out_bytes": 174
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/append_copy",
+ "tokens": {
+  "body": {
+   "in": 3852,
+   "out": 76,
+   "reasoning": 0,
+   "out_bytes": 174
+  },
+  "spec": {
+   "in": 6731,
+   "out": 360,
+   "reasoning": 228,
+   "out_bytes": 306
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f597bad2a309a23d6cf3db48b5da8ff5cb90df60d5f79c383b00516830960755",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E100"
+   ],
+   "report": "#1 E100 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpf7r3tdhz/work/task.yag:1:23 `list[str]` unexpected `list`; expected `)`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def add_name(var dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to the caller's list dst, in place.\"\"\"\n    post dst.len() >= 1\n    dst.append(s.copy())\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1914,
+   "out": 693,
+   "reasoning": 0,
+   "out_bytes": 1724
+  },
+  "body": {
+   "in": 2665,
+   "out": 785,
+   "reasoning": 0,
+   "out_bytes": 1885
+  }
+ },
+ "final": "import re\n\n_TITLE_RE = re.compile(r\"<title(?:\\s[^>]*)?>(.*?)</title\\s*>\", re.IGNORECASE | re.DOTALL)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in html, or \"\".\n\n    Tag matching is case-insensitive, and the opening tag may carry\n    attributes. Returns \"\" when there is no title element or it is\n    unclosed. Only the first title element is used. No network access.\n    \"\"\"\n    m = _TITLE_RE.search(html)\n    return m.group(1) if m else \"\"\n\n\ndef test_basic_title() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>No title</body></html>\") == \"\"\n\n\ndef test_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive() -> None:\n    assert title_of(\"<HTML><TITLE>Upper</TITLE></HTML>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_title_with_attributes() -> None:\n    assert title_of('<title lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<title>Never closed\") == \"\"\n\n\ndef test_only_first_title() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>\\n  Line one\\n  line two\\n</title>\") == \"\\n  Line one\\n  line two\\n\"\n\n\ndef test_surrounding_whitespace_preserved() -> None:\n    assert title_of(\"<title>  padded  </title>\") == \"  padded  \"\n\n\ndef test_does_not_match_titlelike_tags() -> None:\n    assert title_of(\"<titles>Nope</titles>\") == \"\"\n\n\ndef test_title_with_entities_left_raw() -> None:\n    assert title_of(\"<title>A &amp; B</title>\") == \"A &amp; B\"\n\n\ndef test_unicode_title() -> None:\n    assert title_of(\"<title>Caf\u00e9 \u2615</title>\") == \"Caf\u00e9 \u2615\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1914,
+    "out": 693,
+    "reasoning": 0
+   },
+   "out_bytes": 1724,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2665,
+    "out": 785,
+    "reasoning": 0
+   },
+   "out_bytes": 1885,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\n\n_TITLE_RE = re.compile(r\"<title(?:\\s[^>]*)?>(.*?)</title\\s*>\", re.IGNORECASE | re.DOTALL)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in html, or \"\".\n\n    Tag matching is case-insensitive, and the opening tag may carry\n    attributes. Returns \"\" when there is no title element or it is\n    unclosed. Only the first title element is used. No network access.\n    \"\"\"\n    m = _TITLE_RE.search(html)\n    return m.group(1) if m else \"\"\n\n\ndef test_basic_title() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>No title</body></html>\") == \"\"\n\n\ndef test_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive() -> None:\n    assert title_of(\"<HTML><TITLE>Upper</TITLE></HTML>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_title_with_attributes() -> None:\n    assert title_of('<title lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<title>Never closed\") == \"\"\n\n\ndef test_only_first_title() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>\\n  Line one\\n  line two\\n</title>\") == \"\\n  Line one\\n  line two\\n\"\n\n\ndef test_surrounding_whitespace_preserved() -> None:\n    assert title_of(\"<title>  padded  </title>\") == \"  padded  \"\n\n\ndef test_does_not_match_titlelike_tags() -> None:\n    assert title_of(\"<titles>Nope</titles>\") == \"\"\n\n\ndef test_title_with_entities_left_raw() -> None:\n    assert title_of(\"<title>A &amp; B</title>\") == \"A &amp; B\"\n\n\ndef test_unicode_title() -> None:\n    assert title_of(\"<title>Caf\u00e9 \u2615</title>\") == \"Caf\u00e9 \u2615\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
