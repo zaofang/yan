@@ -485,6 +485,18 @@ impl Lower<'_, '_, '_> {
                 } else {
                     e.clone()
                 };
+                if matches!(kind, j::WithKind::Shield(_))
+                    && !self.sig.caps.iter().any(|c| c == "shield")
+                {
+                    self.err(
+                        "E301",
+                        at,
+                        format!(
+                            "`{}` opens a shield; declare `uses shield` (R812)",
+                            self.item
+                        ),
+                    );
+                }
                 let timeout = Ty::Data("Timeout".into());
                 let lists = match &self.sig.fail {
                     Some(Ty::Union(ms)) => ms.contains(&timeout),
