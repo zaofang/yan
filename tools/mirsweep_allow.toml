@@ -122,6 +122,10 @@ program = "conformance/yag/run/concurrency/shield_holds_cancel.yag"
 issue = "#1810"
 
 [[allow]]
+program = "conformance/yag/run/concurrency/shield_two_deep.yag"
+issue = "#1810"
+
+[[allow]]
 program = "conformance/yag/run/dist/cluster_group.yag"
 issue = "#1810"
 

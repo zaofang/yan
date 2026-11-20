@@ -7347,6 +7347,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/shield_two_deep.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R811"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "caught Timeout()\nBad(n=7)\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/contracts/assert_panics.yag",
    "kind": "run",
    "milestone": "M1",
