@@ -12,12 +12,14 @@ pub mod ffi;
 mod layout;
 mod lower;
 mod mnemonic;
+mod parse;
 mod pool;
 mod tasks;
 mod text;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
+pub use parse::ParseError;
 pub use text::VERSION as TEXT_VERSION;
 
 pub type Local = u32;
