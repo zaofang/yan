@@ -4,7 +4,12 @@
 use super::*;
 
 impl<'m> Fn<'_, 'm> {
-    pub(super) fn with_deadline(&mut self, at: &y::Atom, body: &'m y::Block) -> R<()> {
+    pub(super) fn with_deadline(
+        &mut self,
+        at: &y::Atom,
+        body: &'m y::Block,
+        shield: bool,
+    ) -> R<()> {
         let (v, _) = self.atom_any(at)?;
         let (Some(hi), Some(lo)) = (v.first().cloned(), v.get(1).cloned()) else {
             return unsupported("a `deadline` that is not a monotonic instant");
@@ -19,7 +24,11 @@ impl<'m> Fn<'_, 'm> {
         };
         self.emit(Inst::Rt {
             dst: Some(depth),
-            f: RtFn::DeadlineBegin,
+            f: if shield {
+                RtFn::ShieldBegin
+            } else {
+                RtFn::DeadlineBegin
+            },
             args: vec![Operand::Local(depth), hi, lo],
         });
         self.scopes.push(Scope::Deadline);

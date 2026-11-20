@@ -76,12 +76,17 @@ pub(crate) enum BoolOp {
 pub(crate) enum Op {
     /// Enter a cancel scope ending at the monotonic instant `src`, keeping the outer deadline in
     /// `saved`.
+    /// A `shield` instead replaces the deadline and holds the cancellation of the blocks open now;
+    /// `floor` keeps the outer count of held blocks.
     DeadlineBegin {
         src: Opnd,
         saved: Reg,
+        floor: Reg,
+        shield: bool,
     },
     DeadlineEnd {
         saved: Reg,
+        floor: Reg,
     },
     /// Open a `with supervisor` scope with the spec in `src` (9.6).
     SupBegin(Opnd),
@@ -661,6 +666,7 @@ enum Scope {
     },
     Deadline {
         saved: Reg,
+        floor: Reg,
     },
     Sup,
     Block {
@@ -1270,17 +1276,23 @@ impl<'g, 'm> FnC<'g, 'm> {
                 });
             }
             StmtKind::With { .. } => self.unsupported("`with ... = dyn`"),
-            StmtKind::Deadline { at, body } => {
+            StmtKind::Deadline { at, body, shield } => {
                 let src = match self.atom(at) {
                     Ok(o) => o,
                     Err(m) => return self.unsupported(m),
                 };
                 let saved = self.temp();
-                self.emit(Op::DeadlineBegin { src, saved });
-                self.scopes.push(Scope::Deadline { saved });
+                let floor = self.temp();
+                self.emit(Op::DeadlineBegin {
+                    src,
+                    saved,
+                    floor,
+                    shield: *shield,
+                });
+                self.scopes.push(Scope::Deadline { saved, floor });
                 self.block(body);
                 self.scopes.pop();
-                self.emit(Op::DeadlineEnd { saved });
+                self.emit(Op::DeadlineEnd { saved, floor });
             }
             StmtKind::ComptimeFor { .. } | StmtKind::ComptimeIf { .. } => {
                 self.unsupported("stage 0")
@@ -1380,7 +1392,10 @@ impl<'g, 'm> FnC<'g, 'm> {
                     dst: *reg,
                     src: *saved,
                 }),
-                Scope::Deadline { saved } => Some(Op::DeadlineEnd { saved: *saved }),
+                Scope::Deadline { saved, floor } => Some(Op::DeadlineEnd {
+                    saved: *saved,
+                    floor: *floor,
+                }),
                 Scope::Sup => Some(Op::SupEnd),
                 _ => None,
             })

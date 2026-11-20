@@ -22,7 +22,7 @@ struct Task {
     /// The PCT priority (R999); unused without a `pct` scheduler.
     prio: i64,
     /// The deadline scopes the task has open while it is not running.
-    deadlines: Vec<i128>,
+    deadlines: crate::deadline::Stack,
 }
 
 struct Block {
@@ -34,7 +34,7 @@ struct Block {
     parent: Option<usize>,
     cancelled: bool,
     /// The deadline scopes of the enclosing task, restored when the block returns to it.
-    outer: Vec<i128>,
+    outer: crate::deadline::Stack,
     /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
     kept: Option<(usize, u64)>,
 }
@@ -96,16 +96,30 @@ pub(crate) fn progressed() {
 
 /// The running task is cancelled: its block or one around it is.
 pub(crate) fn cancelled() -> bool {
+    let held = crate::deadline::floor();
     with(|st| {
+        let mut chain = Vec::new();
         let mut at = st.cur;
         while let Some(h) = at {
             let b = st.blocks[h].as_ref().expect("a live par block");
-            if b.cancelled {
-                return true;
-            }
+            chain.push(b.cancelled);
             at = b.parent;
         }
-        false
+        // The blocks a shield held when it opened are the outermost `held` of the chain.
+        chain.iter().rev().skip(held).any(|c| *c)
+    })
+}
+
+/// The count of `par` blocks the running task is inside.
+pub(crate) fn depth() -> usize {
+    with(|st| {
+        let mut n = 0;
+        let mut at = st.cur;
+        while let Some(h) = at {
+            n += 1;
+            at = st.blocks[h].as_ref().expect("a live par block").parent;
+        }
+        n
     })
 }
 
@@ -166,7 +180,7 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             None => vec![0; n as usize],
         };
         let outer = crate::deadline::snapshot();
-        let inherited: Vec<i128> = outer.last().copied().into_iter().collect();
+        let inherited: crate::deadline::Stack = outer.last().copied().into_iter().collect();
         let b = Block {
             tasks: prios
                 .into_iter()
@@ -279,11 +293,22 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             return n;
         };
         // A cancelled task runs on to fail its next wait.
+        // A task holding this block's cancellation in a shield is not run for it (R811).
+        let mut level = 1;
+        let mut up = parent;
+        while let Some(p) = up {
+            level += 1;
+            up = st.blocks[p].as_ref().expect("a live par block").parent;
+        }
+        let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let cancelled = b.cancelled;
         let runnable: Vec<bool> = b
             .tasks
             .iter()
-            .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+            .map(|t| {
+                let held = t.deadlines.iter().any(|e| e.1 >= level);
+                !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
+            })
             .collect();
         let pick = match st.pct.as_mut() {
             Some(p) => {

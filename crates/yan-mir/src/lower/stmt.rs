@@ -554,7 +554,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             // The scheduler `pct` built is already installed.
             K::With { name, body, .. } if name == "sched" => self.block(body),
             K::With { .. } => unsupported("`with`"),
-            K::Deadline { at, body } => self.with_deadline(at, body),
+            K::Deadline { at, body, shield } => self.with_deadline(at, body, *shield),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),

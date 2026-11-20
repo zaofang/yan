@@ -67,6 +67,8 @@ struct Saved {
     pc: usize,
     base: usize,
     deadline: Option<i128>,
+    /// The blocks of `it.cancel` below it that a `shield` open in the frame holds.
+    floor: usize,
 }
 
 struct Task {
@@ -551,9 +553,14 @@ impl<'o> Vm<'o> {
         let out = loop {
             let progress = self.it.progress;
             let cancelled = self.it.cancel.iter().any(|c| *c);
+            // A task holding this block's cancellation in a shield is not run for it (R811).
+            let level = self.it.cancel.len();
             let runnable: Vec<bool> = tasks
                 .iter()
-                .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+                .map(|t| {
+                    let held = t.chain.iter().any(|s| s.floor >= level);
+                    !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
+                })
                 .collect();
             let next = match self.it.pct.as_mut() {
                 Some(p) => {
@@ -706,8 +713,8 @@ impl<'o> Vm<'o> {
 
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
-        let deadline = self.it.deadline;
-        self.run_framed(&mut code, 0, base, deadline, &[])
+        let (deadline, floor) = (self.it.deadline, self.it.shield_floor);
+        self.run_framed(&mut code, 0, base, deadline, floor, &[])
     }
 
     /// Run a called frame from `pc`, with the frames it had called when it parked in `callee`
@@ -718,11 +725,14 @@ impl<'o> Vm<'o> {
         mut pc: usize,
         base: usize,
         deadline: Option<i128>,
+        floor: usize,
         callee: &[Saved],
     ) -> R<Result<Value, Value>> {
         // A deadline scope ends with its function, however that returns.
         let outer = mem::replace(&mut self.it.deadline, deadline);
+        let outer_floor = mem::replace(&mut self.it.shield_floor, floor);
         let r = self.resume_into(code, &mut pc, base, callee);
+        let inner_floor = mem::replace(&mut self.it.shield_floor, outer_floor);
         let inner = mem::replace(&mut self.it.deadline, outer);
         // So do its `with supervisor` scopes, unless the frame parked to resume later.
         if self.it.park.is_none() {
@@ -747,6 +757,7 @@ impl<'o> Vm<'o> {
                 pc,
                 base,
                 deadline: inner,
+                floor: inner_floor,
             });
         }
         match r {
@@ -774,7 +785,7 @@ impl<'o> Vm<'o> {
                 *depth += 1;
             }
             let mut cc = c.code.clone();
-            let r = self.run_framed(&mut cc, c.pc, c.base, c.deadline, rest)?;
+            let r = self.run_framed(&mut cc, c.pc, c.base, c.deadline, c.floor, rest)?;
             if self.it.park.is_some() {
                 if let Some((_, depth, ..)) = &mut self.limits {
                     *depth -= 1;
@@ -829,7 +840,12 @@ impl<'o> Vm<'o> {
                     let v = mem::take(&mut self.stack[base + src as usize]);
                     self.stack[base + dst as usize] = v;
                 }
-                Op::DeadlineBegin { src, saved } => {
+                Op::DeadlineBegin {
+                    src,
+                    saved,
+                    floor,
+                    shield,
+                } => {
                     let Value::Mono(at) = *self.val(code, base, src) else {
                         return unsupported("a `deadline` that is not a monotonic instant");
                     };
@@ -837,14 +853,23 @@ impl<'o> Vm<'o> {
                         Some(d) => Value::Mono(d),
                         None => Value::Unit,
                     };
-                    self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
+                    self.stack[base + floor as usize] = Value::Int(self.it.shield_floor as i128);
+                    if shield {
+                        self.it.deadline = Some(at);
+                        self.it.shield_floor = self.it.cancel.len();
+                    } else {
+                        self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
+                    }
                 }
                 Op::SupBegin(src) => {
                     let spec = self.val(code, base, src).clone();
                     crate::supervise::begin(&mut self.it, &spec, base)?;
                 }
                 Op::SupEnd => crate::supervise::end(&mut self.it),
-                Op::DeadlineEnd { saved } => {
+                Op::DeadlineEnd { saved, floor } => {
+                    if let Value::Int(f) = self.stack[base + floor as usize] {
+                        self.it.shield_floor = f as usize;
+                    }
                     self.it.deadline = match self.stack[base + saved as usize] {
                         Value::Mono(d) => Some(d),
                         _ => None,

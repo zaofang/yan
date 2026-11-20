@@ -1389,7 +1389,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.block(body);
                 self.with_depth -= 1;
             }
-            StmtKind::Deadline { at, body } => {
+            StmtKind::Deadline { at, body, .. } => {
                 self.atom(at, How::Read);
                 self.block(body);
             }

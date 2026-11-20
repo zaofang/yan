@@ -998,13 +998,18 @@ impl Elab<'_> {
                 self.clear_flags(flagged, at, out);
                 flow
             }
-            StmtKind::Deadline { at: when, body } => {
+            StmtKind::Deadline {
+                at: when,
+                body,
+                shield,
+            } => {
                 let nb = self.block(body, Vec::new());
                 let flow = self.flow_of(&nb);
                 out.push(stmt(
                     StmtKind::Deadline {
                         at: when.clone(),
                         body: nb,
+                        shield: *shield,
                     },
                     at,
                 ));

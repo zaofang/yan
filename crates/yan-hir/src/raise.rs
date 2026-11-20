@@ -2102,7 +2102,7 @@ fn count_stmts(ss: &[y::Stmt], uses: &mut HashMap<String, usize>) {
             K::With {
                 handler: at, body, ..
             }
-            | K::Deadline { at, body } => {
+            | K::Deadline { at, body, .. } => {
                 count_atom(at, uses);
                 count_stmts(&body.stmts, uses);
             }

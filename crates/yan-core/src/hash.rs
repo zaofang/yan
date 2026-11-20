@@ -768,7 +768,7 @@ impl Cx<'_> {
                     cx.block(body);
                 });
             }
-            StmtKind::Deadline { at, body } => {
+            StmtKind::Deadline { at, body, .. } => {
                 self.atom(at);
                 self.block(body);
             }

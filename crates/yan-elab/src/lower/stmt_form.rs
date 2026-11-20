@@ -463,10 +463,11 @@ impl Lower<'_, '_, '_> {
             } => self.with_supervisor(spec, body, at)?,
             // `timeout(d)` is a deadline `d` from now (9.4).
             K::With {
-                kind: kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e)),
+                kind:
+                    kind @ (j::WithKind::Deadline(e) | j::WithKind::Timeout(e) | j::WithKind::Shield(e)),
                 body,
             } => {
-                let at_expr = if matches!(kind, j::WithKind::Timeout(_)) {
+                let at_expr = if matches!(kind, j::WithKind::Timeout(_) | j::WithKind::Shield(_)) {
                     let ex = |kind| j::Expr {
                         kind,
                         span: e.span,
@@ -502,7 +503,15 @@ impl Lower<'_, '_, '_> {
                 }
                 let (a, _) = self.atom(&at_expr, None)?;
                 let b = self.block(&body.stmts)?;
-                self.emit(StmtKind::Deadline { at: a, body: b }, at);
+                let shield = matches!(kind, j::WithKind::Shield(_));
+                self.emit(
+                    StmtKind::Deadline {
+                        at: a,
+                        body: b,
+                        shield,
+                    },
+                    at,
+                );
             }
             K::Unsafe(body) => {
                 if !self.cx.ffi {
