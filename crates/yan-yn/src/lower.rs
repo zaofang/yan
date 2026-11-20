@@ -38,8 +38,8 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
 const COMPILE_TIME_CAPS: [&str; 5] = ["alloc", "rand", "time", "sched", "fault"];
 
 /// The std capabilities a body can name without declaring them (7.1).
-const CAPS: [&str; 9] = [
-    "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
+const CAPS: [&str; 10] = [
+    "io", "net", "fs", "time", "rand", "log", "nondet", "shield", "env", "proc",
 ];
 
 /// Where a file sits in its package, for `use` (15.2): its directory's module path, for `use .m`,
