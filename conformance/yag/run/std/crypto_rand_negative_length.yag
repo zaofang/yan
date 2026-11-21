@@ -1,0 +1,10 @@
+# spec: 17.3
+# rows: R897
+# note: random_bytes(n) panics with `value` when n < 0
+# stdout:
+# 0
+# exit: 101
+
+pub def main() uses io, crypto_rand:
+    io.print(f"{len(crypto_rand.random_bytes(0))}")
+    io.print(f"{len(crypto_rand.random_bytes(-1))}")
