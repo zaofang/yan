@@ -1,0 +1,1 @@
+package: Package = Package(name="@conf/why_capability_chain", version="0.1.0", edition="next", yan="1.x", platform="cli", capabilities=["fs", "io"])

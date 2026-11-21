@@ -1,0 +1,4 @@
+spec = "18.4"
+rows = "R612"
+note = "yan why prints the chain for a capability a callee needs and exits 0 (R612)"
+command = ["why", "m.mid", "fs"]
