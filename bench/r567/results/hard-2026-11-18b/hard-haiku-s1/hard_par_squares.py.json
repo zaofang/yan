@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3298,
+   "out": 2920,
+   "reasoning": 1598,
+   "out_bytes": 3069
+  },
+  "body": {
+   "in": 2943,
+   "out": 1097,
+   "reasoning": 407,
+   "out_bytes": 1618
+  }
+ },
+ "final": "import sys\nfrom concurrent.futures import ThreadPoolExecutor\nfrom typing import Any\n\nimport pytest\n\n\ndef square(x: int) -> int:\n    \"\"\"Return x multiplied by itself.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element of xs using a thread pool.\n\n    The result has the same length as xs, and result[i] == square(xs[i]).\n    Output order matches input order, even though elements may be computed\n    concurrently.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(3) == 9\n    assert square(-4) == 16\n    assert square(0) == 0\n\n\ndef test_squares_basic() -> None:\n    assert squares([1, 2, 3]) == [1, 4, 9]\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_negative_and_zero() -> None:\n    assert squares([-2, 0, 5]) == [4, 0, 25]\n\n\ndef test_squares_preserves_order() -> None:\n    xs = list(range(-500, 500))\n    assert squares(xs) == [x * x for x in xs]\n\n\ndef test_squares_returns_new_list() -> None:\n    xs = [1, 2, 3]\n    out = squares(xs)\n    assert out is not xs\n    assert xs == [1, 2, 3]\n\n\ndef test_squares_uses_thread_pool(monkeypatch: pytest.MonkeyPatch) -> None:\n    created: list[ThreadPoolExecutor] = []\n\n    class SpyPool(ThreadPoolExecutor):\n        def __init__(self, *args: Any, **kwargs: Any) -> None:\n            super().__init__(*args, **kwargs)\n            created.append(self)\n\n    monkeypatch.setattr(sys.modules[__name__], \"ThreadPoolExecutor\", SpyPool)\n    assert squares([1, 2, 3]) == [1, 4, 9]\n    assert len(created) >= 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1070,
+    "out": 1465,
+    "reasoning": 801
+   },
+   "out_bytes": 1533,
+   "ok": false,
+   "report": "test_task.py:56: error: Unused \"type: ignore\" comment  [unused-ignore]\ntest_task.py:56: error: No overload variant matches argument types \"ThreadPoolExecutor\", \"tuple[object, ...]\", \"dict[str, object]\"  [call-overload]\ntest_task.py:56: note: Error code \"call-overload\" not covered by \"type: ignore[arg-type]\" comment\ntest_task.py:56: note: Possible overload variants:\ntest_task.py:56: note:     def __init__(self: ThreadPoolExecutor, max_workers: int | None = ..., thread_name_prefix: str = ..., initializer: Callable[[], object] | None = ..., initargs: tuple[()] = ...) -> None\ntest_task.py:56: note:     def [_Ts] __init__(self: ThreadPoolExecutor, max_workers: int | None = ..., thread_name_prefix: str = ..., *, initializer: def (*args: *_Ts) -> object, initargs: tuple[*_Ts]) -> None\ntest_task.py:56: note:     def [_Ts] __init__(self: ThreadPoolExecutor, max_workers: int | None, thread_name_prefix: str, initializer: def (*args: *_Ts) -> object, initargs: tuple[*_Ts]) -> None\nFound 2 errors in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2228,
+    "out": 1455,
+    "reasoning": 797
+   },
+   "out_bytes": 1536,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2943,
+    "out": 1097,
+    "reasoning": 407
+   },
+   "out_bytes": 1618,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,8 @@
+pub class Req:
+    n: int
+
+pub def open(n: int) -> int:
+    return n * 10
+
+pkg def hidden() -> int:
+    return 0

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 934,
+   "reasoning": 805,
+   "out_bytes": 275
+  },
+  "body": {
+   "in": 1660,
+   "out": 435,
+   "reasoning": 298,
+   "out_bytes": 283
+  }
+ },
+ "final": "-- Pick an element of a non-empty list from an integer seed.\n-- Same list and seed always give the same element. No randomness.\n\npick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  ex pick([5], 42) == 5\n  ex pick([1, 2], 7) == pick([1, 2], 7)\n  xs[seed % xs.len()]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 934,
+    "reasoning": 805
+   },
+   "out_bytes": 275,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1660,
+    "out": 435,
+    "reasoning": 298
+   },
+   "out_bytes": 283,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

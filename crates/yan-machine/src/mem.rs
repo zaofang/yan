@@ -14,6 +14,8 @@ pub struct Alloc {
     pub bytes: Vec<Byte>,
     pub live: bool,
     pub immutable: bool,
+    /// The function that was running when the allocation was made.
+    pub site: u32,
 }
 
 pub type AllocId = usize;
@@ -24,6 +26,8 @@ pub type AllocId = usize;
 pub struct Memory {
     allocs: Vec<Alloc>,
     next: u64,
+    /// Set by the machine before each instruction; recorded by `alloc`.
+    pub site: u32,
 }
 
 const GAP: u64 = 16;
@@ -33,6 +37,7 @@ impl Memory {
         Memory {
             allocs: Vec::new(),
             next: 0x1_0000,
+            site: 0,
         }
     }
 
@@ -45,6 +50,7 @@ impl Memory {
             bytes: vec![Byte::Uninit; size],
             live: true,
             immutable: false,
+            site: self.site,
         });
         base
     }
@@ -71,11 +77,11 @@ impl Memory {
     }
 
     /// Live allocations as `(base, size)`, excluding `except`.
-    pub fn live(&self, except: impl Fn(u64) -> bool) -> Vec<(u64, usize)> {
+    pub fn live(&self, except: impl Fn(u64) -> bool) -> Vec<(usize, u32)> {
         self.allocs
             .iter()
             .filter(|a| a.live && !except(a.base))
-            .map(|a| (a.base, a.size))
+            .map(|a| (a.size, a.site))
             .collect()
     }
 
@@ -158,7 +164,7 @@ mod tests {
         let mut m = Memory::new();
         let (a, b) = (m.alloc(8), m.alloc(3));
         m.free(a);
-        assert_eq!(m.live(|_| false), vec![(b, 3)]);
+        assert_eq!(m.live(|_| false), vec![(3, 0)]);
         assert!(m.live(|x| x == b).is_empty());
     }
 }

@@ -1,0 +1,155 @@
+{
+ "final": "def notes_root() -> str:\n    \"\"\"The directory that plugins are confined to.\"\"\"\n    ex notes_root() == \"notes\"\n    return \"notes\"\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Run `plugin(path)` with `fs` confined to the directory `notes`.\n\n    `path` is relative to `notes`. Any read outside `notes` yields an empty string.\n    \"\"\"\n    result = \"\"\n    with fs = fs.sub(notes_root()):\n        result = plugin(path)\n    return result\n\ndef plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp9ed73ezf/work/task.yag:6:8 run_plugin: `assert run_plugin(\"\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#2 E301 /tmp/tmp9ed73ezf/work/task.yag:7:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 128,
+    "reasoning": 0
+   },
+   "out_bytes": 294
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2540,
+    "out": 591,
+    "reasoning": 453
+   },
+   "out_bytes": 343
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp9ed73ezf/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp9ed73ezf/work/task.yag:13:18 run_plugin: `= plugin(path)` cannot find function `plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2776,
+    "out": 659,
+    "reasoning": 484
+   },
+   "out_bytes": 446
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3089,
+    "out": 393,
+    "reasoning": 148
+   },
+   "out_bytes": 601
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 5865,
+   "out": 1052,
+   "reasoning": 632,
+   "out_bytes": 1047
+  },
+  "spec": {
+   "in": 4763,
+   "out": 719,
+   "reasoning": 453,
+   "out_bytes": 637
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp9ed73ezf/work/task.yag:6:8 run_plugin: `assert run_plugin(\"\")` capability `fs` is not in scope | in `ex` of `run_plugin`\n#2 E301 /tmp/tmp9ed73ezf/work/task.yag:7:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp9ed73ezf/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E200 /tmp/tmp9ed73ezf/work/task.yag:13:18 run_plugin: `= plugin(path)` cannot find function `plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E200 task.yag:13:18 run_plugin: `plugin` cannot find function `plugin`"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

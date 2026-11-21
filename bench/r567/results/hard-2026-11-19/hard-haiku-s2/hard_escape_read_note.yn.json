@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1709,
+   "out": 1326,
+   "reasoning": 1048,
+   "out_bytes": 674
+  },
+  "body": {
+   "in": 2060,
+   "out": 1209,
+   "reasoning": 835,
+   "out_bytes": 917
+  }
+ },
+ "final": "-- Phase 2: implementations. Contracts and signatures are unchanged from Phase 1.\n\n-- True when `name` is a single plain file name: non-empty, no path\n-- separators, and not a parent or current directory reference.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../a.txt\") == False\n  ex is_plain_name(\"\") == False\n  if name == \"\"\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- Returns the text of `notes/name`. Untrusted names: any name that is not\n-- plain, or any missing or unreadable file, yields \"\".\nread_note(name: str) -> str uses fs =\n  post is_plain_name(name) or out == \"\"\n  ex read_note(\"missing.txt\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  if is_plain_name(name) == False\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else \"\"\n    text\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1709,
+    "out": 1326,
+    "reasoning": 1048
+   },
+   "out_bytes": 674,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2060,
+    "out": 1209,
+    "reasoning": 835
+   },
+   "out_bytes": 917,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

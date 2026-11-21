@@ -1,0 +1,132 @@
+{
+ "status": "green",
+ "rounds_to_green": 4,
+ "tokens": {
+  "spec": {
+   "in": 3608,
+   "out": 1834,
+   "reasoning": 1325,
+   "out_bytes": 1117
+  },
+  "body": {
+   "in": 14362,
+   "out": 5420,
+   "reasoning": 3317,
+   "out_bytes": 4754
+  }
+ },
+ "final": "type Span = { start: int, stop: int }\n\nfind_tag(html: str, tag: str, from: int) -> int? =\n  pre from >= 0\n  ex find_tag(\"a<title>b\", \"<title>\", 0) == 1\n  let cs: List[char] = html.chars().collect()\n  let ts: List[char] = tag.chars().collect()\n  let n = html.char_count()\n  let m = tag.char_count()\n  for i in range(from, n - m + 1)\n    var ok = True\n    for j in range(0, m)\n      if cs[i + j] != ts[j]\n        ok = False\n        break\n    if ok\n      return i\n  None\n\ntitle_span(html: str) -> Span? =\n  ex title_span(\"<title>Hi</title>\") == Span(start: 7, stop: 9)\n  let open = find_tag(html, \"<title>\", 0) else return None\n  let start = open + 7\n  let close = find_tag(html, \"</title>\", start) else return None\n  Span(start: start, stop: close)\n\ntitle_of(html: str) -> str =\n  pre html.char_count() >= 0\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title</p>\") == \"\"\n  let sp = title_span(html) else return \"\"\n  let cs: List[char] = html.chars().collect()\n  var t = \"\"\n  for i in range(sp.start, sp.stop)\n    t += \"\\(cs[i])\"\n  t\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1617,
+    "out": 1091,
+    "reasoning": 838
+   },
+   "out_bytes": 556,
+   "ok": false,
+   "report": "E100 task.yn:3:49 `end of line` unexpected token; expected `=`\nE100 task.yn:9:31 `end of line` unexpected token; expected `=`\nE100 task.yn:14:27 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1991,
+    "out": 743,
+    "reasoning": 487
+   },
+   "out_bytes": 561,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2320,
+    "out": 1743,
+    "reasoning": 1256
+   },
+   "out_bytes": 1107,
+   "ok": false,
+   "report": "E221 task.yn:5:23 find_tag: `out >= from` `int?` does not implement `Ord`\nE221 task.yn:5:23 find_tag: `out >= from` `int?` does not implement `Ord`\nE201 task.yn:14:10 find_tag: `cs[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 task.yn:14:23 find_tag: `ts[j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE203 task.yn:22:27 title_span: `start <` `Span?` has no field `start`\nE203 task.yn:22:27 title_span: `start <` `Span?` has no field `start`\nE203 task.yn:22:27 title_span: `start <` `Span?` has no field `start`\nE203 task.yn:22:40 title_span: `out.stop` `Span?` has no field `stop`\nE203 task.yn:22:40 title_span: `out.stop` `Span?` has no field `stop`\nE203 task.yn:22:40 title_span: `out.stop` `Span?` has no field `stop`",
+   "codes": [
+    "E201",
+    "E203",
+    "E221"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3228,
+    "out": 1700,
+    "reasoning": 1143
+   },
+   "out_bytes": 1261,
+   "ok": false,
+   "report": "E201 task.yn:7:23 find_tag: `html.chars().collect()` expected `List[str]`, found `List[char]`\nE201 task.yn:8:23 find_tag: `tag.chars().collect()` expected `List[str]`, found `List[char]`\nE201 task.yn:35:23 title_of: `html.chars().collect()` expected `List[str]`, found `List[char]`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3951,
+    "out": 927,
+    "reasoning": 366
+   },
+   "out_bytes": 1269,
+   "ok": false,
+   "report": "E401 task.yn:18:7 task.find_tag: `return i` `_t15` is used after `_t15.Some.value` was moved out of it | moved at 5:24\nE401 task.yn:19:3 task.find_tag: `None` `_out23` is used after `_out23.Some.value` was moved out of it | moved at 5:24\nE401 task.yn:24:14 task.title_span: `find_tag(html, \"<title>\", 0) else return None` `_out5` is used after `_out5.Some.value` was moved out of it | moved at 22:68\nE401 task.yn:26:15 task.title_span: `find_tag(html, \"</title>\", start) else return None` `_out24` is used after `_out24.Some.value` was moved out of it | moved at 22:68\nE401 task.yn:27:3 task.title_span: `Span(start: start, stop: close)` `_t40` is used after `_t40.Some.value` was moved out of it | moved at 22:68",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 4863,
+    "out": 1050,
+    "reasoning": 552
+   },
+   "out_bytes": 1117,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E221 ./task.yn:5:23 find_tag: `out >= from` `int?` does not implement `Ord`\nE221 ./task.yn:5:23 find_tag: `out >= from` `int?` does not implement `Ord`\nE201 ./task.yn:14:10 find_tag: `cs[i + j]` an `iter` is single-pass and cannot be indexed; `.collect()` it to a list first\nE201 ./task.yn:14:23 find"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

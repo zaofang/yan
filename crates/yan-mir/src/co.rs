@@ -80,6 +80,7 @@ fn blocking(i: &Inst) -> bool {
         Inst::Rt {
             f: RtFn::ChanSend
                 | RtFn::ChanRecv
+                | RtFn::FutexWait
                 | RtFn::SelectWait
                 | RtFn::ActorTake
                 | RtFn::ActorRetake
@@ -269,6 +270,19 @@ impl Cx {
                     lines.push(line);
                     continue;
                 }
+                // A pinned local lives in its frame word now, so its marker names that word.
+                if let Inst::Move { places } = &mut i {
+                    for p in places.iter_mut() {
+                        if let Loc::Local(l) = *p
+                            && pinned.contains(&l)
+                        {
+                            *p = Loc::Word {
+                                ptr: Operand::Local(0),
+                                word: slot(l),
+                            };
+                        }
+                    }
+                }
                 let (uses, defs) = uses_defs(&i);
                 let mut tmps: Vec<(Local, Local)> = Vec::new();
                 for l in uses.iter().chain(&defs) {
@@ -355,6 +369,7 @@ impl Cx {
                         f:
                             RtFn::ChanSend
                             | RtFn::ChanRecv
+                            | RtFn::FutexWait
                             | RtFn::SelectWait
                             | RtFn::ChanTrySend
                             | RtFn::ChanTryRecv
@@ -632,7 +647,19 @@ pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
         Inst::Access { ptr, prov, .. } => {
             ([ptr, prov].into_iter().filter_map(l).collect(), Vec::new())
         }
-        Inst::Arm(_) | Inst::Fence { .. } | Inst::Move { .. } => (Vec::new(), Vec::new()),
+        // A marker reads its pointers and names its locals where it stands, as the validator
+        // (I103) counts a moved local as read, so a resume restores it.
+        Inst::Move { places } => (
+            places
+                .iter()
+                .filter_map(|p| match p {
+                    Loc::Word { ptr, .. } => l(ptr),
+                    Loc::Local(x) => Some(*x),
+                })
+                .collect(),
+            Vec::new(),
+        ),
+        Inst::Arm(_) | Inst::Fence { .. } => (Vec::new(), Vec::new()),
     }
 }
 
@@ -707,4 +734,27 @@ pub(crate) fn live_sets(f: &Func) -> Vec<Vec<Local>> {
             v
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn move_marker_uses_its_locals_and_word_pointers() {
+        let i = Inst::Move {
+            places: vec![
+                Loc::Local(3),
+                Loc::Word {
+                    ptr: Operand::Local(5),
+                    word: 1,
+                },
+                Loc::Word {
+                    ptr: Operand::Int(0),
+                    word: 0,
+                },
+            ],
+        };
+        assert_eq!(uses_defs(&i), (vec![3, 5], Vec::new()));
+    }
 }

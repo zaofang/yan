@@ -1,0 +1,15 @@
+# spec: 9.4
+# rows: R812
+# note: a deadline nested in a shield that expires first fails Timeout, not ShieldTimeout
+# stdout:
+# Timeout()
+
+def nested() -> str fail Cancelled | Timeout | ShieldTimeout uses io, time, shield:
+    with shield(1 * s):
+        with timeout(10 * ms):
+            time.sleep(100 * ms)?
+    return "ok"
+
+pub def main() uses io, time, shield:
+    with time = virtual(time.now()):
+        io.print(nested() else err -> f"{err}")

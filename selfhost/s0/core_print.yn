@@ -1,0 +1,516 @@
+--- S0 Yan Core reader, slice 3 (#1505): the canonical printer of crates/yan-core/src/printer.rs, ported. Needs
+--- core_lex.yn and core_parse.yn in the same program. Layout: four-space indentation, one statement per line,
+--- contracts on their own lines before the body, records and sums on one line, a blank line between items.
+
+p_ind(n: int) -> str uses none =
+  var out = ""
+  for _ in range(n)
+    out = out + "    "
+  out
+
+p_line(n: int, s: str) -> str uses none = p_ind(n) + s + "\n"
+
+mp[T](v: List[T], f: (T) -> str) -> List[str] uses none =
+  var out: List[str] = []
+  for x in v
+    out.append(f(x))
+  out
+
+cm[T](v: List[T], f: (T) -> str) -> str uses none =
+  var out: List[str] = []
+  for x in v
+    out.append(f(x))
+  ", ".join(out)
+
+opt[T](o: Option[T], f: (T) -> str) -> str uses none =
+  match o
+    Some(x) -> f(x)
+    None -> ""
+
+p_vis(v: str) -> str uses none =
+  if v == "pkg"
+    return "pkg "
+  if v == "pub"
+    return "pub "
+  ""
+
+p_kind(k: str) -> str uses none =
+  if k == "type"
+    return "Type"
+  if k == "nat"
+    return "Nat"
+  "Dim"
+
+p_hex(n: int) -> str uses none =
+  let digits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"]
+  if n == 0
+    return "0"
+  var out = ""
+  var m = n
+  while m > 0
+    out = digits[m % 16] + out
+    m = m // 16
+  out
+
+--- `quote` is the code point of the delimiter that needs a backslash.
+p_escape(c: char, quote: int) -> str uses none =
+  let o = ord(c)
+  if o == 10
+    return "\\n"
+  if o == 13
+    return "\\r"
+  if o == 9
+    return "\\t"
+  if o == 0
+    return "\\0"
+  if o == 92
+    return "\\\\"
+  if o == quote
+    return "\\" + c.to_str()
+  if o < 32 or (o >= 127 and o <= 159)
+    return "\\u{" + p_hex(o) + "}"
+  c.to_str()
+
+p_string(s: str) -> str uses none =
+  var out = "\""
+  for c in s.chars()
+    out = out + p_escape(c, 34)
+  out + "\""
+
+p_char(s: str) -> str uses none =
+  var out = "'"
+  for c in s.chars()
+    out = out + p_escape(c, 39)
+  out + "'"
+
+p_path(v: List[str]) -> str uses none = ".".join(v)
+
+p_lit(l: Lit) -> str uses none =
+  match l
+    LitInt(s) -> s
+    LitFloat(s) -> s
+    LitStr(s) -> p_string(s)
+    LitChar(s) -> p_char(s)
+    LitBool(b) -> if b then "true" else "false"
+    LitUnit() -> "()"
+
+p_atom(a: Atom) -> str uses none =
+  match a
+    AtomName(n, _) -> n
+    AtomLit(l, _) -> p_lit(l)
+
+p_targs(pl: Pools, v: List[TArg]) -> str uses none =
+  if len(v) == 0
+    return ""
+  "[" + cm(v, (t) -> p_targ(pl, t)) + "]"
+
+p_targ(pl: Pools, t: TArg) -> str uses none =
+  match t
+    TargTy(x) -> p_ty(pl, x)
+    TargNat(n) -> n
+
+p_named(pl: Pools, n: Named) -> str uses none = p_path(n.path) + p_targs(pl, n.args)
+
+p_cap(c: CapSet) -> str uses none =
+  match c
+    CapNone() -> "none"
+    CapNames(v) -> ", ".join(v)
+
+p_fn_type(pl: Pools, f: FnType) -> str uses none =
+  "Fn(" + cm(f.params, (c) -> c.conv + " " + p_ty(pl, c.ty)) + ") -> " + p_ty(pl, f.ret) + opt(f.caps, (c) -> " uses " + p_cap(c)) + opt(f.failty, (t) -> " fail " + p_ty(pl, t))
+
+p_ty(pl: Pools, id: int) -> str uses none = p_ty_val(pl, pl.tys[id])
+
+p_ty_val(pl: Pools, t: Ty) -> str uses none =
+  match t
+    TyNamed(n) -> p_named(pl, n)
+    TyTuple(v) -> "Tuple(" + cm(v, (x) -> p_ty(pl, x)) + ")"
+    TyDyn(n) -> "dyn " + p_named(pl, n)
+    TyFn(f) -> p_fn_type(pl, f)
+    TyRefined(n, inner, pred) -> "{" + n + ": " + p_ty(pl, inner) + " | " + p_expr(pl, pred) + "}"
+    TyUnion(v) -> " | ".join(mp(v, (x) -> p_ty(pl, x)))
+
+p_call(pl: Pools, c: Call) -> str uses none =
+  p_path(c.path) + p_targs(pl, c.targs) + "(" + cm(c.args, (a) -> p_arg(a)) + ")"
+
+p_arg(a: Arg) -> str uses none =
+  match a
+    ArgVal(cv, x, _) -> cv + " " + p_atom(x)
+    ArgCap(n, _) -> "cap " + n
+
+p_expr(pl: Pools, e: Expr) -> str uses none =
+  match e
+    ExprAtom(a) -> p_atom(a)
+    ExprCall(c) -> p_call(pl, c)
+
+p_place(p: Place) -> str uses none =
+  var s = p.root
+  for x in p.projs
+    s = s + p_proj(x)
+  s
+
+p_proj(x: Proj) -> str uses none =
+  match x
+    ProjField(n, _) -> "." + n
+    ProjIndex(a) -> "[" + p_atom(a) + "]"
+
+p_ctor(pl: Pools, c: Ctor) -> str uses none =
+  match c
+    CtorNamed(pth, ta, fs) -> p_ctor_named(pl, pth, ta, fs)
+    CtorTuple(v) -> "(" + cm(v, (a) -> p_atom(a)) + ")"
+
+p_ctor_named(pl: Pools, pth: List[str], ta: List[TArg], fs: List[CtorField]) -> str uses none =
+  let head = p_path(pth) + p_targs(pl, ta)
+  if len(fs) == 0
+    return head + " {}"
+  head + " { " + cm(fs, (f) -> f.name + ": " + p_atom(f.a)) + " }"
+
+p_param(pl: Pools, p: Param) -> str uses none =
+  match p
+    ParValue(ct, cv, n, t) -> (if ct then "comptime " else "") + cv + " " + n + ": " + p_ty(pl, t)
+    ParCap(n, t) -> "cap " + n + ": " + p_named(pl, t)
+
+p_tparams(v: List[TParam]) -> str uses none =
+  if len(v) == 0
+    return ""
+  "[" + cm(v, (t) -> p_tparam(t)) + "]"
+
+p_tparam(t: TParam) -> str uses none =
+  var s = (if t.is_comptime then "comptime " else "") + t.name + ": " + p_kind(t.kind)
+  if len(t.bounds) > 0
+    s = s + " is " + " + ".join(mp(t.bounds, (b) -> p_path(b)))
+  s
+
+p_field(pl: Pools, f: Field) -> str uses none =
+  var s = ""
+  for a in f.attrs
+    s = s + p_attr(a) + " "
+  s = s + p_vis(f.vis) + f.name + ": " + p_ty(pl, f.ty)
+  s + opt(f.dflt, (d) -> " = " + p_const(d))
+
+p_fields(pl: Pools, v: List[Field]) -> str uses none =
+  if len(v) == 0
+    return "{}"
+  "{ " + cm(v, (f) -> p_field(pl, f)) + " }"
+
+p_const(c: ConstVal) -> str uses none =
+  match c
+    ConstLit(l) -> p_lit(l)
+    ConstPath(pth, fs) -> p_const_path(pth, fs)
+    ConstList(v) -> "[" + cm(v, (x) -> p_const(x)) + "]"
+    ConstTuple(v) -> "(" + cm(v, (x) -> p_const(x)) + ")"
+    ConstCall(pth, args) -> p_path(pth) + "(" + cm(args, (a) -> p_attr_arg(a)) + ")"
+
+p_const_path(pth: List[str], fs: Option[List[CField]]) -> str uses none =
+  match fs
+    None -> p_path(pth)
+    Some(v) -> p_const_fields(pth, v)
+
+p_const_fields(pth: List[str], v: List[CField]) -> str uses none =
+  if len(v) == 0
+    return p_path(pth) + " {}"
+  p_path(pth) + " { " + cm(v, (f) -> f.name + ": " + p_const(f.value)) + " }"
+
+p_pat(p: Pat) -> str uses none =
+  match p
+    PatWild() -> "_"
+    PatLit(l) -> p_lit(l)
+    PatBind(n) -> n
+    PatCtor(pth, fs) -> p_pat_ctor(pth, fs)
+    PatTuple(v) -> "(" + cm(v, (x) -> p_pat(x)) + ")"
+    PatOr(v) -> " | ".join(mp(v, (x) -> p_pat(x)))
+    PatRange(lo, hi) -> p_lit(lo) + "..=" + p_lit(hi)
+    PatSlice(elems, rest, rest_name) -> p_pat_slice(elems, rest, rest_name)
+
+p_pat_ctor(pth: List[str], fs: Option[CtorPat]) -> str uses none =
+  match fs
+    None -> p_path(pth)
+    Some(c) -> p_pat_fields(pth, c)
+
+p_pat_fields(pth: List[str], c: CtorPat) -> str uses none =
+  var parts: List[str] = []
+  for f in c.fields
+    parts.append(f.name + ": " + p_pat(f.pat))
+  if c.rest
+    parts.append("..")
+  p_path(pth) + " { " + ", ".join(parts) + " }"
+
+p_pat_slice(elems: List[Pat], rest: int, rest_name: str) -> str uses none =
+  var parts: List[str] = []
+  for x in elems
+    parts.append(p_pat(x))
+  if rest == 1
+    parts.append("..")
+  if rest == 2
+    parts.append(".. " + rest_name)
+  "[" + ", ".join(parts) + "]"
+
+p_attr(a: Attr) -> str uses none =
+  match a.args
+    None -> "@" + a.name
+    Some(v) -> "@" + a.name + "(" + cm(v, (x) -> p_attr_arg(x)) + ")"
+
+p_attr_arg(x: AttrArg) -> str uses none =
+  match x.name
+    Some(n) -> n + " = " + p_const(x.value)
+    None -> p_const(x.value)
+
+--- Block text.
+
+p_block(pl: Pools, n: int, head: str, id: int) -> str uses none =
+  if len(pl.blocks[id]) == 0
+    return p_line(n, head + "{}")
+  p_line(n, head + "{") + p_body(pl, n, id) + p_line(n, "}")
+
+p_body(pl: Pools, n: int, id: int) -> str uses none =
+  var out = ""
+  for s in pl.blocks[id]
+    out = out + p_stmt(pl, n + 1, s)
+  out
+
+p_if_else(pl: Pools, n: int, head: str, yes: int, no: Option[int]) -> str uses none =
+  match no
+    None -> p_block(pl, n, head, id: yes)
+    Some(e) -> p_line(n, head + "{") + p_body(pl, n, id: yes) + p_line(n, "} else {") + p_body(pl, n, id: e) + p_line(n, "}")
+
+--- Items.
+
+p_item(pl: Pools, n: int, i: Item) -> str uses none =
+  var out = ""
+  for a in i.attrs
+    out = out + p_line(n, p_attr(a))
+  out + p_item_kind(pl, n, i.kind)
+
+p_item_kind(pl: Pools, n: int, k: ItemKind) -> str uses none =
+  match k
+    ItemFn(kw, args, def) -> p_item_fn(pl, n, kw, args, def)
+    ItemRecord(v, pth, tps, fs) -> p_line(n, p_vis(v) + "record " + p_path(pth) + p_tparams(tps) + " " + p_fields(pl, fs))
+    ItemSum(v, pth, tps, vs) -> p_line(n, p_vis(v) + "sum " + p_path(pth) + p_tparams(tps) + " { " + cm(vs, (x) -> p_variant(pl, x)) + " }")
+    ItemNewtype(v, pth, tps, t, pred) -> p_line(n, p_vis(v) + "newtype " + p_path(pth) + p_tparams(tps) + " = " + p_ty(pl, t) + opt(pred, (e) -> " where " + p_expr(pl, e)))
+    ItemTrait(v, pth, tps, assoc, sigs, derived) -> p_trait(pl, n, v, pth, tps, assoc, sigs, derived)
+    ItemImpl(is_unsafe, tr, for_ty, assoc, fns) -> p_impl(pl, n, is_unsafe, tr, for_ty, assoc, fns)
+    ItemConst(v, pth, t, value) -> p_line(n, p_vis(v) + "const " + p_path(pth) + ": " + p_ty(pl, t) + " = " + p_const(value))
+    ItemTest(pth, body) -> p_block(pl, n, "test " + p_path(pth) + " ", id: body)
+    ItemExtern(abi, lib, link, items) -> p_extern(pl, n, abi, lib, link, items)
+
+p_variant(pl: Pools, v: Variant) -> str uses none =
+  match v.fields
+    None -> v.name
+    Some(fs) -> v.name + " " + p_fields(pl, fs)
+
+p_item_fn(pl: Pools, n: int, kw: str, args: List[TArg], def: int) -> str uses none =
+  if kw == "inst"
+    return p_function(pl, n, pl.fns[def], "inst fn", brackets: p_targs(pl, args))
+  let f = pl.fns[def]
+  p_function(pl, n, f, keyword: kw, brackets: p_tparams(f.tparams))
+
+p_trait(pl: Pools, n: int, v: str, pth: List[str], tps: List[TParam], assoc: List[str], sigs: List[int], derived: Option[int]) -> str uses none =
+  var out = p_line(n, p_vis(v) + "trait " + p_path(pth) + p_tparams(tps) + " {")
+  for a in assoc
+    out = out + p_line(n + 1, "type " + a)
+  for s in sigs
+    let f = pl.fns[s]
+    out = out + p_function(pl, n: n + 1, f: f, keyword: "fn", brackets: p_tparams(f.tparams))
+  out = out + opt(derived, (b) -> p_block(pl, n: n + 1, head: "derived ", id: b))
+  out + p_line(n, "}")
+
+p_impl(pl: Pools, n: int, is_unsafe: bool, tr: Named, for_ty: int, assoc: List[AssocTy], fns: List[int]) -> str uses none =
+  let u = if is_unsafe then "unsafe " else ""
+  var out = p_line(n, u + "impl " + p_named(pl, tr) + " for " + p_ty(pl, for_ty) + " {")
+  for a in assoc
+    out = out + p_line(n + 1, "type " + a.name + " = " + p_ty(pl, a.ty))
+  for s in fns
+    let f = pl.fns[s]
+    out = out + p_function(pl, n: n + 1, f: f, keyword: "fn", brackets: p_tparams(f.tparams))
+  out + p_line(n, "}")
+
+p_extern(pl: Pools, n: int, abi: str, lib: str, link: Option[str], items: List[ExtItem]) -> str uses none =
+  let head = "unsafe extern " + p_string(abi) + " lib " + lib + opt(link, (l) -> " link " + p_string(l))
+  var out = p_line(n, head + " {")
+  for x in items
+    out = out + p_line(n + 1, p_ext_item(pl, x))
+  out + p_line(n, "}")
+
+p_safety(s: bool) -> str uses none = if s then "safe" else "unsafe"
+
+p_ext_item(pl: Pools, x: ExtItem) -> str uses none =
+  match x
+    ExtFn(attrs, is_safe, name, params, variadic, ret, froms, uses_none, nonblocking) -> p_ext_fn(pl, attrs, is_safe, name, params, variadic, ret, froms, uses_none, nonblocking)
+    ExtType(name, dropfn) -> "type " + name + " drop " + p_path(dropfn)
+    ExtStatic(is_safe, name, t) -> p_safety(is_safe) + " static " + name + ": " + p_ty(pl, t)
+
+p_ext_param(pl: Pools, p: ExtParam) -> str uses none =
+  match p
+    ExtValue(name, t) -> name + ": " + p_ty(pl, t)
+    ExtCallback(name, escaping, t) -> name + ": " + (if escaping then "escaping" else "scoped") + " " + p_fn_type(pl, t)
+
+p_ext_fn(pl: Pools, attrs: List[Attr], is_safe: bool, name: str, params: List[ExtParam], variadic: bool, ret: int, froms: List[str], uses_none: bool, nonblocking: bool) -> str uses none =
+  var ps: List[str] = []
+  for p in params
+    ps.append(p_ext_param(pl, p))
+  if variadic
+    ps.append("...")
+  var s = ""
+  for a in attrs
+    s = s + p_attr(a) + " "
+  s = s + p_safety(is_safe) + " fn " + name + "(" + ", ".join(ps) + ") -> " + p_ty(pl, ret)
+  if len(froms) > 0
+    s = s + " from " + ", ".join(froms)
+  if uses_none
+    s = s + " uses none"
+  if nonblocking
+    s = s + " nonblocking"
+  s
+
+p_function(pl: Pools, n: int, f: FnDef, keyword: str, brackets: str) -> str uses none =
+  var head = p_vis(f.vis) + (if f.is_unsafe then "unsafe " else "") + keyword + " " + p_path(f.path) + brackets + "(" + cm(f.params, (p) -> p_param(pl, p)) + ") -> " + p_ty(pl, f.ret)
+  if len(f.froms) > 0
+    head = head + " from " + ", ".join(f.froms)
+  head = head + opt(f.failty, (e) -> " fail " + p_ty(pl, e))
+  match f.body
+    None -> p_line(n, head) + p_contracts(pl, n, f.contracts)
+    Some(b) -> p_function_body(pl, n, head, f.contracts, body: b)
+
+p_function_body(pl: Pools, n: int, head: str, contracts: List[Contract], body: int) -> str uses none =
+  if len(contracts) == 0
+    return p_block(pl, n, head + " ", id: body)
+  p_line(n, head) + p_contracts(pl, n, contracts) + p_block(pl, n, "", id: body)
+
+p_contracts(pl: Pools, n: int, cs: List[Contract]) -> str uses none =
+  var out = ""
+  for c in cs
+    out = out + p_line(n + 1, p_contract(pl, c))
+  out
+
+p_contract(pl: Pools, c: Contract) -> str uses none =
+  match c
+    CtReq(e) -> "requires " + p_expr(pl, e)
+    CtEns(e) -> "ensures " + p_expr(pl, e)
+    CtDec(v) -> "decreases " + cm(v, (x) -> p_expr(pl, x))
+    CtEx(e) -> "example " + p_expr(pl, e)
+    CtCost(steps, alloc) -> p_cost(pl, steps, alloc)
+
+p_cost(pl: Pools, steps: Option[Expr], alloc: Option[Expr]) -> str uses none =
+  var bounds: List[str] = []
+  if is_some(steps)
+    bounds.append("steps <= " + opt(steps, (e) -> p_expr(pl, e)))
+  if is_some(alloc)
+    bounds.append("alloc <= " + opt(alloc, (e) -> p_expr(pl, e)))
+  "cost " + ", ".join(bounds)
+
+is_some[T](o: Option[T]) -> bool uses none =
+  match o
+    Some(_) -> True
+    None -> False
+
+--- Statements.
+
+p_rhs_text(pl: Pools, r: Rhs) -> str uses none =
+  match r
+    RhsAtom(a) -> p_atom(a)
+    RhsCall(c) -> p_call(pl, c)
+    RhsProp(c, via, drops) -> p_call(pl, c) + "?" + opt(via, (v) -> " via " + p_path(v)) + (if len(drops) == 0 then "" else " drop " + ", ".join(drops))
+    RhsTry(c) -> "try " + p_call(pl, c)
+    RhsRest(root, moved) -> "rest " + root + " except " + ", ".join(mp(moved, (m) -> p_path(m)))
+    RhsCtor(c) -> p_ctor(pl, c)
+    RhsProj(pp) -> p_place(pp)
+    RhsCopy(pp) -> "copy " + p_place(pp)
+    RhsMove(pp) -> "move " + p_place(pp)
+    RhsClosure(_) -> ""
+
+p_rhs_line(pl: Pools, n: int, head: str, id: int) -> str uses none = p_rhs_line_val(pl, n, head, pl.rhss[id])
+
+p_rhs_line_val(pl: Pools, n: int, head: str, r: Rhs) -> str uses none =
+  match r
+    RhsClosure(c) -> p_closure(pl, n, head, c)
+    RhsAtom(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsCall(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsProp(_, _, _) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsTry(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsRest(_, _) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsCtor(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsProj(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsCopy(_) -> p_line(n, head + p_rhs_text(pl, r))
+    RhsMove(_) -> p_line(n, head + p_rhs_text(pl, r))
+
+p_closure(pl: Pools, n: int, head: str, c: Closure) -> str uses none =
+  let caps = " ".join(mp(c.captures, (x) -> x.conv + " " + x.name))
+  let s = head + "fn [" + caps + "](" + cm(c.params, (p) -> p_param(pl, p)) + ") -> " + p_ty(pl, c.ret) + opt(c.caps, (u) -> " uses " + p_cap(u)) + opt(c.failty, (e) -> " fail " + p_ty(pl, e)) + " "
+  p_block(pl, n, s, id: c.body)
+
+p_asm_operand(o: AsmOperand) -> str uses none =
+  match o
+    AsmOpReg(dir, reg, value) -> dir + "(" + p_asm_reg(reg) + ") " + p_atom(value)
+    AsmOpClobber(s) -> "clobber_abi(" + p_string(s) + ")"
+    AsmOpOptions(v) -> "options(" + ", ".join(v) + ")"
+
+p_asm_reg(r: AsmReg) -> str uses none =
+  match r
+    RegClass(n) -> n
+    RegExplicit(s) -> p_string(s)
+
+p_stmt(pl: Pools, n: int, s: Stmt) -> str uses none = p_stmt_kind(pl, n, s.kind)
+
+p_stmt_kind(pl: Pools, n: int, k: StmtKind) -> str uses none =
+  match k
+    StmtLet(mutable, pt, _, t, rhs, _) -> p_rhs_line(pl, n, (if mutable then "var " else "let ") + p_pat(pt) + ": " + p_ty(pl, t) + " = ", id: rhs)
+    StmtAssign(pc, rhs, _) -> p_rhs_line(pl, n, p_place(pc) + " = ", id: rhs)
+    StmtIf(cond, yes, no) -> p_if_else(pl, n, "if " + p_atom(cond) + " ", yes, no)
+    StmtMatch(scrutinee, arms) -> p_match(pl, n, scrutinee, arms)
+    StmtLoop(lb, invariants, decs, body) -> p_loop(pl, n, lb, invariants, decs, body)
+    StmtBreak(lb, value) -> p_line(n, "break '" + lb + opt(value, (a) -> " " + p_atom(a)))
+    StmtContinue(lb) -> p_line(n, "continue '" + lb)
+    StmtJp(name, ps, body) -> p_block(pl, n, "jp " + name + "(" + cm(ps, (p) -> p_param(pl, p)) + ") ", id: body)
+    StmtJump(name, args) -> p_line(n, "jump " + name + "(" + cm(args, (a) -> p_atom(a)) + ")")
+    StmtRet(a) -> p_line(n, "ret " + p_atom(a))
+    StmtFail(a) -> p_line(n, "fail " + p_atom(a))
+    StmtYield(a) -> p_line(n, "yield " + p_atom(a))
+    StmtBecome(c) -> p_line(n, "become " + p_call(pl, c))
+    StmtWith(name, is_dyn, handler, body) -> p_block(pl, n, "with " + name + " = " + (if is_dyn then "dyn " else "") + p_atom(handler) + " ", id: body)
+    StmtDeadline(at, body) -> p_block(pl, n, "deadline " + p_atom(at) + " ", id: body)
+    StmtPar(concurrent, blocks) -> p_par(pl, n, concurrent, blocks)
+    StmtComptimeFor(name, t, iter, body) -> p_block(pl, n, "comptime for " + name + ": " + p_ty(pl, t) + " in " + p_atom(iter) + " ", id: body)
+    StmtComptimeIf(cond, yes, no) -> p_if_else(pl, n, "comptime if " + p_atom(cond) + " ", yes, no)
+    StmtAssert(e) -> p_line(n, "assert " + p_expr(pl, e))
+    StmtUnreachable() -> p_line(n, "unreachable")
+    StmtUnsafe(body) -> p_block(pl, n, "unsafe ", id: body)
+    StmtAsm(template, operands) -> p_line(n, "asm(" + ", ".join(p_asm_parts(template, operands)) + ")")
+    StmtDrop(name) -> p_line(n, "drop " + name)
+    StmtReuse(name, c) -> p_line(n, "reuse " + name + " as " + p_ctor(pl, c))
+    StmtRhs(r) -> p_rhs_line(pl, n, "", id: r)
+
+p_asm_parts(template: str, operands: List[AsmOperand]) -> List[str] uses none =
+  var out = [p_string(template)]
+  for o in operands
+    out.append(p_asm_operand(o))
+  out
+
+p_match(pl: Pools, n: int, scrutinee: Atom, arms: List[Arm]) -> str uses none =
+  var out = p_line(n, "match " + p_atom(scrutinee) + " {")
+  for a in arms
+    out = out + p_block(pl, n: n + 1, head: p_pat(a.pat) + " => ", id: a.body)
+  out + p_line(n, "}")
+
+p_loop(pl: Pools, n: int, lb: str, invariants: List[Expr], decs: List[Expr], body: int) -> str uses none =
+  var head = "loop '" + lb
+  for i in invariants
+    head = head + " invariant " + p_expr(pl, i)
+  if len(decs) > 0
+    head = head + " decreases " + cm(decs, (e) -> p_expr(pl, e))
+  p_block(pl, n, head + " ", id: body)
+
+p_par(pl: Pools, n: int, concurrent: bool, blocks: List[int]) -> str uses none =
+  var out = p_line(n, if concurrent then "par concurrent {" else "par {")
+  for b in blocks
+    out = out + p_block(pl, n: n + 1, head: "", id: b)
+  out + p_line(n, "}")
+
+--- A module's canonical text.
+print_module(m: Module) -> str uses none =
+  var out = ""
+  for h in m.header
+    out = out + h + "\n"
+  out = out + "module " + p_path(m.path) + "\n"
+  for i in m.items
+    out = out + "\n" + p_item(m.pools, 0, i)
+  out

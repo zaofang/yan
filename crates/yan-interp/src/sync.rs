@@ -128,6 +128,36 @@ fn rmw(it: &mut Interp, a: &mut [Value], f: fn(i128, i128) -> i128) -> Value {
     old
 }
 
+/// The park key of a task waiting on an atom: apart from channels and actors (R959).
+const FUTEX_KEY: usize = 1 << 62;
+
+/// `wait` and `notify` are for 32-bit atomics only (6.2).
+fn word32(it: &Interp, i: usize, op: &str) -> R<()> {
+    match &*it.atom_tys[i] {
+        "u32" | "i32" => Ok(()),
+        t => unsupported(format!("`Atomic.{op}` on a `{t}` atomic")),
+    }
+}
+
+/// Release up to `count` tasks parked on atom `i`, oldest first.
+fn notify(it: &mut Interp, i: usize, count: usize) -> Value {
+    let mut n = 0;
+    let mut k = 0;
+    while k < it.futex.len() && n < count {
+        if it.futex[k].1 == i {
+            let (p, _) = it.futex.remove(k);
+            it.woken.push(p);
+            n += 1;
+        } else {
+            k += 1;
+        }
+    }
+    if n > 0 {
+        it.progress += 1;
+    }
+    Value::Unit
+}
+
 pub(crate) fn chan(v: &Value) -> usize {
     match v {
         Value::Data { fields, .. } => match fields[0].1 {
@@ -205,7 +235,7 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
         })
         .collect();
     loop {
-        if let Some(e) = cancelled(&vm.it) {
+        if let Some(e) = cancelled(&vm.it)? {
             return Ok(Err(e));
         }
         crate::simfault::sweep(&mut vm.it);
@@ -243,7 +273,7 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
             it.park_timer = wake;
             return Ok(Ok(Value::Unit));
         }
-        match (wake, it.deadline) {
+        match (wake, super::time::cut(it)) {
             (Some(w), Some(d)) if d < w => return Ok(Err(wait_until(it, d))),
             (Some(w), _) => advance_to(it, w),
             (None, _) => {
@@ -258,11 +288,13 @@ fn select_wait(vm: &mut Vm, a: &[Value]) -> R<Result<Value, Value>> {
 }
 
 /// In a cancelled task a blocking operation fails `Cancelled` (9.4).
-fn cancelled(it: &Interp) -> Option<Value> {
-    it.cancel.iter().any(|c| *c).then(|| Value::Data {
+fn cancelled(it: &Interp) -> R<Option<Value>> {
+    let cancelled =
+        super::time::drain_cancelled(it)? || it.cancel.iter().skip(it.shield_floor).any(|c| *c);
+    Ok(cancelled.then(|| Value::Data {
         name: "Cancelled".into(),
         fields: Vec::new(),
-    })
+    }))
 }
 
 /// What a send to a full mailbox does (R974).
@@ -426,7 +458,7 @@ fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>
         return Ok(None);
     }
     let since = it.wait_since.iter().find(|(p, _)| p == me).map(|w| w.1);
-    let d = match it.deadline {
+    let d = match super::time::deadline(it) {
         Some(d) => d,
         None if it.force || it.in_par == 0 => {
             since.unwrap_or_else(|| mono_now(it)) + DEFAULT_DEADLINE
@@ -437,6 +469,8 @@ fn wait(it: &mut Interp, id: usize, me: &[usize], what: &str) -> R<Option<Value>
             ));
         }
     };
+    // A drain's grace end cuts the wait when it comes first.
+    let d = super::time::cut(it).map_or(d, |c| c.min(d));
     unwait(it, me);
     Ok(Some(wait_until(it, d)))
 }
@@ -646,7 +680,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
                     // A full mailbox parks a `Block` sender, so the actor runs its oldest
                     // message first; waiting is a cancellation point (9.6).
                     Policy::Block => {
-                        if let Some(c) = cancelled(&vm.it) {
+                        if let Some(c) = cancelled(&vm.it)? {
                             return Ok(Err(undelivered(c, std::mem::take(&mut a[1]))));
                         }
                         if !run_queued(vm, id)? {
@@ -736,7 +770,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
             loop {
-                if let Some(e) = cancelled(&vm.it) {
+                if let Some(e) = cancelled(&vm.it)? {
                     return Ok(Err(e));
                 }
                 crate::simfault::sweep(&mut vm.it);
@@ -757,7 +791,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         STD_CHAN_RECEIVER_TRY_RECV,
         Bind::VmFallible(|vm, a| {
             let c = chan(&a[0]);
-            if let Some(e) = cancelled(&vm.it) {
+            if let Some(e) = cancelled(&vm.it)? {
                 return Ok(Err(e));
             }
             crate::simfault::sweep(&mut vm.it);
@@ -808,7 +842,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
             let c = open_sender(&a[0])?;
             loop {
                 let it = &mut vm.it;
-                if let Some(e) = cancelled(it) {
+                if let Some(e) = cancelled(it)? {
                     return Ok(Err(e));
                 }
                 if send_room(it, c) {
@@ -827,7 +861,7 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
         Bind::VmFallible(|vm, a| {
             let c = open_sender(&a[0])?;
             let it = &mut vm.it;
-            if let Some(e) = cancelled(it) {
+            if let Some(e) = cancelled(it)? {
                 return Ok(Err(e));
             }
             if !send_room(it, c) {
@@ -983,6 +1017,53 @@ pub(super) static BINDS: &[(Id, Bind)] = &[
     (
         STD_SYNC_ATOMIC_INTO_INNER,
         Bind::Cap(|it, a| Ok(it.atoms[atom(&a[0])].clone())),
+    ),
+    (
+        STD_SYNC_ATOMIC_WAIT,
+        Bind::VmFallible(|vm, a| {
+            let (i, expected) = (atom(&a[0]), a[1].clone());
+            word32(&vm.it, i, "wait")?;
+            let me = vm.task_path.clone();
+            loop {
+                let it = &mut vm.it;
+                if let Some(e) = cancelled(it)? {
+                    it.futex.retain(|(p, _)| *p != me);
+                    return Ok(Err(e));
+                }
+                if let Some(k) = it.woken.iter().position(|p| *p == me) {
+                    it.woken.remove(k);
+                    return Ok(Ok(Value::Unit));
+                }
+                if it.atoms[i] != expected {
+                    it.futex.retain(|(p, _)| *p != me);
+                    return Ok(Ok(Value::Unit));
+                }
+                if !it.futex.iter().any(|(p, _)| *p == me) {
+                    it.futex.push((me.clone(), i));
+                }
+                if !idle_ran(vm)? {
+                    let r = blocked(&mut vm.it, "wait", FUTEX_KEY + i);
+                    if matches!(r, Ok(Err(_))) {
+                        vm.it.futex.retain(|(p, _)| *p != me);
+                    }
+                    return r;
+                }
+            }
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_NOTIFY_ONE,
+        Bind::Cap(|it, a| {
+            word32(it, atom(&a[0]), "notify_one")?;
+            Ok(notify(it, atom(&a[0]), 1))
+        }),
+    ),
+    (
+        STD_SYNC_ATOMIC_NOTIFY_ALL,
+        Bind::Cap(|it, a| {
+            word32(it, atom(&a[0]), "notify_all")?;
+            Ok(notify(it, atom(&a[0]), usize::MAX))
+        }),
     ),
     (STD_SYNC_ATOMIC_FENCE, Bind::Plain(|_| Ok(Value::Unit))),
     (

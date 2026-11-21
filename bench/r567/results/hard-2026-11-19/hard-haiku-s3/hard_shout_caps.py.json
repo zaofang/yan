@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1044,
+   "out": 698,
+   "reasoning": 426,
+   "out_bytes": 598
+  },
+  "body": {
+   "in": 1373,
+   "out": 331,
+   "reasoning": 46,
+   "out_bytes": 632
+  }
+ },
+ "final": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased, one per line.\"\"\"\n    for s in xs:\n        print(s.upper())\n\n\ndef test_shout_upper_cases_each_line(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"abc\", \"Hi there\"])\n    assert capsys.readouterr().out == \"ABC\\nHI THERE\\n\"\n\n\ndef test_shout_empty_list_prints_nothing(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n\ndef test_shout_empty_string_prints_blank_line(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"\"])\n    assert capsys.readouterr().out == \"\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1044,
+    "out": 698,
+    "reasoning": 426
+   },
+   "out_bytes": 598,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1373,
+    "out": 331,
+    "reasoning": 46
+   },
+   "out_bytes": 632,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -137,6 +137,8 @@ struct Lower<'a> {
     scopes: Vec<Vec<(Name, Binding)>>,
     /// Names bound by a non-copy projection or a `match` pattern, to what they view.
     views: own::Views,
+    /// Declared types of owned locals, to resolve generic payloads in patterns.
+    tys: HashMap<Name, Type>,
     /// Label, head and exit of each enclosing loop.
     loops: Vec<(Name, Node, Node)>,
     jps: HashMap<Name, Node>,
@@ -159,6 +161,7 @@ impl<'a> Lower<'a> {
         let failed = cfg.node();
         Lower {
             copy,
+            tys: HashMap::new(),
             cfg,
             cur,
             exit,
@@ -251,7 +254,7 @@ impl<'a> Lower<'a> {
     /// that owns what is left; the moved field is no longer part of it.
     fn consume(&mut self, key: usize, k: &StmtKind) {
         let c = own::consumption(k, &self.views);
-        for root in &c.whole {
+        for root in c.owners() {
             if let Some(b) = self.owner(root) {
                 self.moved(b);
             }
@@ -279,6 +282,7 @@ impl<'a> Lower<'a> {
         self.scopes.push(Vec::new());
         for (n, ty) in owned {
             if !own::is_copy(ty) {
+                self.tys.insert(n.clone(), ty.clone());
                 self.declare(addr(b), n);
             }
         }
@@ -434,7 +438,8 @@ impl<'a> Lower<'a> {
                 if !matches!(rhs, Rhs::Proj(_)) {
                     let mut ds = Vec::new();
                     pat_decls(pat, ty, &mut ds);
-                    for (n, _) in ds {
+                    for (n, t) in ds {
+                        self.tys.insert(n.clone(), t.clone());
                         self.declare(key, n);
                     }
                 }
@@ -467,7 +472,7 @@ impl<'a> Lower<'a> {
                     let base = own::scrutinee_view(&self.views, x);
                     if self.owner(&base.root).is_some() {
                         for ((p, _), b) in arms.iter().zip(&mut bound) {
-                            *b = own::pat_views(p, self.copy, &base);
+                            *b = own::pat_views(p, self.copy, self.tys.get(x), &base);
                         }
                     }
                 }

@@ -11,7 +11,7 @@
 
 use std::collections::HashSet;
 
-use crate::co::{live_sets, map_inst, map_term, new_block, new_local, uses_defs};
+use crate::co::{live_sets, map_inst, map_term, new_block, new_local, term_uses, uses_defs};
 use crate::*;
 
 const I64: Ty = Ty::Int(IntTy {
@@ -231,19 +231,6 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
     if all_outs.windows(2).any(|w| w[0] == w[1]) {
         return;
     }
-    let ins: Vec<Vec<Local>> = r
-        .arms
-        .iter()
-        .map(|bs| live[bs[0] as usize].clone())
-        .collect();
-    let moved: Vec<Local> = ins
-        .iter()
-        .flatten()
-        .chain(&all_outs)
-        .copied()
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect();
     // What the code at an exit reads and an arm defines goes in words of its own.
     let xouts: Vec<Vec<Local>> = r
         .exits
@@ -257,6 +244,39 @@ fn transform(f: &mut Func, r: &Region, funcs: usize, out: &mut Vec<Func>) {
             v.sort_unstable();
             v
         })
+        .collect();
+    // An arm loads what is live at its entry and it reads or hands on; a local live through it
+    // that a sibling arm defines stays out of the frame, since nothing wrote it before the fork.
+    let ins: Vec<Vec<Local>> = r
+        .arms
+        .iter()
+        .enumerate()
+        .map(|(k, bs)| {
+            let mut needed: HashSet<Local> = outs[k].iter().copied().collect();
+            for (j, x) in r.exits.iter().enumerate() {
+                if x.arm == k {
+                    needed.extend(&xouts[j]);
+                }
+            }
+            for b in bs {
+                let blk = &f.blocks[*b as usize];
+                needed.extend(blk.insts.iter().flat_map(|i| uses_defs(i).0));
+                needed.extend(term_uses(&blk.term));
+            }
+            live[bs[0] as usize]
+                .iter()
+                .copied()
+                .filter(|l| needed.contains(l))
+                .collect()
+        })
+        .collect();
+    let moved: Vec<Local> = ins
+        .iter()
+        .flatten()
+        .chain(&all_outs)
+        .copied()
+        .collect::<HashSet<_>>()
+        .into_iter()
         .collect();
     let tys = f.locals.clone();
     if moved

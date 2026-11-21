@@ -1,0 +1,128 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one ordinary path component: non-empty, not '.' or '..', no '/', '\\\\', ':' or NUL.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"C:x\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \":\" or c == \"\\0\":\n            return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file name inside fs, or \"\" when it is missing, unreadable or not a plain name. fs must already be confined to notes.\"\"\"\n    pre name.byte_len() < 4096\n    pre is_plain_name(name)\n    return fs.read_text(name) else \"\"\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are plain names and read as non-empty text from the notes directory. Names that are not plain, missing, unreadable or empty are not counted.\"\"\"\n    post out >= 0 and out <= names.len()\n    count = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if name.byte_len() >= 4096:\n                continue\n            if not is_plain_name(name):\n                continue\n            text = read_note(name)\n            if text != \"\":\n                count += 1\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpxkxn3csd/work/task.yag:12:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpxkxn3csd/work/task.yag:13:8 read_note: `assert read_note(\"../secret\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpxkxn3csd/work/task.yag:20:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#4 E301 /tmp/tmpxkxn3csd/work/task.yag:21:8 count_readable: `assert count_readable([\"../secret\", \"/etc/passwd\", \"a/b\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 2305,
+    "reasoning": 1899
+   },
+   "out_bytes": 1001
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2882,
+    "out": 782,
+    "reasoning": 445
+   },
+   "out_bytes": 855
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3317,
+    "out": 1454,
+    "reasoning": 953
+   },
+   "out_bytes": 1375
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 3317,
+   "out": 1454,
+   "reasoning": 953,
+   "out_bytes": 1375
+  },
+  "spec": {
+   "in": 5011,
+   "out": 3087,
+   "reasoning": 2344,
+   "out_bytes": 1856
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpxkxn3csd/work/task.yag:12:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpxkxn3csd/work/task.yag:13:8 read_note: `assert read_note(\"../secret\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpxkxn3csd/work/task.yag:20:8 count_readable: `assert count_readable([])` capability `fs` i"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

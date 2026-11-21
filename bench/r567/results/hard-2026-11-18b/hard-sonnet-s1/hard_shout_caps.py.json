@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1044,
+   "out": 471,
+   "reasoning": 0,
+   "out_bytes": 990
+  },
+  "body": {
+   "in": 1572,
+   "out": 484,
+   "reasoning": 0,
+   "out_bytes": 1024
+  }
+ },
+ "final": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased on its own line.\"\"\"\n    for s in xs:\n        print(s.upper())\n\n\ndef test_shout_basic(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"hello\", \"world\"])\n    assert capsys.readouterr().out == \"HELLO\\nWORLD\\n\"\n\n\ndef test_shout_empty_list(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n\ndef test_shout_mixed_case_and_symbols(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"MiXeD\", \"abc123\", \"!?\"])\n    assert capsys.readouterr().out == \"MIXED\\nABC123\\n!?\\n\"\n\n\ndef test_shout_empty_string(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"\", \"a\"])\n    assert capsys.readouterr().out == \"\\nA\\n\"\n\n\ndef test_shout_returns_none_and_keeps_input(capsys: pytest.CaptureFixture[str]) -> None:\n    xs = [\"a\", \"b\"]\n    assert shout(xs) is None  # type: ignore[func-returns-value]\n    assert xs == [\"a\", \"b\"]\n    assert capsys.readouterr().out == \"A\\nB\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1044,
+    "out": 471,
+    "reasoning": 0
+   },
+   "out_bytes": 990,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1572,
+    "out": 484,
+    "reasoning": 0
+   },
+   "out_bytes": 1024,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

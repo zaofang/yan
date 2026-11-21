@@ -14,6 +14,32 @@ struct Habit {
     text: &'static str,
 }
 
+const BIT_OPS: &[&str] = &[" & ", " | ", " ^ ", "<<", ">>"];
+
+/// Whether `l` names a sized integer type: `prefix` ("u" or "uint") followed by a width.
+fn sized_name(l: &str, prefix: &str) -> bool {
+    sized_at(l, prefix, |_| true)
+}
+
+/// Whether `l` calls a sized integer type as a function, as in `uint8(x)`.
+fn sized_call(l: &str, prefix: &str) -> bool {
+    sized_at(l, prefix, |rest| rest.starts_with('('))
+}
+
+fn sized_at(l: &str, prefix: &str, after: impl Fn(&str) -> bool) -> bool {
+    let signed = prefix.replacen('u', "", 1);
+    [prefix, signed.as_str()].iter().any(|p| {
+        l.match_indices(p).any(|(i, _)| {
+            let before = l[..i].chars().next_back();
+            let tail = &l[i + p.len()..];
+            let w = tail.chars().take_while(char::is_ascii_digit).count();
+            !before.is_some_and(|c| c.is_alphanumeric() || c == '_')
+                && ["8", "16", "32", "64", "128"].contains(&&tail[..w])
+                && after(&tail[w..])
+        })
+    })
+}
+
 const TABLE: &[Habit] = &[
     Habit {
         ext: "yag",
@@ -37,7 +63,7 @@ const TABLE: &[Habit] = &[
         codes: &[],
         on: |l| l.contains("with open("),
         text: "Python `with open(...) as f`: files go through the `fs` capability, as \
-               `fs.read_text(path)`; `with name = e:` binds a handler",
+               `fs.read(path)`; `with name = e:` binds a handler",
     },
     Habit {
         ext: "yag",
@@ -100,6 +126,41 @@ const TABLE: &[Habit] = &[
     Habit {
         ext: "yag",
         lang: "python",
+        codes: &["E301"],
+        on: |l| l.trim_start().starts_with("ex "),
+        text: "an `ex` line binds no capability, so it cannot call a function that declares \
+               `uses`: give that function `pre` and `post` lines and no `ex`; tests you do not see \
+               cover its behaviour",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E315"],
+        on: |l| l.contains('[') && l.contains(" for ") && l.contains(" in "),
+        text: "Python raises a callee's error from a comprehension implicitly; Yan Agent does not. \
+               Write `[f(x)? for x in xs]` (this function must declare the same `fail E`, and the \
+               lowest index fails first), or `[f(x) else v for x in xs]` to substitute a value",
+    },
+    Habit {
+        ext: "yn",
+        lang: "python",
+        codes: &["E201", "E315", "E709"],
+        on: |l| l.contains(".try_send("),
+        text: "`try_send` returns no bool: it fails `Full` and needs `uses nondet`. Write \
+               `tx.try_send(x) else _ -> stop` as a statement, where `stop` is what to do when \
+               the channel is full",
+    },
+    Habit {
+        ext: "yn",
+        lang: "python",
+        codes: &["E017"],
+        on: |l| l.trim_start().starts_with("par for "),
+        text: "a `par for` takes a binding for now: write `let ys = par for x in xs` with the body \
+               indented under it as an expression; results come back in input order",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
         codes: &["E315"],
         on: |_| true,
         text: "Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to \
@@ -116,6 +177,39 @@ const TABLE: &[Habit] = &[
     },
     Habit {
         ext: "yn",
+        lang: "python",
+        codes: &["E100"],
+        on: |l| l.trim_end().ends_with(':'),
+        text: "Python block colon: Yan opens a block by indentation alone, so `if c`, `for x in \
+               xs` and `with fs = fs.sub(d)` take no trailing `:`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "javascript",
+        codes: &["E203"],
+        on: |l| l.contains(".push("),
+        text: "JavaScript `xs.push(v)`: the list method is `xs.append(v)` on a `var xs`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "javascript",
+        codes: &["E203"],
+        on: |l| l.contains(".push("),
+        text: "JavaScript `xs.push(v)`: the list method is `xs.append(v)`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "rust",
+        codes: &["E017"],
+        on: |l| {
+            let l = l.trim();
+            l.ends_with('?') && !l.contains('(')
+        },
+        text: "`?` applies to a call: write it where the failure arises (`check(x)?`, inside the \
+               `par for` body for the lowest-index failure), not on a bound value",
+    },
+    Habit {
+        ext: "yn",
         lang: "typescript",
         codes: &["E100"],
         on: |l| l.contains("=>"),
@@ -127,6 +221,56 @@ const TABLE: &[Habit] = &[
         codes: &["W854"],
         on: |_| true,
         text: "TypeScript template literal `${x}`: Yan strings interpolate with `\\(x)`",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E200", "E201"],
+        on: |l| {
+            let l = l.replace("ctypes.c_", "");
+            sized_call(&l, "uint") || sized_call(&l, "u")
+        },
+        text: "there is no `uint8(x)` constructor: to narrow an `int`, write `checked_as[uint8](x)` \
+               (fails with `overflow` if it does not fit), `wrap_as[uint8](x)` (modulo 2**8) or \
+               `sat_as[uint8](x)` (clamped); to widen, `int(x)`. A literal that fits needs no \
+               conversion, and `bits.rotate_left(x, k)` rotates without overflow",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E200", "E201"],
+        on: |l| sized_call(l, "u"),
+        text: "there is no `u8(x)` constructor: to narrow an `int`, write `x as u8` (panics with \
+               `overflow` when it does not fit), `wrap_as[u8](x)` (modulo 2**8) or \
+               `sat_as[u8](x)` (clamped); to widen, `int(x)` or `x as int`. A literal that fits \
+               needs no conversion, and `bits.rotate_left(x, k)` rotates without overflow",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E203"],
+        on: |l| l.contains(".to_int(") || l.contains(".to_u8("),
+        text: "a sized integer has no conversion methods: write `int(b)` or `b as int` to widen, \
+               and `n as u8`, `wrap_as[u8](n)` or `sat_as[u8](n)` to narrow",
+    },
+    Habit {
+        ext: "yag",
+        lang: "python",
+        codes: &["E201"],
+        on: |l| sized_name(l, "uint") || BIT_OPS.iter().any(|o| l.contains(o)),
+        text: "a sized integer (`uint8`, `int32`, ...) never mixes with `int` or another width \
+               in arithmetic, bit operators or comparison: widen it with `int(x)` first, and \
+               narrow the result with `checked_as[uint8](r)`, `wrap_as[uint8](r)` or \
+               `sat_as[uint8](r)`",
+    },
+    Habit {
+        ext: "yn",
+        lang: "typescript",
+        codes: &["E201"],
+        on: |l| sized_name(l, "u") || BIT_OPS.iter().any(|o| l.contains(o)),
+        text: "a sized integer (`u8`, `i32`, ...) never mixes with `int` or another width in \
+               arithmetic, bit operators or comparison: widen it with `int(x)` first, and \
+               narrow the result with `r as u8`, `wrap_as[u8](r)` or `sat_as[u8](r)`",
     },
     Habit {
         ext: "yn",
@@ -210,6 +354,65 @@ mod selftest {
         assert!(t(2).contains("var x: T"));
         assert!(t(3).contains("f(x)?"));
         assert!(t(4).contains("xs: list[int]"));
+    }
+
+    #[test]
+    fn benchmark_gap_hints() {
+        let src = "  with fs = fs.sub(\"n\"):\n  o.push(x)\n  ys?\n";
+        let mut ds = vec![
+            diag("E100", "a.yn", 1),
+            diag("E203", "a.yn", 2),
+            diag("E017", "a.yn", 3),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("no trailing `:`"));
+        assert!(t(1).contains("append"));
+        assert!(t(2).contains("check(x)?"));
+    }
+
+    #[test]
+    fn r567_hard_gap_hints() {
+        let src = "    ex f(1) == 2\n    return [check(x) for x in xs]\n    if tx.try_send(x)\n  par for x in xs:\n";
+        let mut ds = vec![
+            diag("E301", "a.yag", 1),
+            diag("E315", "a.yag", 2),
+            diag("E201", "a.yn", 3),
+            diag("E017", "a.yn", 4),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("binds no capability"));
+        assert!(t(1).contains("[f(x)? for x in xs]"));
+        assert!(t(2).contains("try_send"));
+        assert!(t(3).contains("let ys = par for"));
+    }
+
+    #[test]
+    fn sized_integer_hints() {
+        let src = "    r = uint8(x)\n  let r = u8(x)\n  x.to_int()\n    return n & parity\n  let m: u32 = a + b\n";
+        let mut ds = vec![
+            diag("E200", "a.yag", 1),
+            diag("E200", "a.yn", 2),
+            diag("E203", "a.yn", 3),
+            diag("E201", "a.yag", 4),
+            diag("E201", "a.yn", 5),
+        ];
+        annotate(src, &mut ds);
+        let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("checked_as[uint8]"));
+        assert!(t(0).contains("wrap_as[uint8]"));
+        assert!(t(1).contains("x as u8"));
+        assert!(t(2).contains("int(b)"));
+        assert!(t(3).contains("widen it with `int(x)`"));
+        assert!(t(4).contains("wrap_as[u8]"));
+        for l in ["r = u8(x)", "r = np.uint8(x)", "r = ctypes.c_uint8(x)"] {
+            let mut ds = vec![diag("E200", "a.yag", 1)];
+            annotate(l, &mut ds);
+            assert!(ds[0].children[0].text.contains("checked_as[uint8]"), "{l}");
+        }
+        assert!(!sized_call("print_u8(x)", "u"));
+        assert!(!sized_name("let uint = 8", "uint"));
     }
 
     #[test]

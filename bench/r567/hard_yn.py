@@ -19,6 +19,7 @@ from dataclasses import dataclass
 
 import hard
 
+YN_SUB = hard.YAN_SUB.replace("(dir):`", "(dir)` and an indented body (no `:`)")
 THREAD_COUNTS = (1, 2, 4, 8)  # a determinism task must pass at every count (YAN_THREADS)
 
 
@@ -293,7 +294,7 @@ _ROWS = [
         "Return the text of the file `name` in the directory `notes`. "
         + hard.NOTE
         + " "
-        + hard.YAN_SUB
+        + YN_SUB
         + "\n\nFunction: read_note(name: str) -> str uses fs",
         'main() uses io, fs =\n  for n in ["a.txt", "sub/b.txt", "missing.txt", "../secret.txt", "link", "abslink"]\n    io.print("<\\(read_note(n))>")\n',
         'read_note(name: str) -> str uses fs =\n  with fs = fs.sub("notes")\n    return fs.read(name) else ""\n  ""\n',
@@ -304,7 +305,7 @@ _ROWS = [
         "Return the text of the first file in `names` that can be read from the directory `notes`, or an empty string when none can. "
         + hard.NOTE
         + " "
-        + hard.YAN_SUB
+        + YN_SUB
         + "\n\nFunction: first_readable(names: List[str]) -> str uses fs",
         'main() uses io, fs =\n  io.print("<\\(first_readable(["../secret.txt", "link", "a.txt"]))>")\n  io.print("<\\(first_readable(["abslink", "missing.txt"]))>")\n  io.print("<\\(first_readable(["sub/b.txt", "a.txt"]))>")\n',
         'first_readable(names: List[str]) -> str uses fs =\n  with fs = fs.sub("notes")\n    for n in names\n      let r = fs.read(n) else ""\n      if r != ""\n        return r\n  ""\n',
@@ -315,7 +316,7 @@ _ROWS = [
         "Count how many of the `names` are files that can be read from the directory `notes`. "
         + hard.NOTE
         + " "
-        + hard.YAN_SUB
+        + YN_SUB
         + "\n\nFunction: count_readable(names: List[str]) -> int uses fs",
         'main() uses io, fs =\n  io.print("\\(count_readable(["a.txt", "sub/b.txt", "../secret.txt", "link", "nope"]))")\n  io.print("\\(count_readable([]))")\n  io.print("\\(count_readable(["abslink", "sub/../a.txt", "sub/../../secret.txt"]))")\n',
         'count_readable(names: List[str]) -> int uses fs =\n  var n = 0\n  with fs = fs.sub("notes")\n    for name in names\n      let r = fs.read(name) else ""\n      if r != ""\n        n += 1\n  n\n',
@@ -326,7 +327,7 @@ _ROWS = [
         "Return the text at the request path `path` inside the directory `notes`, or an empty string. A path that wanders and comes back inside `notes` (`sub/../a.txt`) is fine; any path that leaves `notes` (`..`, an absolute path, `sub/../../x`) reads nothing. "
         + hard.NOTE
         + " "
-        + hard.YAN_SUB
+        + YN_SUB
         + "\n\nFunction: read_public(path: str) -> str uses fs",
         'main() uses io, fs =\n  for n in ["./a.txt", "sub/../a.txt", "../secret.txt", "sub/../../secret.txt", "/etc/hostname", "a.txt/../../secret.txt"]\n    io.print("<\\(read_public(n))>")\n',
         'read_public(path: str) -> str uses fs =\n  with fs = fs.sub("notes")\n    return fs.read(path) else ""\n  ""\n',
@@ -335,8 +336,8 @@ _ROWS = [
         "hard/rt_plugin_confine",
         "safety",
         "An untrusted plugin reads a file for the caller and, while it is at it, tries to read a file it was not given. Run it so that it can read only below the directory `notes`: whatever it asks for, it gets an empty string for anything outside. "
-        + hard.YAN_SUB
-        + '\n\nGiven:\n\nplugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`).',
+        + YN_SUB
+        + '\n\nGiven:\n\nplugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`). Inside the confined block every path the plugin gives `fs`, including the literal in its body, is resolved relative to `notes`.',
         'main() uses io, fs =\n  for n in ["a.txt", "../secret.txt", "sub/b.txt", "link"]\n    io.print("<\\(run_plugin(n))>")\n',
         'plugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else ""\n  let theirs = fs.read("notes/../secret.txt") else ""\n  mine + "|" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  with fs = fs.sub("notes")\n    return plugin(path)\n  ""\n',
     ),

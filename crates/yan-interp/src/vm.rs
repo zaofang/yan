@@ -67,6 +67,12 @@ struct Saved {
     pc: usize,
     base: usize,
     deadline: Option<i128>,
+    /// Whether `deadline` is a shield's own instant (R812).
+    shielded: bool,
+    /// The blocks of `it.cancel` below it that a `shield` open in the frame holds.
+    floor: usize,
+    /// The innermost cancel scope open in the frame.
+    scope: u64,
 }
 
 struct Task {
@@ -82,6 +88,8 @@ struct Task {
     chain: Vec<Saved>,
     seg: Vec<Value>,
     height: usize,
+    /// The innermost cancel scope open in the task's own frame.
+    scope: u64,
 }
 
 /// A `par concurrent` block that yielded mid-run.
@@ -91,6 +99,8 @@ struct Suspended {
     /// Per task index: the failure it left the block with, if any.
     failed: Vec<Option<Value>>,
     cancel: bool,
+    /// The block's `std.scope` id.
+    scope: u64,
 }
 
 /// How a `par concurrent` block stopped.
@@ -513,9 +523,10 @@ impl<'o> Vm<'o> {
     /// the block ends with its outcome (R390, R394, 9.4).
     fn run_tasks(&mut self, code: &mut Rc<Code>, base: usize, entries: &[u32]) -> R<Flow> {
         let key = (self.task_path.clone(), entries[0]);
-        let (mut tasks, mut first, mut failed, cancel) = match self.suspended.remove(&key) {
-            Some(s) => (s.tasks, s.first, s.failed, s.cancel),
+        let (mut tasks, mut first, mut failed, cancel, scope) = match self.suspended.remove(&key) {
+            Some(s) => (s.tasks, s.first, s.failed, s.cancel, s.scope),
             None => {
+                let scope = self.it.scopes.open(self.it.scope, false);
                 let prios = match self.it.pct.as_mut() {
                     Some(p) => p.priorities(entries.len()),
                     None => vec![0; entries.len()],
@@ -534,11 +545,13 @@ impl<'o> Vm<'o> {
                             chain: Vec::new(),
                             seg: Vec::new(),
                             height: 0,
+                            scope,
                         })
                         .collect(),
                     None,
                     vec![None; entries.len()],
                     false,
+                    scope,
                 )
             }
         };
@@ -547,13 +560,19 @@ impl<'o> Vm<'o> {
         let can_yield = outer == Some(base) && !self.it.force;
         self.it.in_par += 1;
         self.it.cancel.push(cancel);
+        let outer_scope = self.it.scope;
         let mut yielded = false;
         let out = loop {
             let progress = self.it.progress;
             let cancelled = self.it.cancel.iter().any(|c| *c);
+            // A task holding this block's cancellation in a shield is not run for it (R811).
+            let level = self.it.cancel.len();
             let runnable: Vec<bool> = tasks
                 .iter()
-                .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+                .map(|t| {
+                    let held = t.chain.iter().any(|s| s.floor >= level);
+                    !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
+                })
                 .collect();
             let next = match self.it.pct.as_mut() {
                 Some(p) => {
@@ -613,7 +632,9 @@ impl<'o> Vm<'o> {
             self.unwinding.clear();
             self.task_path.push(i);
             let prev_chain = mem::replace(&mut self.chain, true);
+            self.it.scope = tasks[i].scope;
             let r = self.resume_into(code, &mut pc, base, &chain);
+            tasks[i].scope = mem::replace(&mut self.it.scope, outer_scope);
             self.chain = prev_chain;
             self.task_path.pop();
             self.it.force = false;
@@ -676,11 +697,17 @@ impl<'o> Vm<'o> {
                     first,
                     failed,
                     cancel,
+                    scope,
                 },
             );
             self.it.park = Some((false, usize::MAX));
             return Ok(Flow::Yield);
         }
+        // A task that left the function may have left scopes open.
+        for t in &tasks {
+            self.it.scopes.close_to(t.scope, scope);
+        }
+        self.it.scopes.close(scope);
         for t in &tasks {
             if let Some((true, c)) = t.park
                 && let Some(k) = self.it.waiting_recv.iter().position(|w| *w == c)
@@ -706,8 +733,10 @@ impl<'o> Vm<'o> {
 
     fn exec(&mut self, f: usize, base: usize) -> R<Result<Value, Value>> {
         let mut code = self.codes[f].clone();
-        let deadline = self.it.deadline;
-        self.run_framed(&mut code, 0, base, deadline, &[])
+        let (deadline, shielded, floor) =
+            (self.it.deadline, self.it.shielded, self.it.shield_floor);
+        let scope = self.it.scope;
+        self.run_framed(&mut code, 0, base, (deadline, shielded, scope), floor, &[])
     }
 
     /// Run a called frame from `pc`, with the frames it had called when it parked in `callee`
@@ -717,13 +746,23 @@ impl<'o> Vm<'o> {
         code: &mut Rc<Code>,
         mut pc: usize,
         base: usize,
-        deadline: Option<i128>,
+        (deadline, shielded, scope): (Option<i128>, bool, u64),
+        floor: usize,
         callee: &[Saved],
     ) -> R<Result<Value, Value>> {
         // A deadline scope ends with its function, however that returns.
+        let outer_scope = mem::replace(&mut self.it.scope, scope);
         let outer = mem::replace(&mut self.it.deadline, deadline);
+        let outer_shielded = mem::replace(&mut self.it.shielded, shielded);
+        let outer_floor = mem::replace(&mut self.it.shield_floor, floor);
         let r = self.resume_into(code, &mut pc, base, callee);
+        let inner_floor = mem::replace(&mut self.it.shield_floor, outer_floor);
         let inner = mem::replace(&mut self.it.deadline, outer);
+        let inner_shielded = mem::replace(&mut self.it.shielded, outer_shielded);
+        let inner_scope = mem::replace(&mut self.it.scope, outer_scope);
+        if self.it.park.is_none() {
+            self.it.scopes.close_to(inner_scope, outer_scope);
+        }
         // So do its `with supervisor` scopes, unless the frame parked to resume later.
         if self.it.park.is_none() {
             crate::supervise::end_frame(&mut self.it, base);
@@ -747,6 +786,9 @@ impl<'o> Vm<'o> {
                 pc,
                 base,
                 deadline: inner,
+                shielded: inner_shielded,
+                floor: inner_floor,
+                scope: inner_scope,
             });
         }
         match r {
@@ -774,7 +816,14 @@ impl<'o> Vm<'o> {
                 *depth += 1;
             }
             let mut cc = c.code.clone();
-            let r = self.run_framed(&mut cc, c.pc, c.base, c.deadline, rest)?;
+            let r = self.run_framed(
+                &mut cc,
+                c.pc,
+                c.base,
+                (c.deadline, c.shielded, c.scope),
+                c.floor,
+                rest,
+            )?;
             if self.it.park.is_some() {
                 if let Some((_, depth, ..)) = &mut self.limits {
                     *depth -= 1;
@@ -829,7 +878,12 @@ impl<'o> Vm<'o> {
                     let v = mem::take(&mut self.stack[base + src as usize]);
                     self.stack[base + dst as usize] = v;
                 }
-                Op::DeadlineBegin { src, saved } => {
+                Op::DeadlineBegin {
+                    src,
+                    saved,
+                    floor,
+                    shield,
+                } => {
                     let Value::Mono(at) = *self.val(code, base, src) else {
                         return unsupported("a `deadline` that is not a monotonic instant");
                     };
@@ -837,14 +891,36 @@ impl<'o> Vm<'o> {
                         Some(d) => Value::Mono(d),
                         None => Value::Unit,
                     };
-                    self.it.deadline = Some(self.it.deadline.map_or(at, |d| d.min(at)));
+                    // The floor slot also keeps whether the outer deadline was a shield's, and
+                    // above bit 64 the outer scope.
+                    self.stack[base + floor as usize] = Value::Int(
+                        i128::from(self.it.scope) << 64
+                            | (self.it.shield_floor as i128) << 1
+                            | i128::from(self.it.shielded),
+                    );
+                    self.it.scope = self.it.scopes.open(self.it.scope, shield);
+                    if shield {
+                        self.it.deadline = Some(at);
+                        self.it.shielded = true;
+                        self.it.shield_floor = self.it.cancel.len();
+                    } else if self.it.deadline.is_none_or(|d| at < d) {
+                        // A tie stays with the scope already in force.
+                        self.it.deadline = Some(at);
+                        self.it.shielded = false;
+                    }
                 }
                 Op::SupBegin(src) => {
                     let spec = self.val(code, base, src).clone();
                     crate::supervise::begin(&mut self.it, &spec, base)?;
                 }
                 Op::SupEnd => crate::supervise::end(&mut self.it),
-                Op::DeadlineEnd { saved } => {
+                Op::DeadlineEnd { saved, floor } => {
+                    if let Value::Int(f) = self.stack[base + floor as usize] {
+                        self.it.shield_floor = (f as u64 >> 1) as usize;
+                        self.it.shielded = f & 1 == 1;
+                        self.it.scopes.close(self.it.scope);
+                        self.it.scope = (f >> 64) as u64;
+                    }
                     self.it.deadline = match self.stack[base + saved as usize] {
                         Value::Mono(d) => Some(d),
                         _ => None,
@@ -912,6 +988,10 @@ impl<'o> Vm<'o> {
                 },
                 Op::Ret(o) => return Ok(Ok(dup(self.val(code, base, o)))),
                 Op::Fail(o) => return Ok(Err(dup(self.val(code, base, o)))),
+                Op::FailShield(o) => {
+                    let e = dup(self.val(code, base, o));
+                    return Ok(Err(self.leave_shield(e)));
+                }
                 Op::Par(i) => {
                     let (entries, join) = code.pars[i as usize].clone();
                     match self.run_tasks(code, base, &entries)? {
@@ -1177,6 +1257,17 @@ impl<'o> Vm<'o> {
         })
     }
 
+    /// A `Timeout` that a shield's own expiry raised becomes `ShieldTimeout` as it leaves (R812).
+    fn leave_shield(&mut self, mut e: Value) -> Value {
+        if let Value::Data { name, .. } = &mut e
+            && name == "Timeout"
+            && self.it.shield_hit.take()
+        {
+            *name = "ShieldTimeout".to_owned();
+        }
+        e
+    }
+
     /// Push the arguments of `s` on the stack; `inout` ones are moved out of the frame.
     fn push_args(&mut self, code: &Code, base: usize, s: &Site) {
         for a in &s.args {
@@ -1222,7 +1313,10 @@ impl<'o> Vm<'o> {
             (Err(e), Mode::Try) => data("Err", "error", e),
             (Ok(v), _) => v,
             (Err(e), Mode::Plain) => return Ok(Some(Err(e))),
-            (Err(e), Mode::Propagate(via)) => return self.via(via, e).map(|e| Some(Err(e))),
+            (Err(e), Mode::Propagate(via)) => {
+                let e = self.via(via, e)?;
+                return Ok(Some(Err(if s.shield { self.leave_shield(e) } else { e })));
+            }
             (Err(_), Mode::Contract) => {
                 return unsupported("a failing call in a contract or assertion");
             }

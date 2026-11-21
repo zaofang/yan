@@ -1,0 +1,25 @@
+# spec: 9.4
+# rows: R1128
+# note: a task that reaches a cancellation point after the 10 s cancel grace that follows its scope's cancel aborts the program: panic kind shutdown, exit 134 (#1820)
+# stdout:
+# slow done
+# exit: 134
+
+def stuck(var rx: Receiver[int]) -> None fail Timeout uses io, time, nondet:
+    with timeout(60 * s):
+        scope.current().drain(1 * s)
+        r = rx.recv() else e -> -1
+        io.print(f"stuck {r}")
+
+def slow() -> None uses io, time:
+    time.sleep(20 * s) else e -> None
+    io.print("slow done")
+
+def main() uses io, time, nondet:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            _, rx = Channel[int](1)
+            par concurrent:
+                stuck(&rx) else e -> None
+                slow()
+            io.print("unreachable")

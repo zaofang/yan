@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1660,
+   "out": 895,
+   "reasoning": 775,
+   "out_bytes": 245
+  },
+  "body": {
+   "in": 4527,
+   "out": 2456,
+   "reasoning": 1793,
+   "out_bytes": 1612
+  }
+ },
+ "final": "settings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([\"level\"], [\"5\"]) == [\"fast\", \"5\"]\n  ex settings([\"color\"], [\"red\"]) == [\"fast\", \"3\", \"red\"]\n  var mode = \"fast\"\n  var level = \"3\"\n  var others: List[str] = []\n  var vals: List[str] = []\n  for i in range(0, keys.len())\n    let k = keys[i]\n    let v = values[i]\n    if k == \"mode\"\n      mode = v.copy()\n    else if k == \"level\"\n      level = v.copy()\n    else\n      var found = False\n      for j in range(0, others.len())\n        if others[j] == k\n          vals[j] = v.copy()\n          found = True\n          break\n      if not found\n        others.append(k.copy())\n        vals.append(v.copy())\n  var result: List[str] = [mode, level]\n  for v in vals\n    result.append(v.copy())\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1660,
+    "out": 895,
+    "reasoning": 775
+   },
+   "out_bytes": 245,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1853,
+    "out": 1587,
+    "reasoning": 1266
+   },
+   "out_bytes": 785,
+   "ok": false,
+   "report": "E413 task.yn:14:14 settings: `mode = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: v -> v.copy()\nE413 task.yn:16:15 settings: `level = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: v -> v.copy()\nE413 task.yn:21:21 settings: `[j] = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: v -> v.copy()\nE413 task.yn:25:23 settings: `(k)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 11:9 | fix: k -> k.copy()\nE413 task.yn:26:21 settings: `vals.append(v)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: v -> v.copy()\nE413 task.yn:29:19 settings: `result.append(v)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 28:3 | fix: v -> v.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2674,
+    "out": 869,
+    "reasoning": 527
+   },
+   "out_bytes": 827,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E413 ./task.yn:14:14 settings: `v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: v -> v.copy()\nE413 ./task.yn:16:15 settings: `v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -207,6 +207,14 @@ impl Lower<'_, '_, '_> {
         args: &[j::Arg],
         at: Span,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        if cap == "fs" && op == "read_text" && !self.cx.strict {
+            self.lenient(
+                "N57",
+                at,
+                "`fs.read_text(path)` normalized to `fs.read(path)`",
+            );
+            return self.cap_call(cap, "read", args, at);
+        }
         let path = format!("std.{cap}.{op}");
         if path == "std.rand.choice" || path == "std.rand.shuffle" {
             return self.rand_list_op(cap, op, args, at);
@@ -238,7 +246,7 @@ impl Lower<'_, '_, '_> {
             return self.call_sig(op, &s, Some(&recv), args, at);
         }
         // `print` takes any `Show` value and prints `show(x)` (R655).
-        if path == "std.io.print"
+        if (path == "std.io.print" || path == "std.io.eprint")
             && let [
                 j::Arg {
                     name: None,

@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 581,
+   "reasoning": 489,
+   "out_bytes": 195
+  },
+  "body": {
+   "in": 1893,
+   "out": 1220,
+   "reasoning": 1004,
+   "out_bytes": 508
+  }
+ },
+ "final": "safe_name(name: str) -> bool =\n  name.char_count() > 0 and name.split(\"..\").len() == 1 and name.split(\"/\").get(0) != \"\" and name.split(\"\\\\\").len() == 1\n\nfirst_readable(names: List[str]) -> str uses fs =\n  post names.len() > 0 or out == \"\"\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\", \"/etc/passwd\"]) == \"\"\n  var found: str? = None\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if found == None and safe_name(name)\n        found = fs.read(name) else None\n  found else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 581,
+    "reasoning": 489
+   },
+   "out_bytes": 195,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1893,
+    "out": 1220,
+    "reasoning": 1004
+   },
+   "out_bytes": 508,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:13:3\n  at main task.yn:16:16"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:13:3\n  at main task.yn:16:16"
+ }
+}

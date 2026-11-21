@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2726,
+   "reasoning": 1743,
+   "out_bytes": 2231
+  },
+  "body": {
+   "in": 2295,
+   "out": 1976,
+   "reasoning": 819,
+   "out_bytes": 2696
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\nNOTES_DIR: str = \"notes\"\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    \"\"\"Untrusted plugin: reads `path` and 'notes/../secret.txt' through `read`.\n\n    Returns read(path) + '|' + read('notes/../secret.txt').\n    \"\"\"\n    mine = read(path)\n    theirs = read(\"notes/../secret.txt\")\n    return mine + \"|\" + theirs\n\n\ndef make_reader(root: str) -> Callable[[str], str]:\n    \"\"\"Return a reader confined to the directory `root`.\n\n    The returned function maps a relative path p to the text of root/p.\n    If p resolves outside root (via '..', an absolute path, or a symlink),\n    or cannot be read, it returns ''.\n    \"\"\"\n    base = Path(root).resolve()\n\n    def read(p: str) -> str:\n        candidate = (base / p).resolve()\n        if not candidate.is_relative_to(base):\n            return \"\"\n        try:\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, UnicodeDecodeError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run plugin(path, reader) where reader is confined to NOTES_DIR.\n\n    Returns plugin's result. Anything outside NOTES_DIR reads as ''.\n    \"\"\"\n    reader = make_reader(NOTES_DIR)\n    return plugin(path, reader)\n\n\ndef test_make_reader_inside(tmp_path: Path) -> None:\n    (tmp_path / \"a.txt\").write_text(\"hi\", encoding=\"utf-8\")\n    read = make_reader(str(tmp_path))\n    assert read(\"a.txt\") == \"hi\"\n\n\ndef test_make_reader_dotdot_escape(tmp_path: Path) -> None:\n    root = tmp_path / \"notes\"\n    root.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"s\", encoding=\"utf-8\")\n    read = make_reader(str(root))\n    assert read(\"../secret.txt\") == \"\"\n\n\ndef test_make_reader_absolute_escape(tmp_path: Path) -> None:\n    root = tmp_path / \"notes\"\n    root.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"s\", encoding=\"utf-8\")\n    read = make_reader(str(root))\n    assert read(str(secret)) == \"\"\n\n\ndef test_make_reader_symlink_escape(tmp_path: Path) -> None:\n    root = tmp_path / \"notes\"\n    root.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"s\", encoding=\"utf-8\")\n    try:\n        (root / \"link.txt\").symlink_to(secret)\n    except OSError:\n        pytest.skip(\"symlinks not supported here\")\n    read = make_reader(str(root))\n    assert read(\"link.txt\") == \"\"\n\n\ndef test_run_plugin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    assert run_plugin(\"a.txt\") == \"A|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2726,
+    "reasoning": 1743
+   },
+   "out_bytes": 2231,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2295,
+    "out": 1976,
+    "reasoning": 819
+   },
+   "out_bytes": 2696,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

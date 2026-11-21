@@ -1,5 +1,7 @@
 //! Recursive types (5.1): a walk over a value that meets its own type again behind a block calls
-//! an out-of-line function for that type, made once per walk and type, instead of inlining it.
+//! an out-of-line function for that type, made once per walk and type, instead of inlining it. So
+//! does a walk over a named record or sum that holds another one with heap fields: inlined at every
+//! use, nested types make code the size of their expanded tree (#1757).
 
 use super::*;
 
@@ -38,11 +40,14 @@ impl Walk {
 impl<'m> Fn<'_, 'm> {
     /// The function walking `w` over the type `k` names, made once.
     fn walk_id(&mut self, w: Walk, k: &Knot) -> FuncId {
+        self.walk_id_of(w, k.get())
+    }
+
+    fn walk_id_of(&mut self, w: Walk, s: &Shape) -> FuncId {
         let mut m = self.mono.borrow_mut();
-        if let Some(id) = m.walks.get(&(w, k.0.clone())) {
+        if let Some(id) = m.walks.get(&(w, s.clone())) {
             return *id;
         }
-        let s = k.get();
         let id = m.sigs.len() as FuncId;
         m.sigs.push(Sig {
             params: vec![(y::Conv::Let, s.clone()); w.arity()],
@@ -51,8 +56,42 @@ impl<'m> Fn<'_, 'm> {
             fails: false,
         });
         m.todo.push(Todo::Walk(w, s.clone()));
-        m.walks.insert((w, k.0.clone()), id);
+        m.walks.insert((w, s.clone()), id);
         id
+    }
+
+    /// Whether a walk over `s` is a call: it is a named record or sum that holds another one with
+    /// heap fields, so inlining it at every use would multiply the nesting.
+    pub(super) fn outlined(s: &Shape) -> bool {
+        match s {
+            Shape::Rec(_, fs) => fs.iter().any(|(_, s)| Self::held(s)),
+            Shape::Sum(_, vs) => vs.iter().flat_map(|(_, fs)| fs).any(|(_, s)| Self::held(s)),
+            _ => false,
+        }
+    }
+
+    /// Whether a value of shape `s` holds a named record or sum with heap fields, inline or as an
+    /// element.
+    fn held(s: &Shape) -> bool {
+        match s {
+            Shape::Rec(..) | Shape::Sum(..) => Self::has_heap(s),
+            Shape::Tuple(ss) => ss.iter().any(Self::held),
+            Shape::List(e) | Shape::Heap(e) | Shape::Deque(e) | Shape::Set(e) => Self::held(e),
+            Shape::Map(k, e) => Self::held(k) || Self::held(e),
+            _ => false,
+        }
+    }
+
+    /// The result slots of walking `w` over `v` of shape `s`, a type `outlined` is true of.
+    pub(super) fn walk_shape(&mut self, w: Walk, s: &Shape, v: &[Operand]) -> Vec<Operand> {
+        let func = self.walk_id_of(w, s);
+        let dst = self.var(w.ret(s));
+        self.emit(Inst::Call {
+            dst: dst.locals.clone(),
+            func,
+            args: v.to_vec(),
+        });
+        Self::ops(&dst)
     }
 
     /// The result slots of walking `w` over `v`, of the type `k` names.
@@ -88,12 +127,12 @@ impl<'m> Fn<'_, 'm> {
         self.cur = self.block_new();
         let (a, b) = v.split_at(s.width());
         let out = match w {
-            Walk::Eq => vec![self.eq_value(s, a, b)?],
-            Walk::Cmp => vec![self.cmp_value(s, a, b)?],
-            Walk::Show(nested) => vec![self.show(&v, s, nested)?],
-            Walk::Copy => self.clone_value(v, s)?,
+            Walk::Eq => vec![self.eq_body(s, a, b)?],
+            Walk::Cmp => vec![self.cmp_body(s, a, b)?],
+            Walk::Show(nested) => vec![self.show_body(&v, s, nested)?],
+            Walk::Copy => self.clone_body(v, s)?,
             Walk::Drop => {
-                self.glue(s, &v);
+                self.glue_body(s, &v);
                 vec![Operand::Unit]
             }
         };

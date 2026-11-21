@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1079,
+   "out": 1101,
+   "reasoning": 694,
+   "out_bytes": 1131
+  },
+  "body": {
+   "in": 1543,
+   "out": 744,
+   "reasoning": 286,
+   "out_bytes": 1292
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` per-line config text.\n\n    Lines are split on '=' at the first occurrence, and both the key and the\n    value are stripped of surrounding whitespace. Returns an empty string\n    when the key is absent. The function operates only on the `text`\n    argument and never reads files.\n    \"\"\"\n    for line in text.splitlines():\n        name, sep, value = line.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_config_value_present_key() -> None:\n    assert config_value(\"host=example.com\\nport=8080\", \"port\") == \"8080\"\n\n\ndef test_config_value_absent_key_returns_empty_string() -> None:\n    assert config_value(\"host=example.com\", \"port\") == \"\"\n\n\ndef test_config_value_empty_text_returns_empty_string() -> None:\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_strips_whitespace_around_key_and_value() -> None:\n    assert config_value(\"  host  =  example.com  \", \"host\") == \"example.com\"\n\n\ndef test_config_value_splits_on_first_equals_only() -> None:\n    assert config_value(\"expr=a=b\", \"expr\") == \"a=b\"\n\n\ndef test_config_value_key_match_is_exact() -> None:\n    assert config_value(\"hostname=x\", \"host\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1079,
+    "out": 1101,
+    "reasoning": 694
+   },
+   "out_bytes": 1131,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1543,
+    "out": 744,
+    "reasoning": 286
+   },
+   "out_bytes": 1292,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

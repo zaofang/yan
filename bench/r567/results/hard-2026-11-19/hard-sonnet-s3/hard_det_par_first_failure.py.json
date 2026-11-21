@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1449,
+   "reasoning": 697,
+   "out_bytes": 1770
+  },
+  "body": {
+   "in": 1962,
+   "out": 1543,
+   "reasoning": 595,
+   "out_bytes": 2355
+  }
+ },
+ "final": "import threading\nfrom concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    thread finishes first.\n    \"\"\"\n    if not xs:\n        return []\n    with ThreadPoolExecutor(max_workers=len(xs)) as ex:\n        futures: list[Future[int]] = [ex.submit(check, x) for x in xs]\n        out: list[int] = []\n        try:\n            # Collect in index order: the first future that raises is the\n            # lowest-index bad element, independent of completion order.\n            for fut in futures:\n                out.append(fut.result())\n        except Bad:\n            for fut in futures:\n                fut.cancel()\n            raise\n    return out\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8, 10]) == [2, 4, 6, 8, 10]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_single_bad_element() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_bad_wins_among_many() -> None:\n    for _ in range(20):\n        with pytest.raises(Bad) as ei:\n            all_even([2, 9, 4, 3, 1, 6, 5])\n        assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_later_bad_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    later_raised = threading.Event()\n\n    def slow_check(x: int) -> int:\n        if x == 5:\n            later_raised.set()\n            raise Bad(5)\n        if x == 3:\n            # Earlier bad element only finishes after the later one has raised.\n            later_raised.wait(timeout=2.0)\n            raise Bad(3)\n        return x\n\n    monkeypatch.setitem(globals(), \"check\", slow_check)\n    with pytest.raises(Bad) as ei:\n        all_even([2, 3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_bad_value_is_index_based_not_value_based() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([4, 11, 3, 1])\n    assert ei.value.n == 11\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1449,
+    "reasoning": 697
+   },
+   "out_bytes": 1770,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1962,
+    "out": 1543,
+    "reasoning": 595
+   },
+   "out_bytes": 2355,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,5 @@
+pub use client.open as fetch
+pub use client.Req
+
+pub def get(n: int) -> int:
+    return client.open(n) + 1

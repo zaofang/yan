@@ -1101,7 +1101,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         };
         let mut scope = scope;
         for (n, v) in view
-            .map(|v| own::pat_views(p, &self.g.ctors, v))
+            .map(|v| own::pat_views(p, &self.g.ctors, scrutinee, v))
             .unwrap_or_default()
         {
             scope.viewing.push(n.clone());
@@ -1389,7 +1389,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 self.block(body);
                 self.with_depth -= 1;
             }
-            StmtKind::Deadline { at, body } => {
+            StmtKind::Deadline { at, body, .. } => {
                 self.atom(at, How::Read);
                 self.block(body);
             }

@@ -1,0 +1,115 @@
+{
+ "status": "green",
+ "rounds_to_green": 4,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 1682,
+   "reasoning": 1535,
+   "out_bytes": 306
+  },
+  "body": {
+   "in": 9178,
+   "out": 3430,
+   "reasoning": 2512,
+   "out_bytes": 1926
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.split(\"|\").len() == 2\n  ex plugin(\"missing.txt\") == \"|\"\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.split(\"|\").len() == 2\n  ex run_plugin(\"missing.txt\") == \"|\"\n  let dir = \"notes\"\n  var result = \"\"\n  with fs = fs.sub(dir)\n    result = plugin(path)\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 1682,
+    "reasoning": 1535
+   },
+   "out_bytes": 306,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1862,
+    "out": 825,
+    "reasoning": 613
+   },
+   "out_bytes": 435,
+   "ok": false,
+   "report": "E100 task.yn:13:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2140,
+    "out": 1140,
+    "reasoning": 919
+   },
+   "out_bytes": 451,
+   "ok": false,
+   "report": "E100 task.yn:14:24 `(dir):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2426,
+    "out": 714,
+    "reasoning": 462
+   },
+   "out_bytes": 554,
+   "ok": false,
+   "report": "E312 task.yn:15:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 2750,
+    "out": 751,
+    "reasoning": 518
+   },
+   "out_bytes": 486,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:13:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

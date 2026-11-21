@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1346,
+   "reasoning": 847,
+   "out_bytes": 1188
+  },
+  "body": {
+   "in": 1641,
+   "out": 1106,
+   "reasoning": 490,
+   "out_bytes": 1498
+  }
+ },
+ "final": "from queue import Queue\n\nfrom queue import Full\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Return how many items of xs were accepted by a bounded int queue.\n\n    A queue with capacity ``cap`` is created, and each element of ``xs``\n    is put into it without blocking, in order. Once a put fails because\n    the queue is full, stop and return the number of puts that succeeded.\n\n    ``cap == 0`` means the queue can hold nothing, so the result is 0.\n    (``queue.Queue(maxsize=0)`` would mean unbounded, so this case must\n    be handled explicitly.)\n\n    Raises ValueError if ``cap`` is negative.\n    \"\"\"\n    if cap < 0:\n        raise ValueError(\"capacity must be non-negative\")\n    if cap == 0:\n        return 0\n    q: Queue[int] = Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except Full:\n            break\n        count += 1\n    return count\n\n\ndef test_accepted_stops_when_full() -> None:\n    assert accepted(2, [1, 2, 3]) == 2\n\n\ndef test_accepted_all_fit() -> None:\n    assert accepted(3, [1, 2]) == 2\n    assert accepted(5, [10, 20, 30]) == 3\n\n\ndef test_accepted_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_accepted_capacity_one() -> None:\n    assert accepted(1, [7, 8, 9]) == 1\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2]) == 0\n\n\ndef test_accepted_negative_capacity_raises() -> None:\n    with pytest.raises(ValueError):\n        accepted(-1, [1])\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1346,
+    "reasoning": 847
+   },
+   "out_bytes": 1188,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1641,
+    "out": 1106,
+    "reasoning": 490
+   },
+   "out_bytes": 1498,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

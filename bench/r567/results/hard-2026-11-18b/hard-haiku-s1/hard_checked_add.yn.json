@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1452,
+   "out": 1469,
+   "reasoning": 1297,
+   "out_bytes": 341
+  },
+  "body": {
+   "in": 3954,
+   "out": 2393,
+   "reasoning": 1691,
+   "out_bytes": 1430
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post (out == None) == ((a > 0 and b > 0 and a > 9223372036854775807 - b) or (a < 0 and b < 0 and a < -9223372036854775807 - 1 - b))\n  ex checked_add(1, 2) == 3\n  ex checked_add(-5, 5) == 0\n  ex checked_add(9223372036854775807, 1) == None\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < -9223372036854775807 - 1 - b\n    return None\n  a + b\n\ntest_checked_add() =\n  assert checked_add(1, 2) == 3\n  assert checked_add(-5, 5) == 0\n  assert checked_add(9223372036854775807, 1) == None\n  assert checked_add(-9223372036854775807 - 1, -1) == None\n  assert checked_add(-9223372036854775807 - 1, 0) == -9223372036854775807 - 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1452,
+    "out": 1469,
+    "reasoning": 1297
+   },
+   "out_bytes": 341,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1697,
+    "out": 1161,
+    "reasoning": 803
+   },
+   "out_bytes": 735,
+   "ok": false,
+   "report": "E401 task.yn:3:8 task.checked_add: `out !` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:3:8 task.checked_add: `out !` `_out43` is used after `_out43.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:3:8 task.checked_add: `out !` `_t75` is used after `_t75.Some.value` was moved out of it | moved at 2:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2257,
+    "out": 1232,
+    "reasoning": 888
+   },
+   "out_bytes": 695,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yn:3:8 task.checked_add: `out !` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:3:8 task.checked_add: `out !` `_out43` is used after `_out43.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:3:8 task.checked_add: `out !` `_t75` is"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

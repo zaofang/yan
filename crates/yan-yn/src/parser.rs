@@ -408,11 +408,15 @@ impl<'a> Parser<'a> {
     fn item_(&mut self) -> P<Item> {
         let start = self.span();
         let attrs = self.attrs()?;
+        let reexport = self.is_kw("pub") && *self.peek_n(1) == Tok::Kw("use");
+        if reexport {
+            self.bump();
+        }
         if self.is_kw("use") {
             let kind = self.use_decl()?;
             return Ok(Item {
                 attrs,
-                vis: Vis::Private,
+                vis: if reexport { Vis::Pub } else { Vis::Private },
                 kind,
                 span: self.since(start),
             });
@@ -1360,16 +1364,19 @@ impl<'a> Parser<'a> {
                 self.bump();
                 let kind = match self.peek() {
                     Tok::Name(w)
-                        if (w == "deadline" || w == "timeout")
+                        if (w == "deadline" || w == "timeout" || w == "shield")
                             && *self.peek_n(1) == Tok::Punct("(") =>
                     {
                         let deadline = w == "deadline";
+                        let shield = w == "shield";
                         self.bump();
                         self.bump();
                         let e = self.expr()?;
                         self.expect_p(")")?;
                         if deadline {
                             WithKind::Deadline(e)
+                        } else if shield {
+                            WithKind::Shield(e)
                         } else {
                             WithKind::Timeout(e)
                         }
@@ -1650,24 +1657,7 @@ impl<'a> Parser<'a> {
             }
             Tok::Newline if *self.peek_n(1) == Tok::Indent => Fallback::Block(None, self.block()?),
             Tok::Kw("return" | "fail" | "break" | "continue" | "unreachable") => {
-                let s = self.span();
-                let kind = match self.bump().tok {
-                    Tok::Kw("return") => StmtKind::Return(
-                        if self.at_line_end() || self.is_p(")") || self.is_p(",") {
-                            None
-                        } else {
-                            Some(self.cond()?)
-                        },
-                    ),
-                    Tok::Kw("fail") => StmtKind::Fail(self.cond()?),
-                    Tok::Kw("break") => StmtKind::Break(self.label()),
-                    Tok::Kw("continue") => StmtKind::Continue(self.label()),
-                    _ => StmtKind::Unreachable,
-                };
-                Fallback::Diverge(Stmt {
-                    kind,
-                    span: self.since(s),
-                })
+                Fallback::Diverge(self.diverge()?)
             }
             _ => {
                 let rhs = self.cond()?;
@@ -1695,11 +1685,63 @@ impl<'a> Parser<'a> {
         self.disj()
     }
 
+    fn at_diverge(&self) -> bool {
+        matches!(
+            self.peek(),
+            Tok::Kw("return" | "fail" | "break" | "continue" | "unreachable")
+        )
+    }
+
+    fn diverge(&mut self) -> P<Stmt> {
+        let s = self.span();
+        let kind = match self.bump().tok {
+            Tok::Kw("return") => StmtKind::Return(
+                if self.at_line_end() || self.is_p(")") || self.is_p(",") || self.is_kw("else") {
+                    None
+                } else {
+                    Some(self.cond()?)
+                },
+            ),
+            Tok::Kw("fail") => StmtKind::Fail(self.cond()?),
+            Tok::Kw("break") => StmtKind::Break(self.label()),
+            Tok::Kw("continue") => StmtKind::Continue(self.label()),
+            _ => StmtKind::Unreachable,
+        };
+        Ok(Stmt {
+            kind,
+            span: self.since(s),
+        })
+    }
+
+    fn branch(&mut self) -> P<Expr> {
+        if self.at_diverge() {
+            let s = self.diverge()?;
+            return Ok(Expr {
+                span: s.span,
+                kind: ExprKind::Diverge(Box::new(s)),
+            });
+        }
+        self.disj()
+    }
+
     fn cond_rest(&mut self, start: Span, cond: Expr) -> P<Expr> {
         self.expect_kw("then")?;
-        let then = self.disj()?;
+        let then = self.branch()?;
         self.expect_kw("else")?;
-        let otherwise = self.cond()?;
+        let otherwise = if self.at_diverge() {
+            self.branch()?
+        } else {
+            self.cond()?
+        };
+        if matches!(then.kind, ExprKind::Diverge(_))
+            && matches!(otherwise.kind, ExprKind::Diverge(_))
+        {
+            self.report(
+                "E100",
+                otherwise.span,
+                "both branches diverge; one branch must give a value",
+            );
+        }
         Ok(self.mk(
             start,
             ExprKind::If {
@@ -2546,11 +2588,15 @@ impl<'a> Parser<'a> {
                 self.bump();
                 PatKind::Wild
             }
-            Tok::Name(_) if self.qualified_ctor_ahead() => {
+            Tok::Name(_) | Tok::TypeName(_) if self.qualified_ctor_ahead() => {
                 let mut path = Vec::new();
-                while !matches!(self.peek(), Tok::TypeName(_)) {
-                    path.push(self.name()?.0);
-                    self.expect_p(".")?;
+                while *self.peek_n(1) == Tok::Punct(".") {
+                    path.push(match self.peek() {
+                        Tok::Name(n) | Tok::TypeName(n) => n.clone(),
+                        _ => unreachable!("checked"),
+                    });
+                    self.bump();
+                    self.bump();
                 }
                 let Tok::TypeName(n) = self.peek() else {
                     unreachable!("checked")
@@ -2619,10 +2665,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// `a.b.C`: names and dots up to a type name.
+    /// `a.b.C` or `T.V`: names, type names and dots up to a final type name.
     fn qualified_ctor_ahead(&self) -> bool {
         let mut i = 0;
-        while matches!(self.peek_n(i), Tok::Name(_)) && *self.peek_n(i + 1) == Tok::Punct(".") {
+        while matches!(self.peek_n(i), Tok::Name(_) | Tok::TypeName(_))
+            && *self.peek_n(i + 1) == Tok::Punct(".")
+        {
             i += 2;
         }
         i > 0 && matches!(self.peek_n(i), Tok::TypeName(_))

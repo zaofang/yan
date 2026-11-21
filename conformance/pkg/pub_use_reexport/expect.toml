@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R1135"
+note = "pub use re-exports a module item as an alias in the facade: web.fetch reaches client.open and web.Req the record, without exposing the file layout"
+command = ["check"]

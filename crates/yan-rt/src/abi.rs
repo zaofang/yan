@@ -28,7 +28,23 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     }
 }
 
-/// A panic of kind `ptr[..len]` (8.3): reported on stderr, exit status 101.
+/// `std.io.eprint`: the text and a newline on stderr.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_eprint_str(s: *const String) {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    let _ = writeln!(std::io::stderr(), "{s}");
+}
+
+/// The exit status of a panic of `kind`: 134 for the abort that ends a drain (9.4), else 101.
+pub fn panic_exit(kind: &str) -> i32 {
+    if kind == "shutdown" { 134 } else { 101 }
+}
+
+/// A panic of kind `ptr[..len]` (8.3): reported on stderr, exit status [`panic_exit`].
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
@@ -36,10 +52,11 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
 pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
-    crate::pool::arm_failed(format!("panic({kind}): {}", panic_message(kind)), 101);
+    let code = panic_exit(kind);
+    crate::pool::arm_failed(format!("panic({kind}): {}", panic_message(kind)), code);
     let _ = std::io::stdout().flush();
     eprintln!("panic({kind}): {}", panic_message(kind));
-    std::process::exit(101)
+    std::process::exit(code)
 }
 
 /// A panic operand, as in the interpreter's `Operand`: an integer or a type name.
@@ -219,6 +236,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "exclusivity" => "two mutable accesses to the same place",
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
+        "shutdown" => "a task outlived the cancel grace of a drained scope",
         "wire" => "a value the Wire codec rejects",
         "forged" => "a capability made from bytes",
         _ => "invalid value",
@@ -378,11 +396,62 @@ pub unsafe extern "C" fn yan_rt_fs_read(path: *const String) -> *mut String {
 
 /// The text of the real file at `path`, or the reason it could not be read.
 pub fn fs_read(path: &str) -> Result<String, String> {
-    std::fs::read_to_string(path).map_err(|e| match e.kind() {
+    std::fs::read_to_string(path).map_err(fs_reason_of)
+}
+
+/// `std.fs.list_dir` on the host: the entries of the directory, as a `list[Path]` block, or null
+/// with the reason kept for [`yan_rt_fs_reason`].
+///
+/// # Safety
+/// `path` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_fs_list_dir(path: *const String) -> *mut List {
+    // SAFETY: the caller's contract.
+    let path = unsafe { &*path };
+    entries_list(path, fs_list_dir(path))
+}
+
+/// The entry names of the real directory at `path`, or the reason it could not be listed. A name
+/// that is not UTF-8 fails with `NotUnicode` (R591).
+pub fn fs_list_dir(path: &str) -> Result<Vec<String>, String> {
+    let rd = std::fs::read_dir(path).map_err(fs_reason_of)?;
+    rd.map(|e| {
+        e.map_err(fs_reason_of)?
+            .file_name()
+            .into_string()
+            .map_err(|_| "NotUnicode".to_owned())
+    })
+    .collect()
+}
+
+fn fs_reason_of(e: std::io::Error) -> String {
+    match e.kind() {
         std::io::ErrorKind::NotFound => "not found".to_owned(),
         std::io::ErrorKind::PermissionDenied => "permission denied".to_owned(),
         _ => e.to_string(),
-    })
+    }
+}
+
+/// What `list_dir(dir)` returns for the entry `names`: each joined onto `dir` with `/`, sorted by
+/// name so the order does not depend on the host.
+pub fn list_entries(dir: &str, mut names: Vec<String>) -> Vec<String> {
+    names.sort_unstable();
+    let base = dir.strip_suffix('/').unwrap_or(dir);
+    names.iter().map(|n| format!("{base}/{n}")).collect()
+}
+
+/// The `list[Path]` block of a listing, or null with the reason recorded.
+pub fn entries_list(dir: &str, names: Result<Vec<String>, String>) -> *mut List {
+    match names {
+        Ok(names) => {
+            let entries = list_entries(dir, names);
+            str_list(entries.iter().map(String::as_str))
+        }
+        Err(reason) => {
+            set_fs_reason(reason);
+            std::ptr::null_mut()
+        }
+    }
 }
 
 pub(crate) fn set_fs_reason(reason: String) {
@@ -589,7 +658,7 @@ pub extern "C" fn yan_rt_pow(x: f64, y: f64) -> f64 {
     crate::math::pow(x, y)
 }
 
-fn str_list<'a>(parts: impl Iterator<Item = &'a str>) -> *mut List {
+pub(crate) fn str_list<'a>(parts: impl Iterator<Item = &'a str>) -> *mut List {
     let l = yan_rt_list_new(1);
     for p in parts {
         // SAFETY: `l` is a fresh list of one-word elements that nothing else borrows.
@@ -745,6 +814,23 @@ pub unsafe extern "C" fn yan_rt_dot_exact(xs: *const List, ys: *const List, mode
     };
     let ys = (!ys.is_null()).then(|| floats(ys));
     crate::math::dot_exact(&floats(xs), ys.as_deref(), mode).unwrap_or_else(|| panic("value"))
+}
+
+/// The float `sum` of the elements of a list of floats from `from` on, in the reduction order of
+/// 9.3 (R382).
+///
+/// # Safety
+/// `xs` is a `List` block of floats, and `from` is at most its length.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_sum_f64(xs: *const List, from: i64) -> f64 {
+    // SAFETY: the caller's contract.
+    let fs: Vec<f64> = unsafe { &*xs }
+        .data
+        .iter()
+        .skip(from as usize)
+        .map(|w| f64::from_bits(*w))
+        .collect();
+    crate::num::sum_f64(&fs)
 }
 
 #[unsafe(no_mangle)]

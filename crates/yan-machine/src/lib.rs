@@ -116,11 +116,25 @@ pub struct Machine<'p> {
     /// Per calling frame, the tags in its locals and arguments; roots of the tag GC.
     held: Vec<Vec<u64>>,
     gc_at: usize,
+    /// The words an atomic instruction accessed (under `--ub`), for `ub(15)`.
+    atomic_words: std::collections::HashSet<u64>,
 }
 
-/// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
-/// (the leak report of 6.9; leaks are not UB).
-pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
+/// An allocation still live when `main` returned (the leak report of 6.9; leaks are not UB).
+pub struct Leak {
+    pub size: usize,
+    /// The function that was running when it was allocated.
+    pub site: String,
+}
+
+/// Runs `main`; on return, the allocations still live, string literals and runtime-owned blocks
+/// aside.
+pub fn run(prog: &Program, ub: bool) -> Result<Vec<Leak>, Stop> {
+    run_seeded(prog, ub, 0)
+}
+
+/// [`run`] with the seed of the run's nondeterministic choices (R1104).
+pub fn run_seeded(prog: &Program, ub: bool, seed: u64) -> Result<Vec<Leak>, Stop> {
     let mut m = Machine {
         prog,
         ub,
@@ -135,12 +149,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         civil_out: Vec::new(),
         fs_fakes: Vec::new(),
         fs_reason: String::new(),
-        race: RefCell::new(Race::new()),
+        race: RefCell::new(Race::seeded(seed)),
         move_sites: HashMap::new(),
         trees: RefCell::new(HashMap::new()),
         via: Cell::new(0),
         held: Vec::new(),
         gc_at: 256,
+        atomic_words: std::collections::HashSet::new(),
     };
     yan_rt::actor::defer_disposal();
     yan_rt::actor::defer_stopped_text();
@@ -149,7 +164,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
     m.deliver_stopped();
     m.dispose()?;
     Ok(m.mem
-        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
+        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a))
+        .into_iter()
+        .map(|(size, site)| Leak {
+            size,
+            site: prog.funcs[site as usize].name.clone(),
+        })
+        .collect())
 }
 
 fn encode(v: Val) -> u64 {
@@ -222,6 +243,36 @@ impl Machine<'_> {
         Ok(())
     }
 
+    /// `Atomic.wait` on `addr` is `ub(15)` unless it is 4-aligned, inside a live allocation and a
+    /// word an atomic instruction accessed. Returns whether the word equals `expected`.
+    /// UB item 15 on the address of `wait` or `notify` (`what`), when checking.
+    fn check_futex_word(&self, addr: u64, what: &str) -> Result<(), Stop> {
+        if self.ub {
+            let why = if !addr.is_multiple_of(4) {
+                Some("is not 4-aligned")
+            } else if self.mem.read(addr, 4).is_none() {
+                Some("is not inside a live allocation")
+            } else if !self.atomic_words.contains(&addr) {
+                Some("is not a word accessed atomically")
+            } else {
+                None
+            };
+            if let Some(why) = why {
+                return Err(Stop::Ub(
+                    15,
+                    format!("`Atomic.{what}` on {addr:#x}, which {why}"),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn wait_word(&self, addr: u64, expected: u64) -> Result<bool, Stop> {
+        self.check_futex_word(addr, "wait")?;
+        let w = self.read_word_with(addr, false)?;
+        Ok(w as u32 == expected as u32)
+    }
+
     fn typed(&self, t: Ty, w: u64) -> Result<Val, Stop> {
         if self.ub && t == Ty::Bool && w > 1 {
             return Err(Stop::Ub(6, format!("{w} is not a valid bool")));
@@ -239,14 +290,21 @@ impl Machine<'_> {
         }
     }
 
-    fn atomic_raced(&self, addr: u64, kind: Kind, order: MemOrder) -> Result<(), Stop> {
+    /// The word an atomic access reads, as the checked machine's weak memory lets it (R1101).
+    fn atomic_raced(
+        &self,
+        addr: u64,
+        (kind, order, stale_ok): (Kind, MemOrder, bool),
+        old: u64,
+        new: Option<u64>,
+    ) -> Result<u64, Stop> {
         if !self.ub {
-            return Ok(());
+            return Ok(old);
         }
-        match self.race.borrow_mut().atomic(addr, kind, order) {
-            Some(msg) => Err(Stop::Ub(1, msg)),
-            None => Ok(()),
-        }
+        self.race
+            .borrow_mut()
+            .atomic_value(addr, kind, order, stale_ok, old, new)
+            .map_err(|msg| Stop::Ub(1, msg))
     }
 
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
@@ -494,6 +552,7 @@ impl Machine<'_> {
                 let b = &f.blocks[block as usize];
                 for (i, inst) in b.insts.iter().enumerate() {
                     fr.at = (block, i);
+                    self.mem.site = func;
                     self.inst(&mut fr, f, inst)?;
                 }
                 match &b.term {
@@ -619,6 +678,9 @@ impl Machine<'_> {
                     .map(|o| self.eval(fr, o, f).map(encode))
                     .collect::<Result<Vec<u64>, Stop>>()?;
                 let old = self.read_word_with(p, false)?;
+                if self.ub {
+                    self.atomic_words.insert(p);
+                }
                 let new = ops::atomic_new(*op, *ty, old, &a);
                 if let Some(w) = new {
                     self.write_word_with(p, w, false)?;
@@ -629,10 +691,10 @@ impl Machine<'_> {
                     (AtomicOp::Cas, None) => (Kind::Read, failure),
                     _ => (Kind::Rmw, order),
                 };
-                self.atomic_raced(p, kind, *order)?;
+                let read = self.atomic_raced(p, (kind, *order, *op == AtomicOp::Load), old, new)?;
                 match dst {
                     Some(d) => {
-                        let v = self.typed(f.locals[*d as usize], old)?;
+                        let v = self.typed(f.locals[*d as usize], read)?;
                         self.set(fr, f, *d, v)
                     }
                     None => Ok(()),

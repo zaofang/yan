@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-18 | [Survey: open-source compilers to study (UB checking, self-hosting, ownership)](https://claude.ai/artifact/6zWq8pCbL2CRTJ2ikxB8M6) | Study only, ideas not code; review notes on #1661, #1664, #1665; #1706 (snapshot refresh and bisect); no rows |
 | 2026-11-17 | [Plan: editor and language-server support](2026-11-17-editor-and-lsp-plan.md) | #1591 (under #449); D1 to D10 await lead; builds on #381, #383, #870; no rows |
 | 2026-11-17 | [Python's popular packages: which domains Yan replicates, and in what shape](2026-11-17-python-package-equivalents.md) | Study only; PyPI 30-day downloads at 2026-11-01 grouped into 26 domain sets; 14 need no new package (std, language, toolchain or already a first-party package); recommends a Yan-native canonical API with Python shape only in the lenient reader and `yan import --python`, a model-eval gate per package, and a shortlist of eight (std.http client, frame aliases, stats and plot, `@yan/web`, `@yan/llm`, `@yan/term`, `@yan/template`, `@yan/xlsx`); D1 to D6 open; no rows |
 | 2026-11-17 | [Design: `size_of`, layout classes and the C boundary](../../rfcs/0083-size-of-and-layout.md) | #449; RFC 0083: D1 to D10 accepted as recommended by the lead 2026-11-17; code survey at `7c57127` finds three disagreeing layouts (reflection, native slots, map keys); rows in the writing PRs (#1519) |
@@ -143,3 +144,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-16 | Capability security review: escapes from `uses` and the ceiling | F1 to F4: #1388 (High), #1389 (High), #1390 (Medium), #1391 (Low); no rows |
 | 2026-11-17 | Module, file and package structure: keep and avoid across 16 ecosystems | RFC 0084; D1 to D12; no rows |
 | 2026-11-17 | Design: one ownership analysis in `yan-check`, Drop/`@linear` partial-move rejection | #1583; D1 to D6, slices 1 to 4; D5 accepted 2026-11-17; no rows |
+| 2026-11-19 | Self-hosting sizing: stages, blockers, sizes, critical path | #851; estimates with stated assumptions A1 to A4; files #1737, #1738, #1739; no calendar date; no rows |

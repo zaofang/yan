@@ -667,7 +667,7 @@ fn a_cancel_scope_needs_timeout_in_the_fail_type() {
 
 #[test]
 fn channels_run_and_their_waits_time_out() {
-    let src = "def pair() -> int fail Cancelled:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()? else 0\n    b = rx.recv()? else 0\n    return a + b\n\n\
+    let src = "def pair() -> int fail Cancelled | Timeout:\n    tx, rx = Channel[int](2)\n    tx.send(1)?\n    tx.send(2)?\n    a = rx.recv()? else 0\n    b = rx.recv()? else 0\n    return a + b\n\n\
                def empty() -> int fail Cancelled | Timeout uses time:\n    tx, rx = Channel[int](1)\n    with timeout(5 * ms):\n        return rx.recv()? else 0\n    tx.send(0)?\n    return 0\n\n\
                def full() -> int fail Cancelled | Timeout uses time:\n    tx, _ = Channel[int](1)\n    with timeout(5 * ms):\n        tx.send(1)?\n        tx.send(2)?\n    return 0\n\n\
                pub def main() uses io, time:\n    p = pair() else _ -> -1\n    e = empty() else _ -> -1\n    f = full() else _ -> -1\n    io.print(f\"{p} {e} {f}\")\n";

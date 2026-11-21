@@ -1,6 +1,14 @@
 use super::*;
 
 impl<'a, 'm> Fn<'a, 'm> {
+    /// Defines `ls` on every path, for locals the validator cannot see a guard write before a read.
+    pub(super) fn zero_locals(&mut self, ls: &[Local]) {
+        for l in ls {
+            let src = zero(self.locals[*l as usize]);
+            self.emit(Inst::Copy { dst: *l, src });
+        }
+    }
+
     pub(super) fn show_fields(
         &mut self,
         name: &str,
@@ -22,6 +30,32 @@ impl<'a, 'm> Fn<'a, 'm> {
         Ok(self.concat(parts))
     }
 
+    /// The field `f` of the aggregate `shape` at `at`.
+    pub(super) fn field_at(&mut self, at: At, shape: &Shape, f: &str) -> R<(At, Shape)> {
+        let Some((_, start, s)) = shape
+            .fields()
+            .and_then(|fs| fs.into_iter().find(|(n, ..)| n == f))
+        else {
+            return unsupported(format!("field `{f}`"));
+        };
+        Ok(self.sub_at(at, start, s.clone()))
+    }
+
+    /// The `s` that starts `start` slots into the aggregate at `at`. A boxed one is the value in
+    /// its box, changed there in place.
+    pub(super) fn sub_at(&mut self, at: At, start: usize, s: Shape) -> (At, Shape) {
+        let w = s.width();
+        let at = match at {
+            At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
+            At::Mem(p, word) => At::Mem(p, word + start as u32),
+        };
+        if let Shape::Boxed(k) = &s {
+            let p = self.read(&at, &s).remove(0);
+            return (At::Mem(p, 0), k.get().clone());
+        }
+        (at, s)
+    }
+
     pub(super) fn place(&mut self, p: &y::Place) -> R<(At, Shape)> {
         let root = self.name(&p.root)?.clone();
         let mut at = At::Reg(root.locals);
@@ -38,28 +72,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     at = At::Mem(p, super::mutex::VALUE);
                     shape = *inner;
                 }
-                y::Proj::Field(f, _) => {
-                    let Some((_, start, s)) = shape
-                        .fields()
-                        .and_then(|fs| fs.into_iter().find(|(n, ..)| n == f))
-                    else {
-                        return unsupported(format!("field `{f}`"));
-                    };
-                    let w = s.width();
-                    let s = s.clone();
-                    at = match at {
-                        At::Reg(ls) => At::Reg(ls[start..start + w].to_vec()),
-                        At::Mem(p, word) => At::Mem(p, word + start as u32),
-                    };
-                    // A boxed field is the value in its box, changed there in place.
-                    if let Shape::Boxed(k) = &s {
-                        let p = self.read(&at, &s).remove(0);
-                        at = At::Mem(p, 0);
-                        shape = k.get().clone();
-                        continue;
-                    }
-                    shape = s;
-                }
+                y::Proj::Field(f, _) => (at, shape) = self.field_at(at, &shape, f)?,
                 y::Proj::Index(i) => {
                     if matches!(shape, Shape::Bytes | Shape::ByteArray) {
                         let b = self.read(&at, &shape).remove(0);
@@ -120,9 +133,36 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
     }
 
+    /// Run drop glue on each element still queued on channel `ch` when this is its last end.
+    fn chan_drain(&mut self, ch: &Operand, e: &Shape) {
+        let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
+        let head = self.block_new();
+        self.goto(head);
+        let got = self.rt(RtFn::ChanDrain, I64, vec![ch.clone(), out.clone()]);
+        let (body, exit) = self.branch(got);
+        self.cur = body;
+        let ev = self.read(&At::Mem(out.clone(), 0), e);
+        self.glue(e, &ev);
+        self.finish(Term::Jump(head));
+        self.cur = exit;
+        self.free(RtFn::EnvFree, out);
+    }
+
     /// Drop glue (5.4): free the blocks of the value `v` of shape `s`, fields in declaration
     /// order. A closure's captures block is freed, not the values it captured.
     pub(super) fn glue(&mut self, s: &Shape, v: &[Operand]) {
+        if !Self::has_heap(s) {
+            return;
+        }
+        if Self::outlined(s) {
+            self.walk_shape(knot::Walk::Drop, s, v);
+            return;
+        }
+        self.glue_body(s, v);
+    }
+
+    /// `glue` of `s` with its own type expanded and the types it holds called.
+    pub(super) fn glue_body(&mut self, s: &Shape, v: &[Operand]) {
         if !Self::has_heap(s) {
             return;
         }
@@ -145,7 +185,10 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Bytes | Shape::ByteArray | Shape::BigInt => {
                 self.free(RtFn::BytesFree, v[0].clone())
             }
-            Shape::Chan(_, sender) => {
+            Shape::Chan(e, sender) => {
+                if Self::has_heap(e) {
+                    self.chan_drain(&v[0], e);
+                }
                 let f = if *sender {
                     RtFn::ChanDropSender
                 } else {
@@ -277,21 +320,26 @@ impl<'a, 'm> Fn<'a, 'm> {
             return unsupported("a channel operation without its failure");
         };
         let e = &efs[0].1;
-        let err = match e {
-            Shape::Rec(n, fs) if n == "Cancelled" && fs.is_empty() => Vec::new(),
-            Shape::Sum(_, _) if e.variant("Cancelled").is_some() => {
-                Self::variant_value(e, "Cancelled", Vec::new())
-            }
-            _ => return unsupported("a channel failure without `Cancelled`"),
-        };
-        let err = Self::variant_value(&dst.shape, "Err", err);
-        let cancelled = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(2)]);
-        let (c, o) = self.branch(cancelled);
         let join = self.block_new();
-        self.cur = c;
-        self.copy_to(&dst.locals, err);
-        self.goto(join);
-        self.cur = o;
+        for (name, status) in [("Cancelled", 2), ("Timeout", 5)] {
+            let v = match e {
+                Shape::Rec(n, fs) if n == name && fs.is_empty() => Vec::new(),
+                Shape::Sum(_, _) if e.variant(name).is_some() => {
+                    Self::variant_value(e, name, Vec::new())
+                }
+                _ if name == "Cancelled" => {
+                    return unsupported("a channel failure without `Cancelled`");
+                }
+                _ => continue,
+            };
+            let err = Self::variant_value(&dst.shape, "Err", v);
+            let hit = self.scalar_op(ScalarOp::Eq, I64, vec![st.clone(), Operand::Int(status)]);
+            let (c, o) = self.branch(hit);
+            self.cur = c;
+            self.copy_to(&dst.locals, err);
+            self.goto(join);
+            self.cur = o;
+        }
         if closed {
             let Some((_, _, ofs)) = dst.shape.variant("Ok") else {
                 return unsupported("a receive without its value");
@@ -599,12 +647,21 @@ impl<'a, 'm> Fn<'a, 'm> {
         let mine = self.sig(self.me as FuncId).ret.clone();
         let theirs = match self.callee(c)? {
             Some(func) => self.sig(func).ret.clone(),
-            // `fs.read` fails with the `FsError` the caller propagates; its lowering checks that.
-            None if registry::id(&c.path.join(".")) == Some(id::STD_FS_READ) => {
+            // `fs.read` and `fs.list_dir` fail with the `FsError` the caller propagates; their
+            // lowering checks that.
+            None if matches!(
+                registry::id(&c.path.join(".")),
+                Some(id::STD_FS_READ | id::STD_FS_LIST_DIR)
+            ) =>
+            {
                 let Some((_, _, mine_e)) = mine.variant("Err") else {
                     return unsupported("`?` outside a failing function");
                 };
-                result(Shape::Str, mine_e[0].1.clone())
+                let ok = match registry::id(&c.path.join(".")) {
+                    Some(id::STD_FS_LIST_DIR) => Shape::List(Box::new(Shape::Path)),
+                    _ => Shape::Str,
+                };
+                result(ok, mine_e[0].1.clone())
             }
             None => match self.intrinsic_result(c)? {
                 Some(s) => s,
@@ -627,7 +684,10 @@ impl<'a, 'm> Fn<'a, 'm> {
         let (ok, err) = self.branch(is_ok);
         self.cur = err;
         let ev = v[err_at..err_at + e.width()].to_vec();
-        let ev = self.widen_err(ev, &e, &mine_e)?;
+        let mut ev = self.widen_err(ev, &e, &mine_e)?;
+        if self.shields > 0 {
+            ev = self.shield_failure(&mine_e, ev);
+        }
         self.unwind(drops, Some((&mine_e, &ev)));
         self.ret(Self::variant_value(&mine, "Err", ev));
         self.cur = ok;
@@ -692,7 +752,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                         ("None".into(), vec![]),
                     ],
                 );
-                result(option, cancelled())
+                result(option, failure_union(&["Cancelled", "Timeout"]))
             }),
             Some(id::STD_PRELUDE_SELECT_WAIT) => Some(result(
                 Shape::Scalar(I64),
@@ -718,9 +778,15 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 _ => None,
             },
-            Some(id::STD_CHAN_SENDER_SEND | id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => {
-                Some(result(Shape::Scalar(Ty::Unit), cancelled()))
-            }
+            Some(id::STD_CHAN_SENDER_SEND) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
+            Some(id::STD_SYNC_ATOMIC_WAIT) => Some(result(Shape::Scalar(Ty::Unit), cancelled())),
+            Some(id::STD_TIME_SLEEP | id::STD_TIME_SLEEP_UNTIL) => Some(result(
+                Shape::Scalar(Ty::Unit),
+                failure_union(&["Cancelled", "Timeout"]),
+            )),
             Some(id::STD_ACTOR_RETAKE) => match c.targs.get(2) {
                 Some(y::TArg::Type(f)) => Some(result(Shape::Scalar(Ty::Unit), self.shape(f)?)),
                 _ => None,
@@ -734,6 +800,11 @@ impl<'a, 'm> Fn<'a, 'm> {
     pub(super) fn widen_err(&mut self, ev: Vec<Operand>, e: &Shape, f: &Shape) -> R<Vec<Operand>> {
         if e == f {
             return Ok(ev);
+        }
+        if let (Shape::Sum(en, evs), Shape::Rec(fname, _)) = (e, f)
+            && en == "Union"
+        {
+            return self.narrow_err(ev, evs, fname, f);
         }
         let Shape::Sum(fu, fvs) = f else {
             return unsupported("`?` across error types");
@@ -765,7 +836,16 @@ impl<'a, 'm> Fn<'a, 'm> {
         let join = self.block_new();
         for (tag, name, payload) in members {
             if f.variant(&name).is_none() {
-                return unsupported("`?` across error types");
+                // W863: the failure is not in the declared fail type; it cannot propagate.
+                let Some(t) = tag else {
+                    return unsupported("`?` across error types");
+                };
+                let is = self.scalar_op(ScalarOp::Eq, I64, vec![ev[0].clone(), Operand::Int(t)]);
+                let (this, next) = self.branch(is);
+                self.cur = this;
+                self.finish(Term::Panic("a failure outside the declared fail type"));
+                self.cur = next;
+                continue;
             }
             let next = match tag {
                 Some(t) => {
@@ -789,6 +869,36 @@ impl<'a, 'm> Fn<'a, 'm> {
         }
         self.cur = join;
         Ok(Self::ops(&out))
+    }
+
+    /// The failure `ev` of the union `evs` as the single failure type `f` named `fname`: its
+    /// member of that name, and a panic for any other member (W863).
+    fn narrow_err(
+        &mut self,
+        ev: Vec<Operand>,
+        evs: &[(String, Vec<(String, Shape)>)],
+        fname: &str,
+        f: &Shape,
+    ) -> R<Vec<Operand>> {
+        let Some(tag) = evs.iter().position(|(n, _)| n == fname) else {
+            return unsupported("`?` across error types");
+        };
+        let at = 1 + evs[..tag]
+            .iter()
+            .flat_map(|(_, fs)| fs)
+            .map(|(_, s)| s.width())
+            .sum::<usize>();
+        let w = f.width();
+        let is = self.scalar_op(
+            ScalarOp::Eq,
+            I64,
+            vec![ev[0].clone(), Operand::Int(tag as i128)],
+        );
+        let (this, other) = self.branch(is);
+        self.cur = other;
+        self.finish(Term::Panic("a failure outside the declared fail type"));
+        self.cur = this;
+        Ok(ev[at..at + w].to_vec())
     }
 
     /// Lift `c` to its own function; its value is that code and a block of the captures.

@@ -38,6 +38,11 @@ pub(crate) fn untrack(p: usize) {
     }
 }
 
+/// This thread is a pool worker running an arm.
+pub(crate) fn on_worker() -> bool {
+    ARM.with(Cell::get).is_some()
+}
+
 /// Hold `bytes` for the join when this thread runs an arm; false when it should write them.
 pub(crate) fn capture(bytes: &[u8]) -> bool {
     if ARM.with(Cell::get).is_none() {

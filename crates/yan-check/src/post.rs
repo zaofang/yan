@@ -69,6 +69,8 @@ struct V {
     /// The remainders `rest` made, to the local whose fields they own what is left of.
     origin: HashMap<Name, Name>,
     copy: own::Ctors,
+    /// Declared types of the locals and parameters, to resolve generic payloads in patterns.
+    tys: HashMap<Name, Type>,
     diags: Vec<Diagnostic>,
     file: String,
     item: String,
@@ -87,7 +89,7 @@ pub fn check_optimized(file: &str, m: &Module) -> Vec<Diagnostic> {
             ItemKind::Impl(i) => i.fns.iter().for_each(|f| v.func(&m.path, f)),
             ItemKind::Test(t) => {
                 v.item = format!("{}.{}", m.path.join("."), t.path.join("."));
-                v.run(&[], &t.body);
+                v.run(&[], &[], &t.body);
             }
             _ => {}
         }
@@ -115,7 +117,11 @@ impl V {
         self.item = format!("{}.{}", path.join("."), f.path.join("."));
         if let Some(b) = &f.body {
             let owned = owned_params(&f.params);
-            self.run(&owned.into_iter().cloned().collect::<Vec<_>>(), b);
+            self.run(
+                &owned.into_iter().cloned().collect::<Vec<_>>(),
+                &f.params,
+                b,
+            );
         }
     }
 
@@ -124,11 +130,13 @@ impl V {
         self.diags.push(d);
     }
 
-    fn run(&mut self, owned: &[Name], b: &Block) {
+    fn run(&mut self, owned: &[Name], params: &[Param], b: &Block) {
         let saved = mem::take(self);
         self.copy = saved.copy.clone();
         self.file = saved.file.clone();
         self.item = saved.item.clone();
+        self.tys.clear();
+        self.note_params(params);
         self.st = Some(St::new());
         self.block(b, owned);
         let mut diags = saved.diags;
@@ -139,7 +147,7 @@ impl V {
     /// What `k` consumes. A field moved out of a local consumes nothing: the local's remainder,
     /// made by `rest` before the move, owns the other fields.
     fn consumed(&self, k: &StmtKind) -> Vec<Name> {
-        own::consumption(k, &self.views).whole
+        own::consumption(k, &self.views).owners().cloned().collect()
     }
 
     /// A field moved out of a local needs the `rest` that took over the local's other fields.
@@ -175,6 +183,14 @@ impl V {
             st.insert(n.clone(), S::Live);
         }
         self.last_decl = Some(n.clone());
+    }
+
+    fn note_params(&mut self, params: &[Param]) {
+        for p in params {
+            if let Param::Value { name, ty, .. } = p {
+                self.tys.insert(name.clone(), ty.clone());
+            }
+        }
     }
 
     fn declare_pat(&mut self, p: &Pat, ty: &Type) {
@@ -273,6 +289,7 @@ impl V {
         let jp = self.jps[name].clone();
         self.st = Some(jp.entry.unwrap_or(jp.decl));
         let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
+        self.note_params(params);
         // The body sees only what was declared before the join point.
         let after = self.scopes[jp.pos.0].split_off(jp.pos.1);
         self.block(body, &owned);
@@ -317,6 +334,7 @@ impl V {
             let jp = self.jps[name].clone();
             self.st = Some(jp.entry.unwrap_or(jp.decl));
             let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
+            self.note_params(params);
             // The body sees only what was declared before the join point.
             let _after = self.scopes[jp.pos.0].split_off(jp.pos.1);
             owned.iter().for_each(|n| self.declare(n));
@@ -410,7 +428,7 @@ impl V {
     fn closure(&mut self, r: &Rhs) {
         if let Rhs::Closure(c) = r {
             let owned: Vec<Name> = owned_params(&c.params).into_iter().cloned().collect();
-            self.run(&owned, &c.body);
+            self.run(&owned, &[], &c.body);
         }
     }
 
@@ -458,6 +476,9 @@ impl V {
         }
         match &s.kind {
             StmtKind::Let { pat, ty, rhs, .. } => {
+                if let Pat::Bind(x) = pat {
+                    self.tys.insert(x.clone(), ty.clone());
+                }
                 if let (Some(f), Some(x)) = (is_flag_init(s), decl) {
                     if let Some(l) = self
                         .scopes
@@ -550,9 +571,13 @@ impl V {
                 let mut ends = Vec::new();
                 for (p, b) in arms {
                     self.st = Some(pre.clone());
+                    let ty = match scrutinee {
+                        Atom::Name(x, _) => self.tys.get(x),
+                        Atom::Lit(..) => None,
+                    };
                     let bound = base
                         .as_ref()
-                        .map(|v| own::pat_views(p, &self.copy, v))
+                        .map(|v| own::pat_views(p, &self.copy, ty, v))
                         .unwrap_or_default();
                     for (n, v) in &bound {
                         self.views.insert(n.clone(), v.clone());

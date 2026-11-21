@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1458,
+   "out": 680,
+   "reasoning": 588,
+   "out_bytes": 197
+  },
+  "body": {
+   "in": 3522,
+   "out": 1823,
+   "reasoning": 1508,
+   "out_bytes": 677
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><title>Hi</title></html>\") == \"Hi\"\n  ex title_of(\"<p>no title here</p>\") == \"\"\n  let parts = html.split(\"<title>\")\n  let rest = parts.get(1) else \"\"\n  let tail = rest.split(\"</title>\")\n  if tail.len() < 2\n    \"\"\n  else\n    tail[0].copy()\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1458,
+    "out": 680,
+    "reasoning": 588
+   },
+   "out_bytes": 197,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1623,
+    "out": 1391,
+    "reasoning": 1235
+   },
+   "out_bytes": 335,
+   "ok": false,
+   "report": "E413 task.yn:11:5 title_of: `tail[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 11:5 | fix: tail[0] -> tail[0].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1899,
+    "out": 432,
+    "reasoning": 273
+   },
+   "out_bytes": 342,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E413 ./task.yn:11:5 title_of: `tail[0]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 11:5 | fix: tail[0] -> tail[0].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

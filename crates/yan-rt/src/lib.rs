@@ -28,6 +28,8 @@ pub mod csv;
 #[allow(unsafe_code)]
 pub mod csvslots;
 #[allow(unsafe_code)]
+pub mod deadline;
+#[allow(unsafe_code)]
 pub mod dq;
 #[allow(unsafe_code)]
 pub mod envhandler;
@@ -36,6 +38,8 @@ pub mod ffi;
 pub mod fmt;
 #[allow(unsafe_code)]
 pub mod fshandler;
+#[allow(unsafe_code)]
+pub mod futex;
 #[allow(unsafe_code)]
 pub mod heap;
 pub mod json;
@@ -64,7 +68,11 @@ pub mod regexabi;
 #[allow(unsafe_code)]
 pub mod sched;
 #[allow(unsafe_code)]
+pub mod scope;
+#[allow(unsafe_code)]
 pub mod select;
+#[allow(unsafe_code)]
+pub mod signal;
 #[allow(unsafe_code)]
 pub mod slice;
 pub mod sort;

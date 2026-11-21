@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 560,
+   "reasoning": 454,
+   "out_bytes": 223
+  },
+  "body": {
+   "in": 5942,
+   "out": 2303,
+   "reasoning": 1854,
+   "out_bytes": 1014
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  post names.len() > 0 or out == \"\"\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\"]) == \"\"\n  ex first_readable([\"/etc/passwd\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let r = fs.read(name) else continue\n      return r\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 560,
+    "reasoning": 454
+   },
+   "out_bytes": 223,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1737,
+    "out": 942,
+    "reasoning": 789
+   },
+   "out_bytes": 347,
+   "ok": false,
+   "report": "E100 task.yn:6:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1956,
+    "out": 667,
+    "reasoning": 515
+   },
+   "out_bytes": 346,
+   "ok": false,
+   "report": "E201 task.yn:8:34 first_readable: `else None` expected `str`, found `()`\nE201 task.yn:9:15 first_readable: `= None` cannot compare `str` with `()`\nE201 task.yn:10:16 first_readable: `r else` `else` needs an optional or a fallible call, found `str`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2249,
+    "out": 694,
+    "reasoning": 550
+   },
+   "out_bytes": 321,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:6:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

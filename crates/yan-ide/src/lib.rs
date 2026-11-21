@@ -587,6 +587,7 @@ fn single(it: &yan_hir::Item) -> yan_hir::Module {
         attrs: Vec::new(),
         doc: None,
         items: vec![it.clone()],
+        reexports: Vec::new(),
     }
 }
 

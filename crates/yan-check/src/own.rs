@@ -99,12 +99,23 @@ pub fn proj_view(views: &Views, p: &Place) -> View {
     v
 }
 
-/// The names `k` consumes, split by what they stand for: owned locals consumed whole, and
-/// fields moved out of owned locals, which leave the rest of their root to its owner.
+/// The names `k` consumes, split by what they stand for: owned locals consumed whole, fields
+/// moved out of owned locals, which leave the rest of their root to its owner, and the roots of
+/// a `rest`.
 #[derive(Default)]
 pub struct Consumption {
     pub whole: Vec<Name>,
     pub partial: Vec<(Name, Vec<Name>)>,
+    /// A `rest` hands its root's ownership to the remainder, which aliases the root's words:
+    /// they stay readable, so nothing in them is moved.
+    pub rest: Vec<Name>,
+}
+
+impl Consumption {
+    /// The roots whose ownership `k` ends: consumed whole, or handed to a remainder.
+    pub fn owners(&self) -> impl Iterator<Item = &Name> {
+        self.whole.iter().chain(&self.rest)
+    }
 }
 
 /// `move p.f`: a part moved out of the local `p`, which leaves the rest of `p` to its owner.
@@ -127,8 +138,21 @@ pub fn part_move(k: &StmtKind) -> Option<&Place> {
 
 pub fn consumption(k: &StmtKind, views: &Views) -> Consumption {
     let mut c = Consumption::default();
+    let remainder = match k {
+        StmtKind::Let {
+            rhs: Rhs::Rest { root, .. },
+            ..
+        }
+        | StmtKind::Assign {
+            rhs: Rhs::Rest { root, .. },
+            ..
+        }
+        | StmtKind::Rhs(Rhs::Rest { root, .. }) => Some(root),
+        _ => None,
+    };
     for n in consumed(k) {
         match views.get(n) {
+            _ if Some(n) == remainder => c.rest.push(views.get(n).map_or(n, |v| &v.root).clone()),
             Some(v) if !v.path.is_empty() => {
                 let moved = (v.root.clone(), v.path.clone());
                 if !c.partial.contains(&moved) {
@@ -219,7 +243,13 @@ pub fn ctors(items: &[Item]) -> Ctors {
 /// not the names bound to a copy field, which are values, so passing one on does not move the
 /// scrutinee. A path through a sum starts with the variant. Names bound under an alternative or
 /// a slice stand for the whole scrutinee.
-pub fn view_paths(p: &Pat, ctors: &Ctors, at: &mut Vec<Name>, out: &mut Vec<(Name, Vec<Name>)>) {
+pub fn view_paths(
+    p: &Pat,
+    ctors: &Ctors,
+    ty: Option<&Type>,
+    at: &mut Vec<Name>,
+    out: &mut Vec<(Name, Vec<Name>)>,
+) {
     match p {
         Pat::Bind(n) if ctors.units.contains(n) => {}
         Pat::Bind(n) => out.push((n.clone(), at.clone())),
@@ -228,8 +258,11 @@ pub fn view_paths(p: &Pat, ctors: &Ctors, at: &mut Vec<Name>, out: &mut Vec<(Nam
             fields: Some((fs, _)),
         } => {
             let ctor = path.last().cloned().unwrap_or_default();
+            let payload = payload_type(&ctor, ty);
             for (f, sub) in fs {
-                if matches!(sub, Pat::Bind(_)) && ctors.is_copy_field(&ctor, f) {
+                if matches!(sub, Pat::Bind(_))
+                    && (ctors.is_copy_field(&ctor, f) || payload.is_some_and(is_copy))
+                {
                     continue;
                 }
                 let depth = at.len();
@@ -237,14 +270,18 @@ pub fn view_paths(p: &Pat, ctors: &Ctors, at: &mut Vec<Name>, out: &mut Vec<(Nam
                     at.push(ctor.clone());
                 }
                 at.push(f.clone());
-                view_paths(sub, ctors, at, out);
+                view_paths(sub, ctors, payload, at, out);
                 at.truncate(depth);
             }
         }
         Pat::Tuple(ps) => {
             for (i, sub) in ps.iter().enumerate() {
+                let elem = match ty {
+                    Some(Type::Tuple(ts)) if ts.len() == ps.len() => Some(&ts[i]),
+                    _ => None,
+                };
                 at.push(format!("_{i}"));
-                view_paths(sub, ctors, at, out);
+                view_paths(sub, ctors, elem, at, out);
                 at.pop();
             }
         }
@@ -256,10 +293,27 @@ pub fn view_paths(p: &Pat, ctors: &Ctors, at: &mut Vec<Name>, out: &mut Vec<(Nam
     }
 }
 
-/// The views an arm's pattern binds when the scrutinee is `base`.
-pub fn pat_views(p: &Pat, ctors: &Ctors, base: &View) -> Vec<(Name, View)> {
+/// The type argument a generic `Some`, `Ok` or `Err` payload has in a scrutinee of type `ty`.
+fn payload_type<'a>(ctor: &str, ty: Option<&'a Type>) -> Option<&'a Type> {
+    let Some(Type::Named(n)) = ty else {
+        return None;
+    };
+    let (sum, i) = match ctor {
+        "Some" => ("Option", 0),
+        "Ok" => ("Result", 0),
+        "Err" => ("Result", 1),
+        _ => return None,
+    };
+    match (n.path.last(), n.args.get(i)) {
+        (Some(last), Some(TArg::Type(t))) if last == sum => Some(t),
+        _ => None,
+    }
+}
+
+/// The views an arm's pattern binds when the scrutinee, of type `ty` if known, is `base`.
+pub fn pat_views(p: &Pat, ctors: &Ctors, ty: Option<&Type>, base: &View) -> Vec<(Name, View)> {
     let mut out = Vec::new();
-    view_paths(p, ctors, &mut Vec::new(), &mut out);
+    view_paths(p, ctors, ty, &mut Vec::new(), &mut out);
     out.into_iter()
         .map(|(n, path)| {
             let mut v = base.clone();

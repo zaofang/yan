@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1473,
+   "out": 634,
+   "reasoning": 541,
+   "out_bytes": 169
+  },
+  "body": {
+   "in": 1639,
+   "out": 407,
+   "reasoning": 272,
+   "out_bytes": 255
+  }
+ },
+ "final": "type BadInput = { text: str }\n\nsum_parsed(xs: List[str]) -> int fail BadInput =\n  ex sum_parsed([\"1\", \"-2\", \"30\"]) == 29\n  ex sum_parsed([]) == 0\n  var t = 0\n  for s in xs\n    let v = s.parse_int() else fail BadInput(text: copy s)\n    t += v\n  t\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1473,
+    "out": 634,
+    "reasoning": 541
+   },
+   "out_bytes": 169,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1639,
+    "out": 407,
+    "reasoning": 272
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

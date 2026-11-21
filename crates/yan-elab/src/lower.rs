@@ -35,6 +35,7 @@ mod fallback;
 mod fmtspec;
 mod generic_sum;
 mod last_use;
+mod lenient_chan;
 mod lenient_names;
 mod lenient_py;
 pub(crate) use lenient_names::MATH_FREE;
@@ -43,6 +44,7 @@ mod loops;
 mod matching;
 mod method;
 mod narrow;
+mod propagate;
 mod ptr;
 mod pyfid;
 pub(crate) mod reentrant;
@@ -122,6 +124,8 @@ struct Lower<'a, 'c, 's> {
     target: Option<String>,
     /// Inside an `unsafe` block (12.1).
     in_unsafe: bool,
+    /// A call that can fail `Cancelled` was lowered since the innermost open shield began (W855).
+    blocking_seen: bool,
     /// Lowering `gpu.launch`, the one place a `TileOrigin` is built and a kernel called.
     in_launch: bool,
     /// The handle a message of `actor.send` calls through, which may be a `SendOnly` (R975).
@@ -365,6 +369,7 @@ pub(crate) fn stmt_exprs(s: &j::Stmt) -> Vec<&j::Expr> {
             j::WithKind::Bind(_, e)
             | j::WithKind::Deadline(e)
             | j::WithKind::Timeout(e)
+            | j::WithKind::Shield(e)
             | j::WithKind::Supervisor(e) => vec![e],
         },
         K::Par {
@@ -693,6 +698,7 @@ fn falls_through(stmts: &[j::Stmt]) -> bool {
             els: Some(els),
         }) => arms.iter().any(|(_, b)| falls_through(&b.stmts)) || falls_through(&els.stmts),
         Some(K::Match { cases, .. }) => cases.iter().any(|c| falls_through(&c.body.stmts)),
+        Some(K::Select(arms)) => arms.iter().any(|a| falls_through(&a.body.stmts)),
         Some(K::With { body, .. }) => falls_through(&body.stmts),
         Some(K::Unsafe(b)) => falls_through(b),
         Some(K::While { cond, body, .. }) => {
@@ -856,6 +862,7 @@ fn function_body_with(
         pending: HashMap::new(),
         target: None,
         in_unsafe: false,
+        blocking_seen: false,
         stage,
         narrow: Vec::new(),
         posts: Vec::new(),
@@ -891,6 +898,7 @@ fn function_body_with(
         .collect();
     for p in &sig.params {
         if let Ty::Coll("Atomic", ts) = &p.ty
+            && !matches!(ts[0], Ty::Param(_))
             && byte_size(g, &ts[0]).is_none_or(|n| n > 16)
         {
             let line =
@@ -1047,18 +1055,27 @@ fn function_body_with(
             l.bind(&v, false, &t, Rhs::Copy(place), f.name_span, f.name_span);
             l.olds.push((p, v));
         }
-        if !l.cx.yn && !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts) {
+        let falls = !matches!(sig.ret, Ty::Unit | Ty::Err) && falls_through(&body.stmts);
+        let reach_end = |l: &mut Lower, fix: &str| {
             let at = body.stmts.last().map_or(f.name_span, |s| s.span);
             l.err(
                 "E201",
                 at,
                 format!(
-                    "`{}` can reach its end without returning its `{}`; add a `return`",
+                    "`{}` can reach its end without returning its `{}`; {fix}",
                     f.name, sig.ret
                 ),
             );
+        };
+        if falls && !l.cx.yn {
+            reach_end(l, "add a `return`");
         }
+        let before = l.cx.diags.len();
         l.stmts(&body.stmts)?;
+        // In Yan the usual cause is a discarded tail value, which E312 already names.
+        if falls && l.cx.yn && !l.cx.diags[before..].iter().any(|d| d.code == "E312") {
+            reach_end(l, "end with a value, or `return` one");
+        }
         if matches!(body.stmts.as_slice(), [s] if is_hole(s)) && !matches!(sig.ret, Ty::Unit) {
             l.check_posts_of_hole(f.name_span)?;
         }
@@ -1147,7 +1164,7 @@ fn call(path: &str, targs: Vec<y::TArg>, args: Vec<Arg>, span: Span) -> y::Call 
 
 /// The std function and result type of `op` between time values (17.5).
 /// The builtin functions `builtin` lowers, offered as near names (R651).
-const BUILTINS: [&str; 28] = [
+const BUILTINS: [&str; 29] = [
     "len",
     "sorted",
     "int",
@@ -1160,6 +1177,7 @@ const BUILTINS: [&str; 28] = [
     "min",
     "max",
     "print",
+    "eprint",
     "evolve",
     "range",
     "deque",
@@ -2226,6 +2244,48 @@ const UNITS: &[(&str, &str, f64, DurationCtor)] = &[
     ("cd", "luminosity", 1.0, None),
 ];
 
+/// The seconds of a duration written `N * unit`, `unit * N` or `Duration.ctor(N)` with a literal
+/// `N`; `None` for any other expression.
+fn literal_seconds(e: &j::Expr) -> Option<f64> {
+    use j::ExprKind as K;
+    let num = |e: &j::Expr| match &e.kind {
+        K::Lit(j::Lit::Int(s) | j::Lit::Float(s)) => s.replace('_', "").parse::<f64>().ok(),
+        _ => None,
+    };
+    let unit = |e: &j::Expr| match &e.kind {
+        K::Name(n) => UNITS
+            .iter()
+            .find(|u| u.0 == n && u.1 == "time")
+            .map(|u| u.2),
+        _ => None,
+    };
+    match &e.kind {
+        K::Binary("*", a, b) => match (num(a), unit(b), unit(a), num(b)) {
+            (Some(n), Some(u), _, _) | (_, _, Some(u), Some(n)) => Some(n * u),
+            _ => None,
+        },
+        K::Call(f, args) if args.len() == 1 => {
+            let K::Attr(d, ctor, _) = &f.kind else {
+                return None;
+            };
+            if !matches!(&d.kind, K::Name(n) if n == "Duration") {
+                return None;
+            }
+            let (_, _, scale, _) = UNITS
+                .iter()
+                .find(|u| matches!(u.3, Some((c, 1)) if c == ctor))?;
+            let j::ArgKind::Expr(a) = &args[0].kind else {
+                return None;
+            };
+            Some(num(a)? * scale)
+        }
+        _ => None,
+    }
+}
+
+/// The default cancel grace in seconds (9.4).
+const DEFAULT_CANCEL_GRACE: f64 = 10.0;
+
 /// Operations whose result depends on other tasks, so they need `uses nondet` (6.5, E709).
 const NONDET_OPS: &[&str] = &[
     "std.sync.arc.strong_count",
@@ -2235,6 +2295,10 @@ const NONDET_OPS: &[&str] = &[
     "std.chan.receiver.try_recv",
     "std.chan.receiver.share",
     "std.actor.share",
+    "std.sync.atomic.wait",
+    "std.sync.atomic.notify_one",
+    "std.sync.atomic.notify_all",
+    "std.scope.drain",
 ];
 
 /// The size in bytes of a plain value of `t`, when it has a fixed one (5.1).

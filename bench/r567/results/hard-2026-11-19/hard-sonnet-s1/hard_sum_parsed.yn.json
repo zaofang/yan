@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1632,
+   "out": 115,
+   "reasoning": 0,
+   "out_bytes": 201
+  },
+  "body": {
+   "in": 1820,
+   "out": 157,
+   "reasoning": 0,
+   "out_bytes": 299
+  }
+ },
+ "final": "type BadInput = { text: str }\n\nsum_parsed(xs: List[str]) -> int fail BadInput =\n  ex sum_parsed([]) == 0\n  ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n  ex sum_parsed([\"-4\", \"10\"]) == 6\n  var total = 0\n  for s in xs\n    let v = s.parse_int() else fail BadInput(text: copy s)\n    total += v\n  total\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1632,
+    "out": 115,
+    "reasoning": 0
+   },
+   "out_bytes": 201,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1820,
+    "out": 157,
+    "reasoning": 0
+   },
+   "out_bytes": 299,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

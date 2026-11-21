@@ -1,0 +1,1 @@
+package: Package = Package(name="@conf/dependency_qualified_names", version="1.0.0", yan="1.x", platform="cli", edition="next", capabilities=["io"], members=["http"], dependencies={"web": "@t/http 1.2"})

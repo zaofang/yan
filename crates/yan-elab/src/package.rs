@@ -82,6 +82,7 @@ pub(crate) fn link(m: &mut j::Module, env: &PackageEnv) -> Result<(), LinkError>
         .into_iter()
         .map(|v| (v.to_owned(), String::new()))
         .collect();
+    l.own_items = m.items.clone();
     l.items(&mut m.items);
     let mut pulled = Vec::new();
     while let Some((module, name)) = l.queue.pop() {
@@ -95,6 +96,24 @@ pub(crate) fn link(m: &mut j::Module, env: &PackageEnv) -> Result<(), LinkError>
     pulled.append(&mut m.items);
     m.items = pulled;
     Ok(())
+}
+
+/// The visibility of the type, record, function or constant `item` (or sum variant) of `items`.
+fn item_vis(items: &[j::Item], item: &str) -> Option<j::Vis> {
+    items.iter().find_map(|it| match &it.kind {
+        j::ItemKind::Type(t) => match &t.rhs {
+            j::TypeRhs::Sum(vs) if t.name == item || vs.iter().any(|v| v.name == item) => {
+                Some(it.vis)
+            }
+            _ => (t.name == item).then_some(it.vis),
+        },
+        j::ItemKind::Func(_) | j::ItemKind::Record(_) | j::ItemKind::Const { .. }
+            if it.kind.name() == item =>
+        {
+            Some(it.vis)
+        }
+        _ => None,
+    })
 }
 
 struct Linker<'a> {
@@ -111,6 +130,10 @@ struct Linker<'a> {
     at: Option<String>,
     own: HashSet<String>,
     own_types: HashSet<String>,
+    /// The module being elaborated, for the visibility of its own items.
+    own_items: Vec<j::Item>,
+    /// Set while the signature of a `pub` item is walked, with the item's name (E336).
+    exported: Option<String>,
     locals: HashSet<String>,
     tparams: HashSet<String>,
     /// Variant name to the module that declares it ("" for the module being elaborated).
@@ -138,6 +161,8 @@ impl<'a> Linker<'a> {
             at: None,
             own: HashSet::new(),
             own_types: HashSet::new(),
+            own_items: Vec::new(),
+            exported: None,
             locals: HashSet::new(),
             tparams: HashSet::new(),
             variants: BTreeMap::new(),
@@ -169,22 +194,7 @@ impl<'a> Linker<'a> {
         if self.at.is_some() || module == self.env.this {
             return;
         }
-        let vis = self.module(module).and_then(|m| {
-            m.items.iter().find_map(|it| match &it.kind {
-                j::ItemKind::Type(t) => match &t.rhs {
-                    j::TypeRhs::Sum(vs) if t.name == item || vs.iter().any(|v| v.name == item) => {
-                        Some(it.vis)
-                    }
-                    _ => (t.name == item).then_some(it.vis),
-                },
-                j::ItemKind::Func(_) | j::ItemKind::Record(_) | j::ItemKind::Const { .. }
-                    if it.kind.name() == item =>
-                {
-                    Some(it.vis)
-                }
-                _ => None,
-            })
-        });
+        let vis = self.module(module).and_then(|m| item_vis(&m.items, item));
         let foreign = self.dep_of(module).is_some();
         if foreign && vis.is_some_and(|v| v != j::Vis::Pub) {
             self.error.get_or_insert(LinkError {
@@ -205,19 +215,118 @@ impl<'a> Linker<'a> {
         }
     }
 
+    /// E336 when a `pub` item's signature names an item that is not `pub` (RFC 0084 D3): a
+    /// dependent could not name the type.
+    fn check_exported(&mut self, module: &str, item: &str) {
+        let Some(owner) = self.exported.clone() else {
+            return;
+        };
+        let vis = if module == self.env.this {
+            item_vis(&self.own_items, item)
+        } else {
+            self.module(module).and_then(|m| item_vis(&m.items, item))
+        };
+        let how = match vis {
+            Some(j::Vis::Pkg) => "`pkg`",
+            Some(j::Vis::Private) => "private",
+            _ => return,
+        };
+        self.error.get_or_insert(LinkError {
+            what: format!(
+                "`{item}` is {how} but the signature of `pub` `{owner}` names it; a public signature may only name `pub` items, so declare `{item}` `pub`"
+            ),
+            code: Some("E336"),
+            at: Some(self.site),
+        });
+    }
+
     /// The module and item a path of 2 or more names stands for, when its head is not a local.
-    fn split<'p>(&self, path: &'p [String]) -> Option<(String, &'p [String])> {
+    /// A `pub use` of a module (RFC 0084 D5) is followed to that module, so `lib.m.item` reaches
+    /// `a.b.item`.
+    fn split<'p>(&mut self, path: &'p [String]) -> Option<(String, &'p [String])> {
         if path.len() < 2 || !self.heads.contains(&path[0]) || self.locals.contains(&path[0]) {
             return None;
         }
-        (1..path.len())
+        let (mut module, mut rest) = (1..path.len())
             .rev()
             .map(|k| (path[..k].join("."), &path[k..]))
-            .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))
+            .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))?;
+        // The hop limit stops a cycle of module aliases.
+        for _ in 0..16 {
+            let Some((head, tail)) = rest.split_first() else {
+                break;
+            };
+            match self.module_alias(&module, head) {
+                Some(target) => (module, rest) = (target, tail),
+                None => break,
+            }
+        }
+        Some((module, rest))
+    }
+
+    /// The module that `pub use` in `module` makes `name` an alias of, when its path names a module.
+    fn module_alias(&mut self, module: &str, name: &str) -> Option<String> {
+        let path = self
+            .module(module)?
+            .reexports
+            .iter()
+            .find(|r| r.name == name)?
+            .path
+            .join(".");
+        match self.dep_of(module) {
+            Some(dep) => dep.modules.contains(&path).then(|| dep.global(&path)),
+            None => self.env.modules.contains(&path).then_some(path),
+        }
+    }
+
+    /// The module and item that `pub use` in `module` makes of `item` (RFC 0084 D5), in the
+    /// namespace of the package being elaborated. A re-export is an alias: the target is the item.
+    fn reexported(&mut self, module: &str, name: &str, at: Span) -> Option<(String, String)> {
+        let path = self
+            .module(module)?
+            .reexports
+            .iter()
+            .find(|r| r.name == name)?
+            .path
+            .clone();
+        let (item, parent) = path.split_last()?;
+        let rel = parent.join(".");
+        let target = match self.dep_of(module) {
+            Some(dep) => dep.modules.contains(&rel).then(|| dep.global(&rel)),
+            None => self.env.modules.contains(&rel).then_some(rel),
+        };
+        let found = target.filter(|t| {
+            let items = if *t == self.env.this {
+                Some(&self.own_items[..])
+            } else {
+                self.module(t).map(|m| &m.items[..])
+            };
+            items.is_some_and(|i| item_vis(i, item).is_some())
+        });
+        if found.is_none() {
+            let shown = path.join(".");
+            self.error.get_or_insert(LinkError {
+                what: format!(
+                    "`pub use {shown}` in `{module}` names no item of the package; the target of a re-export must be an item that exists"
+                ),
+                code: Some("E337"),
+                at: Some(at),
+            });
+        }
+        Some((found?, item.clone()))
     }
 
     /// The expression for `item` of `module`: a bare variant, or the qualified name.
     fn resolve(&mut self, module: &str, item: &str, at: Span) -> String {
+        let (mut module, mut item) = (module.to_owned(), item.to_owned());
+        // A chain of re-exports is followed to its item; the hop limit stops a cycle.
+        for _ in 0..16 {
+            match self.reexported(&module, &item, at) {
+                Some(t) => (module, item) = t,
+                None => break,
+            }
+        }
+        let (module, item) = (module.as_str(), item.as_str());
         if module == self.env.this {
             return item.to_owned();
         }
@@ -389,6 +498,16 @@ impl<'a> Linker<'a> {
             self.site = it.name_span;
             self.locals.clear();
             self.tparams.clear();
+            self.exported = (it.vis == j::Vis::Pub
+                && self.at.is_none()
+                && matches!(
+                    it.kind,
+                    j::ItemKind::Func(_)
+                        | j::ItemKind::Record(_)
+                        | j::ItemKind::Const { .. }
+                        | j::ItemKind::Type(_)
+                ))
+            .then(|| it.kind.name().to_owned());
             match &mut it.kind {
                 j::ItemKind::Func(f) => self.func(f),
                 j::ItemKind::Record(r) => {
@@ -412,11 +531,13 @@ impl<'a> Linker<'a> {
                         j::TypeRhs::Caps(_) => {}
                     }
                     if let Some(w) = &mut t.where_ {
+                        self.exported = None;
                         self.expr(w);
                     }
                 }
                 j::ItemKind::Const { ty, value, .. } => {
                     self.ty(ty);
+                    self.exported = None;
                     self.expr(value);
                 }
                 j::ItemKind::Impl(i) => {
@@ -442,7 +563,9 @@ impl<'a> Linker<'a> {
         self.sp(&mut f.ty_span);
         self.ty(&mut f.ty);
         if let Some(d) = &mut f.default {
+            let exported = self.exported.take();
             self.expr(d);
+            self.exported = exported;
         }
     }
 
@@ -476,6 +599,7 @@ impl<'a> Linker<'a> {
             }
             r.fail.iter_mut().for_each(|t| self.ty(t));
         }
+        self.exported = None;
         if let Some(b) = &mut f.body {
             for c in &mut b.contracts {
                 match c {
@@ -640,6 +764,7 @@ impl<'a> Linker<'a> {
                     }
                     j::WithKind::Deadline(e)
                     | j::WithKind::Timeout(e)
+                    | j::WithKind::Shield(e)
                     | j::WithKind::Supervisor(e) => self.expr(e),
                 }
                 self.block(body);
@@ -765,14 +890,18 @@ impl<'a> Linker<'a> {
                     && !self.tparams.contains(&path[0])
                 {
                     *path = if module == self.env.this {
+                        self.check_exported(&module, item);
                         vec![item.clone()]
                     } else {
                         self.check_visible(&module, item, self.site);
+                        self.check_exported(&module, item);
                         self.used.insert(module.clone());
                         self.need(&module, item);
                         vec![format!("{module}.{item}")]
                     };
                 } else if path.len() == 1 && !self.tparams.contains(&path[0]) {
+                    let this = self.env.this.clone();
+                    self.check_exported(&this, &path[0]);
                     self.own_ref(path);
                 }
                 self.targs(args);

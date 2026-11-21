@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1023,
+   "reasoning": 238,
+   "out_bytes": 1792
+  },
+  "body": {
+   "in": 1927,
+   "out": 1102,
+   "reasoning": 225,
+   "out_bytes": 2022
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count how many elements of xs a bounded queue accepts before it is full.\n\n    Creates a queue.Queue of capacity cap and tries to put each element of xs\n    in order without blocking (put_nowait). Stops at the first element that\n    is rejected because the queue is full and returns the number accepted\n    so far. Nothing is ever taken from the queue.\n\n    A capacity of zero or less means no room, so the result is 0 (it is not\n    treated as an unbounded queue).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(3, [10, 20, 30, 40, 50]) == 3\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2]) == 2\n\n\ndef test_exact_fit() -> None:\n    assert accepted(4, [1, 2, 3, 4]) == 4\n\n\ndef test_empty_input() -> None:\n    assert accepted(3, []) == 0\n\n\ndef test_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity() -> None:\n    assert accepted(-2, [1, 2, 3]) == 0\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [7, 8, 9]) == 1\n\n\ndef test_duplicates_count_individually() -> None:\n    assert accepted(3, [5, 5, 5, 5]) == 3\n\n\n@pytest.mark.parametrize(\n    (\"cap\", \"n\", \"expected\"),\n    [(1, 10, 1), (10, 10, 10), (10, 3, 3), (100, 1000, 100)],\n)\ndef test_parametrized(cap: int, n: int, expected: int) -> None:\n    assert accepted(cap, list(range(n))) == expected\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3, 4]\n    accepted(2, xs)\n    assert xs == [1, 2, 3, 4]\n\n\ndef test_does_not_block() -> None:\n    # A blocking put on a full queue would hang; reaching the assert means it did not.\n    assert accepted(2, list(range(50))) == 2\n    assert queue.Queue(maxsize=1).maxsize == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1023,
+    "reasoning": 238
+   },
+   "out_bytes": 1792,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1927,
+    "out": 1102,
+    "reasoning": 225
+   },
+   "out_bytes": 2022,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,36 @@
+# spec: 14.1
+# rows: R794
+# note: `opt else None` into an optional is Some of the unwrapped value or None, never the bare value; so it matches the optional it flows into
+# stdout:
+# a
+# -
+# a
+# -
+# 3
+# none
+
+def find(x: int) -> str | None:
+    if x > 0:
+        return "a"
+    return None
+
+def pass_through(x: int) -> str | None:
+    return find(x) else None
+
+def idx(n: int) -> int | None:
+    if n > 0:
+        return n
+    return None
+
+pub def main() uses io:
+    hit: str | None = find(1) else None
+    miss: str | None = find(0) else None
+    io.print(hit else "-")
+    io.print(miss else "-")
+    io.print(pass_through(1) else "-")
+    io.print(pass_through(0) else "-")
+    n: int | None = idx(3) else None
+    io.print(f"{n else 0}")
+    m: int | None = idx(0) else None
+    if m is None:
+        io.print("none")

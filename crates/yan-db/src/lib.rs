@@ -408,6 +408,49 @@ fn elaborate(db: &dyn Db, file: SourceFile, m: &yan_hir::Module, diags: Vec<Diag
     }
 }
 
+/// The modules of other packages that `file` names, directly or through each other, so a build
+/// of `file` can report what those modules' own manifests and ceilings reject (RFC 0084 D12
+/// step 3).
+pub fn dependency_modules(db: &dyn Db, file: SourceFile) -> Vec<SourceFile> {
+    let packages = PackageGraph::get(db).packages(db);
+    let index = FileIndex::get(db).by_path(db);
+    let Some(home) = owner(packages, file.path(db)) else {
+        return Vec::new();
+    };
+    let mut seen: Vec<SourceFile> = vec![file];
+    let mut out = Vec::new();
+    let mut work = vec![file];
+    while let Some(f) = work.pop() {
+        let path = f.path(db);
+        let Some(pkg) = owner(packages, path) else {
+            continue;
+        };
+        let Ok(Front::Hir(h, _)) = front(db, f) else {
+            continue;
+        };
+        let modules = visible_modules(packages, pkg, path);
+        let names: Vec<String> = modules.iter().map(|(n, _)| n.clone()).collect();
+        for used in yan_elab::referenced(h, &names) {
+            let Some(sf) = modules
+                .iter()
+                .find(|(n, _)| *n == used)
+                .and_then(|(_, p)| index.get(p))
+            else {
+                continue;
+            };
+            if seen.contains(sf) {
+                continue;
+            }
+            seen.push(*sf);
+            work.push(*sf);
+            if owner(packages, sf.path(db)).is_some_and(|o| o.root != home.root) {
+                out.push(*sf);
+            }
+        }
+    }
+    out
+}
+
 /// The modules of the package's `src/` root as (dotted path, file).
 fn source_modules(p: &Package) -> Vec<(String, PathBuf)> {
     p.modules

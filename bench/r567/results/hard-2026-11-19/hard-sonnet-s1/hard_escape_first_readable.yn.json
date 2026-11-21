@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 628,
+   "reasoning": 426,
+   "out_bytes": 479
+  },
+  "body": {
+   "in": 2003,
+   "out": 1216,
+   "reasoning": 877,
+   "out_bytes": 825
+  }
+ },
+ "final": "-- Reads one name from inside `notes`. None when the name is unsafe,\n-- or the file is missing or unreadable.\nread_one(name: str) -> str? uses fs =\n  ex read_one(\"../secret\") == None\n  ex read_one(\"/etc/passwd\") == None\n  if name.char_count() == 0\n    return None\n  if name.split(\"/\").len() > 1 or name.split(\"\\\\\").len() > 1 or name.split(\"..\").len() > 1 or name.split(\":\").len() > 1\n    return None\n  var result: str? = None\n  with fs = fs.sub(\"notes\")\n    result = fs.read(name) else None\n  result\n\n-- Text of the first name in `names` readable inside `notes`, else \"\".\nfirst_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\"]) == \"\"\n  for name in names\n    let t = read_one(name)\n    if t != None\n      return (t else \"\")\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 628,
+    "reasoning": 426
+   },
+   "out_bytes": 479,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2003,
+    "out": 1216,
+    "reasoning": 877
+   },
+   "out_bytes": 825,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:23:15\n  at main task.yn:27:16"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:23:15\n  at main task.yn:27:16"
+ }
+}

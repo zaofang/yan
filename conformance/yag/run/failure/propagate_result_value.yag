@@ -1,0 +1,35 @@
+# spec: 14.1
+# rows: R1106
+# milestone: M1b
+# note: `r?` on a bound `Result` value propagates its failure through `From` like a call's `?`; a success unwraps
+# stdout:
+# 5 -1 9 -2
+
+class ParseErr:
+    msg: str
+
+class AppErr:
+    msg: str
+
+impl From[ParseErr] for AppErr:
+    def convert(e: ParseErr) -> AppErr:
+        return AppErr(msg=e.msg.copy())
+
+def parse(s: str) -> int fail ParseErr:
+    return s.parse_int() else fail ParseErr(msg=s.copy())
+
+def run(s: str) -> int fail AppErr:
+    r: Result[int, ParseErr] = parse(s)
+    v = r?
+    return v + 1
+
+def same(s: str) -> int fail ParseErr:
+    r: Result[int, ParseErr] = parse(s)
+    return r?
+
+pub def main() uses io:
+    a = run("4") else -1
+    b = run("x") else -1
+    c = same("9") else -2
+    d = same("q") else -2
+    io.print(f"{a} {b} {c} {d}")

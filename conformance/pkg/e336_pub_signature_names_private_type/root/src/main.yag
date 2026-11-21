@@ -1,0 +1,8 @@
+class Fee:
+    bps: int
+
+pub def quote(n: int) -> Fee:
+    return Fee(bps=n)
+
+pub def main() -> None uses io:
+    io.print(str(quote(150).bps))

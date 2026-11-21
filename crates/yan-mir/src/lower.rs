@@ -15,6 +15,7 @@ mod collections;
 mod compare;
 mod consts;
 mod contracts;
+mod deadline;
 mod encoding;
 mod entry;
 mod env;
@@ -35,6 +36,7 @@ mod proc;
 mod ptr;
 mod rand;
 mod regex;
+mod scope;
 mod sets;
 mod shape;
 mod show;
@@ -98,7 +100,7 @@ const ITERTOOLS_IDS: &[registry::Id] = &[
 
 pub(crate) type Fields = Vec<(String, Shape)>;
 
-fn zero(t: Ty) -> Operand {
+pub(crate) fn zero(t: Ty) -> Operand {
     match t {
         Ty::Int(_) | Ty::Ptr => Operand::Int(0),
         Ty::F64 => Operand::F64(0.0),
@@ -134,6 +136,7 @@ pub fn layout_of<'a>(items: impl IntoIterator<Item = &'a y::ItemKind>, ty: &y::T
         recs: HashMap::new(),
         sums: HashMap::new(),
         externs: HashMap::new(),
+        ctors: Default::default(),
     };
     for it in items {
         match it {
@@ -155,6 +158,7 @@ pub fn lower(m: &y::Module) -> R<Program> {
         recs: HashMap::new(),
         sums: HashMap::new(),
         externs: crate::ffi::collect(m),
+        ctors: yan_check::own::ctors(&m.items),
     };
     let mut defs = Vec::new();
     let mut by_name = HashMap::new();
@@ -299,8 +303,8 @@ struct Mono<'m> {
     todo: Vec<Todo<'m>>,
     /// The actor thunks made, by kind and shape (`actor.rs`).
     thunks: HashMap<(actor::Thunk, Shape), FuncId>,
-    /// The walks over recursive types made, by walk and type name (`knot.rs`).
-    walks: HashMap<(knot::Walk, String), FuncId>,
+    /// The walks made, by walk and type (`knot.rs`).
+    walks: HashMap<(knot::Walk, Shape), FuncId>,
     /// Some function has a `cost` bound, so every function counts steps and allocations.
     costing: bool,
     consts: Vec<&'m y::Const>,
@@ -599,6 +603,8 @@ enum Scope {
         head: BlockId,
         exit: BlockId,
     },
+    /// A `with deadline` body, left by `break` or `continue` through it.
+    Deadline,
     /// A block that declares join points. A jump from its statement `at` sets `cont` to `at`,
     /// and the end of a join point's body resumes after that statement.
     Jps {
@@ -655,6 +661,10 @@ struct Fn<'a, 'm> {
     pinned: Vec<Vec<Local>>,
     /// The supervisor scope depth this function's `with supervisor` scopes end at (`actor.rs`).
     sup_depth: Option<Local>,
+    /// As `sup_depth`, for `with deadline` scopes (`deadline.rs`).
+    deadline_depth: Option<Local>,
+    /// The `shield` blocks open at this point of the function (R812).
+    shields: u32,
     /// `main`'s `Rand` capabilities, bound to the OS generator.
     os_rand: Vec<String>,
     /// The names of `Rand` handlers, which a `par` splits per branch.
@@ -698,6 +708,8 @@ impl<'a, 'm> Fn<'a, 'm> {
             cost_tokens: Vec::new(),
             pinned: Vec::new(),
             sup_depth: None,
+            deadline_depth: None,
+            shields: 0,
             os_rand: Vec::new(),
             rands: Vec::new(),
             mismatch: None,
@@ -1047,6 +1059,7 @@ impl<'a, 'm> Fn<'a, 'm> {
         v.extend(self.inout.iter().map(|l| Operand::Local(*l)));
         self.end_costs();
         self.end_sups();
+        self.end_deadlines();
         self.end(Term::Return(v));
     }
 
@@ -1385,6 +1398,34 @@ mod selftest {
         let m = moves(src);
         assert_eq!(m.len(), 1);
         assert!(m[0].iter().all(|l| matches!(l, Loc::Local(_))));
+    }
+
+    #[test]
+    fn a_match_binder_moves_the_scrutinee_field() {
+        let src = "module t\nrecord P { pub a: Str, pub b: Str }\nfn main() -> Unit {\n let p: P = P { a: \"x\", b: \"y\" }\n match p {\n  P { a: x, b: y } => {\n   let t: Str = move x\n  }\n }\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert_eq!(
+            m[0],
+            [Loc::Local(0)],
+            "the field of `p`, not the binder's copy"
+        );
+    }
+
+    #[test]
+    fn a_binder_under_a_sum_variant_moves_its_field() {
+        let src = "module t\nsum S { A { pub s: Str, pub t: Str }, B { pub u: Str } }\nfn main() -> Unit {\n let v: S = A { s: \"x\", t: \"y\" }\n match v {\n  A { s: x, t: y } => {\n   let w: Str = move y\n  }\n  B { u: z } => {\n   let w: Str = move z\n  }\n }\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 2, "{m:?}");
+        assert_eq!(m, [[Loc::Local(2)], [Loc::Local(3)]]);
+    }
+
+    #[test]
+    fn a_rest_moves_nothing() {
+        let src = "module t\nrecord P { pub a: Str, pub b: Str }\nfn main() -> Unit {\n let p: P = P { a: \"x\", b: \"y\" }\n let r: P = rest p except a\n let a: Str = p.a\n let t: Str = move a\n ret ()\n}\n";
+        let m = moves(src);
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert_eq!(m[0].len(), 1, "{m:?}");
     }
 
     #[test]
