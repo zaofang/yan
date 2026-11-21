@@ -1,0 +1,15 @@
+pub class Oops:
+    n: int
+
+def leaf(n: int) -> int fail Oops uses fs, io:
+    assert n > 0
+    txt = fs.read("x") else "x"
+    io.print(txt)
+    a = [1, 2]
+    if n > 3:
+        fail Oops(n)
+    return a[n] // n
+
+pub def mid(n: int) -> int fail Oops uses fs, io:
+    """Doc."""
+    return leaf(n)?
