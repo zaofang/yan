@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: #1836 (gap issue); R567 hard run 2026-11-20 (`bench/r567/results/hard-2026-11-20`, branch `bench/r567-hard-2026-11-20b`, main 4556487); report `r567-hard-gap-2026-11-20`
-- Rows: R1131 (D1); D2 pending, numbered with its implementation
+- Rows: R1131 (D1), R1132 (D2)
 
 ## Summary
 

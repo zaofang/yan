@@ -206,6 +206,59 @@ fn invalid_temporal(text: &str) -> Option<(&'static str, String)> {
     Some(("E541", format!("`{text}` {why} in {zone}")))
 }
 
+/// R1132: `S[if c then a else d]` with a diverging `d` is `if not c: d` and then `S[a]`; the
+/// condition is evaluated once and the surviving branch after it, as the conditional does.
+/// Returns the guard and rewrites `s` to the surviving value; None when `s` has no such form.
+fn hoist_diverge(s: &mut Stmt) -> Option<Stmt> {
+    let value = match &mut s.kind {
+        StmtKind::Expr(e) | StmtKind::Let { value: e, .. } | StmtKind::Assign { value: e, .. } => e,
+        StmtKind::Return(Some(e)) => e,
+        _ => return None,
+    };
+    let ExprKind::If {
+        cond,
+        then,
+        otherwise,
+    } = &value.kind
+    else {
+        return None;
+    };
+    if has_is(cond) {
+        return None;
+    }
+    let (test, div, keep) = match (&then.kind, &otherwise.kind) {
+        (ExprKind::Diverge(_), ExprKind::Diverge(_)) => return None,
+        (ExprKind::Diverge(d), _) => ((**cond).clone(), d, (**otherwise).clone()),
+        (_, ExprKind::Diverge(d)) => (
+            Expr {
+                span: cond.span,
+                kind: ExprKind::Unary(UnOp::Not, cond.clone()),
+            },
+            d,
+            (**then).clone(),
+        ),
+        _ => return None,
+    };
+    let guard = Stmt {
+        span: div.span,
+        kind: StmtKind::If {
+            branches: vec![(test, vec![(**div).clone()])],
+            otherwise: None,
+        },
+    };
+    *value = keep;
+    Some(guard)
+}
+
+fn has_is(e: &Expr) -> bool {
+    match &e.kind {
+        ExprKind::Is { .. } => true,
+        ExprKind::Paren(x) | ExprKind::Unary(_, x) => has_is(x),
+        ExprKind::Binary(_, l, r) => has_is(l) || has_is(r),
+        _ => false,
+    }
+}
+
 fn stmt(kind: h::StmtKind, span: Span) -> h::Stmt {
     h::Stmt { kind, span }
 }
@@ -1157,6 +1210,11 @@ impl Lower<'_> {
     fn stmts(&mut self, stmts: &[Stmt]) -> R<Vec<h::Stmt>> {
         let mut out = Vec::new();
         for s in stmts {
+            let mut s = s.clone();
+            while let Some(guard) = hoist_diverge(&mut s) {
+                out.push(self.stmt(&guard)?);
+            }
+            let s = &s;
             match self.is_binding(s) {
                 Some(r) => out.extend(r.map_err(|u| u.at(s.span))?),
                 None => out.push(self.stmt(s)?),
@@ -1971,6 +2029,11 @@ impl Lower<'_> {
                 cond: b(self.expr(cond)?),
                 els: b(self.expr(otherwise)?),
             },
+            ExprKind::Diverge(_) => {
+                return unsupported(
+                    "a diverging branch outside a statement's whole value (`let`, `return`, assignment or tail)",
+                );
+            }
             ExprKind::Fallback(lhs, fb) => {
                 let lhs = b(self.expr(lhs)?);
                 let fb = match fb.as_ref() {

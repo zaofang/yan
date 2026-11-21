@@ -2330,3 +2330,8 @@ sections = "9.4, 24.1"
 rows = "R1131"
 topic = "in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1)"
 sections = "15.3"
+
+[[entry]]
+rows = "R1132"
+topic = "in Yan either branch of `if c then a else b` may be a diverging form (`return`, `fail`, `break`, `continue`, `unreachable`); the expression has the type of the other branch, two diverging branches are a syntax error (RFC 0099 D2)"
+sections = "15.2, 15.3"
