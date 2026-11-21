@@ -475,6 +475,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1131 | in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1) | 15.3 |
 | R1132 | in Yan either branch of `if c then a else b` may be a diverging form (`return`, `fail`, `break`, `continue`, `unreachable`); the expression has the type of the other branch, two diverging branches are a syntax error (RFC 0099 D2) | 15.2, 15.3 |
 | R1133 | a check or build of a file that names a module of another package also reports that module's own errors, such as E314 against its own capability ceiling, judged by its own manifest and not the dependent's (RFC 0084 D12 step 3, #1452) | 19.1 |
+| R1134 | an item named in the signature of a `pub` function, record or constant must be `pub`: a `pkg` or private item there is E336, which proposes `pub` (RFC 0084 D3, slice 3) | 3.5, 25 |
 
 <!-- /rows -->
 

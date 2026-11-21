@@ -1,0 +1,4 @@
+spec = "3.5"
+rows = "R1134"
+note = "a pub signature naming pub types is accepted, and a pkg item may name pkg types in its signature and use them in a pub body"
+command = ["check"]

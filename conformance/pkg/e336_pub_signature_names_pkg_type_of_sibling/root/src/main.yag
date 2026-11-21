@@ -1,0 +1,5 @@
+pub def quote(n: int) -> fees.Fee:
+    return fees.Fee(bps=n)
+
+pub def main() -> None uses io:
+    io.print(str(quote(150).bps))

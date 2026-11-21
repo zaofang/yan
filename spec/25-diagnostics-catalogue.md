@@ -159,6 +159,7 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E333 | `dyn Trait` of a trait that is not object-safe (R1005) *new* | 10.2 |
 | E334 | `dev_dependencies` of a package reach the package itself, directly or through a dev dependency's normal requirements (RFC 0084 D6, R1076) *new* | 19.1 |
 | E335 | a requirement names a package and major a workspace member has, but the member's version is below its minimum (RFC 0084 D7, R1077) *new* | 19.1 |
+| E336 | a `pub` function, record or constant names a `pkg` or private item in its signature; a public signature may only name `pub` items (RFC 0084 D3, R1134) *new* | 3.5 |
 
 ### 25.6 Ownership, views, memory and thread safety
 
