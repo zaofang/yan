@@ -1,0 +1,25 @@
+# spec: 17.4
+# rows: R878
+# note: dump writes a header, one row per element and a newline after every row; a field is quoted only when it has the delimiter, a quote, CR or LF, or is empty
+# stdout:
+# name,n
+# plain,1
+# "a,b",2
+# "say ""hi""",3
+# "",4
+# ---
+# name;n
+# "a;b";1
+# c,d;2
+# ---
+
+@derive(Wire, Show, Eq)
+class Row:
+    name: str
+    n: int
+
+pub def main() uses io:
+    io.print(csv.dump([Row(name="plain", n=1), Row(name="a,b", n=2), Row(name="say \"hi\"", n=3), Row(name="", n=4)]).strip())
+    io.print("---")
+    io.print(csv.dump([Row(name="a;b", n=1), Row(name="c,d", n=2)], ";").strip())
+    io.print("---")

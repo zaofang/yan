@@ -1,0 +1,20 @@
+# spec: 17.4
+# rows: R878
+# note: quoted fields hold delimiters, doubled quotes and newlines; CRLF and LF both end a row; columns match by name in any order
+# stdout:
+# 3
+# a,b "c" 1
+# x
+# y 2
+# z 3
+
+@derive(Wire, Show, Eq)
+class Row:
+    name: str
+    n: int
+
+pub def main() uses io:
+    rows = csv.parse[Row]("n,name\r\n1,\"a,b \"\"c\"\"\"\r\n2,\"x\ny\"\n3,z\n") else err -> []
+    io.print(f"{len(rows)}")
+    for r in rows:
+        io.print(f"{r.name} {r.n}")
