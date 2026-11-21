@@ -473,6 +473,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1129 | under drain a shield's instant is clamped to the end of the cancel grace of the scopes it holds back: the earliest of their drain grace ends plus 10 s, whether the drain came before or after the shield opened; expiry at the clamp is `ShieldTimeout` (#1803 item 4, #1820) | 9.4 |
 | R1130 | signals on hosted platforms: the first SIGINT or SIGTERM is `scope.root().drain(30 * s)`, observed at the next cancellation point or scope query on the bound `time` handler's clock, and it wakes host sleeps; a second exits at once with status 128 plus its number; a process alive 40 s of host time after the first aborts as a `shutdown` panic; conformance `signal: INT|TERM after LINE` header (#1820) | 9.4, 24.1 |
 | R1131 | in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1) | 15.3 |
+| R1132 | in Yan either branch of `if c then a else b` may be a diverging form (`return`, `fail`, `break`, `continue`, `unreachable`); the expression has the type of the other branch, two diverging branches are a syntax error (RFC 0099 D2) | 15.2, 15.3 |
 
 <!-- /rows -->
 
