@@ -33,6 +33,7 @@ mod test;
 mod trust;
 mod vendor;
 mod w806;
+mod why;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
@@ -280,6 +281,12 @@ enum Command {
         /// Keep the most relevant items within this many tokens.
         #[arg(long)]
         budget: Option<usize>,
+    },
+    /// Print the shortest chain that makes an item need a capability, `fail` member or panic kind (18.4, R612).
+    Why {
+        /// The item as `module.name`, the module's dotted path under `src/`.
+        item: String,
+        fact: String,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
     Fmt {
@@ -704,6 +711,7 @@ fn main() -> ExitCode {
             }
         },
         Command::Sig { module, budget } => sig::command(&module, budget),
+        Command::Why { item, fact } => why::command(&item, &fact),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
