@@ -2340,3 +2340,8 @@ sections = "15.2, 15.3"
 rows = "R1133"
 topic = "a check or build of a file that names a module of another package also reports that module's own errors, such as E314 against its own capability ceiling, judged by its own manifest and not the dependent's (RFC 0084 D12 step 3, #1452)"
 sections = "19.1"
+
+[[entry]]
+rows = "R1134"
+topic = "an item named in the signature of a `pub` function, record or constant must be `pub`: a `pkg` or private item there is E336, which proposes `pub` (RFC 0084 D3, slice 3)"
+sections = "3.5, 25"
