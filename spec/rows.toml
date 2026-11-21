@@ -2335,3 +2335,8 @@ sections = "15.3"
 rows = "R1132"
 topic = "in Yan either branch of `if c then a else b` may be a diverging form (`return`, `fail`, `break`, `continue`, `unreachable`); the expression has the type of the other branch, two diverging branches are a syntax error (RFC 0099 D2)"
 sections = "15.2, 15.3"
+
+[[entry]]
+rows = "R1133"
+topic = "a check or build of a file that names a module of another package also reports that module's own errors, such as E314 against its own capability ceiling, judged by its own manifest and not the dependent's (RFC 0084 D12 step 3, #1452)"
+sections = "19.1"
