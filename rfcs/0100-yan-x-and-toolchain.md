@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Research: #363 (T29); M1 audit row 4 (`docs/reports/2026-11-21-m1-audit.md`)
-- Rows: R1140 (D1), D2 pending
+- Rows: R1140 (D1), R1141 (D2)
 
 ## Summary
 
@@ -22,7 +22,7 @@ A package declares `bins`, a literal map from tool name to a module path under `
 `yan toolchain` prints the installed version and the maximum `yan` requirement over the package and its locked dependencies (20.3), and exits 1 with a diagnostic when the installed toolchain is older. It fetches nothing. Fetching and signature checks (19.6) and `yan self update` move to the milestone that ships a release index; the 18 table row splits accordingly. Options weighed: a static toolchain index at M1 (needs an index and signing layout first); defer the command to M2. Recommendation: offline verify.
 
 - Decision: Antonio chose "Offline verify now, fetch later" on the decision card, 2026-11-21.
-- Row: (R number once accepted)
+- Row: R1141
 
 ## Spec changes
 

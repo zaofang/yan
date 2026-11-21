@@ -18075,6 +18075,28 @@
    }
   },
   {
+   "path": "pkg/e025_toolchain_older_than_required",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.3"
+   ],
+   "rows": [
+    "R1141"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.3",
+    "rows": "R1141",
+    "note": "a package requiring a newer toolchain than the installed one is E025, and nothing is fetched",
+    "command": [
+     "toolchain"
+    ],
+    "code": "E025"
+   }
+  },
+  {
    "path": "pkg/e144_manifest_call",
    "kind": "pkg",
    "milestone": "M2b",
@@ -19266,6 +19288,27 @@
     "note": "a tests/ module reaches its package through the package's local name and its pub items",
     "command": [
      "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/toolchain_meets_requirement",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "20.3"
+   ],
+   "rows": [
+    "R1141"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "20.3",
+    "rows": "R1141",
+    "note": "yan toolchain reports no error when the installed toolchain meets the package's yan requirement",
+    "command": [
+     "toolchain"
     ]
    }
   },

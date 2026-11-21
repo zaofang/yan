@@ -482,6 +482,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1138 | `pub use path as name` where `path` names a module of the package makes `name` an alias of that module in the facade: a dependent reaches its items as `lib.name.item`, a chain of module aliases is followed, same hash and capability set (RFC 0084 D5) | 19.1 |
 | R1139 | a method signature of a trait or impl inherits the visibility of its trait or type: it is public when the trait or the implementing type is `pub`, and R1134 applies to it, so a `pkg` or private item there is E336 (RFC 0084 D3) | 3.5, 25 |
 | R1140 | `bins` maps a tool name to a module path under `src/`; `yan x PKG TOOL [-- ARGS]` runs that module's `main` for a locked `tools` package under that package's own ceiling, and fails listing the valid names when PKG or TOOL is not declared; `--format json` checks the tool under its ceiling and prints the diagnostic records without running it (RFC 0100 D1) | 18, 19.1, 19.2 |
+| R1141 | `yan toolchain` reports the installed toolchain and the maximum `yan` requirement over the package and its locked dependencies, E025 when the installed one is older, and fetches nothing; `yan self update` and fetching move to M2b (RFC 0100 D2) | 18, 20.3, 25 |
 
 <!-- /rows -->
 

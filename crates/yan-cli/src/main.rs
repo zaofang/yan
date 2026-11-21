@@ -30,6 +30,7 @@ mod sig;
 mod store;
 mod term;
 mod test;
+mod toolchain;
 mod trust;
 mod vendor;
 mod w806;
@@ -289,6 +290,11 @@ enum Command {
         item: String,
         fact: String,
         /// `json` prints the chain as an array of `{file, line, col, text}` steps.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
+    /// Report whether the installed toolchain meets the `yan` requirement of the package and its dependencies (20.3, RFC 0100 D2).
+    Toolchain {
         #[arg(long, value_enum)]
         format: Option<Format>,
     },
@@ -728,6 +734,18 @@ fn main() -> ExitCode {
             }
         },
         Command::Sig { module, budget } => sig::command(&module, budget),
+        Command::Toolchain { format } => match toolchain::check(Path::new(".")) {
+            Ok(line) => {
+                if !matches!(format, Some(Format::Json)) {
+                    println!("{line}");
+                    ExitCode::SUCCESS
+                } else {
+                    emit_records(&[], format)
+                }
+            }
+            Err(Ok(d)) => emit_records(&[*d], format),
+            Err(Err(msg)) => tool_failure(&msg),
+        },
         Command::X {
             pkg,
             tool,

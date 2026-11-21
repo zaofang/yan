@@ -1,0 +1,4 @@
+spec = "20.3"
+rows = "R1141"
+note = "yan toolchain reports no error when the installed toolchain meets the package's yan requirement"
+command = ["toolchain"]
