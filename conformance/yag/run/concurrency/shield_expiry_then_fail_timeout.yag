@@ -1,0 +1,19 @@
+# spec: 9.4
+# rows: R811, R812
+# note: a hand-built fail Timeout() after a caught shield expiry is a plain Timeout, not ShieldTimeout
+# stdout:
+# ShieldTimeout()
+# Timeout()
+
+def hold() -> str fail Cancelled | Timeout | ShieldTimeout uses io, time, shield:
+    with shield(10 * ms):
+        time.sleep(1 * s)?
+    return "ok"
+
+def after() -> str fail Timeout uses io, time, shield:
+    io.print(hold() else err -> f"{err}")
+    fail Timeout()
+
+pub def main() uses io, time, shield:
+    with time = virtual(time.now()):
+        io.print(after() else err -> f"{err}")
