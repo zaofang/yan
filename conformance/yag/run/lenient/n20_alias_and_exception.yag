@@ -1,0 +1,14 @@
+# spec: 14.4
+# note: N20 reads X = T as type X = T and drops the Exception base
+# stdout:
+# 3 4
+
+Count = int
+
+class E(Exception):
+    code: int
+
+pub def main() uses io:
+    n: Count = 3
+    e = E(4)
+    io.print(f"{n} {e.code}")

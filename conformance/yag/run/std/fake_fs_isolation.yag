@@ -1,0 +1,17 @@
+# spec: 7.3, 17.3
+# rows: R377
+# note: a fake_fs scope sees only its own files; a second scope and the real file system see none of them
+# stdout:
+# a
+# not found
+# not found
+
+def read(p: str) -> str fail FsError uses fs:
+    return fs.read(p)?
+
+pub def main() uses fs, io:
+    with fs = fake_fs({"only_in_first.txt": "a"}):
+        io.print(read("only_in_first.txt") else "missing")
+    with fs = fake_fs({}):
+        io.print(read("only_in_first.txt") else err -> err.reason)
+    io.print(read("only_in_first.txt") else err -> err.reason)

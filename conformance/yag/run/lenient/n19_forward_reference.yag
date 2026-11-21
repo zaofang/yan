@@ -1,0 +1,17 @@
+# spec: 14.4
+# note: N19 reads a quoted forward reference as the bare type name
+# stdout:
+# 2
+
+class Node:
+    value: int
+    next: "Node" | None
+
+def length(n: Node) -> int:
+    rest = n.next
+    if rest is None:
+        return 1
+    return 1 + length(rest)
+
+pub def main() uses io:
+    io.print(f"{length(Node(1, Node(2, None)))}")
