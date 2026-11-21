@@ -1,0 +1,126 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer division of a by b; fails with DivZero carrying a when b is 0.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(6, 3) == 2\n    ex safe_div(0, 5) == 0\n    ex safe_div(5, 0) == Err(DivZero(5))\n    if not b:\n        fail DivZero(a)\n    return a // b\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3285,
+    "out": 357,
+    "reasoning": 204
+   },
+   "out_bytes": 298
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpfyub9zvd/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpfyub9zvd/work/task.yag:10:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3742,
+    "out": 232,
+    "reasoning": 58
+   },
+   "out_bytes": 347
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4173,
+    "out": 558,
+    "reasoning": 386
+   },
+   "out_bytes": 346
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 7915,
+   "out": 790,
+   "reasoning": 444,
+   "out_bytes": 693
+  },
+  "spec": {
+   "in": 3285,
+   "out": 357,
+   "reasoning": 204,
+   "out_bytes": 298
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpfyub9zvd/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpfyub9zvd/work/task.yag:10:8 safe_div: `b =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer division of a by b; fails with DivZero carrying a when b is 0.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(6, 3) == 2\n    ex safe_div(0, 5) == 0\n    ex safe_div(5, 0) == fail DivZero(5)\n    if b == 0:\n        fail DivZero(a)\n    return a // b\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

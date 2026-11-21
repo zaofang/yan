@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3008,
+   "out": 283,
+   "reasoning": 199,
+   "out_bytes": 149
+  },
+  "body": {
+   "in": 3366,
+   "out": 106,
+   "reasoning": 0,
+   "out_bytes": 188
+  }
+ },
+ "final": "type DivZero = { a: int }\n\nsafe_div(a: int, b: int) -> int fail DivZero =\n  ex safe_div(7, 2) == 3\n  ex safe_div(-7, 2) == -4\n  if b == 0\n    fail DivZero(a: a)\n  else\n    a // b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3008,
+    "out": 283,
+    "reasoning": 199
+   },
+   "out_bytes": 149,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3366,
+    "out": 106,
+    "reasoning": 0
+   },
+   "out_bytes": 188,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_div",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "type DivZero = { a: int }\n\nsafe_div(a: int, b: int) -> int fail DivZero =\n  ex safe_div(7, 2) == 3\n  ex safe_div(-7, 2) == -4\n  if b == 0\n    fail DivZero(a: a)\n  else\n    a // b\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

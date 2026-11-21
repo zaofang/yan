@@ -1,0 +1,95 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x if it is even, otherwise fail with Bad(n=x).\"\"\"\n    ex check(2) == 2\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Return the checked values in order, or fail with the Bad of the lowest-index odd element.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([]) == []\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([7, 4, 9]) == Err(Bad(n=7))\n    return par [check(x)? for x in xs]\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3354,
+    "out": 567,
+    "reasoning": 288
+   },
+   "out_bytes": 578
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4021,
+    "out": 444,
+    "reasoning": 129
+   },
+   "out_bytes": 655
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_lowest_failure",
+ "tokens": {
+  "body": {
+   "in": 4021,
+   "out": 444,
+   "reasoning": 129,
+   "out_bytes": 655
+  },
+  "spec": {
+   "in": 3354,
+   "out": 567,
+   "reasoning": 288,
+   "out_bytes": 578
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x if it is even, otherwise fail with Bad(n=x).\"\"\"\n    ex check(2) == 2\n    ex check(3) == fail Bad(n=3)\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel. Return the checked values in order, or fail with the Bad of the lowest-index odd element.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([]) == []\n    ex all_even([2, 3, 5]) == fail Bad(n=3)\n    ex all_even([7, 4, 9]) == fail Bad(n=7)\n    return par [check(x)? for x in xs]\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

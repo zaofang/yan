@@ -1,0 +1,95 @@
+{
+ "final": "def plugin(path: str) -> str uses fs:\n    \"\"\"Untrusted plugin: reads `path` and a second file, returns both joined by \"|\".\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Return plugin(path) with fs confined to the directory `notes`.\n\n    `path` is relative to `notes`. Every path the plugin passes to fs,\n    including literals in its body, is resolved below `notes`. Anything\n    that escapes (`..`, absolute paths, symlinks out) fails to read and\n    yields an empty string.\n    \"\"\"\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3502,
+    "out": 365,
+    "reasoning": 165
+   },
+   "out_bytes": 517
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3967,
+    "out": 335,
+    "reasoning": 66
+   },
+   "out_bytes": 676
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 3967,
+   "out": 335,
+   "reasoning": 66,
+   "out_bytes": 676
+  },
+  "spec": {
+   "in": 3502,
+   "out": 365,
+   "reasoning": 165,
+   "out_bytes": 517
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def plugin(path: str) -> str uses fs:\n    \"\"\"Untrusted plugin: reads `path` and a second file, returns both joined by \"|\".\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Return plugin(path) with fs confined to the directory `notes`.\n\n    `path` is relative to `notes`. Every path the plugin passes to fs,\n    including literals in its body, is resolved below `notes`. Anything\n    that escapes (`..`, absolute paths, symlinks out) fails to read and\n    yields an empty string.\n    \"\"\"\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1944,
+   "out": 679,
+   "reasoning": 0,
+   "out_bytes": 1505
+  },
+  "body": {
+   "in": 2681,
+   "out": 745,
+   "reasoning": 0,
+   "out_bytes": 1666
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int], workers: int = 4) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel with a\n    thread pool of `workers` threads. Results are in input order, regardless\n    of the worker count. Negative numbers give 0 or 1 (Python modulo).\n    Raises ValueError if workers < 1.\"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_negative_and_zero() -> None:\n    assert parities([-3, -2, 0, 7]) == [1, 0, 0, 1]\n\n\ndef test_large_ints() -> None:\n    assert parities([2**100, 2**100 + 1]) == [0, 1]\n\n\ndef test_order_preserved_large_input() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [parity(x) for x in xs]\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 8, 64])\ndef test_independent_of_worker_count(workers: int) -> None:\n    xs = [5, 8, -1, 0, 13, 22, 7, 100, 101]\n    assert parities(xs, workers=workers) == [parity(x) for x in xs]\n\n\ndef test_more_workers_than_items() -> None:\n    assert parities([1, 2], workers=32) == [1, 0]\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, 4, 5]\n    parities(xs)\n    assert xs == [3, 4, 5]\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_workers(workers: int) -> None:\n    with pytest.raises(ValueError):\n        parities([1, 2, 3], workers=workers)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1944,
+    "out": 679,
+    "reasoning": 0
+   },
+   "out_bytes": 1505,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2681,
+    "out": 745,
+    "reasoning": 0
+   },
+   "out_bytes": 1666,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int], workers: int = 4) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel with a\n    thread pool of `workers` threads. Results are in input order, regardless\n    of the worker count. Negative numbers give 0 or 1 (Python modulo).\n    Raises ValueError if workers < 1.\"\"\"\n    if workers < 1:\n        raise ValueError(\"workers must be >= 1\")\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_negative_and_zero() -> None:\n    assert parities([-3, -2, 0, 7]) == [1, 0, 0, 1]\n\n\ndef test_large_ints() -> None:\n    assert parities([2**100, 2**100 + 1]) == [0, 1]\n\n\ndef test_order_preserved_large_input() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [parity(x) for x in xs]\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 3, 8, 64])\ndef test_independent_of_worker_count(workers: int) -> None:\n    xs = [5, 8, -1, 0, 13, 22, 7, 100, 101]\n    assert parities(xs, workers=workers) == [parity(x) for x in xs]\n\n\ndef test_more_workers_than_items() -> None:\n    assert parities([1, 2], workers=32) == [1, 0]\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [3, 4, 5]\n    parities(xs)\n    assert xs == [3, 4, 5]\n\n\n@pytest.mark.parametrize(\"workers\", [0, -1])\ndef test_invalid_workers(workers: int) -> None:\n    with pytest.raises(ValueError):\n        parities([1, 2, 3], workers=workers)\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

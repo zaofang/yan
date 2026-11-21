@@ -1,0 +1,95 @@
+{
+ "final": "def wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Return \"start:\" + the result of calling job() + \":end\".\n\n    Calls job exactly once. The helper declares no capabilities and does no\n    printing or logging; any capabilities the job uses come from the caller's\n    closure.\n    \"\"\"\n    post out.startswith(\"start:\")\n    post out.endswith(\":end\")\n    ex wrapped(lambda: \"x\") == \"start:x:end\"\n    ex wrapped(lambda: \"\") == \"start::end\"\n    r = job()\n    return \"start:\" + r + \":end\"\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3313,
+    "out": 475,
+    "reasoning": 296
+   },
+   "out_bytes": 453
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3888,
+    "out": 195,
+    "reasoning": 0
+   },
+   "out_bytes": 492
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_closure_logging",
+ "tokens": {
+  "body": {
+   "in": 3888,
+   "out": 195,
+   "reasoning": 0,
+   "out_bytes": 492
+  },
+  "spec": {
+   "in": 3313,
+   "out": 475,
+   "reasoning": 296,
+   "out_bytes": 453
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Return \"start:\" + the result of calling job() + \":end\".\n\n    Calls job exactly once. The helper declares no capabilities and does no\n    printing or logging; any capabilities the job uses come from the caller's\n    closure.\n    \"\"\"\n    post out.startswith(\"start:\")\n    post out.endswith(\":end\")\n    ex wrapped(lambda: \"x\") == \"start:x:end\"\n    ex wrapped(lambda: \"\") == \"start::end\"\n    r = job()\n    return \"start:\" + r + \":end\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

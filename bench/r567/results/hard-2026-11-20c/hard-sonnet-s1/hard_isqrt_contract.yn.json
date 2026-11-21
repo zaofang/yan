@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3003,
+   "out": 467,
+   "reasoning": 345,
+   "out_bytes": 201
+  },
+  "body": {
+   "in": 3545,
+   "out": 668,
+   "reasoning": 471,
+   "out_bytes": 343
+  }
+ },
+ "final": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var lo = 0\n  var hi = 3037000500\n  while hi - lo > 1\n    let mid = lo + (hi - lo) // 2\n    if mid <= n // mid\n      lo = mid\n    else\n      hi = mid\n  lo\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3003,
+    "out": 467,
+    "reasoning": 345
+   },
+   "out_bytes": 201,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3545,
+    "out": 668,
+    "reasoning": 471
+   },
+   "out_bytes": 343,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var lo = 0\n  var hi = 3037000500\n  while hi - lo > 1\n    let mid = lo + (hi - lo) // 2\n    if mid <= n // mid\n      lo = mid\n    else\n      hi = mid\n  lo\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

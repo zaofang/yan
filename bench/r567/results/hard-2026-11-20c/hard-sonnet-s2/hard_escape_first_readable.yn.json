@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3136,
+   "out": 61,
+   "reasoning": 0,
+   "out_bytes": 132
+  },
+  "body": {
+   "in": 3271,
+   "out": 99,
+   "reasoning": 0,
+   "out_bytes": 236
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let text = fs.read(name) else continue\n      return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3136,
+    "out": 61,
+    "reasoning": 0
+   },
+   "out_bytes": 132,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3271,
+    "out": 99,
+    "reasoning": 0
+   },
+   "out_bytes": 236,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "first_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let text = fs.read(name) else continue\n      return text\n  \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1914,
+   "out": 1070,
+   "reasoning": 225,
+   "out_bytes": 2012
+  },
+  "body": {
+   "in": 3043,
+   "out": 1045,
+   "reasoning": 147,
+   "out_bytes": 2171
+  }
+ },
+ "final": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` per-line config text.\n\n    Each line is split on its first \"=\". Whitespace around the name and\n    the value is stripped, and the value may itself contain \"=\". Lines\n    without \"=\" are ignored. If the key appears more than once, the first\n    occurrence wins. Returns \"\" when the key is absent. Key matching is\n    exact and case-sensitive. Does not read files.\n    \"\"\"\n    for raw in text.splitlines():\n        name, sep, value = raw.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_basic_lookup() -> None:\n    assert config_value(\"a=1\\nb=2\\nc=3\", \"b\") == \"2\"\n\n\ndef test_missing_key_returns_empty() -> None:\n    assert config_value(\"a=1\\nb=2\", \"z\") == \"\"\n\n\ndef test_empty_text() -> None:\n    assert config_value(\"\", \"a\") == \"\"\n\n\ndef test_empty_value_is_empty_string() -> None:\n    assert config_value(\"a=\\nb=2\", \"a\") == \"\"\n\n\ndef test_whitespace_stripped() -> None:\n    assert config_value(\"  name  =  hello world  \\nb=2\", \"name\") == \"hello world\"\n\n\ndef test_value_may_contain_equals() -> None:\n    assert config_value(\"url=http://x/?a=b&c=d\", \"url\") == \"http://x/?a=b&c=d\"\n\n\ndef test_lines_without_equals_ignored() -> None:\n    assert config_value(\"garbage\\na=1\\n\\nmore garbage\", \"a\") == \"1\"\n    assert config_value(\"garbage\", \"garbage\") == \"\"\n\n\ndef test_first_occurrence_wins() -> None:\n    assert config_value(\"a=1\\na=2\", \"a\") == \"1\"\n\n\ndef test_exact_case_sensitive_match() -> None:\n    assert config_value(\"Key=1\", \"key\") == \"\"\n    assert config_value(\"ab=1\\na=2\", \"a\") == \"2\"\n\n\ndef test_key_only_matches_name_not_value() -> None:\n    assert config_value(\"a=b\\nb=c\", \"b\") == \"c\"\n\n\ndef test_crlf_line_endings() -> None:\n    assert config_value(\"a=1\\r\\nb=2\\r\\n\", \"b\") == \"2\"\n\n\n@pytest.mark.parametrize(\n    (\"text\", \"key\", \"expected\"),\n    [\n        (\"x=1\", \"x\", \"1\"),\n        (\"x = 1\", \"x\", \"1\"),\n        (\"\\n\\nx=1\\n\", \"x\", \"1\"),\n        (\"x=1\", \"\", \"\"),\n    ],\n)\ndef test_parametrized(text: str, key: str, expected: str) -> None:\n    assert config_value(text, key) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1914,
+    "out": 1070,
+    "reasoning": 225
+   },
+   "out_bytes": 2012,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3043,
+    "out": 1045,
+    "reasoning": 147
+   },
+   "out_bytes": 2171,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in `name=value` per-line config text.\n\n    Each line is split on its first \"=\". Whitespace around the name and\n    the value is stripped, and the value may itself contain \"=\". Lines\n    without \"=\" are ignored. If the key appears more than once, the first\n    occurrence wins. Returns \"\" when the key is absent. Key matching is\n    exact and case-sensitive. Does not read files.\n    \"\"\"\n    for raw in text.splitlines():\n        name, sep, value = raw.partition(\"=\")\n        if sep and name.strip() == key:\n            return value.strip()\n    return \"\"\n\n\ndef test_basic_lookup() -> None:\n    assert config_value(\"a=1\\nb=2\\nc=3\", \"b\") == \"2\"\n\n\ndef test_missing_key_returns_empty() -> None:\n    assert config_value(\"a=1\\nb=2\", \"z\") == \"\"\n\n\ndef test_empty_text() -> None:\n    assert config_value(\"\", \"a\") == \"\"\n\n\ndef test_empty_value_is_empty_string() -> None:\n    assert config_value(\"a=\\nb=2\", \"a\") == \"\"\n\n\ndef test_whitespace_stripped() -> None:\n    assert config_value(\"  name  =  hello world  \\nb=2\", \"name\") == \"hello world\"\n\n\ndef test_value_may_contain_equals() -> None:\n    assert config_value(\"url=http://x/?a=b&c=d\", \"url\") == \"http://x/?a=b&c=d\"\n\n\ndef test_lines_without_equals_ignored() -> None:\n    assert config_value(\"garbage\\na=1\\n\\nmore garbage\", \"a\") == \"1\"\n    assert config_value(\"garbage\", \"garbage\") == \"\"\n\n\ndef test_first_occurrence_wins() -> None:\n    assert config_value(\"a=1\\na=2\", \"a\") == \"1\"\n\n\ndef test_exact_case_sensitive_match() -> None:\n    assert config_value(\"Key=1\", \"key\") == \"\"\n    assert config_value(\"ab=1\\na=2\", \"a\") == \"2\"\n\n\ndef test_key_only_matches_name_not_value() -> None:\n    assert config_value(\"a=b\\nb=c\", \"b\") == \"c\"\n\n\ndef test_crlf_line_endings() -> None:\n    assert config_value(\"a=1\\r\\nb=2\\r\\n\", \"b\") == \"2\"\n\n\n@pytest.mark.parametrize(\n    (\"text\", \"key\", \"expected\"),\n    [\n        (\"x=1\", \"x\", \"1\"),\n        (\"x = 1\", \"x\", \"1\"),\n        (\"\\n\\nx=1\\n\", \"x\", \"1\"),\n        (\"x=1\", \"\", \"\"),\n    ],\n)\ndef test_parametrized(text: str, key: str, expected: str) -> None:\n    assert config_value(text, key) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

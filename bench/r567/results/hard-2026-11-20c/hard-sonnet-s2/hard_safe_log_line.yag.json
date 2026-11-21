@@ -1,0 +1,98 @@
+{
+ "final": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as `[level] message`.\"\"\"\n    ex format_line(level=\"info\", message=\"started\") == \"[info] started\"\n    ex format_line(level=\"warn\", message=\"\") == \"[warn] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) uses io:\n    \"\"\"Print `[level] message` to stdout. Uses only `io`: no file is written.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831",
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3277,
+    "out": 445,
+    "reasoning": 298
+   },
+   "out_bytes": 394
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3822,
+    "out": 284,
+    "reasoning": 113
+   },
+   "out_bytes": 474
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 3822,
+   "out": 284,
+   "reasoning": 113,
+   "out_bytes": 474
+  },
+  "spec": {
+   "in": 3277,
+   "out": 445,
+   "reasoning": 298,
+   "out_bytes": 394
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def format_line(level: str, message: str) -> str:\n    \"\"\"Format a log line as `[level] message`.\"\"\"\n    ex format_line(level=\"info\", message=\"started\") == \"[info] started\"\n    ex format_line(level=\"warn\", message=\"\") == \"[warn] \"\n    return \"[\" + level + \"] \" + message\n\ndef log_line(level: str, message: str) -> None uses io:\n    \"\"\"Print `[level] message` to stdout. Uses only `io`: no file is written.\"\"\"\n    io.print(format_line(level=level, message=message))\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

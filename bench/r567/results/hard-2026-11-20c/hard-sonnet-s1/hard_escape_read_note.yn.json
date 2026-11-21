@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3116,
+   "out": 91,
+   "reasoning": 0,
+   "out_bytes": 198
+  },
+  "body": {
+   "in": 3281,
+   "out": 113,
+   "reasoning": 0,
+   "out_bytes": 245
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n\ntest_read_note_missing() uses fs =\n  assert read_note(\"does_not_exist.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3116,
+    "out": 91,
+    "reasoning": 0
+   },
+   "out_bytes": 198,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3281,
+    "out": 113,
+    "reasoning": 0
+   },
+   "out_bytes": 245,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n\ntest_read_note_missing() uses fs =\n  assert read_note(\"does_not_exist.txt\") == \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

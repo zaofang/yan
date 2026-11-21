@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1905,
+   "out": 508,
+   "reasoning": 120,
+   "out_bytes": 935
+  },
+  "body": {
+   "in": 2472,
+   "out": 414,
+   "reasoning": 0,
+   "out_bytes": 1021
+  }
+ },
+ "final": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Whole years elapsed from birth year `born` to current year `now`.\n\n    The result is `now - born`. The current year is passed in; the clock\n    is never read. Raises ValueError if `now` is earlier than `born`.\n    \"\"\"\n    if now < born:\n        raise ValueError(\"now is earlier than born\")\n    return now - born\n\n\ndef test_age_typical() -> None:\n    assert age_at(1990, 2026) == 36\n\n\ndef test_age_same_year_is_zero() -> None:\n    assert age_at(2000, 2000) == 0\n\n\ndef test_age_one_year() -> None:\n    assert age_at(1999, 2000) == 1\n\n\ndef test_age_across_century() -> None:\n    assert age_at(1899, 2001) == 102\n\n\ndef test_age_is_deterministic_for_same_inputs() -> None:\n    assert age_at(1985, 2020) == age_at(1985, 2020)\n\n\ndef test_age_now_before_born_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2001, 2000)\n\n\ndef test_age_far_future_birth_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(3000, 2026)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1905,
+    "out": 508,
+    "reasoning": 120
+   },
+   "out_bytes": 935,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2472,
+    "out": 414,
+    "reasoning": 0
+   },
+   "out_bytes": 1021,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Whole years elapsed from birth year `born` to current year `now`.\n\n    The result is `now - born`. The current year is passed in; the clock\n    is never read. Raises ValueError if `now` is earlier than `born`.\n    \"\"\"\n    if now < born:\n        raise ValueError(\"now is earlier than born\")\n    return now - born\n\n\ndef test_age_typical() -> None:\n    assert age_at(1990, 2026) == 36\n\n\ndef test_age_same_year_is_zero() -> None:\n    assert age_at(2000, 2000) == 0\n\n\ndef test_age_one_year() -> None:\n    assert age_at(1999, 2000) == 1\n\n\ndef test_age_across_century() -> None:\n    assert age_at(1899, 2001) == 102\n\n\ndef test_age_is_deterministic_for_same_inputs() -> None:\n    assert age_at(1985, 2020) == age_at(1985, 2020)\n\n\ndef test_age_now_before_born_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2001, 2000)\n\n\ndef test_age_far_future_birth_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(3000, 2026)\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

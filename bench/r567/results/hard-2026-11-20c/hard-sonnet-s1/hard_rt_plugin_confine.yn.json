@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3231,
+   "out": 590,
+   "reasoning": 488,
+   "out_bytes": 210
+  },
+  "body": {
+   "in": 3896,
+   "out": 236,
+   "reasoning": 69,
+   "out_bytes": 345
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex run_plugin(\"../secret.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3231,
+    "out": 590,
+    "reasoning": 488
+   },
+   "out_bytes": 210,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3896,
+    "out": 236,
+    "reasoning": 69
+   },
+   "out_bytes": 345,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex run_plugin(\"../secret.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

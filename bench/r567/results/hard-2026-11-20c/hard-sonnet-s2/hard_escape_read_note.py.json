@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1970,
+   "out": 1683,
+   "reasoning": 0,
+   "out_bytes": 3838
+  },
+  "body": {
+   "in": 3711,
+   "out": 1846,
+   "reasoning": 0,
+   "out_bytes": 4319
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the `notes` directory.\n\n    `name` is untrusted and is resolved relative to `notes` (relative to the\n    working directory); subdirectories are allowed (e.g. \"sub/b.txt\").\n    Any name that would resolve outside `notes` (absolute paths, \"..\" parts,\n    symlinks pointing outside, null bytes, etc.) yields \"\". A missing,\n    unreadable, or non-file target also yields \"\".\n    \"\"\"\n    try:\n        if not name or \"\\x00\" in name or \"\\\\\" in name:\n            return \"\"\n        if os.path.isabs(name) or Path(name).is_absolute():\n            return \"\"\n        base = Path(NOTES_DIR).resolve()\n        target = (base / name).resolve()\n        if not target.is_relative_to(base) or target == base:\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text()\n    except (OSError, ValueError, UnicodeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / NOTES_DIR\n    d.mkdir()\n    (d / \"a.txt\").write_text(\"hello\")\n    (d / \"sub\").mkdir()\n    (d / \"sub\" / \"b.txt\").write_text(\"bee\")\n    (tmp_path / \"secret.txt\").write_text(\"secret\")\n    return d\n\n\ndef test_reads_top_level_file(notes: Path) -> None:\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_subdirectory_file(notes: Path) -> None:\n    assert read_note(\"sub/b.txt\") == \"bee\"\n\n\ndef test_missing_file(notes: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name(notes: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_is_not_a_file(notes: Path) -> None:\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal(notes: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n    assert read_note(\"..\") == \"\"\n\n\ndef test_traversal_that_stays_inside(notes: Path) -> None:\n    # Resolves to notes/a.txt, which is inside notes.\n    assert read_note(\"sub/../a.txt\") == \"hello\"\n\n\ndef test_absolute_path(notes: Path) -> None:\n    assert read_note(str(notes.parent / \"secret.txt\")) == \"\"\n    assert read_note(str(notes / \"a.txt\")) == \"\"\n\n\ndef test_absolute_looking_name(notes: Path) -> None:\n    assert read_note(\"/etc/passwd\") == \"\"\n\n\ndef test_backslash_traversal(notes: Path) -> None:\n    assert read_note(\"..\\\\secret.txt\") == \"\"\n\n\ndef test_null_byte(notes: Path) -> None:\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"\\x00\") == \"\"\n\n\ndef test_symlink_file_escaping(notes: Path) -> None:\n    link = notes / \"link.txt\"\n    try:\n        os.symlink(notes.parent / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_dir_escaping(notes: Path, tmp_path: Path) -> None:\n    outside = tmp_path / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"x\")\n    try:\n        os.symlink(outside, notes / \"dirlink\", target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"dirlink/x.txt\") == \"\"\n\n\ndef test_symlink_inside_notes_ok(notes: Path) -> None:\n    try:\n        os.symlink(notes / \"a.txt\", notes / \"alias.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"alias.txt\") == \"hello\"\n\n\ndef test_sibling_prefix_directory(notes: Path, tmp_path: Path) -> None:\n    # \"notes2\" shares the string prefix \"notes\" but is outside it.\n    sib = tmp_path / \"notes2\"\n    sib.mkdir()\n    (sib / \"c.txt\").write_text(\"sibling\")\n    assert read_note(\"../notes2/c.txt\") == \"\"\n\n\ndef test_unreadable_file(notes: Path) -> None:\n    p = notes / \"locked.txt\"\n    p.write_text(\"x\")\n    p.chmod(0)\n    try:\n        if os.access(p, os.R_OK):\n            pytest.skip(\"permissions not enforced (e.g. running as root)\")\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        p.chmod(0o644)\n\n\ndef test_non_utf8_file_gives_empty(notes: Path) -> None:\n    (notes / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert read_note(\"bin.dat\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1970,
+    "out": 1683,
+    "reasoning": 0
+   },
+   "out_bytes": 3838,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3711,
+    "out": 1846,
+    "reasoning": 0
+   },
+   "out_bytes": 4319,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the `notes` directory.\n\n    `name` is untrusted and is resolved relative to `notes` (relative to the\n    working directory); subdirectories are allowed (e.g. \"sub/b.txt\").\n    Any name that would resolve outside `notes` (absolute paths, \"..\" parts,\n    symlinks pointing outside, null bytes, etc.) yields \"\". A missing,\n    unreadable, or non-file target also yields \"\".\n    \"\"\"\n    try:\n        if not name or \"\\x00\" in name or \"\\\\\" in name:\n            return \"\"\n        if os.path.isabs(name) or Path(name).is_absolute():\n            return \"\"\n        base = Path(NOTES_DIR).resolve()\n        target = (base / name).resolve()\n        if not target.is_relative_to(base) or target == base:\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text()\n    except (OSError, ValueError, UnicodeError):\n        return \"\"\n\n\n@pytest.fixture\ndef notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    d = tmp_path / NOTES_DIR\n    d.mkdir()\n    (d / \"a.txt\").write_text(\"hello\")\n    (d / \"sub\").mkdir()\n    (d / \"sub\" / \"b.txt\").write_text(\"bee\")\n    (tmp_path / \"secret.txt\").write_text(\"secret\")\n    return d\n\n\ndef test_reads_top_level_file(notes: Path) -> None:\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_subdirectory_file(notes: Path) -> None:\n    assert read_note(\"sub/b.txt\") == \"bee\"\n\n\ndef test_missing_file(notes: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name(notes: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_is_not_a_file(notes: Path) -> None:\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal(notes: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n    assert read_note(\"..\") == \"\"\n\n\ndef test_traversal_that_stays_inside(notes: Path) -> None:\n    # Resolves to notes/a.txt, which is inside notes.\n    assert read_note(\"sub/../a.txt\") == \"hello\"\n\n\ndef test_absolute_path(notes: Path) -> None:\n    assert read_note(str(notes.parent / \"secret.txt\")) == \"\"\n    assert read_note(str(notes / \"a.txt\")) == \"\"\n\n\ndef test_absolute_looking_name(notes: Path) -> None:\n    assert read_note(\"/etc/passwd\") == \"\"\n\n\ndef test_backslash_traversal(notes: Path) -> None:\n    assert read_note(\"..\\\\secret.txt\") == \"\"\n\n\ndef test_null_byte(notes: Path) -> None:\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"\\x00\") == \"\"\n\n\ndef test_symlink_file_escaping(notes: Path) -> None:\n    link = notes / \"link.txt\"\n    try:\n        os.symlink(notes.parent / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlink_dir_escaping(notes: Path, tmp_path: Path) -> None:\n    outside = tmp_path / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"x\")\n    try:\n        os.symlink(outside, notes / \"dirlink\", target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"dirlink/x.txt\") == \"\"\n\n\ndef test_symlink_inside_notes_ok(notes: Path) -> None:\n    try:\n        os.symlink(notes / \"a.txt\", notes / \"alias.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_note(\"alias.txt\") == \"hello\"\n\n\ndef test_sibling_prefix_directory(notes: Path, tmp_path: Path) -> None:\n    # \"notes2\" shares the string prefix \"notes\" but is outside it.\n    sib = tmp_path / \"notes2\"\n    sib.mkdir()\n    (sib / \"c.txt\").write_text(\"sibling\")\n    assert read_note(\"../notes2/c.txt\") == \"\"\n\n\ndef test_unreadable_file(notes: Path) -> None:\n    p = notes / \"locked.txt\"\n    p.write_text(\"x\")\n    p.chmod(0)\n    try:\n        if os.access(p, os.R_OK):\n            pytest.skip(\"permissions not enforced (e.g. running as root)\")\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        p.chmod(0o644)\n\n\ndef test_non_utf8_file_gives_empty(notes: Path) -> None:\n    (notes / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert read_note(\"bin.dat\") == \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

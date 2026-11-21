@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2995,
+   "out": 507,
+   "reasoning": 399,
+   "out_bytes": 180
+  },
+  "body": {
+   "in": 3577,
+   "out": 751,
+   "reasoning": 480,
+   "out_bytes": 482
+  }
+ },
+ "final": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(8) == 2\n  ex isqrt(9) == 3\n  var lo = 0\n  var hi = 3037000500\n  while hi - lo > 1\n    let mid = lo + (hi - lo) // 2\n    if mid <= n // mid\n      lo = mid\n    else\n      hi = mid\n  lo\n\ntest_isqrt() =\n  assert isqrt(0) == 0\n  assert isqrt(1) == 1\n  assert isqrt(15) == 3\n  assert isqrt(16) == 4\n  assert isqrt(9223372036854775807) == 3037000499\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2995,
+    "out": 507,
+    "reasoning": 399
+   },
+   "out_bytes": 180,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3577,
+    "out": 751,
+    "reasoning": 480
+   },
+   "out_bytes": 482,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(8) == 2\n  ex isqrt(9) == 3\n  var lo = 0\n  var hi = 3037000500\n  while hi - lo > 1\n    let mid = lo + (hi - lo) // 2\n    if mid <= n // mid\n      lo = mid\n    else\n      hi = mid\n  lo\n\ntest_isqrt() =\n  assert isqrt(0) == 0\n  assert isqrt(1) == 1\n  assert isqrt(15) == 3\n  assert isqrt(16) == 4\n  assert isqrt(9223372036854775807) == 3037000499\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

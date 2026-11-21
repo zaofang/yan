@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1899,
+   "out": 596,
+   "reasoning": 0,
+   "out_bytes": 1242
+  },
+  "body": {
+   "in": 2553,
+   "out": 630,
+   "reasoning": 0,
+   "out_bytes": 1336
+  }
+ },
+ "final": "INT64_MIN: int = -(2**63)\nINT64_MAX: int = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two signed 64-bit integers.\n\n    Return the sum, or None when it does not fit in a signed 64-bit integer.\n    \"\"\"\n    total = a + b\n    if total < INT64_MIN or total > INT64_MAX:\n        return None\n    return total\n\n\ndef test_small_values() -> None:\n    assert checked_add(1, 2) == 3\n    assert checked_add(0, 0) == 0\n    assert checked_add(-5, 3) == -2\n\n\ndef test_opposite_signs_never_overflow() -> None:\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n\n\ndef test_max_boundary() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(1, INT64_MAX) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n\n\ndef test_min_boundary() -> None:\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(-1, INT64_MIN) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n\n\ndef test_result_is_int_not_bool() -> None:\n    result = checked_add(2, 2)\n    assert result == 4\n    assert isinstance(result, int)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1899,
+    "out": 596,
+    "reasoning": 0
+   },
+   "out_bytes": 1242,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2553,
+    "out": 630,
+    "reasoning": 0
+   },
+   "out_bytes": 1336,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "INT64_MIN: int = -(2**63)\nINT64_MAX: int = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two signed 64-bit integers.\n\n    Return the sum, or None when it does not fit in a signed 64-bit integer.\n    \"\"\"\n    total = a + b\n    if total < INT64_MIN or total > INT64_MAX:\n        return None\n    return total\n\n\ndef test_small_values() -> None:\n    assert checked_add(1, 2) == 3\n    assert checked_add(0, 0) == 0\n    assert checked_add(-5, 3) == -2\n\n\ndef test_opposite_signs_never_overflow() -> None:\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n\n\ndef test_max_boundary() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(1, INT64_MAX) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n\n\ndef test_min_boundary() -> None:\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(-1, INT64_MIN) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n\n\ndef test_result_is_int_not_bool() -> None:\n    result = checked_add(2, 2)\n    assert result == 4\n    assert isinstance(result, int)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

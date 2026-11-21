@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1939,
+   "out": 660,
+   "reasoning": 0,
+   "out_bytes": 1532
+  },
+  "body": {
+   "in": 2657,
+   "out": 691,
+   "reasoning": 0,
+   "out_bytes": 1601
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, computed in\n    parallel with a thread pool. Results are in input order, regardless\n    of worker count or completion order.\"\"\"\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3]) == [1, 0, 1]\n\n\ndef test_parities_zero_and_large() -> None:\n    assert parities([0, 10**30, 10**30 + 1]) == [0, 0, 1]\n\n\ndef test_parities_order_preserved_large() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_order_independent_of_completion_time() -> None:\n    import random\n    import time\n\n    rng = random.Random(0)\n    xs = [rng.randrange(-100, 100) for _ in range(200)]\n    delays = {i: rng.random() * 0.002 for i in range(len(xs))}\n\n    def slow_parity(i: int) -> int:\n        time.sleep(delays[i])\n        return parity(xs[i])\n\n    with ThreadPoolExecutor(max_workers=8) as ex:\n        slow = list(ex.map(slow_parity, range(len(xs))))\n    assert parities(xs) == slow\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    copy = list(xs)\n    parities(xs)\n    assert xs == copy\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [1, 2]\n    assert parities(xs) is not xs\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1939,
+    "out": 660,
+    "reasoning": 0
+   },
+   "out_bytes": 1532,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2657,
+    "out": 691,
+    "reasoning": 0
+   },
+   "out_bytes": 1601,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, computed in\n    parallel with a thread pool. Results are in input order, regardless\n    of worker count or completion order.\"\"\"\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3]) == [1, 0, 1]\n\n\ndef test_parities_zero_and_large() -> None:\n    assert parities([0, 10**30, 10**30 + 1]) == [0, 0, 1]\n\n\ndef test_parities_order_preserved_large() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_order_independent_of_completion_time() -> None:\n    import random\n    import time\n\n    rng = random.Random(0)\n    xs = [rng.randrange(-100, 100) for _ in range(200)]\n    delays = {i: rng.random() * 0.002 for i in range(len(xs))}\n\n    def slow_parity(i: int) -> int:\n        time.sleep(delays[i])\n        return parity(xs[i])\n\n    with ThreadPoolExecutor(max_workers=8) as ex:\n        slow = list(ex.map(slow_parity, range(len(xs))))\n    assert parities(xs) == slow\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 6, 7]\n    copy = list(xs)\n    parities(xs)\n    assert xs == copy\n\n\ndef test_parities_returns_new_list() -> None:\n    xs = [1, 2]\n    assert parities(xs) is not xs\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3127,
+   "out": 435,
+   "reasoning": 272,
+   "out_bytes": 346
+  },
+  "body": {
+   "in": 3637,
+   "out": 496,
+   "reasoning": 265,
+   "out_bytes": 506
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n\ncount_readable(names: List[str]) -> int uses fs =\n  pre names.len() >= 0\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret.txt\", \"/etc/passwd\"]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let content = fs.read(name) else continue\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 3127,
+    "out": 435,
+    "reasoning": 272
+   },
+   "out_bytes": 346,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3637,
+    "out": 496,
+    "reasoning": 265
+   },
+   "out_bytes": 506,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_note(name: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_note(\"../secret.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n\ncount_readable(names: List[str]) -> int uses fs =\n  pre names.len() >= 0\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret.txt\", \"/etc/passwd\"]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let content = fs.read(name) else continue\n      n += 1\n  n\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

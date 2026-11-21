@@ -1,0 +1,95 @@
+{
+ "final": "def plugin(path: str) -> str uses fs:\n    \"\"\"Untrusted plugin: returns the file at path, then \"|\", then the file at \"notes/../secret.txt\", each read as \"\" on failure.\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Run plugin(path) with fs confined to the directory `notes`, so path is relative to `notes` and any read outside it yields \"\" instead of its contents.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3502,
+    "out": 387,
+    "reasoning": 233
+   },
+   "out_bytes": 399
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3989,
+    "out": 223,
+    "reasoning": 0
+   },
+   "out_bytes": 558
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 3989,
+   "out": 223,
+   "reasoning": 0,
+   "out_bytes": 558
+  },
+  "spec": {
+   "in": 3502,
+   "out": 387,
+   "reasoning": 233,
+   "out_bytes": 399
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def plugin(path: str) -> str uses fs:\n    \"\"\"Untrusted plugin: returns the file at path, then \"|\", then the file at \"notes/../secret.txt\", each read as \"\" on failure.\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Run plugin(path) with fs confined to the directory `notes`, so path is relative to `notes` and any read outside it yields \"\" instead of its contents.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

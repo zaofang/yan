@@ -1,0 +1,128 @@
+{
+ "final": "def count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that can be read as files inside the directory `notes`.\n\n    `fs` is confined to `notes` with `fs.sub(\"notes\")`. Names in subdirectories,\n    such as `sub/b.txt`, are allowed. A name that is missing, unreadable or\n    outside `notes` is not counted.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    for name in names:\n        if can_read(name):\n            n += 1\n    return n\n\ndef can_read(name: str) -> bool uses fs:\n    \"\"\"True when `name` is a file that can be read inside the directory `notes`.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        r = fs.read(name) else return False\n        return True\n    return False\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3388,
+    "out": 306,
+    "reasoning": 149
+   },
+   "out_bytes": 398
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:13:36 count_readable: `else None` expected `str`, found `None`\n#3 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:14:16 count_readable: `r is` a `str` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3794,
+    "out": 392,
+    "reasoning": 179
+   },
+   "out_bytes": 564
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4465,
+    "out": 693,
+    "reasoning": 425
+   },
+   "out_bytes": 720
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 8259,
+   "out": 1085,
+   "reasoning": 604,
+   "out_bytes": 1284
+  },
+  "spec": {
+   "in": 3388,
+   "out": 306,
+   "reasoning": 149,
+   "out_bytes": 398
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:13:36 count_readable: `else None` expected `str`, found `None`\n#3 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpe66pj0c7/work/task.yag:14:16 count_readable: `r is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that can be read as files inside the directory `notes`.\n\n    `fs` is confined to `notes` with `fs.sub(\"notes\")`. Names in subdirectories,\n    such as `sub/b.txt`, are allowed. A name that is missing, unreadable or\n    outside `notes` is not counted.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            r = fs.read(name) else None\n            if r is not None:\n                n += 1\n    return n\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 task.yag:13:36 count_readable: `None` expected `str`, found `None`\nE201 task.yag:14:16 count_readable: `r` a `str` is never `None`"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

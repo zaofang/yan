@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2987,
+   "out": 400,
+   "reasoning": 281,
+   "out_bytes": 233
+  },
+  "body": {
+   "in": 7505,
+   "out": 1418,
+   "reasoning": 1013,
+   "out_bytes": 802
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post (out == None) == (bigint(a) + bigint(b) > bigint(9223372036854775807) or bigint(a) + bigint(b) < bigint(-9223372036854775807) - bigint(1))\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-5, 5) == 0\n  let hi = 9223372036854775807\n  let lo = -hi - 1\n  if b > 0 and a > hi - b\n    return None\n  if b < 0 and a < lo - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2987,
+    "out": 400,
+    "reasoning": 281
+   },
+   "out_bytes": 233,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3462,
+    "out": 376,
+    "reasoning": 194
+   },
+   "out_bytes": 361,
+   "ok": false,
+   "report": "E401 task.yn:9:5 task.checked_add: `return None` `_out7` is used after `_out7.Some.value` was moved out of it | moved at 2:30\nE401 task.yn:11:5 task.checked_add: `return None` `_out24` is used after `_out24.Some.value` was moved out of it | moved at 2:30\nE401 task.yn:12:3 task.checked_add: `a + b` `_t37` is used after `_t37.Some.value` was moved out of it | moved at 2:30",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 4043,
+    "out": 1042,
+    "reasoning": 819
+   },
+   "out_bytes": 441,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "checked_add(a: int, b: int) -> int? =\n  post out == None or bigint(out else 0) == bigint(a) + bigint(b)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-5, 5) == 0\n  let hi = 9223372036854775807\n  let lo = -hi - 1\n  if b > 0 and a > hi - b\n    return None\n  if b < 0 and a < lo - b\n    return None\n  a + b\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yn:9:5 task.checked_add: `return None` `_out7` is used after `_out7.Some.value` was moved out of it | moved at 2:30\nE401 ./task.yn:11:5 task.checked_add: `return None` `_out24` is used after `_out24.Some.value` was moved out of it | moved at 2:30\nE401 ./task.yn:12:3 task.checked_add: `a "
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

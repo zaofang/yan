@@ -1,0 +1,95 @@
+{
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Element of xs chosen deterministically from seed: the same xs and seed always give the same element.\"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([10, 20, 30], 0) == 10\n    ex pick([10, 20, 30], 4) == 20\n    ex pick([7], 12345) == 7\n    n = xs.len()\n    i = (seed % n + n) % n\n    return xs[i]\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3275,
+    "out": 296,
+    "reasoning": 154
+   },
+   "out_bytes": 311
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3671,
+    "out": 264,
+    "reasoning": 93
+   },
+   "out_bytes": 366
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_pick_seeded",
+ "tokens": {
+  "body": {
+   "in": 3671,
+   "out": 264,
+   "reasoning": 93,
+   "out_bytes": 366
+  },
+  "spec": {
+   "in": 3275,
+   "out": 296,
+   "reasoning": 154,
+   "out_bytes": 311
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Element of xs chosen deterministically from seed: the same xs and seed always give the same element.\"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([10, 20, 30], 0) == 10\n    ex pick([10, 20, 30], 4) == 20\n    ex pick([7], 12345) == 7\n    n = xs.len()\n    i = ((seed % n) + n) % n\n    return xs[i]\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

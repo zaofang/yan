@@ -1,0 +1,95 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when x has an odd number of set bits.\"\"\"\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(3) == False\n    ex parity(7) == True\n    ex parity(255) == False\n    return bits.count_ones(x) % 2 == 1\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3245,
+    "out": 99,
+    "reasoning": 0
+   },
+   "out_bytes": 231
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3443,
+    "out": 115,
+    "reasoning": 0
+   },
+   "out_bytes": 262
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 3443,
+   "out": 115,
+   "reasoning": 0,
+   "out_bytes": 262
+  },
+  "spec": {
+   "in": 3245,
+   "out": 99,
+   "reasoning": 0,
+   "out_bytes": 231
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "def parity(x: uint8) -> bool:\n    \"\"\"True when x has an odd number of set bits.\"\"\"\n    ex parity(0) == False\n    ex parity(1) == True\n    ex parity(3) == False\n    ex parity(7) == True\n    ex parity(255) == False\n    return bits.count_ones(x) % 2 == 1\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

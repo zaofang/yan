@@ -1,0 +1,128 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel with check. Returns xs unchanged if all are even; otherwise fails with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([7, 4, 9]) == Err(Bad(n=7))\n    rs = par [check(x) else -1 for x in xs]\n    out: list[int] = []\n    for i in range(xs.len()):\n        v = rs[i]\n        if v == -1:\n            fail Bad(n=xs[i])\n        out.append(v)\n    return out\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3338,
+    "out": 554,
+    "reasoning": 278
+   },
+   "out_bytes": 578
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:16:29 all_even: `None` expected `int`, found `None`\n#3 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:20:20 all_even: `v else` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3992,
+    "out": 853,
+    "reasoning": 504
+   },
+   "out_bytes": 748
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 5131,
+    "out": 600,
+    "reasoning": 240
+   },
+   "out_bytes": 773
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 9123,
+   "out": 1453,
+   "reasoning": 744,
+   "out_bytes": 1521
+  },
+  "spec": {
+   "in": 3338,
+   "out": 554,
+   "reasoning": 278,
+   "out_bytes": 578
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:16:29 all_even: `None` expected `int`, found `None`\n#3 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmp3zb4pb72/work/task.yag:20:20 all_even: `v else` `else` needs an optional or a fallible"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel with check. Returns xs unchanged if all are even; otherwise fails with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([7, 4, 9]) == Err(Bad(n=7))\n    rs = par [check(x) else None for x in xs]\n    out: list[int] = []\n    for i in range(xs.len()):\n        v = rs[i]\n        out.append(v else fail Bad(n=xs[i]))\n    return out\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E201 ./task.yag:16:29 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:20 all_even: `v` `else` needs an optional or a fallible call, found `int`\n0 of 0 tests passed\nE201 ./task.yag:16:29 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:20:20 all_even: `v` `else` needs an"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

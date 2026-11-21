@@ -1,0 +1,95 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel; return xs unchanged if all are even, otherwise fail with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5, 4]) == Err(Bad(n=3))\n    ex all_even([7, 2, 9]) == Err(Bad(n=7))\n    return par [check(x)? for x in xs]\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3338,
+    "out": 275,
+    "reasoning": 0
+   },
+   "out_bytes": 568
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3712,
+    "out": 287,
+    "reasoning": 0
+   },
+   "out_bytes": 599
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 3712,
+   "out": 287,
+   "reasoning": 0,
+   "out_bytes": 599
+  },
+  "spec": {
+   "in": 3338,
+   "out": 275,
+   "reasoning": 0,
+   "out_bytes": 568
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element of xs in parallel; return xs unchanged if all are even, otherwise fail with the Bad of the lowest-index odd element, regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([]) == Ok([])\n    ex all_even([2, 3, 5, 4]) == Err(Bad(n=3))\n    ex all_even([7, 2, 9]) == Err(Bad(n=7))\n    return par [check(x)? for x in xs]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

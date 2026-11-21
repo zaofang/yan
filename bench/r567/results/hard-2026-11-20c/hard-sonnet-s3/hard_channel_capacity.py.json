@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1917,
+   "out": 820,
+   "reasoning": 240,
+   "out_bytes": 1318
+  },
+  "body": {
+   "in": 2796,
+   "out": 811,
+   "reasoning": 135,
+   "out_bytes": 1563
+  }
+ },
+ "final": "import queue\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it first fills up.\n\n    Create a queue.Queue of integers with maximum size `cap`, then try to\n    put each element of `xs` in order without blocking (put_nowait). Stop\n    at the first queue.Full and return the number of puts accepted so far.\n    Nothing is ever taken from the queue.\n\n    A capacity of zero or less accepts nothing, so the result is 0. This\n    is a deliberate departure from queue.Queue, where maxsize <= 0 means\n    unbounded.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_stops_when_full() -> None:\n    assert accepted(3, [1, 2, 3, 4, 5]) == 3\n\n\ndef test_exact_fit() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_capacity_larger_than_input() -> None:\n    assert accepted(10, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [4, 5, 6]) == 1\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-2, [1, 2, 3]) == 0\n\n\ndef test_duplicates_are_counted() -> None:\n    assert accepted(4, [5, 5, 5, 5, 5, 5]) == 4\n\n\ndef test_zero_capacity_empty_input() -> None:\n    assert accepted(0, []) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1917,
+    "out": 820,
+    "reasoning": 240
+   },
+   "out_bytes": 1318,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2796,
+    "out": 811,
+    "reasoning": 135
+   },
+   "out_bytes": 1563,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import queue\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it first fills up.\n\n    Create a queue.Queue of integers with maximum size `cap`, then try to\n    put each element of `xs` in order without blocking (put_nowait). Stop\n    at the first queue.Full and return the number of puts accepted so far.\n    Nothing is ever taken from the queue.\n\n    A capacity of zero or less accepts nothing, so the result is 0. This\n    is a deliberate departure from queue.Queue, where maxsize <= 0 means\n    unbounded.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_stops_when_full() -> None:\n    assert accepted(3, [1, 2, 3, 4, 5]) == 3\n\n\ndef test_exact_fit() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_capacity_larger_than_input() -> None:\n    assert accepted(10, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [4, 5, 6]) == 1\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-2, [1, 2, 3]) == 0\n\n\ndef test_duplicates_are_counted() -> None:\n    assert accepted(4, [5, 5, 5, 5, 5, 5]) == 4\n\n\ndef test_zero_capacity_empty_input() -> None:\n    assert accepted(0, []) == 0\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

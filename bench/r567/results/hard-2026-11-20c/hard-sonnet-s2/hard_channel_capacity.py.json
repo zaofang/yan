@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1925,
+   "out": 775,
+   "reasoning": 211,
+   "out_bytes": 1301
+  },
+  "body": {
+   "in": 2759,
+   "out": 656,
+   "reasoning": 0,
+   "out_bytes": 1531
+  }
+ },
+ "final": "import queue  # noqa: F401  (used by the implementation)\n\nimport pytest  # noqa: F401\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it is full.\n\n    Create a queue.Queue[int] with capacity cap, then try to put each\n    element of xs in order without blocking (put_nowait). Stop at the\n    first queue.Full and return the number of puts that succeeded.\n    Nothing is ever taken from the queue. A cap of 0 or less means no\n    room, so the result is 0 (it is not treated as unbounded).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(2, [1, 2, 3, 4]) == 2\n\n\ndef test_exact_fit() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(4, []) == 0\n\n\ndef test_zero_capacity_is_not_unbounded() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(3, [1, 1, 1, 1]) == 3\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [9, 9, 9]) == 1\n\n\ndef test_large_input() -> None:\n    assert accepted(100, list(range(1000))) == 100\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1925,
+    "out": 775,
+    "reasoning": 211
+   },
+   "out_bytes": 1301,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2759,
+    "out": 656,
+    "reasoning": 0
+   },
+   "out_bytes": 1531,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import queue  # noqa: F401  (used by the implementation)\n\nimport pytest  # noqa: F401\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count puts accepted by a bounded queue before it is full.\n\n    Create a queue.Queue[int] with capacity cap, then try to put each\n    element of xs in order without blocking (put_nowait). Stop at the\n    first queue.Full and return the number of puts that succeeded.\n    Nothing is ever taken from the queue. A cap of 0 or less means no\n    room, so the result is 0 (it is not treated as unbounded).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(2, [1, 2, 3, 4]) == 2\n\n\ndef test_exact_fit() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(4, []) == 0\n\n\ndef test_zero_capacity_is_not_unbounded() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(3, [1, 1, 1, 1]) == 3\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [9, 9, 9]) == 1\n\n\ndef test_large_input() -> None:\n    assert accepted(100, list(range(1000))) == 100\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2964,
+   "out": 277,
+   "reasoning": 195,
+   "out_bytes": 167
+  },
+  "body": {
+   "in": 3316,
+   "out": 268,
+   "reasoning": 143,
+   "out_bytes": 239
+  }
+ },
+ "final": "parity(x: u8) -> bool =\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  ex parity(7) == True\n  ex parity(255) == False\n  var n = int(x)\n  var c = 0\n  while n > 0\n    c += n % 2\n    n = n // 2\n  c % 2 == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2964,
+    "out": 277,
+    "reasoning": 195
+   },
+   "out_bytes": 167,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3316,
+    "out": 268,
+    "reasoning": 143
+   },
+   "out_bytes": 239,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "parity(x: u8) -> bool =\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  ex parity(7) == True\n  ex parity(255) == False\n  var n = int(x)\n  var c = 0\n  while n > 0\n    c += n % 2\n    n = n // 2\n  c % 2 == 1\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

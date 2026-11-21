@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1918,
+   "out": 943,
+   "reasoning": 155,
+   "out_bytes": 1640
+  },
+  "body": {
+   "in": 2920,
+   "out": 1260,
+   "reasoning": 311,
+   "out_bytes": 2037
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Contract (checked with assert statements):\n    - Precondition: n >= 0.\n    - Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1),\n      which pins r as the largest integer whose square is at most n.\n    \"\"\"\n    assert n >= 0, \"n must not be negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Start at a power of two that is >= sqrt(n), then descend with Newton.\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_zero_and_one() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n\n\ndef test_small_values() -> None:\n    expected = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4]\n    assert [isqrt(n) for n in range(17)] == expected\n\n\ndef test_perfect_squares() -> None:\n    for r in [2, 3, 10, 99, 1000, 123456]:\n        assert isqrt(r * r) == r\n\n\ndef test_just_around_perfect_squares() -> None:\n    for r in [2, 5, 17, 1000, 65536]:\n        assert isqrt(r * r - 1) == r - 1\n        assert isqrt(r * r + 1) == r\n        assert isqrt(r * r + 2 * r) == r\n        assert isqrt((r + 1) * (r + 1)) == r + 1\n\n\ndef test_large_values() -> None:\n    n = 10**40\n    assert isqrt(n) == 10**20\n    assert isqrt(n - 1) == 10**20 - 1\n    big = 2**200 + 12345\n    assert isqrt(big) == math.isqrt(big)\n\n\ndef test_matches_oracle_on_range() -> None:\n    for n in range(5000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_postcondition_property() -> None:\n    for n in [0, 1, 2, 3, 4, 15, 16, 17, 10**6, 10**6 + 1, 2**64 - 1]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-(10**30))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1918,
+    "out": 943,
+    "reasoning": 155
+   },
+   "out_bytes": 1640,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2920,
+    "out": 1260,
+    "reasoning": 311
+   },
+   "out_bytes": 2037,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Contract (checked with assert statements):\n    - Precondition: n >= 0.\n    - Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1),\n      which pins r as the largest integer whose square is at most n.\n    \"\"\"\n    assert n >= 0, \"n must not be negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Start at a power of two that is >= sqrt(n), then descend with Newton.\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_zero_and_one() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n\n\ndef test_small_values() -> None:\n    expected = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4]\n    assert [isqrt(n) for n in range(17)] == expected\n\n\ndef test_perfect_squares() -> None:\n    for r in [2, 3, 10, 99, 1000, 123456]:\n        assert isqrt(r * r) == r\n\n\ndef test_just_around_perfect_squares() -> None:\n    for r in [2, 5, 17, 1000, 65536]:\n        assert isqrt(r * r - 1) == r - 1\n        assert isqrt(r * r + 1) == r\n        assert isqrt(r * r + 2 * r) == r\n        assert isqrt((r + 1) * (r + 1)) == r + 1\n\n\ndef test_large_values() -> None:\n    n = 10**40\n    assert isqrt(n) == 10**20\n    assert isqrt(n - 1) == 10**20 - 1\n    big = 2**200 + 12345\n    assert isqrt(big) == math.isqrt(big)\n\n\ndef test_matches_oracle_on_range() -> None:\n    for n in range(5000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_postcondition_property() -> None:\n    for n in [0, 1, 2, 3, 4, 15, 16, 17, 10**6, 10**6 + 1, 2**64 - 1]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-(10**30))\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

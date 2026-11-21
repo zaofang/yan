@@ -1,0 +1,126 @@
+{
+ "final": "def read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`, or \"\" if it is missing or unreadable. Confined to `notes`.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(name) else \"\"\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpo0efot1v/work/task.yag:3:10 read_note: `out` a `str` is never `None`\n#2 N10 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpo0efot1v/work/task.yag:3:10 `out` `!= None` normalized to `is not None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E201",
+      "N10"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3382,
+    "out": 80,
+    "reasoning": 0
+   },
+   "out_bytes": 203
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3655,
+    "out": 185,
+    "reasoning": 111
+   },
+   "out_bytes": 182
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3940,
+    "out": 99,
+    "reasoning": 0
+   },
+   "out_bytes": 242
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 3940,
+   "out": 99,
+   "reasoning": 0,
+   "out_bytes": 242
+  },
+  "spec": {
+   "in": 7037,
+   "out": 265,
+   "reasoning": 111,
+   "out_bytes": 385
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E201",
+    "N10"
+   ],
+   "report": "#1 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpo0efot1v/work/task.yag:3:10 read_note: `out` a `str` is never `None`\n#2 N10 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpo0efot1v/work/task.yag:3:10 `out` `!= None` normalized to `is not None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`, or \"\" if it is missing or unreadable. Confined to `notes`.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(name) else \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

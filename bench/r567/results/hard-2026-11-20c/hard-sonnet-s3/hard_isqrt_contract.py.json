@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1914,
+   "out": 776,
+   "reasoning": 128,
+   "out_bytes": 1439
+  },
+  "body": {
+   "in": 2749,
+   "out": 796,
+   "reasoning": 0,
+   "out_bytes": 1798
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Contract, stated with assert statements:\n    - Precondition: assert n >= 0.\n    - Postcondition: assert r >= 0 and r * r <= n < (r + 1) * (r + 1),\n      which pins r as the unique floor of the square root.\n    \"\"\"\n    assert n >= 0\n    if n == 0:\n        r = 0\n    else:\n        # Newton's method, starting from a power of two >= sqrt(n).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_zero_and_one() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n\n\ndef test_small_non_squares() -> None:\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(5) == 2\n    assert isqrt(8) == 2\n    assert isqrt(15) == 3\n\n\ndef test_perfect_squares() -> None:\n    for r in range(0, 200):\n        assert isqrt(r * r) == r\n\n\ndef test_just_around_perfect_squares() -> None:\n    for r in range(2, 200):\n        assert isqrt(r * r - 1) == r - 1\n        assert isqrt(r * r + 1) == r\n\n\ndef test_large_values() -> None:\n    big = 10**40\n    assert isqrt(big) == 10**20\n    assert isqrt(big - 1) == 10**20 - 1\n    assert isqrt(big + 1) == 10**20\n    n = 2**200 + 12345\n    assert isqrt(n) == math.isqrt(n)\n\n\ndef test_matches_reference_and_postcondition() -> None:\n    for n in range(0, 2000):\n        r = isqrt(n)\n        assert r == math.isqrt(n)\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-100)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1914,
+    "out": 776,
+    "reasoning": 128
+   },
+   "out_bytes": 1439,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2749,
+    "out": 796,
+    "reasoning": 0
+   },
+   "out_bytes": 1798,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\n\n    Contract, stated with assert statements:\n    - Precondition: assert n >= 0.\n    - Postcondition: assert r >= 0 and r * r <= n < (r + 1) * (r + 1),\n      which pins r as the unique floor of the square root.\n    \"\"\"\n    assert n >= 0\n    if n == 0:\n        r = 0\n    else:\n        # Newton's method, starting from a power of two >= sqrt(n).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_zero_and_one() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n\n\ndef test_small_non_squares() -> None:\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(5) == 2\n    assert isqrt(8) == 2\n    assert isqrt(15) == 3\n\n\ndef test_perfect_squares() -> None:\n    for r in range(0, 200):\n        assert isqrt(r * r) == r\n\n\ndef test_just_around_perfect_squares() -> None:\n    for r in range(2, 200):\n        assert isqrt(r * r - 1) == r - 1\n        assert isqrt(r * r + 1) == r\n\n\ndef test_large_values() -> None:\n    big = 10**40\n    assert isqrt(big) == 10**20\n    assert isqrt(big - 1) == 10**20 - 1\n    assert isqrt(big + 1) == 10**20\n    n = 2**200 + 12345\n    assert isqrt(n) == math.isqrt(n)\n\n\ndef test_matches_reference_and_postcondition() -> None:\n    for n in range(0, 2000):\n        r = isqrt(n)\n        assert r == math.isqrt(n)\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-100)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

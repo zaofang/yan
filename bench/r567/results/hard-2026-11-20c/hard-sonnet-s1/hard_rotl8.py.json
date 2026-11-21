@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1928,
+   "out": 1050,
+   "reasoning": 0,
+   "out_bytes": 2199
+  },
+  "body": {
+   "in": 3036,
+   "out": 1139,
+   "reasoning": 0,
+   "out_bytes": 2381
+  }
+ },
+ "final": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping the high bits around.\n\n    x must be in 0..255 and k in 0..7; the result is in 0..255.\n    \"\"\"\n    if not 0 <= x <= 255:\n        raise ValueError(\"x must be in 0..255\")\n    if not 0 <= k <= 7:\n        raise ValueError(\"k must be in 0..7\")\n    return ((x << k) | (x >> (8 - k))) & 0xFF\n\n\ndef test_rotl8_zero_shift_is_identity() -> None:\n    for x in (0, 1, 0x5A, 0x80, 0xFF):\n        assert rotl8(x, 0) == x\n\n\ndef test_rotl8_simple_shift_no_wrap() -> None:\n    assert rotl8(0b00000001, 1) == 0b00000010\n    assert rotl8(0b00000011, 2) == 0b00001100\n\n\ndef test_rotl8_wraps_high_bits() -> None:\n    assert rotl8(0b10000000, 1) == 0b00000001\n    assert rotl8(0b10000001, 1) == 0b00000011\n    assert rotl8(0b11000000, 2) == 0b00000011\n    assert rotl8(0b10110001, 3) == 0b10001101\n\n\ndef test_rotl8_max_shift() -> None:\n    assert rotl8(0b00000001, 7) == 0b10000000\n    assert rotl8(0b10000000, 7) == 0b01000000\n    assert rotl8(0b00000010, 7) == 0b00000001\n\n\ndef test_rotl8_all_zeros_and_all_ones() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(0xFF, k) == 0xFF\n\n\ndef test_rotl8_result_in_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= 255\n\n\ndef test_rotl8_rotating_back_restores_value() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert rotl8(rotl8(x, k), (8 - k) % 8) == x\n\n\ndef test_rotl8_composition() -> None:\n    for x in range(256):\n        for a in range(8):\n            for b in range(8):\n                assert rotl8(rotl8(x, a), b) == rotl8(x, (a + b) % 8)\n\n\ndef test_rotl8_preserves_popcount() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert bin(rotl8(x, k)).count(\"1\") == bin(x).count(\"1\")\n\n\ndef test_rotl8_matches_reference() -> None:\n    for x in range(256):\n        for k in range(8):\n            expected = ((x << k) | (x >> (8 - k))) & 0xFF\n            assert rotl8(x, k) == expected\n\n\n@pytest.mark.parametrize(\"x\", [-1, 256, 1000])\ndef test_rotl8_rejects_bad_x(x: int) -> None:\n    with pytest.raises(ValueError):\n        rotl8(x, 1)\n\n\n@pytest.mark.parametrize(\"k\", [-1, 8, 100])\ndef test_rotl8_rejects_bad_k(k: int) -> None:\n    with pytest.raises(ValueError):\n        rotl8(0x12, k)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1928,
+    "out": 1050,
+    "reasoning": 0
+   },
+   "out_bytes": 2199,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3036,
+    "out": 1139,
+    "reasoning": 0
+   },
+   "out_bytes": 2381,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping the high bits around.\n\n    x must be in 0..255 and k in 0..7; the result is in 0..255.\n    \"\"\"\n    if not 0 <= x <= 255:\n        raise ValueError(\"x must be in 0..255\")\n    if not 0 <= k <= 7:\n        raise ValueError(\"k must be in 0..7\")\n    return ((x << k) | (x >> (8 - k))) & 0xFF\n\n\ndef test_rotl8_zero_shift_is_identity() -> None:\n    for x in (0, 1, 0x5A, 0x80, 0xFF):\n        assert rotl8(x, 0) == x\n\n\ndef test_rotl8_simple_shift_no_wrap() -> None:\n    assert rotl8(0b00000001, 1) == 0b00000010\n    assert rotl8(0b00000011, 2) == 0b00001100\n\n\ndef test_rotl8_wraps_high_bits() -> None:\n    assert rotl8(0b10000000, 1) == 0b00000001\n    assert rotl8(0b10000001, 1) == 0b00000011\n    assert rotl8(0b11000000, 2) == 0b00000011\n    assert rotl8(0b10110001, 3) == 0b10001101\n\n\ndef test_rotl8_max_shift() -> None:\n    assert rotl8(0b00000001, 7) == 0b10000000\n    assert rotl8(0b10000000, 7) == 0b01000000\n    assert rotl8(0b00000010, 7) == 0b00000001\n\n\ndef test_rotl8_all_zeros_and_all_ones() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(0xFF, k) == 0xFF\n\n\ndef test_rotl8_result_in_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= 255\n\n\ndef test_rotl8_rotating_back_restores_value() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert rotl8(rotl8(x, k), (8 - k) % 8) == x\n\n\ndef test_rotl8_composition() -> None:\n    for x in range(256):\n        for a in range(8):\n            for b in range(8):\n                assert rotl8(rotl8(x, a), b) == rotl8(x, (a + b) % 8)\n\n\ndef test_rotl8_preserves_popcount() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert bin(rotl8(x, k)).count(\"1\") == bin(x).count(\"1\")\n\n\ndef test_rotl8_matches_reference() -> None:\n    for x in range(256):\n        for k in range(8):\n            expected = ((x << k) | (x >> (8 - k))) & 0xFF\n            assert rotl8(x, k) == expected\n\n\n@pytest.mark.parametrize(\"x\", [-1, 256, 1000])\ndef test_rotl8_rejects_bad_x(x: int) -> None:\n    with pytest.raises(ValueError):\n        rotl8(x, 1)\n\n\n@pytest.mark.parametrize(\"k\", [-1, 8, 100])\ndef test_rotl8_rejects_bad_k(k: int) -> None:\n    with pytest.raises(ValueError):\n        rotl8(0x12, k)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

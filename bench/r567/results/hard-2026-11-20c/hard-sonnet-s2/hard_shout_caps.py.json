@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 4214,
+   "out": 705,
+   "reasoning": 0,
+   "out_bytes": 1482
+  },
+  "body": {
+   "in": 2738,
+   "out": 363,
+   "reasoning": 0,
+   "out_bytes": 768
+  }
+ },
+ "final": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased, one per line.\"\"\"\n    for s in xs:\n        print(s.upper())\n\n\ndef test_shout_basic(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"hello\", \"World\"])\n    assert capsys.readouterr().out == \"HELLO\\nWORLD\\n\"\n\n\ndef test_shout_empty(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n\ndef test_shout_already_upper_and_mixed(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"ABC\", \"a1b2\", \"\", \"\u00e7a va\"])\n    assert capsys.readouterr().out == \"ABC\\nA1B2\\n\\n\u00c7A VA\\n\"\n\n\ndef test_shout_prints_single(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"x\"])\n    assert capsys.readouterr().out == \"X\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1883,
+    "out": 355,
+    "reasoning": 0
+   },
+   "out_bytes": 748,
+   "ok": false,
+   "report": "test_task.py:25: error: \"shout\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2331,
+    "out": 350,
+    "reasoning": 0
+   },
+   "out_bytes": 734,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2738,
+    "out": 363,
+    "reasoning": 0
+   },
+   "out_bytes": 768,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "first_draft": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased, one per line.\"\"\"\n    for s in xs:\n        print(s.upper())\n\n\ndef test_shout_basic(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"hello\", \"World\"])\n    assert capsys.readouterr().out == \"HELLO\\nWORLD\\n\"\n\n\ndef test_shout_empty(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n\ndef test_shout_already_upper_and_mixed(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"ABC\", \"a1b2\", \"\", \"\u00e7a va\"])\n    assert capsys.readouterr().out == \"ABC\\nA1B2\\n\\n\u00c7A VA\\n\"\n\n\ndef test_shout_prints_single(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"x\"])\n    assert capsys.readouterr().out == \"X\\n\"\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

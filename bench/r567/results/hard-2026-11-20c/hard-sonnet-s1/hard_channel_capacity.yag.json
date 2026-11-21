@@ -1,0 +1,192 @@
+{
+ "final": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel with capacity cap, try to send each element of xs without blocking, and return how many sends were accepted before the channel was full.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= xs.len()\n    post out <= cap\n    tx, rx = Channel[int](cap)\n    n = 0\n    for x in xs:\n        tx.try_send(x) else return n\n        n += 1\n    return n\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3290,
+    "out": 238,
+    "reasoning": 116
+   },
+   "out_bytes": 320
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:10 accepted: `chan.` cannot find `chan`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:10 accepted: `chan.` calling a value: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3628,
+    "out": 308,
+    "reasoning": 135
+   },
+   "out_bytes": 444
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:5 `ch:` cannot find type `channel`: channels are built with `Channel[T](capacity)`, which returns `(Sender[T], Receiver[T])`\n#3 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:24 accepted: `channel.` cannot find `channel`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E200",
+      "E200"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4217,
+    "out": 413,
+    "reasoning": 236
+   },
+   "out_bytes": 456
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:10:16 accepted: `tx.` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err -> v` to handle it\n#3 E201 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:10:16 accepted: `tx.` expected `bool`, found `None`",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E315",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 4938,
+    "out": 212,
+    "reasoning": 37
+   },
+   "out_bytes": 447
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 3,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 5518,
+    "out": 565,
+    "reasoning": 392
+   },
+   "out_bytes": 435
+  }
+ ],
+ "rounds_to_green": 4,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 18301,
+   "out": 1498,
+   "reasoning": 800,
+   "out_bytes": 1782
+  },
+  "spec": {
+   "in": 3290,
+   "out": 238,
+   "reasoning": 116,
+   "out_bytes": 320
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:10 accepted: `chan.` cannot find `chan`\n#3 E017 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:10 accepted: `chan.` calling a value: not supported by this toolchain y"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E200",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:7:5 `ch:` cannot find type `channel`: channels are built with `Channel[T](capacity)`, which returns `(Sender[T], Receiver[T])`\n#3 E200 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/wo"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E201",
+    "E315",
+    "P003"
+   ],
+   "report": "#1 P003 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /var/folders/tz/w6ww66wn20b65n4pwvqrrjh40000gn/T/tmpp92sudx3/work/task.yag:10:16 accepted: `tx.` the failure of this call is not handled; add `?` or `else` | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this fun"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel with capacity cap, try to send each element of xs without blocking, and return how many sends were accepted before the channel was full.\"\"\"\n    pre cap >= 0\n    post out >= 0\n    post out <= xs.len()\n    post out <= cap\n    ch = chan.new[int](cap)\n    n = 0\n    for x in xs:\n        if not ch.try_send(x):\n            break\n        n += 1\n    return n\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E017 ./task.yag:7:10 accepted: `chan` calling a value: not supported by this toolchain yet\nE200 ./task.yag:7:10 accepted: `chan` cannot find `chan` | maybe: chan -> cap\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

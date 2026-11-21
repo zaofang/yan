@@ -1,0 +1,95 @@
+{
+ "final": "def read_public(path: str) -> str uses fs:\n    \"\"\"Text of the file `path` inside the directory `notes`, or \"\" if it is missing, unreadable or outside `notes`.\"\"\"\n    post out.byte_len() >= 0\n    with fs = fs.sub(\"notes\"):\n        return fs.read(path) else \"\"\n",
+ "model": "claude:claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 3459,
+    "out": 171,
+    "reasoning": 85
+   },
+   "out_bytes": 209
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3730,
+    "out": 111,
+    "reasoning": 0
+   },
+   "out_bytes": 269
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_dotdot_forms",
+ "tokens": {
+  "body": {
+   "in": 3730,
+   "out": 111,
+   "reasoning": 0,
+   "out_bytes": 269
+  },
+  "spec": {
+   "in": 3459,
+   "out": 171,
+   "reasoning": 85,
+   "out_bytes": 209
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:c39406e16514b890eb21aa0afd437124d2fc04aaff011dceb2be5087aac70aa4",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def read_public(path: str) -> str uses fs:\n    \"\"\"Text of the file `path` inside the directory `notes`, or \"\" if it is missing, unreadable or outside `notes`.\"\"\"\n    post out.byte_len() >= 0\n    with fs = fs.sub(\"notes\"):\n        return fs.read(path) else \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1913,
+   "out": 847,
+   "reasoning": 0,
+   "out_bytes": 2091
+  },
+  "body": {
+   "in": 2818,
+   "out": 939,
+   "reasoning": 0,
+   "out_bytes": 2252
+  }
+ },
+ "final": "import re\n\nimport pytest\n\n\n_TITLE_RE = re.compile(r\"<title(?:\\s[^>]*)?>(.*?)</title\\s*>\", re.IGNORECASE | re.DOTALL)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the following\n    `</title>` in `html`, or an empty string if there is no such pair.\n\n    Tag matching is case-insensitive and the opening tag may carry\n    attributes. The text is returned as-is (no stripping or entity\n    decoding). Pure function: performs no network access.\n    \"\"\"\n    m = _TITLE_RE.search(html)\n    return m.group(1) if m else \"\"\n\n\ndef test_basic_title() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><head></head><body>hi</body></html>\") == \"\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops\") == \"\"\n\n\ndef test_close_without_open() -> None:\n    assert title_of(\"</title>text\") == \"\"\n\n\ndef test_case_insensitive() -> None:\n    assert title_of(\"<TITLE>Caps</TITLE>\") == \"Caps\"\n    assert title_of(\"<TiTlE>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_attributes_on_open_tag() -> None:\n    assert title_of('<title id=\"t\" lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out </title>\") == \"  spaced \\n out \"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>line1\\nline2</title>\") == \"line1\\nline2\"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>A &amp; B</title>\") == \"A &amp; B\"\n\n\ndef test_title_in_svg_or_body_still_found() -> None:\n    assert title_of(\"<body><svg><title>Icon</title></svg></body>\") == \"Icon\"\n\n\n@pytest.mark.parametrize(\n    \"html, expected\",\n    [\n        (\"<title>x</title>\", \"x\"),\n        (\"before<title>y</title>after\", \"y\"),\n        (\"<titlex>no</titlex>\", \"\"),\n        (\"<head><title>z</title>\", \"z\"),\n    ],\n)\ndef test_parametrized(html: str, expected: str) -> None:\n    assert title_of(html) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1913,
+    "out": 847,
+    "reasoning": 0
+   },
+   "out_bytes": 2091,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2818,
+    "out": 939,
+    "reasoning": 0
+   },
+   "out_bytes": 2252,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "claude:claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\n\nimport pytest\n\n\n_TITLE_RE = re.compile(r\"<title(?:\\s[^>]*)?>(.*?)</title\\s*>\", re.IGNORECASE | re.DOTALL)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the following\n    `</title>` in `html`, or an empty string if there is no such pair.\n\n    Tag matching is case-insensitive and the opening tag may carry\n    attributes. The text is returned as-is (no stripping or entity\n    decoding). Pure function: performs no network access.\n    \"\"\"\n    m = _TITLE_RE.search(html)\n    return m.group(1) if m else \"\"\n\n\ndef test_basic_title() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><head></head><body>hi</body></html>\") == \"\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops\") == \"\"\n\n\ndef test_close_without_open() -> None:\n    assert title_of(\"</title>text\") == \"\"\n\n\ndef test_case_insensitive() -> None:\n    assert title_of(\"<TITLE>Caps</TITLE>\") == \"Caps\"\n    assert title_of(\"<TiTlE>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_attributes_on_open_tag() -> None:\n    assert title_of('<title id=\"t\" lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out </title>\") == \"  spaced \\n out \"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>line1\\nline2</title>\") == \"line1\\nline2\"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>A &amp; B</title>\") == \"A &amp; B\"\n\n\ndef test_title_in_svg_or_body_still_found() -> None:\n    assert title_of(\"<body><svg><title>Icon</title></svg></body>\") == \"Icon\"\n\n\n@pytest.mark.parametrize(\n    \"html, expected\",\n    [\n        (\"<title>x</title>\", \"x\"),\n        (\"before<title>y</title>after\", \"y\"),\n        (\"<titlex>no</titlex>\", \"\"),\n        (\"<head><title>z</title>\", \"z\"),\n    ],\n)\ndef test_parametrized(html: str, expected: str) -> None:\n    assert title_of(html) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}
