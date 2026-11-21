@@ -287,6 +287,9 @@ enum Command {
         /// The item as `module.name`, the module's dotted path under `src/`.
         item: String,
         fact: String,
+        /// `json` prints the chain as an array of `{file, line, col, text}` steps.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
     Fmt {
@@ -711,7 +714,9 @@ fn main() -> ExitCode {
             }
         },
         Command::Sig { module, budget } => sig::command(&module, budget),
-        Command::Why { item, fact } => why::command(&item, &fact),
+        Command::Why { item, fact, format } => {
+            why::command(&item, &fact, matches!(format, Some(Format::Json)))
+        }
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
