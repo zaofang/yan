@@ -11616,6 +11616,19 @@
    "expect": []
   },
   {
+   "path": "yn/pass/ownership/else_on_copy_optional.yn",
+   "kind": "pass",
+   "milestone": "M3",
+   "spec": [
+    "15.3"
+   ],
+   "rows": [
+    "R434"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yn/pass/ownership/for_var.yn",
    "kind": "pass",
    "milestone": "M3",
