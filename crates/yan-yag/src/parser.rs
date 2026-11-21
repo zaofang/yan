@@ -521,6 +521,7 @@ impl Parser {
             attrs: Vec::new(),
             doc: None,
             items: Vec::new(),
+            reexports: Vec::new(),
         };
         while self.is_op("@@") {
             self.bump();
@@ -563,6 +564,13 @@ impl Parser {
                         );
                         body.contracts.push(c);
                     }
+                    Err(e) => self.recover(e),
+                }
+                continue;
+            }
+            if self.is_kw("pub") && matches!(self.tok_at(1), Tok::Name(n) if n == "use") {
+                match self.reexport() {
+                    Ok(r) => m.reexports.push(r),
                     Err(e) => self.recover(e),
                 }
                 continue;
@@ -736,6 +744,21 @@ impl Parser {
         };
         self.expect_newline()?;
         Ok(Decorator { path, args })
+    }
+
+    /// `pub use path.item as name` (RFC 0084 D5), one name per line, no globs.
+    fn reexport(&mut self) -> P<Reexport> {
+        let span = self.span();
+        self.bump();
+        self.bump();
+        let path = self.path()?;
+        let name = if self.eat_kw("as") {
+            self.name()?
+        } else {
+            path[path.len() - 1].clone()
+        };
+        self.expect_newline()?;
+        Ok(Reexport { name, path, span })
     }
 
     fn item(&mut self) -> P<Item> {

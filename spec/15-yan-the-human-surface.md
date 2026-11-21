@@ -23,7 +23,7 @@ item      = {attr} [vis] (["unsafe"] fundef | gendef | subdef | lemmadef | typed
           | usedecl
 attr      = "@" NAME ["(" [args] ")"] NEWLINE
 vis       = "pub" | "pkg"                                      -- pkg is soft: the modifier only before a name or keyword (R1069)
-usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE          -- aliases only
+usedecl   = ["pub"] "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE   -- private: aliases only; pub: one re-export (R1135)
 
 fundef    = sig "=" body
 gendef    = "gen" sig "=" body                                         -- yields the declared type

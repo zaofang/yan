@@ -408,11 +408,15 @@ impl<'a> Parser<'a> {
     fn item_(&mut self) -> P<Item> {
         let start = self.span();
         let attrs = self.attrs()?;
+        let reexport = self.is_kw("pub") && *self.peek_n(1) == Tok::Kw("use");
+        if reexport {
+            self.bump();
+        }
         if self.is_kw("use") {
             let kind = self.use_decl()?;
             return Ok(Item {
                 attrs,
-                vis: Vis::Private,
+                vis: if reexport { Vis::Pub } else { Vis::Private },
                 kind,
                 span: self.since(start),
             });
