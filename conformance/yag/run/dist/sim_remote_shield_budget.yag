@@ -1,0 +1,29 @@
+# spec: 9.4, 9.6.1
+# rows: R811
+# note: a Remote call inside a shield runs under the shield's remaining budget: 7 s of work fits in 9 s, past the 5 s default
+# stdout:
+# 1 after PT7S
+
+class Slow:
+    n: int
+
+def work(var self: Slow) -> int fail Cancelled | Timeout uses time:
+    time.sleep(7 * s)?
+    return self.n
+
+@remote
+def make(start: int) -> Slow:
+    return Slow(n=start)
+
+def ask(a: Remote[Actor[Slow]]) -> int fail Cancelled | Timeout | ShieldTimeout | RemoteError uses time, shield, cluster:
+    with shield(9 * s):
+        return a.work()?
+
+pub def main() uses io, time, shield, cluster:
+    with time = virtual(time.now()):
+        with cluster = sim(2, 7):
+            ns = cluster.nodes()
+            a = cluster.spawn(ChildSpec(make, (1,)), placement=On(ns[1]))
+            t0 = time.monotonic()
+            r = ask(a) else e -> -1
+            io.print(f"{r} after {time.monotonic() - t0}")
