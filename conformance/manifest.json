@@ -11425,6 +11425,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/wire/csv_dump_quoting.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R878"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "name,n\nplain,1\n\"a,b\",2\n\"say \"\"hi\"\"\",3\n\"\",4\n---\nname;n\n\"a;b\";1\nc,d;2\n---\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_error_positions.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R880"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 True\n1 True\n1 True\n1 True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/wire/csv_item_enum_cells.yag",
    "kind": "run",
    "milestone": "M1",
@@ -11488,6 +11518,36 @@
    "flags": [],
    "expect": [],
    "stdout": "1\nunknown column rejected\nunknown column rejected\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_optional_cells.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R879"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a,b\n,1\n\"\",2\nx,3\nNone  x\nNone\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/wire/csv_rfc4180_input.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.4"
+   ],
+   "rows": [
+    "R878"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "3\na,b \"c\" 1\nx\ny 2\nz 3\n",
    "exit": 0
   },
   {

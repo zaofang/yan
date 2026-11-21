@@ -1,0 +1,24 @@
+# spec: 17.4
+# rows: R880
+# note: failures carry row, line and col (1-based); row 0 is the header and row 1 the first data row; the wording of the reason text is not pinned
+# stdout:
+# 0 True
+# 1 True
+# 1 True
+# 1 True
+
+@derive(Wire, Show, Eq)
+class Row:
+    a: int
+    b: int
+
+def probe(s: str) -> str:
+    rows = csv.parse[Row](s) else err -> [Row(a=err.row, b=err.line * 1000 + err.col)]
+    pos = rows[0].b
+    return f"{rows[0].a} {pos // 1000 >= 1 and pos % 1000 >= 1}"
+
+pub def main() uses io:
+    io.print(probe("a\n1\n"))
+    io.print(probe("a,b\n1\n"))
+    io.print(probe("a,b\n1,\"2\n"))
+    io.print(probe("a,b\nx,2\n"))
