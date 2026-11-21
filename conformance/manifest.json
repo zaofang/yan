@@ -192,6 +192,19 @@
    "expect": []
   },
   {
+   "path": "yag/pass/ffi/export_profile_types.yag",
+   "kind": "pass",
+   "milestone": "M1",
+   "spec": [
+    "12.7"
+   ],
+   "rows": [
+    "R920"
+   ],
+   "flags": [],
+   "expect": []
+  },
+  {
    "path": "yag/pass/i18n/messages.yag",
    "kind": "pass",
    "milestone": "M1",
@@ -2021,6 +2034,44 @@
      "code": "E201",
      "line": 11,
      "col": 12
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ffi/e907_export_list_parameter.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "12.7"
+   ],
+   "rows": [
+    "R920"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E907",
+     "line": 7,
+     "col": 19
+    }
+   ]
+  },
+  {
+   "path": "yag/fail/ffi/e907_export_not_pub.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "12.7"
+   ],
+   "rows": [
+    "R920"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E907",
+     "line": 7,
+     "col": 5
     }
    ]
   },
