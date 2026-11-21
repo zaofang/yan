@@ -20,7 +20,8 @@ read-only to agents (22.6).
 | `fmt/<case>/` | fmt | `fmt` run on a copy of `in.<ext>` rewrites it to exactly the bytes of `out.<ext>` and exits 0 |
 | `view/<case>/` | view | `view --as T` on `in.<ext>` prints exactly the bytes of `out.T`, T the `as` of `expect.toml` (which also gives `spec` and `rows`) |
 | `mir/<case>/` | mir | `view --as mir --check` on `in.mir` exits 0 and prints exactly the bytes of `in.mir` (no `code` in `expect.toml`), or exits 1 with first stderr line starting with the `code` of `expect.toml` (the I-code of a validator rule, 22.4) |
-| `mcp/<case>/` | mcp | `mcp package` with the `flags` of `expect.toml`, run in a trusted copy of `root/` with `session.jsonl` on stdin, prints exactly the JSON lines of `expect.jsonl` (or the JSON of `expect.json` for `--list`) and exits 0, or exits nonzero naming the `code` of `expect.toml` on stderr |
+| `mcp/<case>/` | mcp | `mcp package` (or `mcp`, the toolchain server, when `server = "toolchain"`) with the `flags` of `expect.toml`, run in a trusted copy of `root/` with `session.jsonl` on stdin, prints exactly the JSON lines of `expect.jsonl` (or the JSON of `expect.json` for `--list`) and exits 0, or exits nonzero naming the `code` of `expect.toml` on stderr |
+| `cli/<case>/` | cli | the `command` (or `commands`, a list run in order, each but the last exiting 0) of `expect.toml`, run in a copy of `root/`, exits `exit` (default 0), prints exactly the bytes of `expect.stdout` when present, and leaves each path listed in `files` with exactly the bytes of `expect/<path>` |
 | `roundtrip/`, `sim/` | | not populated yet |
 
 `yir/run/` is not in the 24.1 tree; M0 needs it because its interpreter runs Yan Core text before any
@@ -46,6 +47,8 @@ CMD semver --format json --base OLD NEW  a JSON object with "bump"
 CMD fmt FILE                             rewrites FILE in place; exit 1 if it does not load
 CMD ARGS... --format json                a pkg/ case's command, run in root/; JSON records
 CMD trust; CMD mcp package [FLAGS]       an mcp/ case, run in root/; JSON-RPC lines in and out
+CMD trust; CMD mcp [FLAGS]               the same with server = "toolchain"
+CMD ARGS...                              a cli/ case's command, run in root/; stdout and exit status
 ```
 
 ## Headers

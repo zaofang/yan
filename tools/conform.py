@@ -65,6 +65,7 @@ TOP_KINDS = {
     "view": "view",
     "mir": "mir",
     "mcp": "mcp",
+    "cli": "cli",
     "roundtrip": "roundtrip",
     "sim": "sim",
 }
@@ -159,7 +160,11 @@ class Executor(Protocol):
 
     def mir_check(self, path: Path) -> tuple[str, str, int]: ...
 
-    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]: ...
+    def mcp(
+        self, root: Path, flags: list[str], session: str, server: str = "package"
+    ) -> tuple[str, str, int]: ...
+
+    def cli(self, workdir: Path, args: list[str]) -> tuple[str, int]: ...
 
 
 @dataclass(frozen=True)
@@ -298,13 +303,22 @@ class CommandExecutor:
             raise ToolFailure(out.stderr.strip())
         return out.stdout, out.stderr, out.returncode
 
-    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
+    def cli(self, workdir: Path, args: list[str]) -> tuple[str, int]:
+        out = subprocess.run([*self.argv, *args], capture_output=True, text=True, cwd=workdir)
+        if out.returncode >= TOOL_FAILURE:
+            raise ToolFailure(out.stderr.strip())
+        return out.stdout, out.returncode
+
+    def mcp(
+        self, root: Path, flags: list[str], session: str, server: str = "package"
+    ) -> tuple[str, str, int]:
         # Serving runs the package's code, so the toolchain refuses an untrusted directory.
         trust = subprocess.run([*self.argv, "trust"], capture_output=True, text=True, cwd=root)
         if trust.returncode != 0:
             raise ToolFailure(trust.stderr.strip())
+        serve = ["mcp", "package"] if server == "package" else ["mcp"]
         out = subprocess.run(
-            [*self.argv, "mcp", "package", *flags],
+            [*self.argv, *serve, *flags],
             input=session,
             capture_output=True,
             text=True,
@@ -427,7 +441,7 @@ def discover(root: Path) -> list[Case]:
         base = root / top
         if not base.is_dir():
             continue
-        if kind in ("patch", "semver", "pkg", "fmt", "view", "mir", "mcp"):
+        if kind in ("patch", "semver", "pkg", "fmt", "view", "mir", "mcp", "cli"):
             cases += [_dir_case(kind, p) for p in sorted(base.iterdir()) if p.is_dir()]
             continue
         for p in _files(base):
@@ -528,6 +542,8 @@ def _judge(case: Case, ex: Executor) -> Result:
             return _judge_mir(case, ex)
         case "mcp":
             return _judge_mcp(case, ex)
+        case "cli":
+            return _judge_cli(case, ex)
         case "semver":
             bump = ex.semver(case.path / "old", case.path / "new")
             if bump != case.meta.get("bump"):
@@ -663,6 +679,7 @@ def _judge_mcp(case: Case, ex: Executor) -> Result:
             Path(tmp) / "root",
             case.flags,
             session.read_text(encoding="utf-8") if session.is_file() else "",
+            str(case.meta.get("server", "package")),
         )
     want = case.meta.get("code")
     if want is not None:
@@ -683,6 +700,39 @@ def _judge_mcp(case: Case, ex: Executor) -> Result:
         return Result(name, ex.name, "fail", "no code, expect.json or expect.jsonl")
     if got != expected:
         return Result(name, ex.name, "fail", f"got {json.dumps(got)}")
+    return Result(name, ex.name, "pass")
+
+
+def _judge_cli(case: Case, ex: Executor) -> Result:
+    name = str(case.path)
+    commands = case.meta.get("commands", [case.meta.get("command")])
+    if (
+        not isinstance(commands, list)
+        or not commands
+        or not all(isinstance(c, list) for c in commands)
+    ):
+        return Result(name, ex.name, "fail", "no command or commands")
+    if not (case.path / "root").is_dir():
+        return Result(name, ex.name, "fail", "no root/")
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copytree(case.path, tmp, dirs_exist_ok=True)
+        root = Path(tmp) / "root"
+        for i, args in enumerate(commands):
+            stdout, code = ex.cli(root, [str(a) for a in args])
+            if i < len(commands) - 1 and code != 0:
+                return Result(name, ex.name, "fail", f"{args} exit {code}")
+        want = case.meta.get("exit", 0)
+        if code != want:
+            return Result(name, ex.name, "fail", f"exit {code}, expected {want}")
+        expected = case.path / "expect.stdout"
+        if expected.is_file() and stdout != expected.read_text(encoding="utf-8"):
+            return Result(name, ex.name, "fail", f"stdout {stdout!r}")
+        files = case.meta.get("files", [])
+        assert isinstance(files, list)
+        for rel in files:
+            got = (root / rel).read_bytes() if (root / rel).is_file() else None
+            if got != (case.path / "expect" / rel).read_bytes():
+                return Result(name, ex.name, "fail", f"{rel} differs")
     return Result(name, ex.name, "pass")
 
 
