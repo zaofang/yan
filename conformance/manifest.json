@@ -7792,6 +7792,19 @@
    "exit": 0
   },
   {
+   "path": "yag/run/failure/fail_union_member.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "8.1"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2 -1\n1\n-1\n-1\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/failure/main_fails.yag",
    "kind": "run",
    "milestone": "M1",
