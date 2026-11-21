@@ -241,14 +241,42 @@ impl<'a> Linker<'a> {
     }
 
     /// The module and item a path of 2 or more names stands for, when its head is not a local.
-    fn split<'p>(&self, path: &'p [String]) -> Option<(String, &'p [String])> {
+    /// A `pub use` of a module (RFC 0084 D5) is followed to that module, so `lib.m.item` reaches
+    /// `a.b.item`.
+    fn split<'p>(&mut self, path: &'p [String]) -> Option<(String, &'p [String])> {
         if path.len() < 2 || !self.heads.contains(&path[0]) || self.locals.contains(&path[0]) {
             return None;
         }
-        (1..path.len())
+        let (mut module, mut rest) = (1..path.len())
             .rev()
             .map(|k| (path[..k].join("."), &path[k..]))
-            .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))
+            .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))?;
+        // The hop limit stops a cycle of module aliases.
+        for _ in 0..16 {
+            let Some((head, tail)) = rest.split_first() else {
+                break;
+            };
+            match self.module_alias(&module, head) {
+                Some(target) => (module, rest) = (target, tail),
+                None => break,
+            }
+        }
+        Some((module, rest))
+    }
+
+    /// The module that `pub use` in `module` makes `name` an alias of, when its path names a module.
+    fn module_alias(&mut self, module: &str, name: &str) -> Option<String> {
+        let path = self
+            .module(module)?
+            .reexports
+            .iter()
+            .find(|r| r.name == name)?
+            .path
+            .join(".");
+        match self.dep_of(module) {
+            Some(dep) => dep.modules.contains(&path).then(|| dep.global(&path)),
+            None => self.env.modules.contains(&path).then_some(path),
+        }
     }
 
     /// The module and item that `pub use` in `module` makes of `item` (RFC 0084 D5), in the

@@ -479,6 +479,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1135 | `pub use path.item as name` re-exports one module or item of the package as an alias in its name table: no globs, one name per line, same hash and capability set, a dependent reaches it as `lib.name`, the target must be `pub` (E287 otherwise) (RFC 0084 D5) | 15.2, 19.1 |
 | R1136 | R1134 also holds for a `pub` type declaration (sum type, alias, newtype): a `pkg` or private item in a variant field or its right-hand side is E336 (RFC 0084 D3) | 3.5, 25 |
 | R1137 | a `pub use` whose target names no item of the package is E337, reported where a dependent or the module uses the alias (RFC 0084 D5) | 19.1, 25 |
+| R1138 | `pub use path as name` where `path` names a module of the package makes `name` an alias of that module in the facade: a dependent reaches its items as `lib.name.item`, a chain of module aliases is followed, same hash and capability set (RFC 0084 D5) | 19.1 |
 
 <!-- /rows -->
 
