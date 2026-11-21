@@ -1101,7 +1101,7 @@ impl<'g, 'm> Cx<'g, 'm> {
         };
         let mut scope = scope;
         for (n, v) in view
-            .map(|v| own::pat_views(p, &self.g.ctors, v))
+            .map(|v| own::pat_views(p, &self.g.ctors, scrutinee, v))
             .unwrap_or_default()
         {
             scope.viewing.push(n.clone());

@@ -815,7 +815,7 @@ impl Elab<'_> {
                     let base = own::scrutinee_view(&self.cx.views, x);
                     if self.owner(&base.root).is_some() {
                         for ((p, _), b) in arms.iter().zip(&mut bound) {
-                            *b = own::pat_views(p, self.copy, &base);
+                            *b = own::pat_views(p, self.copy, self.local(x).map(|l| &l.ty), &base);
                         }
                     }
                 }
