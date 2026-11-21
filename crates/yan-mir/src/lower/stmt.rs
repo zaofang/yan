@@ -389,7 +389,13 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`fail` outside a failing function");
                 };
                 let e = fs[0].1.clone();
-                let mut v = self.atom(a, &e)?;
+                let mut v = match a {
+                    y::Atom::Name(n, _) if !self.names.contains_key(n) => self.atom(a, &e)?,
+                    _ => {
+                        let (v, s) = self.atom_any(a)?;
+                        self.widen_err(v, &s, &e)?
+                    }
+                };
                 if self.shields > 0 {
                     v = self.shield_failure(&e, v);
                 }
