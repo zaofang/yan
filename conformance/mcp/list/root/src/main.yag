@@ -1,5 +1,5 @@
 @derive(Wire)
-class Point:
+pub class Point:
     x: int
     y: int
 

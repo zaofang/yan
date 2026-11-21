@@ -18240,7 +18240,7 @@
    "expect_toml": {
     "spec": "15.2",
     "rows": "R1069",
-    "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pkg item of the same module is not",
+    "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pub type of the same module is not",
     "command": [
      "check"
     ],

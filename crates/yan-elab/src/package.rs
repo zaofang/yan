@@ -811,11 +811,12 @@ impl<'a> Linker<'a> {
                     && let [item] = item
                     && !self.tparams.contains(&path[0])
                 {
-                    self.check_exported(&module, item);
                     *path = if module == self.env.this {
+                        self.check_exported(&module, item);
                         vec![item.clone()]
                     } else {
                         self.check_visible(&module, item, self.site);
+                        self.check_exported(&module, item);
                         self.used.insert(module.clone());
                         self.need(&module, item);
                         vec![format!("{module}.{item}")]
