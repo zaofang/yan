@@ -1,0 +1,6 @@
+spec = "3.5"
+rows = "R1134"
+note = "a pub function whose return type is a pkg type of a sibling module: a dependent could not name the type, so the signature is E336"
+command = ["check"]
+code = "E336"
+at = "src/main.yag:1:9"

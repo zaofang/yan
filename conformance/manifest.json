@@ -18240,7 +18240,7 @@
    "expect_toml": {
     "spec": "15.2",
     "rows": "R1069",
-    "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pkg item of the same module is not",
+    "note": "the rule is the same in Yan: a private type of a sibling module is E287 in a signature, and a pub type of the same module is not",
     "command": [
      "check"
     ],
@@ -18550,6 +18550,52 @@
     ],
     "code": "E335",
     "at": "package.yag:1:1"
+   }
+  },
+  {
+   "path": "pkg/e336_pub_signature_names_pkg_type_of_sibling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1134"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1134",
+    "note": "a pub function whose return type is a pkg type of a sibling module: a dependent could not name the type, so the signature is E336",
+    "command": [
+     "check"
+    ],
+    "code": "E336",
+    "at": "src/main.yag:1:9"
+   }
+  },
+  {
+   "path": "pkg/e336_pub_signature_names_private_type",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1134"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1134",
+    "note": "a pub function whose return type is a private type of its own module is E336, which proposes pub",
+    "command": [
+     "check"
+    ],
+    "code": "E336",
+    "at": "src/main.yag:4:9"
    }
   },
   {
@@ -18872,6 +18918,27 @@
     "command": [
      "test",
      "--gate"
+    ]
+   }
+  },
+  {
+   "path": "pkg/pub_signature_names_pub_and_pkg_bodies",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1134"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1134",
+    "note": "a pub signature naming pub types is accepted, and a pkg item may name pkg types in its signature and use them in a pub body",
+    "command": [
+     "check"
     ]
    }
   },

@@ -1,0 +1,12 @@
+def scale() -> int:
+    return 2
+
+pkg def table() -> fees.Table:
+    return fees.Table(rows=scale())
+
+pub def quote(n: int) -> fees.Fee:
+    t = table()
+    return fees.Fee(bps=n * t.rows)
+
+pub def main() -> None uses io:
+    io.print(str(quote(150).bps))
