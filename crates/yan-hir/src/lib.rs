@@ -18,6 +18,17 @@ pub struct Module {
     pub attrs: Vec<Decorator>,
     pub doc: Option<String>,
     pub items: Vec<Item>,
+    /// `pub use path.item as name` (RFC 0084 D5): aliases in the module's name table.
+    pub reexports: Vec<Reexport>,
+}
+
+/// An alias a module exports for a name it can reach; it is the target, not a new item.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reexport {
+    pub name: Name,
+    /// The target as written, rooted at the module's own package.
+    pub path: Path,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -76,8 +76,21 @@ pub fn lower_in(
         ctors: ctor_fields(m),
     };
     let mut items = Vec::new();
+    let mut reexports = Vec::new();
     for it in &m.items {
         if let ItemKind::Use(u) = &it.kind {
+            if it.vis == Vis::Pub {
+                match l.reexport(u, pkg, it.span) {
+                    Ok(Some(r)) => reexports.push(r),
+                    Ok(None) => {}
+                    Err(e) => l.err(
+                        "E017",
+                        it.span,
+                        &format!("{}: not supported by this toolchain yet", e.what),
+                    ),
+                }
+                continue;
+            }
             match l.use_alias(u, pkg, it.span) {
                 Ok(()) => {}
                 Err(e) => l.err(
@@ -103,6 +116,7 @@ pub fn lower_in(
         attrs: m.attrs.iter().map(|a| l.attr(a)).collect::<R<_>>()?,
         doc: None,
         items,
+        reexports: Vec::new(),
     };
     Ok((module, l.diags))
 }
@@ -319,6 +333,49 @@ impl Lower<'_> {
             .unwrap_or_else(|| path[path.len() - 1].clone());
         self.modules.insert(alias, path);
         Ok(())
+    }
+
+    /// `pub use path.item as name` (RFC 0084 D5): one alias in the module's name table. The path
+    /// names a module of this package or an item of one; the item itself is checked where it is
+    /// resolved. The alias is not bound locally.
+    fn reexport(
+        &mut self,
+        u: &UseDecl,
+        pkg: Option<&PackageCtx>,
+        at: Span,
+    ) -> R<Option<h::Reexport>> {
+        let Some(pkg) = pkg else {
+            return unsupported("`pub use` outside a package");
+        };
+        let mut path: Vec<String> = if u.relative {
+            pkg.dir.to_vec()
+        } else {
+            Vec::new()
+        };
+        path.extend(u.path.iter().cloned());
+        let is_module = |p: &[String]| pkg.modules.contains(&p.join("."));
+        let module_part = if is_module(&path) {
+            &path[..]
+        } else {
+            &path[..path.len() - 1]
+        };
+        if module_part.is_empty() || !is_module(module_part) {
+            let msg = format!(
+                "`pub use {}`: the package has no such module or item",
+                path.join(".")
+            );
+            self.err("E200", at, &msg);
+            return Ok(None);
+        }
+        let name = u
+            .alias
+            .clone()
+            .unwrap_or_else(|| path[path.len() - 1].clone());
+        Ok(Some(h::Reexport {
+            name,
+            path,
+            span: at,
+        }))
     }
 
     /// A path whose first name is a `use` alias, with the alias replaced by the module path.

@@ -134,6 +134,7 @@ pub fn raise(m: &y::Module, trivia: &TriviaTable, std: &dyn Std) -> R<Raised> {
             attrs,
             doc,
             items,
+            reexports: Vec::new(),
         },
         consumed,
     })

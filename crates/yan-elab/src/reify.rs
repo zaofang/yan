@@ -293,6 +293,7 @@ fn run(
         attrs: m.attrs.clone(),
         doc: None,
         items: reachable(m, at),
+        reexports: Vec::new(),
     };
     if let Some(what) = crate::s0caps::violation(&pre.items) {
         cx.err(

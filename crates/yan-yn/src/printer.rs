@@ -191,7 +191,7 @@ impl Printer {
                     .as_ref()
                     .map(|a| format!(" as {a}"))
                     .unwrap_or_default();
-                self.line(&format!("use {dot}{}{alias}", u.path.join(".")));
+                self.line(&format!("{pub_}use {dot}{}{alias}", u.path.join(".")));
             }
         }
     }

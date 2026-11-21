@@ -18249,6 +18249,29 @@
    }
   },
   {
+   "path": "pkg/e287_pub_use_of_pkg_item",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1135"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1135",
+    "note": "a re-export does not widen visibility: the alias of a pkg item is not reachable from a dependent",
+    "command": [
+     "check"
+    ],
+    "code": "E287",
+    "at": "src/main.yag:2:18"
+   }
+  },
+  {
    "path": "pkg/e287_tests_name_private_item",
    "kind": "pkg",
    "milestone": "M1",
@@ -18937,6 +18960,27 @@
     "spec": "3.5",
     "rows": "R1134",
     "note": "a pub signature naming pub types is accepted, and a pkg item may name pkg types in its signature and use them in a pub body",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/pub_use_reexport",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1135"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1135",
+    "note": "pub use re-exports a module item as an alias in the facade: web.fetch reaches client.open and web.Req the record, without exposing the file layout",
     "command": [
      "check"
     ]

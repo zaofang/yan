@@ -251,8 +251,36 @@ impl<'a> Linker<'a> {
             .find_map(|(m, rest)| Some((self.names.get(&m)?.clone(), rest)))
     }
 
+    /// The module and item that `pub use` in `module` makes of `item` (RFC 0084 D5), in the
+    /// namespace of the package being elaborated. A re-export is an alias: the target is the item.
+    fn reexported(&mut self, module: &str, item: &str) -> Option<(String, String)> {
+        let path = self
+            .module(module)?
+            .reexports
+            .iter()
+            .find(|r| r.name == item)?
+            .path
+            .clone();
+        let (item, parent) = path.split_last()?;
+        let rel = parent.join(".");
+        let target = match self.dep_of(module) {
+            Some(dep) => dep.modules.contains(&rel).then(|| dep.global(&rel))?,
+            None => self.env.modules.contains(&rel).then_some(rel)?,
+        };
+        Some((target, item.clone()))
+    }
+
     /// The expression for `item` of `module`: a bare variant, or the qualified name.
     fn resolve(&mut self, module: &str, item: &str, at: Span) -> String {
+        let (mut module, mut item) = (module.to_owned(), item.to_owned());
+        // A chain of re-exports is followed to its item; the hop limit stops a cycle.
+        for _ in 0..16 {
+            match self.reexported(&module, &item) {
+                Some(t) => (module, item) = t,
+                None => break,
+            }
+        }
+        let (module, item) = (module.as_str(), item.as_str());
         if module == self.env.this {
             return item.to_owned();
         }
