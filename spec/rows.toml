@@ -2360,3 +2360,8 @@ sections = "3.5, 25"
 rows = "R1137"
 topic = "a `pub use` whose target names no item of the package is E337, reported where a dependent or the module uses the alias (RFC 0084 D5)"
 sections = "19.1, 25"
+
+[[entry]]
+rows = "R1138"
+topic = "`pub use path as name` where `path` names a module of the package makes `name` an alias of that module in the facade: a dependent reaches its items as `lib.name.item`, a chain of module aliases is followed, same hash and capability set (RFC 0084 D5)"
+sections = "19.1"

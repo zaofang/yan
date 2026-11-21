@@ -19012,6 +19012,27 @@
    }
   },
   {
+   "path": "pkg/pub_use_module_reexport",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1138"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1138",
+    "note": "pub use of a module makes the alias a module in the facade: web.c.open reaches client.open and web.c.Req the record",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
    "path": "pkg/pub_use_reexport",
    "kind": "pkg",
    "milestone": "M1",
