@@ -1,0 +1,6 @@
+spec = "3.5"
+rows = "R1136"
+note = "a pub sum type whose variant field is a private type of its own module is E336, which proposes pub"
+command = ["check"]
+code = "E336"
+at = "src/main.yag:4:10"

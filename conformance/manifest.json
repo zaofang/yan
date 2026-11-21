@@ -18622,6 +18622,52 @@
    }
   },
   {
+   "path": "pkg/e336_pub_sum_type_names_private_type",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1136"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1136",
+    "note": "a pub sum type whose variant field is a private type of its own module is E336, which proposes pub",
+    "command": [
+     "check"
+    ],
+    "code": "E336",
+    "at": "src/main.yag:4:10"
+   }
+  },
+  {
+   "path": "pkg/e337_pub_use_names_missing_item",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1137"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1137",
+    "note": "a re-export whose target names no item of the package is E337 at the use",
+    "command": [
+     "check"
+    ],
+    "code": "E337",
+    "at": "src/main.yag:2:18"
+   }
+  },
+  {
    "path": "pkg/edition_named_year",
    "kind": "pkg",
    "milestone": "M1",
