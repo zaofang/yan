@@ -14,6 +14,7 @@ The design behind this section is the Yan supply-chain security design.
 | `dependencies` | local root name to requirement `"@org/name x.y[.z]"` (R635, R642); each major is a distinct package |
 | `dev_dependencies` | as `dependencies`, for tests, fixtures and benches only (R636) |
 | `tools` | packages `yan x` runs, each under its own ceiling (R636) |
+| `bins` | tool name to the dotted module path under `src/` whose `main` is the entry point, literals only; `yan x PKG TOOL` runs it (R1140) |
 | `overrides` | root only: a package replaced by a local path or a git commit with its archive digest (R636) |
 | `python` | `Python(requires=..., dependencies=[...])`, the Python packages `py` calls (R638) |
 | `exclude` | versions version selection must skip |
@@ -34,7 +35,7 @@ The design behind this section is the Yan supply-chain security design.
 
 **Requirements (R642).** A requirement is `"@org/name x.y[.z]"`. The major (the minor in 0.y.z) is part of the identity; the rest is the minimum version selection starts from.
 
-**Dependency kinds (R636).** `dev_dependencies` are visible only to tests, fixtures, benches and doc fences of the package itself; they are outside its capability ceiling and invisible to its dependents. `tools` are packages run by `yan x`, each under its own ceiling. `overrides` (root only) replace a package anywhere in the graph with a local path or a git commit pinned by its archive digest, for fixing a dependency before a release. There are no other git or path dependencies; multi-package work uses `members`.
+**Dependency kinds (R636).** `dev_dependencies` are visible only to tests, fixtures, benches and doc fences of the package itself; they are outside its capability ceiling and invisible to its dependents. `tools` are packages run by `yan x`, each under its own ceiling: `yan x PKG TOOL` requires `PKG` in the root's `tools` and locked, and `TOOL` a key of `PKG`'s `bins`; it runs that module's `main` under `PKG`'s ceiling, never the root's, with the arguments after `--`. A missing, unlocked or unknown name fails and lists the valid ones (R1140). `overrides` (root only) replace a package anywhere in the graph with a local path or a git commit pinned by its archive digest, for fixing a dependency before a release. There are no other git or path dependencies; multi-package work uses `members`.
 
 **Pre-releases (R643).** A pre-release version is selected only when a requirement names a pre-release of the same version. A published package at 1.0 or later MUST NOT depend on a pre-release.
 

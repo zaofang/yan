@@ -34,6 +34,7 @@ mod trust;
 mod vendor;
 mod w806;
 mod why;
+mod x;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
@@ -290,6 +291,19 @@ enum Command {
         /// `json` prints the chain as an array of `{file, line, col, text}` steps.
         #[arg(long, value_enum)]
         format: Option<Format>,
+    },
+    /// Run a `tools` package's `bins` entry point under that package's own ceiling (RFC 0100 D1).
+    X {
+        /// The tool package, as `@org/name`.
+        pkg: String,
+        /// The entry point, a key of the package's `bins`.
+        tool: String,
+        /// `json` checks the tool under its ceiling and prints the diagnostic records without running it.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+        /// The tool's arguments, after `--`.
+        #[arg(last = true)]
+        args: Vec<String>,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
     Fmt {
@@ -714,6 +728,30 @@ fn main() -> ExitCode {
             }
         },
         Command::Sig { module, budget } => sig::command(&module, budget),
+        Command::X {
+            pkg,
+            tool,
+            format,
+            args,
+        } => match x::resolve(Path::new("."), &pkg, &tool) {
+            Ok(file) if matches!(format, Some(Format::Json)) => check(
+                &[file],
+                (false, false),
+                format,
+                DEFAULT_MAX_ERRORS,
+                Database::new(false, false),
+            ),
+            Ok(file) => run_program(
+                &file,
+                Database::new(false, false),
+                cli.backend,
+                cli.jit,
+                args,
+                false,
+                None,
+            ),
+            Err(msg) => tool_failure(&msg),
+        },
         Command::Why { item, fact, format } => {
             why::command(&item, &fact, matches!(format, Some(Format::Json)))
         }

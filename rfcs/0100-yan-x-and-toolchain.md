@@ -1,8 +1,8 @@
 # 0100: `yan x` tool entry points and `yan toolchain` at M1
 
-- Status: draft
+- Status: accepted
 - Research: #363 (T29); M1 audit row 4 (`docs/reports/2026-11-21-m1-audit.md`)
-- Rows: filled in when accepted
+- Rows: R1140 (D1), D2 pending
 
 ## Summary
 
@@ -14,8 +14,8 @@ Spec 18 lists `yan x <pkg> <tool>` and `yan toolchain`, and 19.1 lists `tools` a
 
 A package declares `bins`, a literal map from tool name to a module path under `src/` whose `main` is the entry point: `bins={"fmt": "cli.fmt"}`. `yan x PKG TOOL` requires PKG to be in the root's `tools` and locked with kind `tool`, requires TOOL to be a key of PKG's `bins`, and runs that `main` under PKG's own capability ceiling (19.2: a tool package is checked as its own root), never the root's. Arguments follow `--`. A missing tool package, an unlocked tool package or an unknown tool is a diagnostic that lists the valid names. Options weighed: a module of the tool package with `main` and no new field (implicit, no discovery without reading every module); dropping TOOL (changes the 18 table row). Recommendation: `bins`.
 
-- Decision: Antonio chose "New bins manifest field" on the decision card, 2026-11-21. The exact field shape above is for the lead's review.
-- Row: (R number once accepted)
+- Decision: Antonio chose "New bins manifest field" on the decision card, 2026-11-21. Antonio accepted the RFC, including the field shape, on decision card cmsg_014jqsmRQfVdtFkGwF8cBScE2WxPutRUXrfkHqT9NX7M8z, 2026-11-21.
+- Row: R1140
 
 ### D2: `yan toolchain` at M1 verifies offline
 

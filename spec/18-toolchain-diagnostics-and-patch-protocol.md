@@ -23,7 +23,7 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan review [BASE[..HEAD]] [--format line\|json\|md]` | review report for a change (21.5): items added, edited and removed on elaborated Yan Core with their headers; authority gains and losses; contract, test and `tests.lock` changes, approval judged by BASE; verdicts of the tests that reach a change; exit 1 when a finding needs a human (R665 to R671) | M1 |
 | `yan metadata --json` | print the resolved package graph as JSON for editors and dependency bots: format version, the root package, and per package its name, version, role, directory, capability ceiling, each dependency's local name, kind, requirement and the package it resolves to or null, and its modules (R1071) | M1 |
 | `yan add`, `remove`, `update`, `lock`, `tree`, `why`, `vendor` | dependency management (section 19); `yan lock` writes `yan.lock` from the manifest without changing a locked version (R896); `yan tree` lists the modules of the package in the current directory, one per line as path and file, and reports layout errors (R1065); `yan why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
-| `yan x <pkg> <tool>` | run a package's tool under its ceiling | M1 |
+| `yan x <pkg> <tool> [--format json] [-- ARGS]` | run `tool`, a key of the `bins` of `pkg`, a locked `tools` package, under that package's own ceiling; `--format json` only checks it and prints the records (19.1, 19.2, R1140) | M1 |
 | `yan schema gen <file>` | write table row types from data files (11.9) | M1 |
 | `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
 | `yan skill` | print the agent skill file | M1 |
