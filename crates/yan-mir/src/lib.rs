@@ -198,6 +198,31 @@ pub enum Inst {
     Move {
         places: Vec<Loc>,
     },
+    /// Retags the pointer at `ptr` whose provenance word is local `prov`: a new Tree Borrows tag
+    /// over `bytes` bytes, stored back into `prov` (6.6, RFC 0088). No code; native code keeps `prov`.
+    Retag {
+        ptr: Operand,
+        prov: Local,
+        bytes: u32,
+        kind: RetagKind,
+        protected: bool,
+    },
+    /// An access of `bytes` bytes at `ptr` through the tag in `prov`, which the loads or stores that
+    /// follow perform (RFC 0088); no code.
+    Access {
+        ptr: Operand,
+        prov: Operand,
+        bytes: u32,
+        write: bool,
+    },
+}
+
+/// The initial permission of a retag (6.6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RetagKind {
+    Unique,
+    Frozen,
+    Cell,
 }
 
 /// A place a value can be moved out of.

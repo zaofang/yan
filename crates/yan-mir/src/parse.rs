@@ -7,8 +7,8 @@ use std::fmt::{self, Display, Formatter};
 use std::sync::{Mutex, OnceLock};
 
 use crate::{
-    ArmEvent, AtomicOp, Block, Func, Inst, IntTy, Loc, MemOrder, Operand, Program, RtFn, ScalarOp,
-    Term, Ty, text::VERSION,
+    ArmEvent, AtomicOp, Block, Func, Inst, IntTy, Loc, MemOrder, Operand, Program, RetagKind, RtFn,
+    ScalarOp, Term, Ty, text::VERSION,
 };
 
 /// A panic kind as `&'static str`, which is what `Term::Panic` holds. Kinds are an open set
@@ -441,6 +441,60 @@ fn inst(c: &mut Cur) -> Res<Inst> {
                     ArmEvent::Enter(c.num()?)
                 }
             })
+        }
+        w if w.starts_with("retag.") => {
+            none(&dsts)?;
+            let mut parts = w["retag.".len()..].split('.');
+            let kind = match parts.next() {
+                Some("unique") => RetagKind::Unique,
+                Some("frozen") => RetagKind::Frozen,
+                Some("cell") => RetagKind::Cell,
+                k => return Err(format!("unknown retag kind `{}`", k.unwrap_or(""))),
+            };
+            let protected = match parts.next() {
+                None => false,
+                Some("protected") => true,
+                Some(m) => return Err(format!("unknown retag modifier `{m}`")),
+            };
+            c.ws();
+            let ptr = c.operand()?;
+            c.ws();
+            c.expect(",")?;
+            c.ws();
+            let prov = c.local()?;
+            c.ws();
+            c.expect(",")?;
+            c.ws();
+            Inst::Retag {
+                ptr,
+                prov,
+                bytes: c.num()?,
+                kind,
+                protected,
+            }
+        }
+        w if w.starts_with("access.") => {
+            none(&dsts)?;
+            let write = match &w["access.".len()..] {
+                "r" => false,
+                "w" => true,
+                m => return Err(format!("unknown access mode `{m}`")),
+            };
+            c.ws();
+            let ptr = c.operand()?;
+            c.ws();
+            c.expect(",")?;
+            c.ws();
+            let prov = c.operand()?;
+            c.ws();
+            c.expect(",")?;
+            c.ws();
+            Inst::Access {
+                ptr,
+                prov,
+                bytes: c.num()?,
+                write,
+            }
         }
         "move" => {
             none(&dsts)?;

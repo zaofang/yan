@@ -16,7 +16,9 @@
 
 use std::fmt::{self, Display, Formatter, Write};
 
-use crate::{ArmEvent, Block, Func, Inst, IntTy, Loc, Operand, Program, ScalarOp, Term, Ty};
+use crate::{
+    ArmEvent, Block, Func, Inst, IntTy, Loc, Operand, Program, RetagKind, ScalarOp, Term, Ty,
+};
 
 /// The version in the `mir <version>` header; a reader of another version must refuse the text.
 pub const VERSION: u32 = 1;
@@ -212,6 +214,32 @@ impl Display for Inst {
             }
             Inst::Fence { order } => write!(f, "fence {}", order.mnemonic()),
             Inst::Arm(e) => e.fmt(f),
+            Inst::Retag {
+                ptr,
+                prov,
+                bytes,
+                kind,
+                protected,
+            } => write!(
+                f,
+                "retag.{}{} {ptr}, %{prov}, {bytes}",
+                match kind {
+                    RetagKind::Unique => "unique",
+                    RetagKind::Frozen => "frozen",
+                    RetagKind::Cell => "cell",
+                },
+                if *protected { ".protected" } else { "" }
+            ),
+            Inst::Access {
+                ptr,
+                prov,
+                bytes,
+                write,
+            } => write!(
+                f,
+                "access.{} {ptr}, {prov}, {bytes}",
+                if *write { "w" } else { "r" }
+            ),
             Inst::Move { places } => {
                 f.write_str("move")?;
                 for (i, p) in places.iter().enumerate() {

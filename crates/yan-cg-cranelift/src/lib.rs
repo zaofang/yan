@@ -2932,7 +2932,7 @@ impl Gen<'_, '_> {
             Inst::Fence { .. } => {
                 self.b.ins().fence();
             }
-            Inst::Arm(_) | Inst::Move { .. } => {}
+            Inst::Arm(_) | Inst::Move { .. } | Inst::Retag { .. } | Inst::Access { .. } => {}
             Inst::Scalar {
                 dst, op, ty, args, ..
             } => {

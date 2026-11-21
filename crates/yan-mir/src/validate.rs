@@ -533,6 +533,8 @@ fn operands(i: &Inst) -> Vec<&Operand> {
                 Loc::Local(_) => None,
             })
             .collect(),
+        Inst::Retag { ptr, .. } => vec![ptr],
+        Inst::Access { ptr, prov, .. } => vec![ptr, prov],
         Inst::AddrOf { .. } | Inst::Fence { .. } | Inst::Arm(_) => vec![],
     }
 }
@@ -544,7 +546,12 @@ fn dsts(i: &Inst) -> Vec<Local> {
             dst.iter().copied().collect()
         }
         Inst::Call { dst, .. } | Inst::CallIndirect { dst, .. } => dst.clone(),
-        Inst::Store { .. } | Inst::Fence { .. } | Inst::Arm(_) | Inst::Move { .. } => vec![],
+        Inst::Retag { prov, .. } => vec![*prov],
+        Inst::Store { .. }
+        | Inst::Fence { .. }
+        | Inst::Arm(_)
+        | Inst::Move { .. }
+        | Inst::Access { .. } => vec![],
     }
 }
 
