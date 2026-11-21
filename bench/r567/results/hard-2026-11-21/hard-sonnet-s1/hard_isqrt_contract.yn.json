@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2160,
+   "out": 635,
+   "reasoning": 513,
+   "out_bytes": 201
+  },
+  "body": {
+   "in": 2355,
+   "out": 619,
+   "reasoning": 405,
+   "out_bytes": 373
+  }
+ },
+ "final": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var lo = 0\n  var hi = n\n  if hi > 3037000499\n    hi = 3037000499\n  while lo < hi\n    let mid = (lo + hi + 1) // 2\n    if mid * mid <= n\n      lo = mid\n    else\n      hi = mid - 1\n  lo\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2160,
+    "out": 635,
+    "reasoning": 513
+   },
+   "out_bytes": 201,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2355,
+    "out": 619,
+    "reasoning": 405
+   },
+   "out_bytes": 373,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and n // (out + 1) < out + 1\n  ex isqrt(0) == 0\n  ex isqrt(1) == 1\n  ex isqrt(15) == 3\n  ex isqrt(16) == 4\n  var lo = 0\n  var hi = n\n  if hi > 3037000499\n    hi = 3037000499\n  while lo < hi\n    let mid = (lo + hi + 1) // 2\n    if mid * mid <= n\n      lo = mid\n    else\n      hi = mid - 1\n  lo\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

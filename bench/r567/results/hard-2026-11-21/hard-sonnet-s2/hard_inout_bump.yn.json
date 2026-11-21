@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2143,
+   "out": 861,
+   "reasoning": 715,
+   "out_bytes": 259
+  },
+  "body": {
+   "in": 2362,
+   "out": 178,
+   "reasoning": 0,
+   "out_bytes": 339
+  }
+ },
+ "final": "bumped(xs: List[int], by: int) -> List[int] =\n  post out.len() == xs.len()\n  ex bumped([1, 2, 3], 1) == [2, 3, 4]\n  ex bumped([], 5) == []\n  var result: List[int] = []\n  for x in xs\n    result.append(x + by)\n  result\n\nbump_all(var xs: List[int], by: int) =\n  ex bumped([1, 2, 3], 10) == [11, 12, 13]\n  for var x in xs\n    x += by\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2143,
+    "out": 861,
+    "reasoning": 715
+   },
+   "out_bytes": 259,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2362,
+    "out": 178,
+    "reasoning": 0
+   },
+   "out_bytes": 339,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "bumped(xs: List[int], by: int) -> List[int] =\n  post out.len() == xs.len()\n  ex bumped([1, 2, 3], 1) == [2, 3, 4]\n  ex bumped([], 5) == []\n  var result: List[int] = []\n  for x in xs\n    result.append(x + by)\n  result\n\nbump_all(var xs: List[int], by: int) =\n  ex bumped([1, 2, 3], 10) == [11, 12, 13]\n  for var x in xs\n    x += by\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

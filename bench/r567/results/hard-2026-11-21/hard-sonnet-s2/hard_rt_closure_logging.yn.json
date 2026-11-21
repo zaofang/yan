@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2190,
+   "out": 459,
+   "reasoning": 383,
+   "out_bytes": 153
+  },
+  "body": {
+   "in": 2339,
+   "out": 268,
+   "reasoning": 180,
+   "out_bytes": 174
+  }
+ },
+ "final": "const_job() -> str = \"x\"\n\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(const_job) == \"start:x:end\"\n  let r = job()\n  \"start:\\(r):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2190,
+    "out": 459,
+    "reasoning": 383
+   },
+   "out_bytes": 153,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2339,
+    "out": 268,
+    "reasoning": 180
+   },
+   "out_bytes": 174,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "const_job() -> str = \"x\"\n\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(const_job) == \"start:x:end\"\n  let r = job()\n  \"start:\\(r):end\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

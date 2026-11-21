@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2164,
+   "out": 296,
+   "reasoning": 185,
+   "out_bytes": 254
+  },
+  "body": {
+   "in": 2348,
+   "out": 692,
+   "reasoning": 506,
+   "out_bytes": 428
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n  ex title_of(\"<html><body>no title</body></html>\") == \"\"\n  ex title_of(\"\") == \"\"\n  let parts = html.split(\"<title>\")\n  if parts.len() < 2\n    return \"\"\n  let after = copy parts[1]\n  let inner = after.split(\"</title>\")\n  if inner.len() < 2\n    return \"\"\n  copy inner[0]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2164,
+    "out": 296,
+    "reasoning": 185
+   },
+   "out_bytes": 254,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2348,
+    "out": 692,
+    "reasoning": 506
+   },
+   "out_bytes": 428,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n  ex title_of(\"<html><body>no title</body></html>\") == \"\"\n  ex title_of(\"\") == \"\"\n  let parts = html.split(\"<title>\")\n  if parts.len() < 2\n    return \"\"\n  let after = copy parts[1]\n  let inner = after.split(\"</title>\")\n  if inner.len() < 2\n    return \"\"\n  copy inner[0]\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

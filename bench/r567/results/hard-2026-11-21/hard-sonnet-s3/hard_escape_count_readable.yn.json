@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2287,
+   "out": 413,
+   "reasoning": 347,
+   "out_bytes": 144
+  },
+  "body": {
+   "in": 2426,
+   "out": 361,
+   "reasoning": 248,
+   "out_bytes": 260
+  }
+ },
+ "final": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let t = fs.read(name) else continue\n      n += 1\n    return n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2287,
+    "out": 413,
+    "reasoning": 347
+   },
+   "out_bytes": 144,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2426,
+    "out": 361,
+    "reasoning": 248
+   },
+   "out_bytes": 260,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let t = fs.read(name) else continue\n      n += 1\n    return n\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

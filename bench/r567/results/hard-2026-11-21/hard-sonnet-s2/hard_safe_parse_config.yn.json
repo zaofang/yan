@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2172,
+   "out": 445,
+   "reasoning": 317,
+   "out_bytes": 250
+  },
+  "body": {
+   "in": 2373,
+   "out": 678,
+   "reasoning": 459,
+   "out_bytes": 492
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\\nb=2\", \"c\") == \"\"\n  ex config_value(\"\", \"a\") == \"\"\n  ex config_value(\"a=x=y\", \"a\") == \"x=y\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2\n      if parts[0] == key\n        var v = \"\"\n        for i in range(1, parts.len())\n          if i > 1\n            v += \"=\"\n          v += parts[i]\n        return v\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2172,
+    "out": 445,
+    "reasoning": 317
+   },
+   "out_bytes": 250,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2373,
+    "out": 678,
+    "reasoning": 459
+   },
+   "out_bytes": 492,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "config_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\\nb=2\", \"c\") == \"\"\n  ex config_value(\"\", \"a\") == \"\"\n  ex config_value(\"a=x=y\", \"a\") == \"x=y\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    if parts.len() >= 2\n      if parts[0] == key\n        var v = \"\"\n        for i in range(1, parts.len())\n          if i > 1\n            v += \"=\"\n          v += parts[i]\n        return v\n  \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

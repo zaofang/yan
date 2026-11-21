@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2545,
+   "reasoning": 1273,
+   "out_bytes": 2876
+  },
+  "body": {
+   "in": 2584,
+   "out": 1835,
+   "reasoning": 444,
+   "out_bytes": 3275
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef make_reader(base: Path) -> Callable[[str], str]:\n    \"\"\"Return a reader confined to the directory `base`.\n\n    `read(p)` resolves `p` relative to `base` (following `..` and symlinks)\n    and returns the file's text if the resolved path is a regular file\n    inside `base`. For anything else (outside `base`, absolute paths\n    outside, missing files, directories, unreadable files) it returns \"\".\n    \"\"\"\n    root = base.resolve()\n\n    def read(p: str) -> str:\n        try:\n            target = (root / p).resolve()\n            if not target.is_relative_to(root):\n                return \"\"\n            if not target.is_file():\n                return \"\"\n            return target.read_text()\n        except (OSError, ValueError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` with a reader confined to the `notes` directory.\n\n    `read(p)` yields the text of `p` relative to `notes`, or \"\" when `p`\n    cannot be read inside `notes`. Returns whatever `plugin` returns.\n    \"\"\"\n    return plugin(path, make_reader(Path(\"notes\")))\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"A\")\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"b.txt\").write_text(\"B\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_reads_file_in_subdirectory(sandbox: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"B|\"\n\n\ndef test_dotdot_that_stays_inside(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../a.txt\") == \"A|\"\n\n\ndef test_secret_is_not_leaked_by_plugin_attempt(sandbox: Path) -> None:\n    assert \"TOP\" not in run_plugin(\"a.txt\")\n\n\ndef test_requested_path_escaping_notes_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_is_empty(sandbox: Path) -> None:\n    assert run_plugin(str(sandbox / \"secret.txt\")) == \"|\"\n\n\ndef test_sibling_directory_with_common_prefix_is_empty(sandbox: Path) -> None:\n    other = sandbox / \"notes2\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"X\")\n    assert run_plugin(\"../notes2/x.txt\") == \"|\"\n\n\ndef test_missing_file_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_symlink_escaping_notes_is_empty(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_make_reader_directly(sandbox: Path) -> None:\n    read = make_reader(sandbox / \"notes\")\n    assert read(\"a.txt\") == \"A\"\n    assert read(\"../secret.txt\") == \"\"\n    assert read(\"sub/../../secret.txt\") == \"\"\n    assert read(\"missing\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2545,
+    "reasoning": 1273
+   },
+   "out_bytes": 2876,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2584,
+    "out": 1835,
+    "reasoning": 444
+   },
+   "out_bytes": 3275,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef make_reader(base: Path) -> Callable[[str], str]:\n    \"\"\"Return a reader confined to the directory `base`.\n\n    `read(p)` resolves `p` relative to `base` (following `..` and symlinks)\n    and returns the file's text if the resolved path is a regular file\n    inside `base`. For anything else (outside `base`, absolute paths\n    outside, missing files, directories, unreadable files) it returns \"\".\n    \"\"\"\n    root = base.resolve()\n\n    def read(p: str) -> str:\n        try:\n            target = (root / p).resolve()\n            if not target.is_relative_to(root):\n                return \"\"\n            if not target.is_file():\n                return \"\"\n            return target.read_text()\n        except (OSError, ValueError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Run `plugin(path, read)` with a reader confined to the `notes` directory.\n\n    `read(p)` yields the text of `p` relative to `notes`, or \"\" when `p`\n    cannot be read inside `notes`. Returns whatever `plugin` returns.\n    \"\"\"\n    return plugin(path, make_reader(Path(\"notes\")))\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"A\")\n    (notes / \"sub\").mkdir()\n    (notes / \"sub\" / \"b.txt\").write_text(\"B\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(sandbox: Path) -> None:\n    assert run_plugin(\"a.txt\") == \"A|\"\n\n\ndef test_reads_file_in_subdirectory(sandbox: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"B|\"\n\n\ndef test_dotdot_that_stays_inside(sandbox: Path) -> None:\n    assert run_plugin(\"sub/../a.txt\") == \"A|\"\n\n\ndef test_secret_is_not_leaked_by_plugin_attempt(sandbox: Path) -> None:\n    assert \"TOP\" not in run_plugin(\"a.txt\")\n\n\ndef test_requested_path_escaping_notes_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_is_empty(sandbox: Path) -> None:\n    assert run_plugin(str(sandbox / \"secret.txt\")) == \"|\"\n\n\ndef test_sibling_directory_with_common_prefix_is_empty(sandbox: Path) -> None:\n    other = sandbox / \"notes2\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"X\")\n    assert run_plugin(\"../notes2/x.txt\") == \"|\"\n\n\ndef test_missing_file_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_is_empty(sandbox: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_symlink_escaping_notes_is_empty(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_make_reader_directly(sandbox: Path) -> None:\n    read = make_reader(sandbox / \"notes\")\n    assert read(\"a.txt\") == \"A\"\n    assert read(\"../secret.txt\") == \"\"\n    assert read(\"sub/../../secret.txt\") == \"\"\n    assert read(\"missing\") == \"\"\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

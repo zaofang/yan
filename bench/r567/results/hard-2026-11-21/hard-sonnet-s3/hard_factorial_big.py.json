@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1033,
+   "out": 438,
+   "reasoning": 97,
+   "out_bytes": 798
+  },
+  "body": {
+   "in": 1431,
+   "out": 392,
+   "reasoning": 0,
+   "out_bytes": 938
+  }
+ },
+ "final": "import pytest\n\n\ndef fact(n: int) -> int:\n    \"\"\"Return n! (the product of the integers 1 through n).\n\n    fact(0) is 1. Raises ValueError if n is negative.\n    \"\"\"\n    if n < 0:\n        raise ValueError(\"n must be non-negative\")\n    result = 1\n    for i in range(2, n + 1):\n        result *= i\n    return result\n\n\ndef test_fact_base_cases() -> None:\n    assert fact(0) == 1\n    assert fact(1) == 1\n\n\ndef test_fact_small_values() -> None:\n    assert fact(2) == 2\n    assert fact(3) == 6\n    assert fact(5) == 120\n    assert fact(10) == 3628800\n\n\ndef test_fact_large_value() -> None:\n    assert fact(20) == 2432902008176640000\n    assert fact(25) == 15511210043330985984000000\n\n\ndef test_fact_recurrence() -> None:\n    for n in range(1, 15):\n        assert fact(n) == n * fact(n - 1)\n\n\ndef test_fact_negative() -> None:\n    with pytest.raises(ValueError):\n        fact(-1)\n    with pytest.raises(ValueError):\n        fact(-10)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1033,
+    "out": 438,
+    "reasoning": 97
+   },
+   "out_bytes": 798,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1431,
+    "out": 392,
+    "reasoning": 0
+   },
+   "out_bytes": 938,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/factorial_big",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "import pytest\n\n\ndef fact(n: int) -> int:\n    \"\"\"Return n! (the product of the integers 1 through n).\n\n    fact(0) is 1. Raises ValueError if n is negative.\n    \"\"\"\n    if n < 0:\n        raise ValueError(\"n must be non-negative\")\n    result = 1\n    for i in range(2, n + 1):\n        result *= i\n    return result\n\n\ndef test_fact_base_cases() -> None:\n    assert fact(0) == 1\n    assert fact(1) == 1\n\n\ndef test_fact_small_values() -> None:\n    assert fact(2) == 2\n    assert fact(3) == 6\n    assert fact(5) == 120\n    assert fact(10) == 3628800\n\n\ndef test_fact_large_value() -> None:\n    assert fact(20) == 2432902008176640000\n    assert fact(25) == 15511210043330985984000000\n\n\ndef test_fact_recurrence() -> None:\n    for n in range(1, 15):\n        assert fact(n) == n * fact(n - 1)\n\n\ndef test_fact_negative() -> None:\n    with pytest.raises(ValueError):\n        fact(-1)\n    with pytest.raises(ValueError):\n        fact(-10)\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

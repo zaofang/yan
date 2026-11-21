@@ -1,0 +1,95 @@
+{
+ "final": "def parity(x: int) -> int:\n    \"\"\"Parity of x: 0 for even, 1 for odd.\"\"\"\n    ex parity(4) == 0\n    ex parity(7) == 1\n    return x % 2\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel, in input order.\"\"\"\n    post out.len() == xs.len()\n    ex parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n    ex parities([]) == []\n    return par [parity(x) for x in xs]\n",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2644,
+    "out": 183,
+    "reasoning": 0
+   },
+   "out_bytes": 376
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2925,
+    "out": 376,
+    "reasoning": 178
+   },
+   "out_bytes": 416
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_order",
+ "tokens": {
+  "body": {
+   "in": 2925,
+   "out": 376,
+   "reasoning": 178,
+   "out_bytes": 416
+  },
+  "spec": {
+   "in": 2644,
+   "out": 183,
+   "reasoning": 0,
+   "out_bytes": 376
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:bff4ee18d83ea9193b6c3fc671301340f15112ee78489de929ff8d8f3250d9e5",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "def parity(x: int) -> int:\n    \"\"\"Parity of x: 0 for even, 1 for odd.\"\"\"\n    ex parity(4) == 0\n    ex parity(7) == 1\n    return x % 2\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Parity (0 or 1) of each element of xs, computed in parallel, in input order.\"\"\"\n    post out.len() == xs.len()\n    ex parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n    ex parities([]) == []\n    return par [parity(x) for x in xs]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

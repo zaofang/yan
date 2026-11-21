@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2941,
+   "out": 1737,
+   "reasoning": 306,
+   "out_bytes": 3281
+  },
+  "body": {
+   "in": 2650,
+   "out": 726,
+   "reasoning": 0,
+   "out_bytes": 1666
+  }
+ },
+ "final": "import typing\n\nimport pytest\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append s to the end of dst, modifying dst in place.\n\n    Returns None. The caller's list object is mutated, not replaced.\n    \"\"\"\n    dst.append(s)\n\n\ndef test_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_appends_to_end_and_preserves_existing() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_return_annotation_is_none() -> None:\n    hints = typing.get_type_hints(add_name)\n    assert hints[\"return\"] is type(None)\n\n\ndef test_mutates_in_place_same_object() -> None:\n    dst: list[str] = [\"a\"]\n    alias = dst\n    add_name(dst, \"b\")\n    assert alias is dst\n    assert alias == [\"a\", \"b\"]\n\n\ndef test_duplicates_allowed() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\", \"a\"]\n\n\ndef test_empty_string_appended() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"\")\n    assert dst == [\"a\", \"\"]\n\n\ndef test_multiple_calls_keep_order() -> None:\n    dst: list[str] = []\n    for name in [\"x\", \"y\", \"z\"]:\n        add_name(dst, name)\n    assert dst == [\"x\", \"y\", \"z\"]\n\n\ndef test_other_lists_unaffected() -> None:\n    first: list[str] = []\n    second: list[str] = []\n    add_name(first, \"only-first\")\n    assert first == [\"only-first\"]\n    assert second == []\n\n\n@pytest.mark.parametrize(\"name\", [\"\", \" \", \"h\u00e9llo\", \"\u540d\u524d\", \"a\\nb\"])\ndef test_various_strings(name: str) -> None:\n    dst: list[str] = []\n    add_name(dst, name)\n    assert dst == [name]\n    assert len(dst) == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 831,
+    "reasoning": 121
+   },
+   "out_bytes": 1625,
+   "ok": false,
+   "report": "test_task.py:26: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1872,
+    "out": 906,
+    "reasoning": 185
+   },
+   "out_bytes": 1656,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2650,
+    "out": 726,
+    "reasoning": 0
+   },
+   "out_bytes": 1666,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "import typing\n\nimport pytest\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append s to the end of dst, modifying dst in place.\n\n    Returns None. The caller's list object is mutated, not replaced.\n    \"\"\"\n    dst.append(s)\n\n\ndef test_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_appends_to_end_and_preserves_existing() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_return_annotation_is_none() -> None:\n    hints = typing.get_type_hints(add_name)\n    assert hints[\"return\"] is type(None)\n\n\ndef test_mutates_in_place_same_object() -> None:\n    dst: list[str] = [\"a\"]\n    alias = dst\n    add_name(dst, \"b\")\n    assert alias is dst\n    assert alias == [\"a\", \"b\"]\n\n\ndef test_duplicates_allowed() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\", \"a\"]\n\n\ndef test_empty_string_appended() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"\")\n    assert dst == [\"a\", \"\"]\n\n\ndef test_multiple_calls_keep_order() -> None:\n    dst: list[str] = []\n    for name in [\"x\", \"y\", \"z\"]:\n        add_name(dst, name)\n    assert dst == [\"x\", \"y\", \"z\"]\n\n\ndef test_other_lists_unaffected() -> None:\n    first: list[str] = []\n    second: list[str] = []\n    add_name(first, \"only-first\")\n    assert first == [\"only-first\"]\n    assert second == []\n\n\n@pytest.mark.parametrize(\"name\", [\"\", \" \", \"h\u00e9llo\", \"\u540d\u524d\", \"a\\nb\"])\ndef test_various_strings(name: str) -> None:\n    dst: list[str] = []\n    add_name(dst, name)\n    assert dst == [name]\n    assert len(dst) == 1\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 999,
+   "reasoning": 197,
+   "out_bytes": 1697
+  },
+  "body": {
+   "in": 1939,
+   "out": 1483,
+   "reasoning": 485,
+   "out_bytes": 2154
+  }
+ },
+ "final": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Contract, stated with assert statements:\n    - Precondition: n >= 0 (asserted on entry).\n    - Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1)\n      (asserted before returning), which pins r uniquely.\n\n    Works for arbitrarily large ints. Violating the precondition\n    raises AssertionError.\n    \"\"\"\n    assert n >= 0, \"n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Initial guess 2**ceil(bit_length / 2) is >= sqrt(n); Newton's\n        # iteration then decreases monotonically to floor(sqrt(n)).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n\n\ndef test_perfect_squares_and_neighbors() -> None:\n    for r in range(0, 200):\n        sq = r * r\n        assert isqrt(sq) == r\n        if sq > 0:\n            assert isqrt(sq - 1) == r - 1\n        assert isqrt(sq + 1) == r if r > 0 else isqrt(sq + 1) == 1\n\n\ndef test_matches_math_isqrt_over_range() -> None:\n    for n in range(0, 5000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_result_is_pinned() -> None:\n    for n in [0, 1, 5, 15, 16, 17, 99, 100, 101, 10**6, 10**6 + 1, 2**31 - 1]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_large_values() -> None:\n    big = 10**40\n    assert isqrt(big) == 10**20\n    assert isqrt(big - 1) == 10**20 - 1\n    assert isqrt(big + 1) == 10**20\n    n = 2**200 + 12345\n    assert isqrt(n) == math.isqrt(n)\n    assert isqrt(2**127 - 1) == math.isqrt(2**127 - 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-(10**30))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 999,
+    "reasoning": 197
+   },
+   "out_bytes": 1697,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1939,
+    "out": 1483,
+    "reasoning": 485
+   },
+   "out_bytes": 2154,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "import math\n\nimport pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Contract, stated with assert statements:\n    - Precondition: n >= 0 (asserted on entry).\n    - Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1)\n      (asserted before returning), which pins r uniquely.\n\n    Works for arbitrarily large ints. Violating the precondition\n    raises AssertionError.\n    \"\"\"\n    assert n >= 0, \"n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        # Initial guess 2**ceil(bit_length / 2) is >= sqrt(n); Newton's\n        # iteration then decreases monotonically to floor(sqrt(n)).\n        x = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            y = (x + n // x) // 2\n            if y >= x:\n                break\n            x = y\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n\n\ndef test_perfect_squares_and_neighbors() -> None:\n    for r in range(0, 200):\n        sq = r * r\n        assert isqrt(sq) == r\n        if sq > 0:\n            assert isqrt(sq - 1) == r - 1\n        assert isqrt(sq + 1) == r if r > 0 else isqrt(sq + 1) == 1\n\n\ndef test_matches_math_isqrt_over_range() -> None:\n    for n in range(0, 5000):\n        assert isqrt(n) == math.isqrt(n)\n\n\ndef test_result_is_pinned() -> None:\n    for n in [0, 1, 5, 15, 16, 17, 99, 100, 101, 10**6, 10**6 + 1, 2**31 - 1]:\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_large_values() -> None:\n    big = 10**40\n    assert isqrt(big) == 10**20\n    assert isqrt(big - 1) == 10**20 - 1\n    assert isqrt(big + 1) == 10**20\n    n = 2**200 + 12345\n    assert isqrt(n) == math.isqrt(n)\n    assert isqrt(2**127 - 1) == math.isqrt(2**127 - 1)\n\n\ndef test_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-(10**30))\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

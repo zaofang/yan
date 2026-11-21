@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1903,
+   "reasoning": 763,
+   "out_bytes": 2727
+  },
+  "body": {
+   "in": 2350,
+   "out": 1798,
+   "reasoning": 526,
+   "out_bytes": 3088
+  }
+ },
+ "final": "import threading\nfrom concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    thread finishes first.\n    \"\"\"\n    workers = max(1, min(32, len(xs)))\n    with ThreadPoolExecutor(max_workers=workers) as ex:\n        futures: list[Future[int]] = [ex.submit(check, x) for x in xs]\n        # Collect results in index order, so the first exception raised is\n        # that of the lowest-index bad element, whatever the finish order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_ok() -> None:\n    assert all_even([2, 4, 6, 0, -8]) == [2, 4, 6, 0, -8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_preserves_order() -> None:\n    xs = list(range(0, 200, 2))\n    assert all_even(xs) == xs\n\n\ndef test_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_bad_wins() -> None:\n    # Values chosen so that lowest index is not the smallest/largest value.\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 3, 5])\n    assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_later_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    gate = threading.Event()\n    original = check\n\n    def fake_check(x: int) -> int:\n        if x == 3:\n            # Lowest-index bad element: finishes only after the later bad one.\n            gate.wait(timeout=2.0)\n            return original(x)\n        if x == 5:\n            try:\n                return original(x)\n            finally:\n                gate.set()\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    with pytest.raises(Bad) as ei:\n        all_even([3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_checks_run_in_worker_threads(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: set[int] = set()\n    lock = threading.Lock()\n    original = check\n\n    def fake_check(x: int) -> int:\n        with lock:\n            seen.add(threading.get_ident())\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n    assert threading.get_ident() not in seen\n\n\ndef test_every_element_is_checked_despite_bad(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    called: list[int] = []\n    lock = threading.Lock()\n    original = check\n\n    def fake_check(x: int) -> int:\n        with lock:\n            called.append(x)\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    with pytest.raises(Bad) as ei:\n        all_even([1, 2, 4, 6])\n    assert ei.value.n == 1\n    assert sorted(called) == [1, 2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1903,
+    "reasoning": 763
+   },
+   "out_bytes": 2727,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2350,
+    "out": 1798,
+    "reasoning": 526
+   },
+   "out_bytes": 3088,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "import threading\nfrom concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    thread finishes first.\n    \"\"\"\n    workers = max(1, min(32, len(xs)))\n    with ThreadPoolExecutor(max_workers=workers) as ex:\n        futures: list[Future[int]] = [ex.submit(check, x) for x in xs]\n        # Collect results in index order, so the first exception raised is\n        # that of the lowest-index bad element, whatever the finish order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_ok() -> None:\n    assert all_even([2, 4, 6, 0, -8]) == [2, 4, 6, 0, -8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_preserves_order() -> None:\n    xs = list(range(0, 200, 2))\n    assert all_even(xs) == xs\n\n\ndef test_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 8])\n    assert ei.value.n == 7\n\n\ndef test_lowest_index_bad_wins() -> None:\n    # Values chosen so that lowest index is not the smallest/largest value.\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 3, 5])\n    assert ei.value.n == 9\n\n\ndef test_lowest_index_wins_even_if_later_finishes_first(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    gate = threading.Event()\n    original = check\n\n    def fake_check(x: int) -> int:\n        if x == 3:\n            # Lowest-index bad element: finishes only after the later bad one.\n            gate.wait(timeout=2.0)\n            return original(x)\n        if x == 5:\n            try:\n                return original(x)\n            finally:\n                gate.set()\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    with pytest.raises(Bad) as ei:\n        all_even([3, 4, 5])\n    assert ei.value.n == 3\n\n\ndef test_checks_run_in_worker_threads(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: set[int] = set()\n    lock = threading.Lock()\n    original = check\n\n    def fake_check(x: int) -> int:\n        with lock:\n            seen.add(threading.get_ident())\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n    assert threading.get_ident() not in seen\n\n\ndef test_every_element_is_checked_despite_bad(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    called: list[int] = []\n    lock = threading.Lock()\n    original = check\n\n    def fake_check(x: int) -> int:\n        with lock:\n            called.append(x)\n        return original(x)\n\n    monkeypatch.setitem(globals(), \"check\", fake_check)\n    with pytest.raises(Bad) as ei:\n        all_even([1, 2, 4, 6])\n    assert ei.value.n == 1\n    assert sorted(called) == [1, 2, 4, 6]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1071,
+   "reasoning": 377,
+   "out_bytes": 1547
+  },
+  "body": {
+   "in": 1836,
+   "out": 1063,
+   "reasoning": 273,
+   "out_bytes": 1791
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count how many elements of xs a bounded queue accepts.\n\n    Creates a queue of integers holding at most `cap` items and tries to\n    put each element of xs in order without blocking. Nothing is ever\n    taken out of the queue. Stops at the first put that fails because\n    the queue is full, and returns the number of puts accepted before\n    that point.\n\n    A capacity of zero or less accepts nothing, so the result is 0\n    (it is not treated as an unbounded queue).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_exactly_capacity() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(2, [1, 2, 3, 4, 5]) == 2\n\n\ndef test_empty_input() -> None:\n    assert accepted(4, []) == 0\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(3, [4, 4, 4, 4]) == 3\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3, 4]\n    accepted(2, xs)\n    assert xs == [1, 2, 3, 4]\n\n\n@pytest.mark.parametrize(\n    (\"cap\", \"n\", \"expected\"),\n    [(1, 1, 1), (1, 10, 1), (10, 1, 1), (10, 10, 10), (10, 100, 10)],\n)\ndef test_accepted_is_min_of_cap_and_len(cap: int, n: int, expected: int) -> None:\n    assert accepted(cap, list(range(n))) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1071,
+    "reasoning": 377
+   },
+   "out_bytes": 1547,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1836,
+    "out": 1063,
+    "reasoning": 273
+   },
+   "out_bytes": 1791,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count how many elements of xs a bounded queue accepts.\n\n    Creates a queue of integers holding at most `cap` items and tries to\n    put each element of xs in order without blocking. Nothing is ever\n    taken out of the queue. Stops at the first put that fails because\n    the queue is full, and returns the number of puts accepted before\n    that point.\n\n    A capacity of zero or less accepts nothing, so the result is 0\n    (it is not treated as an unbounded queue).\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_fewer_items_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_exactly_capacity() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_more_items_than_capacity() -> None:\n    assert accepted(2, [1, 2, 3, 4, 5]) == 2\n\n\ndef test_empty_input() -> None:\n    assert accepted(4, []) == 0\n\n\ndef test_zero_capacity_accepts_nothing() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity_accepts_nothing() -> None:\n    assert accepted(-1, [1, 2]) == 0\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(3, [4, 4, 4, 4]) == 3\n\n\ndef test_does_not_mutate_input() -> None:\n    xs = [1, 2, 3, 4]\n    accepted(2, xs)\n    assert xs == [1, 2, 3, 4]\n\n\n@pytest.mark.parametrize(\n    (\"cap\", \"n\", \"expected\"),\n    [(1, 1, 1), (1, 10, 1), (10, 1, 1), (10, 10, 10), (10, 100, 10)],\n)\ndef test_accepted_is_min_of_cap_and_len(cap: int, n: int, expected: int) -> None:\n    assert accepted(cap, list(range(n))) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

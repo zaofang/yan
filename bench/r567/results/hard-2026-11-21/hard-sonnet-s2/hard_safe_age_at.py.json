@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1064,
+   "out": 694,
+   "reasoning": 138,
+   "out_bytes": 1338
+  },
+  "body": {
+   "in": 1677,
+   "out": 582,
+   "reasoning": 0,
+   "out_bytes": 1435
+  }
+ },
+ "final": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Whole years between birth year `born` and the current year `now`.\n\n    The current year is supplied by the caller; the clock is never read.\n    Returns now - born. Raises ValueError if now < born (born in the future).\n    \"\"\"\n    if now < born:\n        raise ValueError(\"born year is after the current year\")\n    return now - born\n\n\ndef test_age_basic() -> None:\n    assert age_at(1990, 2024) == 34\n\n\ndef test_age_same_year_is_zero() -> None:\n    assert age_at(2024, 2024) == 0\n\n\ndef test_age_one_year() -> None:\n    assert age_at(2023, 2024) == 1\n\n\ndef test_age_long_span() -> None:\n    assert age_at(1900, 2000) == 100\n\n\ndef test_age_negative_years() -> None:\n    # Years before year 0 still subtract arithmetically.\n    assert age_at(-100, 50) == 150\n\n\ndef test_age_returns_int() -> None:\n    assert isinstance(age_at(2000, 2010), int)\n\n\ndef test_age_born_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2025, 2024)\n\n\ndef test_age_born_one_year_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2001, 2000)\n\n\n@pytest.mark.parametrize(\n    (\"born\", \"now\", \"expected\"),\n    [\n        (2000, 2000, 0),\n        (2000, 2001, 1),\n        (1985, 2025, 40),\n        (1, 2024, 2023),\n    ],\n)\ndef test_age_parametrized(born: int, now: int, expected: int) -> None:\n    assert age_at(born, now) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1064,
+    "out": 694,
+    "reasoning": 138
+   },
+   "out_bytes": 1338,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1677,
+    "out": 582,
+    "reasoning": 0
+   },
+   "out_bytes": 1435,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Whole years between birth year `born` and the current year `now`.\n\n    The current year is supplied by the caller; the clock is never read.\n    Returns now - born. Raises ValueError if now < born (born in the future).\n    \"\"\"\n    if now < born:\n        raise ValueError(\"born year is after the current year\")\n    return now - born\n\n\ndef test_age_basic() -> None:\n    assert age_at(1990, 2024) == 34\n\n\ndef test_age_same_year_is_zero() -> None:\n    assert age_at(2024, 2024) == 0\n\n\ndef test_age_one_year() -> None:\n    assert age_at(2023, 2024) == 1\n\n\ndef test_age_long_span() -> None:\n    assert age_at(1900, 2000) == 100\n\n\ndef test_age_negative_years() -> None:\n    # Years before year 0 still subtract arithmetically.\n    assert age_at(-100, 50) == 150\n\n\ndef test_age_returns_int() -> None:\n    assert isinstance(age_at(2000, 2010), int)\n\n\ndef test_age_born_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2025, 2024)\n\n\ndef test_age_born_one_year_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2001, 2000)\n\n\n@pytest.mark.parametrize(\n    (\"born\", \"now\", \"expected\"),\n    [\n        (2000, 2000, 0),\n        (2000, 2001, 1),\n        (1985, 2025, 40),\n        (1, 2024, 2023),\n    ],\n)\ndef test_age_parametrized(born: int, now: int, expected: int) -> None:\n    assert age_at(born, now) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

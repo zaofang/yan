@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1142,
+   "reasoning": 283,
+   "out_bytes": 1808
+  },
+  "body": {
+   "in": 1987,
+   "out": 895,
+   "reasoning": 0,
+   "out_bytes": 1894
+  }
+ },
+ "final": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return the element of xs at index seed % len(xs).\n\n    Deterministic: the same xs and seed always give the same element.\n    Negative seeds are allowed; the index is always in range because\n    Python's % returns a non-negative result for a positive modulus.\n    Uses no randomness.\n\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"xs must be non-empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_basic_index() -> None:\n    xs = [10, 20, 30, 40]\n    assert pick(xs, 0) == 10\n    assert pick(xs, 1) == 20\n    assert pick(xs, 3) == 40\n\n\ndef test_pick_wraps_around() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, 3) == 10\n    assert pick(xs, 4) == 20\n    assert pick(xs, 302) == xs[302 % 3]\n\n\ndef test_pick_negative_seed() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, -1) == 30\n    assert pick(xs, -3) == 10\n    assert pick(xs, -4) == 30\n\n\ndef test_pick_single_element() -> None:\n    for seed in (-5, 0, 1, 12345):\n        assert pick([7], seed) == 7\n\n\ndef test_pick_deterministic() -> None:\n    xs = [5, 3, 9, 1, 8]\n    for seed in range(-20, 20):\n        assert pick(xs, seed) == pick(xs, seed)\n        assert pick(xs, seed) == pick(list(xs), seed)\n\n\ndef test_pick_result_always_member() -> None:\n    xs = [4, 8, 15, 16, 23, 42]\n    for seed in range(-50, 50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_large_seed() -> None:\n    xs = [1, 2, 3, 4, 5, 6, 7]\n    seed = 10**30 + 17\n    assert pick(xs, seed) == xs[seed % len(xs)]\n\n\ndef test_pick_duplicates_positional() -> None:\n    xs = [2, 2, 5]\n    assert pick(xs, 2) == 5\n    assert pick(xs, 0) == 2\n\n\ndef test_pick_does_not_mutate() -> None:\n    xs = [3, 1, 2]\n    pick(xs, 4)\n    assert xs == [3, 1, 2]\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1142,
+    "reasoning": 283
+   },
+   "out_bytes": 1808,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1987,
+    "out": 895,
+    "reasoning": 0
+   },
+   "out_bytes": 1894,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return the element of xs at index seed % len(xs).\n\n    Deterministic: the same xs and seed always give the same element.\n    Negative seeds are allowed; the index is always in range because\n    Python's % returns a non-negative result for a positive modulus.\n    Uses no randomness.\n\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"xs must be non-empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_basic_index() -> None:\n    xs = [10, 20, 30, 40]\n    assert pick(xs, 0) == 10\n    assert pick(xs, 1) == 20\n    assert pick(xs, 3) == 40\n\n\ndef test_pick_wraps_around() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, 3) == 10\n    assert pick(xs, 4) == 20\n    assert pick(xs, 302) == xs[302 % 3]\n\n\ndef test_pick_negative_seed() -> None:\n    xs = [10, 20, 30]\n    assert pick(xs, -1) == 30\n    assert pick(xs, -3) == 10\n    assert pick(xs, -4) == 30\n\n\ndef test_pick_single_element() -> None:\n    for seed in (-5, 0, 1, 12345):\n        assert pick([7], seed) == 7\n\n\ndef test_pick_deterministic() -> None:\n    xs = [5, 3, 9, 1, 8]\n    for seed in range(-20, 20):\n        assert pick(xs, seed) == pick(xs, seed)\n        assert pick(xs, seed) == pick(list(xs), seed)\n\n\ndef test_pick_result_always_member() -> None:\n    xs = [4, 8, 15, 16, 23, 42]\n    for seed in range(-50, 50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_large_seed() -> None:\n    xs = [1, 2, 3, 4, 5, 6, 7]\n    seed = 10**30 + 17\n    assert pick(xs, seed) == xs[seed % len(xs)]\n\n\ndef test_pick_duplicates_positional() -> None:\n    xs = [2, 2, 5]\n    assert pick(xs, 2) == 5\n    assert pick(xs, 0) == 2\n\n\ndef test_pick_does_not_mutate() -> None:\n    xs = [3, 1, 2]\n    pick(xs, 4)\n    assert xs == [3, 1, 2]\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

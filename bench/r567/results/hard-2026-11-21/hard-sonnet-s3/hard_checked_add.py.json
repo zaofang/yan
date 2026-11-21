@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1067,
+   "out": 1159,
+   "reasoning": 194,
+   "out_bytes": 1946
+  },
+  "body": {
+   "in": 2089,
+   "out": 1219,
+   "reasoning": 220,
+   "out_bytes": 2033
+  }
+ },
+ "final": "import pytest\n\nINT64_MIN: int = -(2**63)\nINT64_MAX: int = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two signed 64-bit integers.\n\n    Both a and b are expected to lie in [INT64_MIN, INT64_MAX]. Returns the\n    exact sum if it also lies in that range, otherwise None (overflow past\n    INT64_MAX or underflow past INT64_MIN).\n    \"\"\"\n    total = a + b\n    if INT64_MIN <= total <= INT64_MAX:\n        return total\n    return None\n\n\ndef test_small_values() -> None:\n    assert checked_add(1, 2) == 3\n    assert checked_add(-1, -2) == -3\n    assert checked_add(-5, 5) == 0\n    assert checked_add(0, 0) == 0\n\n\ndef test_identity_at_extremes() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(0, INT64_MAX) == INT64_MAX\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(0, INT64_MIN) == INT64_MIN\n\n\ndef test_exact_boundaries_fit() -> None:\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(1, INT64_MAX - 1) == INT64_MAX\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(-1, INT64_MIN + 1) == INT64_MIN\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n\n\ndef test_overflow_returns_none() -> None:\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(1, INT64_MAX) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n    assert checked_add(2**62, 2**62) is None\n\n\ndef test_underflow_returns_none() -> None:\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(-1, INT64_MIN) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n    assert checked_add(-(2**62) - 1, -(2**62)- 1 ) is None\n\n\n@pytest.mark.parametrize(\n    (\"a\", \"b\"),\n    [\n        (10, 20),\n        (-10, 20),\n        (10, -20),\n        (INT64_MAX // 2, INT64_MAX // 2),\n        (INT64_MIN // 2, INT64_MIN // 2),\n    ],\n)\ndef test_matches_exact_sum_when_in_range(a: int, b: int) -> None:\n    assert checked_add(a, b) == a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1067,
+    "out": 1159,
+    "reasoning": 194
+   },
+   "out_bytes": 1946,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2089,
+    "out": 1219,
+    "reasoning": 220
+   },
+   "out_bytes": 2033,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "import pytest\n\nINT64_MIN: int = -(2**63)\nINT64_MAX: int = 2**63 - 1\n\n\ndef checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two signed 64-bit integers.\n\n    Both a and b are expected to lie in [INT64_MIN, INT64_MAX]. Returns the\n    exact sum if it also lies in that range, otherwise None (overflow past\n    INT64_MAX or underflow past INT64_MIN).\n    \"\"\"\n    total = a + b\n    if INT64_MIN <= total <= INT64_MAX:\n        return total\n    return None\n\n\ndef test_small_values() -> None:\n    assert checked_add(1, 2) == 3\n    assert checked_add(-1, -2) == -3\n    assert checked_add(-5, 5) == 0\n    assert checked_add(0, 0) == 0\n\n\ndef test_identity_at_extremes() -> None:\n    assert checked_add(INT64_MAX, 0) == INT64_MAX\n    assert checked_add(0, INT64_MAX) == INT64_MAX\n    assert checked_add(INT64_MIN, 0) == INT64_MIN\n    assert checked_add(0, INT64_MIN) == INT64_MIN\n\n\ndef test_exact_boundaries_fit() -> None:\n    assert checked_add(INT64_MAX - 1, 1) == INT64_MAX\n    assert checked_add(1, INT64_MAX - 1) == INT64_MAX\n    assert checked_add(INT64_MIN + 1, -1) == INT64_MIN\n    assert checked_add(-1, INT64_MIN + 1) == INT64_MIN\n    assert checked_add(INT64_MAX, INT64_MIN) == -1\n    assert checked_add(INT64_MIN, INT64_MAX) == -1\n\n\ndef test_overflow_returns_none() -> None:\n    assert checked_add(INT64_MAX, 1) is None\n    assert checked_add(1, INT64_MAX) is None\n    assert checked_add(INT64_MAX, INT64_MAX) is None\n    assert checked_add(2**62, 2**62) is None\n\n\ndef test_underflow_returns_none() -> None:\n    assert checked_add(INT64_MIN, -1) is None\n    assert checked_add(-1, INT64_MIN) is None\n    assert checked_add(INT64_MIN, INT64_MIN) is None\n    assert checked_add(-(2**62) - 1, -(2**62)- 1 ) is None\n\n\n@pytest.mark.parametrize(\n    (\"a\", \"b\"),\n    [\n        (10, 20),\n        (-10, 20),\n        (10, -20),\n        (INT64_MAX // 2, INT64_MAX // 2),\n        (INT64_MIN // 2, INT64_MIN // 2),\n    ],\n)\ndef test_matches_exact_sum_when_in_range(a: int, b: int) -> None:\n    assert checked_add(a, b) == a + b\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

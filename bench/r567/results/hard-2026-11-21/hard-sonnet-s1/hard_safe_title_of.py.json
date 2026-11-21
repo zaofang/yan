@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 965,
+   "reasoning": 363,
+   "out_bytes": 1528
+  },
+  "body": {
+   "in": 1735,
+   "out": 1015,
+   "reasoning": 351,
+   "out_bytes": 1666
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Text between the first `<title>` and the next `</title>` in html.\n\n    Tags are matched case-insensitively and the text is returned exactly as\n    written (no stripping, no entity decoding). Returns \"\" if there is no\n    `<title>` tag, or if it is never closed. Works only on the given string;\n    no network access.\n    \"\"\"\n    m = re.search(r\"<title>(.*?)</title>\", html, re.IGNORECASE | re.DOTALL)\n    if m is None:\n        return \"\"\n    return m.group(1)\n\n\ndef test_basic() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>No title here</body></html>\") == \"\"\n\n\ndef test_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Mixed</TiTlE></HTML>\") == \"Mixed\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops<body>text</body></html>\") == \"\"\n\n\ndef test_closing_tag_only() -> None:\n    assert title_of(\"</title>\") == \"\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out </title>\") == \"  spaced \\n out \"\n\n\ndef test_text_with_special_characters() -> None:\n    assert title_of(\"<title>A &amp; B | C</title>\") == \"A &amp; B | C\"\n\n\ndef test_title_not_in_head() -> None:\n    assert title_of(\"<body><p>x</p><title>Late</title></body>\") == \"Late\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 965,
+    "reasoning": 363
+   },
+   "out_bytes": 1528,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1735,
+    "out": 1015,
+    "reasoning": 351
+   },
+   "out_bytes": 1666,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Text between the first `<title>` and the next `</title>` in html.\n\n    Tags are matched case-insensitively and the text is returned exactly as\n    written (no stripping, no entity decoding). Returns \"\" if there is no\n    `<title>` tag, or if it is never closed. Works only on the given string;\n    no network access.\n    \"\"\"\n    m = re.search(r\"<title>(.*?)</title>\", html, re.IGNORECASE | re.DOTALL)\n    if m is None:\n        return \"\"\n    return m.group(1)\n\n\ndef test_basic() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>No title here</body></html>\") == \"\"\n\n\ndef test_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Mixed</TiTlE></HTML>\") == \"Mixed\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops<body>text</body></html>\") == \"\"\n\n\ndef test_closing_tag_only() -> None:\n    assert title_of(\"</title>\") == \"\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out </title>\") == \"  spaced \\n out \"\n\n\ndef test_text_with_special_characters() -> None:\n    assert title_of(\"<title>A &amp; B | C</title>\") == \"A &amp; B | C\"\n\n\ndef test_title_not_in_head() -> None:\n    assert title_of(\"<body><p>x</p><title>Late</title></body>\") == \"Late\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 1210,
+   "reasoning": 357,
+   "out_bytes": 2099
+  },
+  "body": {
+   "in": 1986,
+   "out": 1547,
+   "reasoning": 521,
+   "out_bytes": 2460
+  }
+ },
+ "final": "import re\n\n_OPEN_TITLE = re.compile(r\"<title(?:\\s[^>]*)?>\", re.IGNORECASE)\n_CLOSE_TITLE = re.compile(r\"</title\\s*>\", re.IGNORECASE)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text of the first <title> element in html, or \"\".\n\n    Tag names match case-insensitively, and the opening tag may carry\n    attributes (e.g. ``<title id=\"t\">``). The text runs from the end of the\n    opening tag to the next ``</title>`` and may span several lines. Leading\n    and trailing whitespace is stripped, and HTML entities are left as is.\n    Returns \"\" if there is no ``<title>``, if it is never closed, or if it\n    is empty. Only the given string is examined; nothing is fetched.\n    \"\"\"\n    opening = _OPEN_TITLE.search(html)\n    if opening is None:\n        return \"\"\n    closing = _CLOSE_TITLE.search(html, opening.end())\n    if closing is None:\n        return \"\"\n    return html[opening.end() : closing.start()].strip()\n\n\ndef test_basic() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body><h1>Hi</h1></body></html>\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<head><title></title></head>\") == \"\"\n\n\ndef test_whitespace_only_title() -> None:\n    assert title_of(\"<title>   \\n </title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<head><title>Oops</head><body></body>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Shout</TITLE></HTML>\") == \"Shout\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_strips_surrounding_whitespace() -> None:\n    assert title_of(\"<title>\\n  My Page \\n</title>\") == \"My Page\"\n\n\ndef test_multiline_inner_text_preserved() -> None:\n    assert title_of(\"<title>Line one\\nLine two</title>\") == \"Line one\\nLine two\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>First</title><title>Second</title>\") == \"First\"\n\n\ndef test_title_with_attributes() -> None:\n    assert title_of('<title id=\"t\" lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>Tom &amp; Jerry</title>\") == \"Tom &amp; Jerry\"\n\n\ndef test_similar_tag_name_ignored() -> None:\n    assert title_of(\"<titles>Nope</titles>\") == \"\"\n    assert title_of(\"<titles>Nope</titles><title>Yes</title>\") == \"Yes\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 1210,
+    "reasoning": 357
+   },
+   "out_bytes": 2099,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1986,
+    "out": 1547,
+    "reasoning": 521
+   },
+   "out_bytes": 2460,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\n\n_OPEN_TITLE = re.compile(r\"<title(?:\\s[^>]*)?>\", re.IGNORECASE)\n_CLOSE_TITLE = re.compile(r\"</title\\s*>\", re.IGNORECASE)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text of the first <title> element in html, or \"\".\n\n    Tag names match case-insensitively, and the opening tag may carry\n    attributes (e.g. ``<title id=\"t\">``). The text runs from the end of the\n    opening tag to the next ``</title>`` and may span several lines. Leading\n    and trailing whitespace is stripped, and HTML entities are left as is.\n    Returns \"\" if there is no ``<title>``, if it is never closed, or if it\n    is empty. Only the given string is examined; nothing is fetched.\n    \"\"\"\n    opening = _OPEN_TITLE.search(html)\n    if opening is None:\n        return \"\"\n    closing = _CLOSE_TITLE.search(html, opening.end())\n    if closing is None:\n        return \"\"\n    return html[opening.end() : closing.start()].strip()\n\n\ndef test_basic() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body><h1>Hi</h1></body></html>\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<head><title></title></head>\") == \"\"\n\n\ndef test_whitespace_only_title() -> None:\n    assert title_of(\"<title>   \\n </title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<head><title>Oops</head><body></body>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Shout</TITLE></HTML>\") == \"Shout\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_strips_surrounding_whitespace() -> None:\n    assert title_of(\"<title>\\n  My Page \\n</title>\") == \"My Page\"\n\n\ndef test_multiline_inner_text_preserved() -> None:\n    assert title_of(\"<title>Line one\\nLine two</title>\") == \"Line one\\nLine two\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>First</title><title>Second</title>\") == \"First\"\n\n\ndef test_title_with_attributes() -> None:\n    assert title_of('<title id=\"t\" lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>Tom &amp; Jerry</title>\") == \"Tom &amp; Jerry\"\n\n\ndef test_similar_tag_name_ignored() -> None:\n    assert title_of(\"<titles>Nope</titles>\") == \"\"\n    assert title_of(\"<titles>Nope</titles><title>Yes</title>\") == \"Yes\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

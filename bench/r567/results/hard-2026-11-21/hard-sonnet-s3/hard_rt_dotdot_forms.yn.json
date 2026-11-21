@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2354,
+   "out": 119,
+   "reasoning": 0,
+   "out_bytes": 256
+  },
+  "body": {
+   "in": 2546,
+   "out": 141,
+   "reasoning": 0,
+   "out_bytes": 303
+  }
+ },
+ "final": "read_public(path: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"missing-file-name.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(path) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2354,
+    "out": 119,
+    "reasoning": 0
+   },
+   "out_bytes": 256,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2546,
+    "out": 141,
+    "reasoning": 0
+   },
+   "out_bytes": 303,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_public(path: str) -> str uses fs =\n  post out.char_count() >= 0\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  ex read_public(\"sub/../../x\") == \"\"\n  ex read_public(\"missing-file-name.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(path) else \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

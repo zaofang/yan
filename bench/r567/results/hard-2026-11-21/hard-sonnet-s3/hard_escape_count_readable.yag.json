@@ -1,0 +1,95 @@
+{
+ "final": "def is_readable(name: str) -> bool uses fs:\n    \"\"\"True when name can be read as a file inside the directory notes.\n\n    Reads are confined to notes (including subdirectories). A missing,\n    unreadable or escaping name counts as not readable.\n    \"\"\"\n    with fs = fs.sub(\"notes\"):\n        _ = fs.read(name) else return False\n        return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the directory notes.\n\n    Names are untrusted. Access is confined to notes with fs.sub, so no\n    name can reach a file outside it.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    for name in names:\n        if is_readable(name):\n            n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2738,
+    "out": 504,
+    "reasoning": 251
+   },
+   "out_bytes": 724
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3089,
+    "out": 491,
+    "reasoning": 230
+   },
+   "out_bytes": 746
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 3089,
+   "out": 491,
+   "reasoning": 230,
+   "out_bytes": 746
+  },
+  "spec": {
+   "in": 2738,
+   "out": 504,
+   "reasoning": 251,
+   "out_bytes": 724
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:bff4ee18d83ea9193b6c3fc671301340f15112ee78489de929ff8d8f3250d9e5",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def is_readable(name: str) -> bool uses fs:\n    \"\"\"True when name can be read as a file inside the directory notes.\n\n    Reads are confined to notes (including subdirectories). A missing,\n    unreadable or escaping name counts as not readable.\n    \"\"\"\n    with fs = fs.sub(\"notes\"):\n        _ = fs.read(name) else return False\n        return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the directory notes.\n\n    Names are untrusted. Access is confined to notes with fs.sub, so no\n    name can reach a file outside it.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    for name in names:\n        if is_readable(name):\n            n += 1\n    return n\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

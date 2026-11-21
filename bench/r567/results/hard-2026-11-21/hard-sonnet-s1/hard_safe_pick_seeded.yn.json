@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2164,
+   "out": 372,
+   "reasoning": 280,
+   "out_bytes": 158
+  },
+  "body": {
+   "in": 2329,
+   "out": 205,
+   "reasoning": 99,
+   "out_bytes": 178
+  }
+ },
+ "final": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post xs.contains(out)\n  ex pick([7], 5) == 7\n  ex pick([1, 2, 3], 4) == 2\n  let i = seed % xs.len()\n  xs[i]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2164,
+    "out": 372,
+    "reasoning": 280
+   },
+   "out_bytes": 158,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2329,
+    "out": 205,
+    "reasoning": 99
+   },
+   "out_bytes": 178,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post xs.contains(out)\n  ex pick([7], 5) == 7\n  ex pick([1, 2, 3], 4) == 2\n  let i = seed % xs.len()\n  xs[i]\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

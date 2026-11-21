@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1050,
+   "out": 468,
+   "reasoning": 0,
+   "out_bytes": 1061
+  },
+  "body": {
+   "in": 1575,
+   "out": 482,
+   "reasoning": 0,
+   "out_bytes": 1104
+  }
+ },
+ "final": "import pytest\n\n\ndef first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element of xs, or default if xs is empty.\"\"\"\n    if xs:\n        return xs[0]\n    return default\n\n\ndef test_first_or_nonempty() -> None:\n    assert first_or([7, 8, 9], 0) == 7\n\n\ndef test_first_or_single() -> None:\n    assert first_or([5], -1) == 5\n\n\ndef test_first_or_empty() -> None:\n    assert first_or([], 42) == 42\n\n\ndef test_first_or_falsy_first_element() -> None:\n    # A first element of 0 must be returned, not replaced by the default.\n    assert first_or([0, 1], 99) == 0\n\n\ndef test_first_or_negative_first_element() -> None:\n    assert first_or([-3, 4], 10) == -3\n\n\ndef test_first_or_does_not_mutate() -> None:\n    xs = [1, 2, 3]\n    first_or(xs, 0)\n    assert xs == [1, 2, 3]\n\n\n@pytest.mark.parametrize(\n    (\"xs\", \"default\", \"expected\"),\n    [\n        ([], 0, 0),\n        ([], -5, -5),\n        ([1], 0, 1),\n        ([2, 1], 0, 2),\n        ([0], 7, 0),\n    ],\n)\ndef test_first_or_parametrized(xs: list[int], default: int, expected: int) -> None:\n    assert first_or(xs, default) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1050,
+    "out": 468,
+    "reasoning": 0
+   },
+   "out_bytes": 1061,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1575,
+    "out": 482,
+    "reasoning": 0
+   },
+   "out_bytes": 1104,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "import pytest\n\n\ndef first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element of xs, or default if xs is empty.\"\"\"\n    if xs:\n        return xs[0]\n    return default\n\n\ndef test_first_or_nonempty() -> None:\n    assert first_or([7, 8, 9], 0) == 7\n\n\ndef test_first_or_single() -> None:\n    assert first_or([5], -1) == 5\n\n\ndef test_first_or_empty() -> None:\n    assert first_or([], 42) == 42\n\n\ndef test_first_or_falsy_first_element() -> None:\n    # A first element of 0 must be returned, not replaced by the default.\n    assert first_or([0, 1], 99) == 0\n\n\ndef test_first_or_negative_first_element() -> None:\n    assert first_or([-3, 4], 10) == -3\n\n\ndef test_first_or_does_not_mutate() -> None:\n    xs = [1, 2, 3]\n    first_or(xs, 0)\n    assert xs == [1, 2, 3]\n\n\n@pytest.mark.parametrize(\n    (\"xs\", \"default\", \"expected\"),\n    [\n        ([], 0, 0),\n        ([], -5, -5),\n        ([1], 0, 1),\n        ([2, 1], 0, 2),\n        ([0], 7, 0),\n    ],\n)\ndef test_first_or_parametrized(xs: list[int], default: int, expected: int) -> None:\n    assert first_or(xs, default) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

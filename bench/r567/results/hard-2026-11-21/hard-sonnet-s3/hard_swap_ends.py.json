@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2980,
+   "out": 1583,
+   "reasoning": 77,
+   "out_bytes": 3002
+  },
+  "body": {
+   "in": 2720,
+   "out": 781,
+   "reasoning": 0,
+   "out_bytes": 1536
+  }
+ },
+ "final": "import pytest\n\n\ndef swap_ends(xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place.\n\n    An empty or one-element list is left unchanged.\n    \"\"\"\n    if len(xs) < 2:\n        return\n    xs[0], xs[-1] = xs[-1], xs[0]\n\n\ndef test_swap_ends_multiple_elements() -> None:\n    xs = [1, 2, 3, 4]\n    swap_ends(xs)\n    assert xs == [4, 2, 3, 1]\n\n\ndef test_swap_ends_two_elements() -> None:\n    xs = [1, 2]\n    swap_ends(xs)\n    assert xs == [2, 1]\n\n\ndef test_swap_ends_three_elements() -> None:\n    xs = [1, 2, 3]\n    swap_ends(xs)\n    assert xs == [3, 2, 1]\n\n\ndef test_swap_ends_empty() -> None:\n    xs: list[int] = []\n    swap_ends(xs)\n    assert xs == []\n\n\ndef test_swap_ends_single() -> None:\n    xs = [7]\n    swap_ends(xs)\n    assert xs == [7]\n\n\ndef test_swap_ends_equal_ends() -> None:\n    xs = [5, 1, 5]\n    swap_ends(xs)\n    assert xs == [5, 1, 5]\n\n\ndef test_swap_ends_mutates_same_object() -> None:\n    xs = [1, 2, 3]\n    original = xs\n    swap_ends(xs)\n    assert xs is original\n    assert original == [3, 2, 1]\n\n\ndef test_swap_ends_twice_restores() -> None:\n    xs = [9, 8, 7, 6, 5]\n    swap_ends(xs)\n    swap_ends(xs)\n    assert xs == [9, 8, 7, 6, 5]\n\n\n@pytest.mark.parametrize(\n    (\"before\", \"after\"),\n    [\n        ([], []),\n        ([1], [1]),\n        ([1, 2], [2, 1]),\n        ([1, 2, 3], [3, 2, 1]),\n        ([-1, 0, 1, 2], [2, 0, 1, -1]),\n    ],\n)\ndef test_swap_ends_parametrized(before: list[int], after: list[int]) -> None:\n    xs = list(before)\n    swap_ends(xs)\n    assert xs == after\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1062,
+    "out": 761,
+    "reasoning": 0
+   },
+   "out_bytes": 1527,
+   "ok": false,
+   "report": "test_task.py:51: error: \"swap_ends\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1918,
+    "out": 822,
+    "reasoning": 77
+   },
+   "out_bytes": 1475,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2720,
+    "out": 781,
+    "reasoning": 0
+   },
+   "out_bytes": 1536,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "import pytest\n\n\ndef swap_ends(xs: list[int]) -> None:\n    \"\"\"Swap the first and last elements of xs in place.\n\n    An empty or one-element list is left unchanged.\n    \"\"\"\n    if len(xs) < 2:\n        return\n    xs[0], xs[-1] = xs[-1], xs[0]\n\n\ndef test_swap_ends_multiple_elements() -> None:\n    xs = [1, 2, 3, 4]\n    swap_ends(xs)\n    assert xs == [4, 2, 3, 1]\n\n\ndef test_swap_ends_two_elements() -> None:\n    xs = [1, 2]\n    swap_ends(xs)\n    assert xs == [2, 1]\n\n\ndef test_swap_ends_three_elements() -> None:\n    xs = [1, 2, 3]\n    swap_ends(xs)\n    assert xs == [3, 2, 1]\n\n\ndef test_swap_ends_empty() -> None:\n    xs: list[int] = []\n    swap_ends(xs)\n    assert xs == []\n\n\ndef test_swap_ends_single() -> None:\n    xs = [7]\n    swap_ends(xs)\n    assert xs == [7]\n\n\ndef test_swap_ends_equal_ends() -> None:\n    xs = [5, 1, 5]\n    swap_ends(xs)\n    assert xs == [5, 1, 5]\n\n\ndef test_swap_ends_mutates_same_object() -> None:\n    xs = [1, 2, 3]\n    original = xs\n    swap_ends(xs)\n    assert xs is original\n    assert original == [3, 2, 1]\n\n\ndef test_swap_ends_twice_restores() -> None:\n    xs = [9, 8, 7, 6, 5]\n    swap_ends(xs)\n    swap_ends(xs)\n    assert xs == [9, 8, 7, 6, 5]\n\n\n@pytest.mark.parametrize(\n    (\"before\", \"after\"),\n    [\n        ([], []),\n        ([1], [1]),\n        ([1, 2], [2, 1]),\n        ([1, 2, 3], [3, 2, 1]),\n        ([-1, 0, 1, 2], [2, 0, 1, -1]),\n    ],\n)\ndef test_swap_ends_parametrized(before: list[int], after: list[int]) -> None:\n    xs = list(before)\n    swap_ends(xs)\n    assert xs == after\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

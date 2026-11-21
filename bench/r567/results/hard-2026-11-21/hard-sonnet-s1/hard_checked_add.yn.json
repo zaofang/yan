@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2158,
+   "out": 491,
+   "reasoning": 336,
+   "out_bytes": 315
+  },
+  "body": {
+   "in": 2386,
+   "out": 696,
+   "reasoning": 465,
+   "out_bytes": 498
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post out != None or (a > 0 and b > 0) or (a < 0 and b < 0)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  ex checked_add(9223372036854775807, -1) == 9223372036854775806\n  if b > 0\n    if a > 9223372036854775807 - b\n      None\n    else\n      a + b\n  else\n    if b < 0\n      if a < -9223372036854775807 - (b + 1)\n        None\n      else\n        a + b\n    else\n      a\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2158,
+    "out": 491,
+    "reasoning": 336
+   },
+   "out_bytes": 315,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2386,
+    "out": 696,
+    "reasoning": 465
+   },
+   "out_bytes": 498,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "checked_add(a: int, b: int) -> int? =\n  post out != None or (a > 0 and b > 0) or (a < 0 and b < 0)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  ex checked_add(9223372036854775807, -1) == 9223372036854775806\n  if b > 0\n    if a > 9223372036854775807 - b\n      None\n    else\n      a + b\n  else\n    if b < 0\n      if a < -9223372036854775807 - (b + 1)\n        None\n      else\n        a + b\n    else\n      a\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

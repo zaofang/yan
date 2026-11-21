@@ -1,0 +1,95 @@
+{
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down. Rect is w*h, Square is side*side, Tri is b*h/2 rounded down.\"\"\"\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    ex area(Tri(4, 6)) == 12\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2644,
+    "out": 603,
+    "reasoning": 421
+   },
+   "out_bytes": 340
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2924,
+    "out": 422,
+    "reasoning": 176
+   },
+   "out_bytes": 522
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shape_area",
+ "tokens": {
+  "body": {
+   "in": 2924,
+   "out": 422,
+   "reasoning": 176,
+   "out_bytes": 522
+  },
+  "spec": {
+   "in": 2644,
+   "out": 603,
+   "reasoning": 421,
+   "out_bytes": 340
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:bff4ee18d83ea9193b6c3fc671301340f15112ee78489de929ff8d8f3250d9e5",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down. Rect is w*h, Square is side*side, Tri is b*h/2 rounded down.\"\"\"\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    ex area(Tri(4, 6)) == 12\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return (b * h) // 2\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

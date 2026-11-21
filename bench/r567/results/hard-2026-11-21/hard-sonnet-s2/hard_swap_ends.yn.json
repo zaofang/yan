@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2145,
+   "out": 707,
+   "reasoning": 655,
+   "out_bytes": 86
+  },
+  "body": {
+   "in": 2270,
+   "out": 311,
+   "reasoning": 203,
+   "out_bytes": 175
+  }
+ },
+ "final": "swap_ends(var xs: List[int]) =\n  ex swap_ends([1, 2, 3]) == ()\n  let n = xs.len()\n  if n >= 2\n    let a = xs[0]\n    let b = xs[n - 1]\n    xs[0] = b\n    xs[n - 1] = a\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2145,
+    "out": 707,
+    "reasoning": 655
+   },
+   "out_bytes": 86,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2270,
+    "out": 311,
+    "reasoning": 203
+   },
+   "out_bytes": 175,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "swap_ends(var xs: List[int]) =\n  ex swap_ends([1, 2, 3]) == ()\n  let n = xs.len()\n  if n >= 2\n    let a = xs[0]\n    let b = xs[n - 1]\n    xs[0] = b\n    xs[n - 1] = a\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

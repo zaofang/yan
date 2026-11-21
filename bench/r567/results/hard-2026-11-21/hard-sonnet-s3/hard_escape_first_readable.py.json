@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1157,
+   "out": 2743,
+   "reasoning": 889,
+   "out_bytes": 4243
+  },
+  "body": {
+   "in": 3068,
+   "out": 2688,
+   "reasoning": 668,
+   "out_bytes": 4766
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first readable file named in `names`.\n\n    Each name is a relative path (subdirectories allowed, e.g. \"sub/b.txt\")\n    resolved inside the directory `notes` in the current working directory.\n    Names are untrusted: any name that would reach a file outside `notes`\n    (via \"..\", absolute paths, symlinks, NUL bytes, etc.) is treated as\n    unreadable and skipped. Missing, unreadable, or non-file entries are\n    skipped too. Returns \"\" when no name yields a readable file.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n    except (OSError, RuntimeError, ValueError):\n        return \"\"\n    for name in names:\n        if \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n            if not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, RuntimeError, ValueError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"A\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"B\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_first_file(root: Path) -> None:\n    assert first_readable([\"a.txt\"]) == \"A\"\n\n\ndef test_first_of_several(root: Path) -> None:\n    assert first_readable([\"a.txt\", \"sub/b.txt\"]) == \"A\"\n\n\ndef test_subdirectory(root: Path) -> None:\n    assert first_readable([\"sub/b.txt\"]) == \"B\"\n\n\ndef test_skips_missing(root: Path) -> None:\n    assert first_readable([\"nope.txt\", \"sub/nope.txt\", \"sub/b.txt\"]) == \"B\"\n\n\ndef test_none_readable(root: Path) -> None:\n    assert first_readable([\"nope.txt\", \"also/nope.txt\"]) == \"\"\n\n\ndef test_empty_list(root: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_empty_file_counts_as_readable(root: Path) -> None:\n    (root / \"notes\" / \"empty.txt\").write_text(\"\")\n    assert first_readable([\"empty.txt\", \"a.txt\"]) == \"\"\n\n\ndef test_notes_directory_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n\n\ndef test_directory_names_skipped(root: Path) -> None:\n    assert first_readable([\"sub\", \"\", \".\", \"a.txt\"]) == \"A\"\n\n\ndef test_parent_traversal_blocked(root: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n    assert first_readable([\"notes/../../secret.txt\"]) == \"\"\n    assert first_readable([\"../notes/../secret.txt\"]) == \"\"\n    assert first_readable([\"..//secret.txt\"]) == \"\"\n\n\ndef test_traversal_skipped_then_valid_name_used(root: Path) -> None:\n    assert first_readable([\"../secret.txt\", \"sub/b.txt\"]) == \"B\"\n\n\ndef test_absolute_path_outside_blocked(root: Path) -> None:\n    assert first_readable([str(root / \"secret.txt\")]) == \"\"\n    assert first_readable([\"/etc/passwd\"]) == \"\"\n\n\ndef test_absolute_path_style_name_does_not_escape(root: Path) -> None:\n    # A leading slash must never resolve to the filesystem root.\n    assert first_readable([\"/secret.txt\"]) == \"\"\n\n\ndef test_nul_byte_name(root: Path) -> None:\n    assert first_readable([\"a.txt\\x00../../secret.txt\", \"a\\x00.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_symlink_file_escaping_blocked(root: Path) -> None:\n    link = root / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(root / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_symlink_dir_escaping_blocked(root: Path) -> None:\n    outside = root / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"X\")\n    link = root / \"notes\" / \"dirlink\"\n    try:\n        link.symlink_to(outside, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"dirlink/x.txt\"]) == \"\"\n    assert first_readable([\"dirlink/../secret.txt\"]) == \"\"\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"permission bits not enforced for root / unsupported\",\n)\ndef test_unreadable_file_skipped(root: Path) -> None:\n    locked = root / \"notes\" / \"locked.txt\"\n    locked.write_text(\"L\")\n    locked.chmod(0)\n    try:\n        assert first_readable([\"locked.txt\", \"a.txt\"]) == \"A\"\n        assert first_readable([\"locked.txt\"]) == \"\"\n    finally:\n        locked.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1157,
+    "out": 2743,
+    "reasoning": 889
+   },
+   "out_bytes": 4243,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3068,
+    "out": 2688,
+    "reasoning": 668
+   },
+   "out_bytes": 4766,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first readable file named in `names`.\n\n    Each name is a relative path (subdirectories allowed, e.g. \"sub/b.txt\")\n    resolved inside the directory `notes` in the current working directory.\n    Names are untrusted: any name that would reach a file outside `notes`\n    (via \"..\", absolute paths, symlinks, NUL bytes, etc.) is treated as\n    unreadable and skipped. Missing, unreadable, or non-file entries are\n    skipped too. Returns \"\" when no name yields a readable file.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n    except (OSError, RuntimeError, ValueError):\n        return \"\"\n    for name in names:\n        if \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n            if not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, RuntimeError, ValueError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"A\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"B\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_first_file(root: Path) -> None:\n    assert first_readable([\"a.txt\"]) == \"A\"\n\n\ndef test_first_of_several(root: Path) -> None:\n    assert first_readable([\"a.txt\", \"sub/b.txt\"]) == \"A\"\n\n\ndef test_subdirectory(root: Path) -> None:\n    assert first_readable([\"sub/b.txt\"]) == \"B\"\n\n\ndef test_skips_missing(root: Path) -> None:\n    assert first_readable([\"nope.txt\", \"sub/nope.txt\", \"sub/b.txt\"]) == \"B\"\n\n\ndef test_none_readable(root: Path) -> None:\n    assert first_readable([\"nope.txt\", \"also/nope.txt\"]) == \"\"\n\n\ndef test_empty_list(root: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_empty_file_counts_as_readable(root: Path) -> None:\n    (root / \"notes\" / \"empty.txt\").write_text(\"\")\n    assert first_readable([\"empty.txt\", \"a.txt\"]) == \"\"\n\n\ndef test_notes_directory_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n\n\ndef test_directory_names_skipped(root: Path) -> None:\n    assert first_readable([\"sub\", \"\", \".\", \"a.txt\"]) == \"A\"\n\n\ndef test_parent_traversal_blocked(root: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n    assert first_readable([\"notes/../../secret.txt\"]) == \"\"\n    assert first_readable([\"../notes/../secret.txt\"]) == \"\"\n    assert first_readable([\"..//secret.txt\"]) == \"\"\n\n\ndef test_traversal_skipped_then_valid_name_used(root: Path) -> None:\n    assert first_readable([\"../secret.txt\", \"sub/b.txt\"]) == \"B\"\n\n\ndef test_absolute_path_outside_blocked(root: Path) -> None:\n    assert first_readable([str(root / \"secret.txt\")]) == \"\"\n    assert first_readable([\"/etc/passwd\"]) == \"\"\n\n\ndef test_absolute_path_style_name_does_not_escape(root: Path) -> None:\n    # A leading slash must never resolve to the filesystem root.\n    assert first_readable([\"/secret.txt\"]) == \"\"\n\n\ndef test_nul_byte_name(root: Path) -> None:\n    assert first_readable([\"a.txt\\x00../../secret.txt\", \"a\\x00.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_symlink_file_escaping_blocked(root: Path) -> None:\n    link = root / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(root / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_symlink_dir_escaping_blocked(root: Path) -> None:\n    outside = root / \"outside\"\n    outside.mkdir()\n    (outside / \"x.txt\").write_text(\"X\")\n    link = root / \"notes\" / \"dirlink\"\n    try:\n        link.symlink_to(outside, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"dirlink/x.txt\"]) == \"\"\n    assert first_readable([\"dirlink/../secret.txt\"]) == \"\"\n\n\n@pytest.mark.skipif(\n    not hasattr(os, \"geteuid\") or os.geteuid() == 0,\n    reason=\"permission bits not enforced for root / unsupported\",\n)\ndef test_unreadable_file_skipped(root: Path) -> None:\n    locked = root / \"notes\" / \"locked.txt\"\n    locked.write_text(\"L\")\n    locked.chmod(0)\n    try:\n        assert first_readable([\"locked.txt\", \"a.txt\"]) == \"A\"\n        assert first_readable([\"locked.txt\"]) == \"\"\n    finally:\n        locked.chmod(0o600)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

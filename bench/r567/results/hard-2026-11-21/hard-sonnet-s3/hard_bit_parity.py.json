@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1053,
+   "out": 358,
+   "reasoning": 0,
+   "out_bytes": 905
+  },
+  "body": {
+   "in": 1468,
+   "out": 373,
+   "reasoning": 0,
+   "out_bytes": 935
+  }
+ },
+ "final": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"True when the byte x (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    return bin(x).count(\"1\") % 2 == 1\n\n\ndef test_parity_zero() -> None:\n    assert parity(0) is False\n\n\ndef test_parity_single_bits() -> None:\n    for i in range(8):\n        assert parity(1 << i) is True\n\n\ndef test_parity_two_bits() -> None:\n    assert parity(0b11) is False\n    assert parity(0b10100000) is False\n    assert parity(0b10000001) is False\n\n\ndef test_parity_three_bits() -> None:\n    assert parity(0b111) is True\n    assert parity(0b10110000) is True\n\n\ndef test_parity_all_ones() -> None:\n    assert parity(255) is False\n\n\ndef test_parity_boundaries() -> None:\n    assert parity(1) is True\n    assert parity(254) is True\n    assert parity(128) is True\n\n\ndef test_parity_matches_popcount() -> None:\n    for x in range(256):\n        assert parity(x) is (bin(x).count(\"1\") % 2 == 1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1053,
+    "out": 358,
+    "reasoning": 0
+   },
+   "out_bytes": 905,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 373,
+    "reasoning": 0
+   },
+   "out_bytes": 935,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"True when the byte x (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    return bin(x).count(\"1\") % 2 == 1\n\n\ndef test_parity_zero() -> None:\n    assert parity(0) is False\n\n\ndef test_parity_single_bits() -> None:\n    for i in range(8):\n        assert parity(1 << i) is True\n\n\ndef test_parity_two_bits() -> None:\n    assert parity(0b11) is False\n    assert parity(0b10100000) is False\n    assert parity(0b10000001) is False\n\n\ndef test_parity_three_bits() -> None:\n    assert parity(0b111) is True\n    assert parity(0b10110000) is True\n\n\ndef test_parity_all_ones() -> None:\n    assert parity(255) is False\n\n\ndef test_parity_boundaries() -> None:\n    assert parity(1) is True\n    assert parity(254) is True\n    assert parity(128) is True\n\n\ndef test_parity_matches_popcount() -> None:\n    for x in range(256):\n        assert parity(x) is (bin(x).count(\"1\") % 2 == 1)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

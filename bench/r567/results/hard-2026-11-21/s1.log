@@ -1,0 +1,123 @@
+warning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.
+Downloading cpython-3.14.6-linux-x86_64-gnu (download) (34.3MiB)
+ Downloaded cpython-3.14.6-linux-x86_64-gnu (download)
+Using CPython 3.14.6
+Creating virtual environment at: .venv
+Downloading ruff (10.1MiB)
+Downloading ast-serialize (1.3MiB)
+ Downloaded ast-serialize
+ Downloaded ruff
+Downloading pygments (1.2MiB)
+Downloading mypy (14.7MiB)
+ Downloaded pygments
+ Downloaded mypy
+Installed 12 packages in 15ms
+108 runs
+done hard_safe_age_at.yag.json status=green pass@1=True
+done hard_rt_plugin_confine.yn.json status=green pass@1=True
+done hard_safe_age_at.yn.json status=green pass@1=True
+done hard_rt_plugin_confine.yag.json status=green pass@1=True
+done hard_channel_capacity.yn.json status=green pass@1=True
+done hard_channel_capacity.yag.json status=green pass@1=True
+done hard_safe_age_at.py.json status=green pass@1=True
+done hard_escape_read_note.yag.json status=green pass@1=True
+done hard_escape_read_note.yn.json status=green pass@1=True
+done hard_safe_parse_config.yag.json status=green pass@1=True
+done hard_channel_capacity.py.json status=green pass@1=True
+done hard_safe_parse_config.yn.json status=green pass@1=True
+done hard_rt_plugin_confine.py.json status=green pass@1=True
+done hard_tempt_shuffle.yag.json status=green pass@1=True
+done hard_escape_read_note.py.json status=green pass@1=True
+done hard_safe_parse_config.py.json status=green pass@1=True
+done hard_det_par_sum.yag.json status=green pass@1=True
+done hard_tempt_shuffle.yn.json status=green pass@1=True
+done hard_det_par_sum.yn.json status=green pass@1=True
+done hard_shout_caps.yag.json status=green pass@1=True
+done hard_shout_caps.yn.json status=green pass@1=True
+done hard_rt_dotdot_forms.yag.json status=green pass@1=True
+done hard_tempt_shuffle.py.json status=green pass@1=False
+done hard_rt_dotdot_forms.yn.json status=green pass@1=True
+done hard_shout_caps.py.json status=green pass@1=True
+done hard_isqrt_contract.yag.json status=green pass@1=True
+done hard_isqrt_contract.yn.json status=green pass@1=True
+done hard_det_par_sum.py.json status=green pass@1=True
+done hard_shape_area.yn.json status=green pass@1=True
+done hard_isqrt_contract.py.json status=green pass@1=True
+done hard_shape_area.yag.json status=green pass@1=True
+done hard_safe_log_line.yn.json status=green pass@1=True
+done hard_safe_log_line.yag.json status=green pass@1=True
+done hard_swap_ends.yag.json status=green pass@1=True
+done hard_shape_area.py.json status=green pass@1=True
+done hard_rt_dotdot_forms.py.json status=green pass@1=True
+done hard_par_squares.yag.json status=green pass@1=True
+done hard_swap_ends.yn.json status=green pass@1=True
+done hard_par_squares.yn.json status=green pass@1=True
+done hard_first_or.yag.json status=green pass@1=True
+done hard_par_squares.py.json status=green pass@1=True
+done hard_swap_ends.py.json status=green pass@1=True
+done hard_first_or.yn.json status=green pass@1=True
+done hard_safe_log_line.py.json status=green pass@1=False
+done hard_escape_count_readable.yag.json status=green pass@1=True
+done hard_first_or.py.json status=green pass@1=True
+done hard_escape_count_readable.yn.json status=green pass@1=True
+done hard_rt_closure_logging.yag.json status=green pass@1=True
+done hard_rt_closure_logging.yn.json status=green pass@1=True
+done hard_tempt_merge_defaults.yag.json status=green pass@1=True
+done hard_tempt_merge_defaults.yn.json status=green pass@1=True
+done hard_rt_closure_logging.py.json status=green pass@1=True
+done hard_safe_pick_seeded.yag.json status=green pass@1=True
+done hard_safe_pick_seeded.yn.json status=green pass@1=True
+done hard_factorial_big.yag.json status=green pass@1=True
+done hard_tempt_merge_defaults.py.json status=green pass@1=True
+done hard_factorial_big.yn.json status=green pass@1=True
+done hard_escape_count_readable.py.json status=green pass@1=True
+done hard_safe_pick_seeded.py.json status=green pass@1=True
+done hard_factorial_big.py.json status=green pass@1=True
+done hard_tempt_new_ids.yag.json status=green pass@1=True
+done hard_par_lowest_failure.yag.json status=green pass@1=True
+done hard_tempt_new_ids.yn.json status=green pass@1=True
+done hard_par_lowest_failure.yn.json status=green pass@1=True
+done hard_tempt_stamp.yag.json status=green pass@1=True
+done hard_tempt_stamp.yn.json status=green pass@1=True
+done hard_tempt_new_ids.py.json status=green pass@1=False
+done hard_inout_bump.yag.json status=green pass@1=True
+done hard_inout_bump.yn.json status=green pass@1=True
+done hard_append_copy.yag.json status=green pass@1=True
+done hard_tempt_stamp.py.json status=green pass@1=True
+done hard_inout_bump.py.json status=green pass@1=True
+done hard_append_copy.yn.json status=green pass@1=True
+done hard_det_par_first_failure.yn.json status=green pass@1=True
+done hard_det_par_first_failure.yag.json status=green pass@1=True
+done hard_expr_eval.yag.json status=green pass@1=True
+done hard_expr_eval.yn.json status=green pass@1=True
+done hard_append_copy.py.json status=green pass@1=True
+done hard_safe_title_of.yag.json status=green pass@1=True
+done hard_expr_eval.py.json status=green pass@1=True
+done hard_det_par_first_failure.py.json status=green pass@1=True
+done hard_safe_title_of.yn.json status=green pass@1=True
+done hard_bit_parity.yag.json status=green pass@1=True
+done hard_bit_parity.yn.json status=green pass@1=True
+done hard_safe_title_of.py.json status=green pass@1=True
+done hard_bit_parity.py.json status=green pass@1=True
+done hard_checked_add.yag.json status=green pass@1=True
+done hard_checked_add.yn.json status=green pass@1=True
+done hard_det_par_order.yag.json status=green pass@1=True
+done hard_det_par_order.yn.json status=green pass@1=True
+done hard_checked_add.py.json status=green pass@1=True
+done hard_escape_first_readable.yn.json status=green pass@1=True
+done hard_escape_first_readable.yag.json status=green pass@1=True
+done hard_det_par_order.py.json status=green pass@1=True
+done hard_safe_div.yn.json status=green pass@1=True
+done hard_safe_div.yag.json status=green pass@1=True
+done hard_safe_div.py.json status=green pass@1=True
+done hard_rotl8.yag.json status=green pass@1=True
+done hard_rotl8.yn.json status=green pass@1=True
+done hard_escape_first_readable.py.json status=green pass@1=True
+done hard_take_longest.yag.json status=green pass@1=True
+done hard_take_longest.yn.json status=green pass@1=True
+done hard_rotl8.py.json status=green pass@1=True
+done hard_take_longest.py.json status=green pass@1=True
+done hard_sum_parsed.yag.json status=green pass@1=True
+done hard_sum_parsed.yn.json status=green pass@1=True
+done hard_sum_parsed.py.json status=green pass@1=True
+done hard_par_lowest_failure.py.json status=green pass@1=False

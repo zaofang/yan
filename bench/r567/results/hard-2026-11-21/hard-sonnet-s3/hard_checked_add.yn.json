@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2158,
+   "out": 584,
+   "reasoning": 431,
+   "out_bytes": 320
+  },
+  "body": {
+   "in": 2384,
+   "out": 607,
+   "reasoning": 381,
+   "out_bytes": 485
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  post out == None or bigint(out else 0) == bigint(a) + bigint(b)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  ex checked_add(9223372036854775807, -1) == 9223372036854775806\n  let int_max = 9223372036854775807\n  let int_min = -9223372036854775807 - 1\n  if b > 0 and a > int_max - b\n    return None\n  if b < 0 and a < int_min - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2158,
+    "out": 584,
+    "reasoning": 431
+   },
+   "out_bytes": 320,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2384,
+    "out": 607,
+    "reasoning": 381
+   },
+   "out_bytes": 485,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5-5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "checked_add(a: int, b: int) -> int? =\n  post out == None or bigint(out else 0) == bigint(a) + bigint(b)\n  ex checked_add(1, 2) == 3\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  ex checked_add(9223372036854775807, -1) == 9223372036854775806\n  let int_max = 9223372036854775807\n  let int_min = -9223372036854775807 - 1\n  if b > 0 and a > int_max - b\n    return None\n  if b < 0 and a < int_min - b\n    return None\n  a + b\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}
