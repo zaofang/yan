@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1613,
+   "out": 891,
+   "reasoning": 719,
+   "out_bytes": 401
+  },
+  "body": {
+   "in": 1858,
+   "out": 245,
+   "reasoning": 0,
+   "out_bytes": 591
+  }
+ },
+ "final": "-- Phase 2: bodies. Signatures and contracts are unchanged from the spec.\n-- The caller grants io alone; no fs is declared.\n\nformat_line(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  post out.char_count() > 0\n  ex format_line(\"INFO\", \"started\") == \"[INFO] started\"\n  ex format_line(\"WARN\", \"disk low\") == \"[WARN] disk low\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  io.print(format_line(level: level, message: message))\n\ntest_format_line() =\n  assert format_line(\"INFO\", \"started\") == \"[INFO] started\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1613,
+    "out": 891,
+    "reasoning": 719
+   },
+   "out_bytes": 401,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1858,
+    "out": 245,
+    "reasoning": 0
+   },
+   "out_bytes": 591,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

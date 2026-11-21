@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3447,
+   "out": 2545,
+   "reasoning": 1762,
+   "out_bytes": 1704
+  },
+  "body": {
+   "in": 2445,
+   "out": 1324,
+   "reasoning": 844,
+   "out_bytes": 1011
+  }
+ },
+ "final": "-- Channel of integers with a fixed capacity. `used` counts buffered slots.\ntype Chan = { cap: int, used: int }\n\n-- A fresh, empty channel with the given capacity.\nnew_chan(cap: int) -> Chan =\n  pre cap >= 0\n  post out.used == 0\n  post out.cap == cap\n  ex new_chan(3).cap == 3\n  Chan(cap: cap, used: 0)\n\n-- Non-blocking send check: True when the channel has room for one more value.\ntry_send(c: Chan, v: int) -> bool =\n  pre c.used >= 0\n  pre c.used <= c.cap\n  ex try_send(Chan(cap: 1, used: 1), 5) == False\n  c.used < c.cap\n\n-- Try to send every element of xs without blocking and count accepted sends.\n-- Stops at the first send that finds the channel full.\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= xs.len()\n  post out <= cap\n  ex accepted(5, [1, 2]) == 2\n  ex accepted(0, [1, 2]) == 0\n  var c = new_chan(cap)\n  var n = 0\n  for x in xs\n    if try_send(c, x)\n      n += 1\n      c = Chan(cap: c.cap, used: c.used + 1)\n    else\n      break\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1468,
+    "out": 1863,
+    "reasoning": 1473
+   },
+   "out_bytes": 849,
+   "ok": false,
+   "report": "E100 task.yn:5:27 `end of line` unexpected token; expected `=`\nE100 task.yn:13:34 `end of line` unexpected token; expected `=`\nE100 task.yn:21:53 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1979,
+    "out": 682,
+    "reasoning": 289
+   },
+   "out_bytes": 855,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2445,
+    "out": 1324,
+    "reasoning": 844
+   },
+   "out_bytes": 1011,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

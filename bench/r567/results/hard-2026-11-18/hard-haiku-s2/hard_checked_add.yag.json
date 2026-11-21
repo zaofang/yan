@@ -1,0 +1,123 @@
+{
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Sum of a and b, or None when the sum is outside the 64-bit signed int range.\"\"\"\n    ex checked_add(1, 2) == 3\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    if b > 0 and a > 9223372036854775807 - b:\n        return None\n    if b < 0 and a < -9223372036854775808 - b:\n        return None\n    return a + b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E221 /tmp/tmpw29i286g/work/task.yag:3:58 checked_add: `out <` `int | None` does not implement `Ord`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E221"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2034,
+    "out": 675,
+    "reasoning": 516
+   },
+   "out_bytes": 371
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2279,
+    "out": 489,
+    "reasoning": 363
+   },
+   "out_bytes": 286
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2503,
+    "out": 795,
+    "reasoning": 613
+   },
+   "out_bytes": 428
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/checked_add",
+ "tokens": {
+  "body": {
+   "in": 2503,
+   "out": 795,
+   "reasoning": 613,
+   "out_bytes": 428
+  },
+  "spec": {
+   "in": 4313,
+   "out": 1164,
+   "reasoning": 879,
+   "out_bytes": 657
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E221"
+   ],
+   "report": "#1 E221 /tmp/tmpw29i286g/work/task.yag:3:58 checked_add: `out <` `int | None` does not implement `Ord`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

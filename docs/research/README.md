@@ -6,6 +6,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 
 | Date | Study | Outcome |
 | --- | --- | --- |
+| 2026-11-18 | [Survey: open-source compilers to study (UB checking, self-hosting, ownership)](https://claude.ai/artifact/6zWq8pCbL2CRTJ2ikxB8M6) | Study only, ideas not code; review notes on #1661, #1664, #1665; #1706 (snapshot refresh and bisect); no rows |
 | 2026-11-17 | [Plan: editor and language-server support](2026-11-17-editor-and-lsp-plan.md) | #1591 (under #449); D1 to D10 await lead; builds on #381, #383, #870; no rows |
 | 2026-11-17 | [Python's popular packages: which domains Yan replicates, and in what shape](2026-11-17-python-package-equivalents.md) | Study only; PyPI 30-day downloads at 2026-11-01 grouped into 26 domain sets; 14 need no new package (std, language, toolchain or already a first-party package); recommends a Yan-native canonical API with Python shape only in the lenient reader and `yan import --python`, a model-eval gate per package, and a shortlist of eight (std.http client, frame aliases, stats and plot, `@yan/web`, `@yan/llm`, `@yan/term`, `@yan/template`, `@yan/xlsx`); D1 to D6 open; no rows |
 | 2026-11-17 | [Design: `size_of`, layout classes and the C boundary](../../rfcs/0083-size-of-and-layout.md) | #449; RFC 0083: D1 to D10 accepted as recommended by the lead 2026-11-17; code survey at `7c57127` finds three disagreeing layouts (reflection, native slots, map keys); rows in the writing PRs (#1519) |
@@ -64,7 +65,7 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-01 | Deep frontier survey: speed and capability | RFCs 0015 to 0018 (R622 to R634) |
 | 2026-11-01 | Xin and Wen learnability | RFC 0024 (R655 to R664); D1, the learnability gate, declined |
 | 2026-11-01 | Error messages audit | R648 to R651 (RFC 0021) |
-| 2026-11-01 | Adoption path and 1.0 launch | Decided: single 1.0 launch, no previews (card, 2026-11-01) |
+| 2026-11-01 | Adoption path and 0.1.0 launch | Decided: single 0.1.0 launch (named 1.0 at the time), no previews (card, 2026-11-01) |
 | 2026-11-01 | Yong packaging and ecosystem | RFC 0020 (R635 to R647) |
 | 2026-11-01 | What Yong is and how it fits together | RFC 0014 (R616 to R621): the reference agent loop, built first; RFC 0023 (R665 to R671): `yong review` |
 | 2026-11-01 | Theory and compiler frontier survey | RFCs 0010 to 0013 (R605 to R615) |
@@ -128,9 +129,9 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-01 | Chang 2, kitchen sink | RFC 0001: R516 to R521, R530 to R535 |
 | 2026-11-01 | Chang K2 study (positional local names) | R519 |
 | 2026-11-01 | Security model: capabilities, FFI and agents | RFC 0026: R672 to R677 |
-| 2026-10-30 | 1.0 Development Roadmap | Living plan |
-| 2026-11-09 | Self-hosted Yan compiler and formal-proof plan | #851; RFC 0057 (#858): R966 to R970 replace R215; LLVM C API for 1.0, `.yn` surface, S2 after formal phases 1 and 2 |
-| 2026-11-09 | Yan pre-1.0 polish plan | #862; RFC 0064: R990, R991 |
+| 2026-10-30 | 0.1.0 Development Roadmap (named 1.0 until 2026-11-17) | Living plan |
+| 2026-11-09 | Self-hosted Yan compiler and formal-proof plan | #851; RFC 0057 (#858): R966 to R970 replace R215; LLVM C API for 0.1.0, `.yn` surface, S2 after formal phases 1 and 2 |
+| 2026-11-09 | Yan pre-0.1.0 polish plan | #862; RFC 0064: R990, R991 |
 | 2026-11-10 | Yan surfaces: technology research | #947; RFC 0065: R994 to R1001 (#948 to #957); rest in #958 |
 | 2026-11-11 | Tooling study: borrow and champion | Study only; record, replay, debug, profile, semver, doc, why and diff have no CLI; 10 borrows B1 to B10, 10 champions C1 to C10; D1 (build order: replay with trace diff, no-op review, `yan rewrite`) and D3 (RFCs for all ten) decided 2026-11-11, D2 deferred to #992; tracker #1004; RFC 0066 (C1, draft), RFC 0075 (C10, draft) |
 | 2026-11-13 | Spec difficulty audit | #1129; `tools/spec_audit.py`; per-row CSV; no rows |
@@ -143,3 +144,4 @@ decision lands. Accepted rows are registered in [`spec/rows.toml`](../../spec/ro
 | 2026-11-16 | Capability security review: escapes from `uses` and the ceiling | F1 to F4: #1388 (High), #1389 (High), #1390 (Medium), #1391 (Low); no rows |
 | 2026-11-17 | Module, file and package structure: keep and avoid across 16 ecosystems | RFC 0084; D1 to D12; no rows |
 | 2026-11-17 | Design: one ownership analysis in `yan-check`, Drop/`@linear` partial-move rejection | #1583; D1 to D6, slices 1 to 4; D5 accepted 2026-11-17; no rows |
+| 2026-11-19 | Self-hosting sizing: stages, blockers, sizes, critical path | #851; estimates with stated assumptions A1 to A4; files #1737, #1738, #1739; no calendar date; no rows |

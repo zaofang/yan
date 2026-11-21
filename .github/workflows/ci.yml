@@ -107,6 +107,38 @@ jobs:
       - run: uv run python -m tools.names_lint
       - run: uv run python -m tools.line_ratchet
 
+  # Dependency policy (deny.toml) and RustSec advisories. Advisories change daily, so the nightly run is the one that catches new ones.
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-deny@0.21.0,cargo-audit@0.23.0
+      - run: cargo deny --locked check
+      - run: cargo audit
+
+  # Workflow lint. zizmor runs offline: online audits need a token and flake on API limits.
+  workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install actionlint
+        env:
+          VERSION: "1.7.7"
+          SHA256: 023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+        run: |
+          curl -sSfL --retry 3 -o actionlint.tgz "https://github.com/rhysd/actionlint/releases/download/v$VERSION/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "$SHA256  actionlint.tgz" | sha256sum -c -
+          tar xzf actionlint.tgz actionlint
+      - run: ./actionlint
+      - run: uvx zizmor@1.32.0 --offline --no-progress --config .github/zizmor.yml .github/workflows
+
   # Editor shell (plan E1): grammar snapshot tests and the packaged .vsix. Never publishes.
   editors:
     runs-on: ubuntu-latest
@@ -184,7 +216,8 @@ jobs:
       # nextest builds only test targets; yan-cli's build tests need libyan_rt.a (a plain cargo test builds it as a side effect).
       - run: cargo build --locked -p yan-rt
       # nextest does not run doctests.
-      - run: cargo nextest run --locked --no-fail-fast
+      # The native build test is one serial test of about 5 minutes: it runs in the `native` job, in parallel.
+      - run: cargo nextest run --locked --no-fail-fast -E 'not test(=built_programs_match_the_interpreter)'
       - run: cargo test --locked --doc
       - run: uv sync --locked
       - run: uv run python tools/third_party.py --check
@@ -210,6 +243,16 @@ jobs:
       - run: >-
           uv run python -m tools.ubsweep
           --yan ${{ github.workspace }}/target/release/yan
+      # MIR validator sweep (RFC 0097 D7, #1513): `yan view --as mir --check` over the same corpus.
+      # Programs it fails are listed in tools/mirsweep_allow.toml with an issue (#1810); a stale entry fails.
+      - run: >-
+          uv run python -m tools.mirsweep
+          --yan ${{ github.workspace }}/target/release/yan
+      # Thread-count matrix (RFC 0086 D6, #1584): stdout, exit status and diagnostics identical at 1, 2, 4, 8 and 16 threads.
+      # No allowlist: a divergence is a pool bug.
+      - run: >-
+          uv run python -m tools.threadmatrix
+          --yan ${{ github.workspace }}/target/release/yan
       # Valgrind sweep (#1583): every program built natively and run under valgrind; nightly only (about 2 min on 4 cores).
       # `yan build` links libyan_rt.a from beside the executable. Programs it fails are listed in tools/valgrind_allow.toml with an issue.
       - if: github.event_name == 'schedule'
@@ -226,6 +269,27 @@ jobs:
             conformance-summary.json
             laws-summary.json
             difftest-summary.json
+
+  # The one slow test of the rust job (every run case built natively and compared with the interpreter), alone so it
+  # overlaps the rest. Same checks as before, split for wall time.
+  native:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CARGO_PROFILE_DEV_DEBUG: line-tables-only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2
+        with:
+          tool: cargo-nextest@0.9.100
+      - run: cargo build --locked -p yan-rt
+      - run: cargo nextest run --locked -p yan-cli --test build -E 'test(=built_programs_match_the_interpreter)'
 
   # One run per program: checks that every benchmark still computes its result; times are indicative.
   # Main pushes and the nightly run only.

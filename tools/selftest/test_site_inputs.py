@@ -20,4 +20,9 @@ def test_archive_carries_meta_brand_playground_and_the_compiler(tmp_path: Path) 
         assert member is not None
         meta = json.load(member)
     assert {"yan", "libyan_rt.a", "brand/lockup.svg", "playground/yan.wasm"} <= names
+    assert {
+        "docs/spec/rows.toml",
+        "docs/spec/coverage.json",
+        "docs/conformance/manifest.json",
+    } <= names
     assert len(meta["commit"]) == 40 and meta["rfcs"] > 0 and meta["cases"]

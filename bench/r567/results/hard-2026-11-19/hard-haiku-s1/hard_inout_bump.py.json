@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2605,
+   "out": 1305,
+   "reasoning": 562,
+   "out_bytes": 1512
+  },
+  "body": {
+   "in": 1953,
+   "out": 466,
+   "reasoning": 98,
+   "out_bytes": 751
+  }
+ },
+ "final": "def bump_all(xs: list[int], by: int) -> None:\n    \"\"\"Add `by` to every element of `xs`, in place.\n\n    The caller's list is mutated; nothing is returned.\n    \"\"\"\n    for i in range(len(xs)):\n        xs[i] += by\n\n\ndef test_bump_all_adds_in_place() -> None:\n    xs = [1, 2, 3]\n    bump_all(xs, 10)\n    assert xs == [11, 12, 13]\n\n\ndef test_bump_all_same_object() -> None:\n    xs = [4, 5]\n    alias = xs\n    bump_all(xs, 2)\n    assert alias is xs\n    assert alias == [6, 7]\n\n\ndef test_bump_all_empty() -> None:\n    xs: list[int] = []\n    bump_all(xs, 5)\n    assert xs == []\n\n\ndef test_bump_all_negative_and_zero() -> None:\n    xs = [0, -3, 7]\n    bump_all(xs, -2)\n    assert xs == [-2, -5, 5]\n    bump_all(xs, 0)\n    assert xs == [-2, -5, 5]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1059,
+    "out": 689,
+    "reasoning": 296
+   },
+   "out_bytes": 802,
+   "ok": false,
+   "report": "test_task.py:17: error: \"bump_all\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1546,
+    "out": 616,
+    "reasoning": 266
+   },
+   "out_bytes": 710,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1953,
+    "out": 466,
+    "reasoning": 98
+   },
+   "out_bytes": 751,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

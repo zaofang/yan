@@ -1,0 +1,26 @@
+# spec: 6.7, 9.1
+# rows: R1090
+# note: a pool arm returns while the enclosing frame owns a list: the list is dropped once, on the winning exit, and the later arm's output is dropped
+# stdout:
+# r0
+# 10
+# r0
+# s0
+# t0
+# fell
+# 0
+
+def ret(k: int) -> int uses io:
+    xs = [1, 2, 3]
+    par:
+        io.print("r0")
+        if k > 0:
+            return 7 + len(xs)
+        io.print("s0")
+        io.print("t0")
+    io.print("fell")
+    return 0
+
+pub def main() uses io:
+    io.print(f"{ret(1)}")
+    io.print(f"{ret(0)}")

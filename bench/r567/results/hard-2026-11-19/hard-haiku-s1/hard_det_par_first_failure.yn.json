@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1672,
+   "out": 703,
+   "reasoning": 574,
+   "out_bytes": 241
+  },
+  "body": {
+   "in": 4081,
+   "out": 1720,
+   "reasoning": 1318,
+   "out_bytes": 718
+  }
+ },
+ "final": "type Bad = { n: int }\n\ncheck(x: int) -> int fail Bad =\n  ex check(2) == 2\n  if x % 2 == 1\n    fail Bad(n: x)\n  x\n\nall_even(xs: List[int]) -> List[int] fail Bad =\n  pre xs.len() >= 0\n  post out.len() == xs.len()\n  ex all_even([2, 4]) == [2, 4]\n  let ys = par for x in xs\n    check(x)?\n  ys\n\ntest_all_even() =\n  assert all_even([2, 4, 6]) == [2, 4, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1672,
+    "out": 703,
+    "reasoning": 574
+   },
+   "out_bytes": 241,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1874,
+    "out": 887,
+    "reasoning": 686
+   },
+   "out_bytes": 359,
+   "ok": false,
+   "report": "E315 task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 task.yn:15:3 all_even: `ys?` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2207,
+    "out": 833,
+    "reasoning": 632
+   },
+   "out_bytes": 359,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E315 ./task.yn:14:5 all_even: `check(x)` the failure of this call is not handled; add `?` or `else`\nE201 ./task.yn:15:3 all_even: `ys` `?` needs a call that can fail or a `Result` value, found `List[int]`; the value cannot fail\n0 of 0 tests passed\nE315 ./task.yn:14:5 all_even: `check(x)` the failure"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

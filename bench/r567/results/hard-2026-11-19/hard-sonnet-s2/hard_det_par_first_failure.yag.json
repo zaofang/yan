@@ -1,0 +1,128 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Succeeds with x when x is even, otherwise fails with Bad(n=x).\"\"\"\n    ex check(2) == Ok(2)\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Checks every element of xs in parallel and returns them unchanged when all are even.\n    If any element is odd, fails with the Bad of the lowest-index odd element,\n    regardless of which thread finishes first.\"\"\"\n    post out.len() == xs.len()\n    ex all_even([]) == Ok([])\n    ex all_even([2, 4, 6]) == Ok([2, 4, 6])\n    ex all_even([2, 3, 4]) == Err(Bad(n=3))\n    ex all_even([5, 2, 7]) == Err(Bad(n=5))\n    ex all_even([4, 9, 1, 6]) == Err(Bad(n=9))\n    results = par [check(x)? for x in xs]\n    return results\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2097,
+    "out": 355,
+    "reasoning": 0
+   },
+   "out_bytes": 728
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp8bdqch2h/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /tmp/tmp8bdqch2h/work/task.yag:22:20 all_even: `[check(x) for x in xs]` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)? | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), or `f(x) else v` or `f(x) else err -> v` to handle it\n#3 E201 /tmp/tmp8bdqch2h/work/task.yag:25:20 all_even: `r?` `?` needs a call that can fail or a `Result` value, found `int`; the value cannot fail",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E315",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2550,
+    "out": 905,
+    "reasoning": 484
+   },
+   "out_bytes": 891
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3289,
+    "out": 672,
+    "reasoning": 276
+   },
+   "out_bytes": 827
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_first_failure",
+ "tokens": {
+  "body": {
+   "in": 5839,
+   "out": 1577,
+   "reasoning": 760,
+   "out_bytes": 1718
+  },
+  "spec": {
+   "in": 2097,
+   "out": 355,
+   "reasoning": 0,
+   "out_bytes": 728
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "E315",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp8bdqch2h/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E315 /tmp/tmp8bdqch2h/work/task.yag:22:20 all_even: `[check(x) for x in xs]` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)? | note: Python raises a callee's error implicitly; Yan Agent does not. Write `f(x)?` to pass the failure on (this function must declare the same `fail E`), o"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E315 ./task.yag:22:20 all_even: `check` the failure of this call is not handled; add `?` or `else` | fix: check(x) -> check(x)?\nE201 ./task.yag:25:20 all_even: `r` `?` needs a call that can fail or a `Result` value, found `int`; the value cannot fail\n0 of 0 tests passed\nE315 ./task.yag:22:20 all_eve"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

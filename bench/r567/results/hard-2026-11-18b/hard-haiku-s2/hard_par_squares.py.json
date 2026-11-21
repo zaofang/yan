@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1070,
+   "out": 891,
+   "reasoning": 664,
+   "out_bytes": 548
+  },
+  "body": {
+   "in": 1354,
+   "out": 473,
+   "reasoning": 195,
+   "out_bytes": 673
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef square(x: int) -> int:\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Return [square(x) for x in xs], computing each element in a thread pool.\n\n    The output preserves the order of the input. An empty input returns an\n    empty list.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(square, xs))\n\n\ndef test_squares_preserves_order() -> None:\n    assert squares([3, 1, 4, 1, 5]) == [9, 1, 16, 1, 25]\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_negative_values() -> None:\n    assert squares([-2, 0, -7]) == [4, 0, 49]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1070,
+    "out": 891,
+    "reasoning": 664
+   },
+   "out_bytes": 548,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1354,
+    "out": 473,
+    "reasoning": 195
+   },
+   "out_bytes": 673,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

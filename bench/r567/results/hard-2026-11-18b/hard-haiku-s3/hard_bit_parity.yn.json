@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1424,
+   "out": 792,
+   "reasoning": 614,
+   "out_bytes": 363
+  },
+  "body": {
+   "in": 3647,
+   "out": 2021,
+   "reasoning": 1557,
+   "out_bytes": 901
+  }
+ },
+ "final": "-- Number of set bits in a byte.\nbit_count(x: u8) -> int =\n  post out >= 0\n  post out <= 8\n  ex bit_count(0) == 0\n  ex bit_count(255) == 8\n  var n = x\n  var c = 0\n  for i in range(0, 8)\n    if n % 2 == 1\n      c += 1\n    n = n // 2\n  c\n\n-- True when the byte has an odd number of set bits.\nparity(x: u8) -> bool =\n  post out == (bit_count(x) % 2 == 1)\n  ex parity(0) == False\n  ex parity(1) == True\n  ex parity(3) == False\n  bit_count(x) % 2 == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1424,
+    "out": 792,
+    "reasoning": 614
+   },
+   "out_bytes": 363,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1675,
+    "out": 798,
+    "reasoning": 569
+   },
+   "out_bytes": 445,
+   "ok": false,
+   "report": "E201 task.yn:7:15 bit_count: `(x)` `int` does not take a `u8`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1972,
+    "out": 1223,
+    "reasoning": 988
+   },
+   "out_bytes": 456,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yn:7:15 bit_count: `x` `int` does not take a `u8`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

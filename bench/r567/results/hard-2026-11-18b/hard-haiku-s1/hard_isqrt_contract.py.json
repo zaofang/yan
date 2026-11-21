@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 1237,
+   "reasoning": 637,
+   "out_bytes": 1248
+  },
+  "body": {
+   "in": 1737,
+   "out": 1688,
+   "reasoning": 956,
+   "out_bytes": 1569
+  }
+ },
+ "final": "def isqrt(n: int) -> int:\n    \"\"\"Return the largest r with r * r <= n.\n\n    Contract (to be enforced with assert statements in phase 2):\n      Precondition:  n >= 0. Violations raise AssertionError.\n      Postcondition: r >= 0, r * r <= n, and n < (r + 1) * (r + 1).\n    \"\"\"\n    assert n >= 0, \"precondition violated: n must be non-negative\"\n    if n == 0:\n        r = 0\n    else:\n        x = n\n        y = (x + n // x) // 2\n        while y < x:\n            x = y\n            y = (x + n // x) // 2\n        r = x\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1), \"postcondition violated\"\n    return r\n\n\nimport pytest\n\n\ndef test_isqrt_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n\n\n@pytest.mark.parametrize(\"r\", [10, 255, 1000, 46340])\ndef test_isqrt_perfect_squares(r: int) -> None:\n    assert isqrt(r * r) == r\n\n\n@pytest.mark.parametrize(\"r\", [10, 255, 1000, 46340])\ndef test_isqrt_just_below_next_square(r: int) -> None:\n    assert isqrt((r + 1) * (r + 1) - 1) == r\n\n\ndef test_isqrt_large_value() -> None:\n    n = 2**62\n    assert isqrt(n) == 2**31\n    assert isqrt(n - 1) == 2**31 - 1\n\n\ndef test_isqrt_postcondition_holds_over_range() -> None:\n    for n in range(0, 1001):\n        r = isqrt(n)\n        assert r >= 0\n        assert r * r <= n\n        assert n < (r + 1) * (r + 1)\n\n\ndef test_isqrt_negative_violates_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 1237,
+    "reasoning": 637
+   },
+   "out_bytes": 1248,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1737,
+    "out": 1688,
+    "reasoning": 956
+   },
+   "out_bytes": 1569,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

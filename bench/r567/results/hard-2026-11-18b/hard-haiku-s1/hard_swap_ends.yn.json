@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3153,
+   "out": 2036,
+   "reasoning": 1667,
+   "out_bytes": 798
+  },
+  "body": {
+   "in": 1973,
+   "out": 953,
+   "reasoning": 657,
+   "out_bytes": 581
+  }
+ },
+ "final": "-- Reference model: the swapped list, used to state the expected behaviour.\nswapped(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex swapped([1, 2, 3]) == [3, 2, 1]\n  ex swapped([5]) == [5]\n  ex swapped([]) == []\n  var r = copy xs\n  if r.len() >= 2\n    let n = r.len()\n    r[0] = xs[n - 1]\n    r[n - 1] = xs[0]\n  r\n\n-- Swaps the first and last elements of xs in place.\n-- Empty and one-element lists are left unchanged.\nswap_ends(var xs: List[int]) =\n  if xs.len() >= 2\n    let n = xs.len()\n    let first = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = first\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1439,
+    "out": 1266,
+    "reasoning": 1083
+   },
+   "out_bytes": 397,
+   "ok": false,
+   "report": "E100 task.yn:2:36 `end of line` unexpected token; expected `=`\nE100 task.yn:11:29 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1714,
+    "out": 770,
+    "reasoning": 584
+   },
+   "out_bytes": 401,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1973,
+    "out": 953,
+    "reasoning": 657
+   },
+   "out_bytes": 581,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

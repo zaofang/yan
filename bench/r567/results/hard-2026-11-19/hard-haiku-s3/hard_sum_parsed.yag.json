@@ -1,0 +1,94 @@
+{
+ "final": "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n    \"\"\"Sum of the integers in xs. Fails with BadInput carrying the first entry that is not an integer.\"\"\"\n    ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    ex sum_parsed([]) == 0\n    ex sum_parsed([\"4\", \"x\", \"5\"]) == Err(BadInput(text=\"x\"))\n    total = 0\n    for s in xs:\n        n = s.parse_int() else fail BadInput(text=s.copy())\n        total += n\n    return total\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2054,
+    "out": 972,
+    "reasoning": 810
+   },
+   "out_bytes": 336
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2314,
+    "out": 572,
+    "reasoning": 365
+   },
+   "out_bytes": 455
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/sum_parsed",
+ "tokens": {
+  "body": {
+   "in": 2314,
+   "out": 572,
+   "reasoning": 365,
+   "out_bytes": 455
+  },
+  "spec": {
+   "in": 2054,
+   "out": 972,
+   "reasoning": 810,
+   "out_bytes": 336
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

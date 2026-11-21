@@ -1,0 +1,123 @@
+{
+ "final": "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n    \"\"\"Sum of the integers in xs. Fails with BadInput on the first string that is not an integer.\"\"\"\n    ex sum_parsed([\"1\", \"2\", \"3\"]) == Ok(6)\n    ex sum_parsed([]) == Ok(0)\n    ex sum_parsed([\"4\", \"x\", \"5\"]) == Err(BadInput(text=\"x\"))\n    total = 0\n    for s in xs:\n        n = s.parse_int() else fail BadInput(text=s.copy())\n        total += n\n    return total\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpo0420kbh/work/task.yag:9:8 sum_parsed: `(BadInput)` cannot find `BadInput` | in `ex` of `sum_parsed`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2054,
+    "out": 891,
+    "reasoning": 737
+   },
+   "out_bytes": 322
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2312,
+    "out": 594,
+    "reasoning": 425
+   },
+   "out_bytes": 340
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2579,
+    "out": 1138,
+    "reasoning": 924
+   },
+   "out_bytes": 459
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/sum_parsed",
+ "tokens": {
+  "body": {
+   "in": 2579,
+   "out": 1138,
+   "reasoning": 924,
+   "out_bytes": 459
+  },
+  "spec": {
+   "in": 4366,
+   "out": 1485,
+   "reasoning": 1162,
+   "out_bytes": 662
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpo0420kbh/work/task.yag:9:8 sum_parsed: `(BadInput)` cannot find `BadInput` | in `ex` of `sum_parsed`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

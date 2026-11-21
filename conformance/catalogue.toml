@@ -261,6 +261,15 @@ W858 = { section = "7.7", status = "active", meaning = "relaxed float block with
 W859 = { section = "7.7", status = "active", meaning = "with fast_math: nested in a relaxed scope (R822)" }
 W860 = { section = "18.9", status = "active", meaning = "an Args:, Attributes: or Variants: entry names no parameter, field or variant (R848)" }
 W861 = { section = "18.9", status = "active", meaning = "off by default, on in yan.toml: a public parameter, field or variant without a doc (R848)" }
+W862 = { section = "6.9", status = "active", meaning = "`yan run --ub`: an allocation still live when `main` returns (R1095)" }
+W863 = { section = "9.4", status = "active", meaning = "`?` on a std blocking call whose failure `Cancelled | Timeout` is not covered by the function's fail type (R1111)" }
+I101 = { section = "25.12", status = "active", meaning = "a MIR local, function, string, pinned member or `main` signature that does not exist or does not fit (R1115)" }
+I102 = { section = "25.12", status = "active", meaning = "a MIR function with no entry block, or a terminator naming a block that does not exist (R1116)" }
+I103 = { section = "25.12", status = "active", meaning = "a MIR local read where it is not written on every path from the entry (R1117)" }
+I104 = { section = "25.12", status = "active", meaning = "a MIR call, tail call or return with the wrong number of arguments, results or values (R1118)" }
+I105 = { section = "25.12", status = "active", meaning = "a MIR argument, result or returned value of a type the callee or function does not have (R1119)" }
+I106 = { section = "25.12", status = "active", meaning = "a MIR `Par`, `Suspend`, `TaskEnd` or `Unwind` terminator in the backend form (R1120)" }
+I107 = { section = "25.12", status = "active", meaning = "a MIR `AddrOf` of a local no pinned group holds, or a local in two pinned groups (R1121)" }
 
 [sections]
 "3.1" = "Kinds"

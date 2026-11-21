@@ -333,6 +333,14 @@ impl Solution<'_> {
         s.into_iter().collect()
     }
 
+    /// The fields of `b` that may have been taken out at `p`, with the sites that took them.
+    pub fn field_moves(&self, b: Binding, p: Point) -> Vec<(Field, Site)> {
+        self.moved_at(p)
+            .iter()
+            .filter_map(|&(x, f, site)| (x == b).then_some(f).flatten().map(|f| (f, site)))
+            .collect()
+    }
+
     /// Fields of `b` that may have been taken out at `p`.
     pub fn moved_fields(&self, b: Binding, p: Point) -> Vec<Field> {
         let s: BTreeSet<Field> = self

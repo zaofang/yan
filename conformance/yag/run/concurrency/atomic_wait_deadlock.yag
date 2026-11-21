@@ -1,0 +1,11 @@
+# spec: 6.2
+# rows: R396, R1102
+# note: a wait that no task can release is a deadlock, which panics (R396); the first line is printed before the wait
+# stdout:
+# waiting
+# exit: 101
+
+def main() -> None fail Cancelled | Timeout uses io, nondet:
+    a = Atomic[uint32](0)
+    print("waiting")
+    a.wait(0, LoadOrdering.Acquire())?

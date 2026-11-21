@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1728,
+   "out": 1831,
+   "reasoning": 1589,
+   "out_bytes": 596
+  },
+  "body": {
+   "in": 4525,
+   "out": 3247,
+   "reasoning": 2490,
+   "out_bytes": 1949
+  }
+ },
+ "final": "-- Pure check: true only for a bare file name with no path parts,\n-- so it cannot leave the notes directory.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"notes.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  if name == \"\" or name == \".\" or name == \"..\"\n    return False\n  if name.split(\"/\").len() != 1\n    return False\n  if name.split(\"\\\\\").len() != 1\n    return False\n  if name.split(\":\").len() != 1\n    return False\n  True\n\n-- Reads one note from inside notes; None when missing or unreadable.\nread_note(name: str) -> str? uses fs =\n  pre is_plain_name(name)\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    text\n\n-- Text of the first readable note in names, or \"\" when none can be read.\nfirst_readable(names: List[str]) -> str uses fs =\n  post out.char_count() >= 0\n  ex first_readable([]) == \"\"\n  for name in names\n    if not is_plain_name(name)\n      continue\n    let text = read_note(name) else continue\n    return text\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 1831,
+    "reasoning": 1589
+   },
+   "out_bytes": 596,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2043,
+    "out": 2304,
+    "reasoning": 1929
+   },
+   "out_bytes": 961,
+   "ok": false,
+   "report": "E201 task.yn:20:24 read_note: `None` expected `str`, found `()`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2482,
+    "out": 943,
+    "reasoning": 561
+   },
+   "out_bytes": 988,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 task.yn:20:24 read_note: `None` expected `str`, found `()`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

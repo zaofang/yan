@@ -1,0 +1,7 @@
+-- spec: 15.3
+-- rows: R1132
+-- note: a diverging branch is accepted only as the whole value of a statement
+-- expect: E017 at 7:18
+
+f(b: bool, x: int) -> int =
+  x + (if b then return 1 else 2)

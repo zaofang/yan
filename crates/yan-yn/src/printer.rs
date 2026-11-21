@@ -521,6 +521,7 @@ impl Printer {
                     ),
                     WithKind::Deadline(e) => format!("with deadline({})", expr(e)),
                     WithKind::Timeout(e) => format!("with timeout({})", expr(e)),
+                    WithKind::Shield(e) => format!("with shield({})", expr(e)),
                     WithKind::Supervisor(e) => format!("with supervisor({})", expr(e)),
                 };
                 self.block(&head, body);
@@ -1164,6 +1165,7 @@ pub fn expr(e: &Expr) -> String {
             operand(then, OR, false),
             operand(otherwise, COND, false)
         ),
+        ExprKind::Diverge(s) => diverge(s),
         ExprKind::Fallback(lhs, fb) => {
             let l = operand(lhs, COND, matches!(strip(lhs).kind, ExprKind::If { .. }));
             let r = match fb.as_ref() {

@@ -1,0 +1,111 @@
+-- every form of the grammar the conformance files do not reach
+module edge.forms
+
+@derive(Eq, Ord)
+@access(rows(0, halo = 1), cols = [1, 2], pair = (1, "x"), p = a.b { k: 1 })
+pub record Pair[comptime N: Nat, T: Type is Eq + Ord] { pub a: T = 1, pkg b: Tuple(i64, str) = (1, "x"), c: Fn(let i64, inout T) -> bool uses none fail Bad | Worse }
+
+sum Shape[T: Type] { Circle { r: f64 }, Dot, Rect { w: T, h: T } }
+
+newtype Even = { n: i64 | is_even(let n) } where is_even(let 0)
+
+newtype Id = u32
+
+const LIMIT: i64 = -0x1F
+const NAMES: List[str] = ["a", "b"]
+const ORIGIN: Pair = Pair { a: 1.5e3, b: 'x' }
+
+trait Show[T: Type] {
+    type Item
+    type Out
+    fn show(let self_: T) -> str
+    fn debug(let x: T) -> str requires ok(let x) ensures ok(let x) decreases n, m example ok(let x) cost steps <= 10, alloc <= 2
+    derived { ret ""  }
+}
+
+impl Show[i64] for i64 {
+    type Item = i64
+    pub fn show(let x: i64) -> str { ret "" }
+    unsafe fn raw(let x: i64) -> str { ret "" }
+}
+
+unsafe impl Show[u8] for u8 { }
+
+inst fn id[i64](let x: i64) -> i64 { ret x }
+
+gen count(let n: i64) -> i64 from n { yield n }
+
+pub unsafe fn danger(cap io: Io, comptime let n: i64, sink v: List[i64]) -> Unit from a, b fail Err {
+    let x: i64 = 1
+    var y: i64 = x
+    y = 2
+    xs[0] = y
+    a.b.c = x
+    let t: Tuple(i64, i64) = (x, y)
+    let u: Unit = ()
+    let s: str = "a\nb\u{1F600}\0"
+    let c: char = 'q'
+    let f: f64 = -1.5e-3
+    let z: Pair = Pair[i64] { a: x }
+    let w: Fn(let i64) -> i64 = fn [let x inout y] (let k: i64) -> i64 uses io, fs fail Bad { ret k }
+    let r: i64 = f[i64](let x, inout y, sink z, cap io)?
+    let r2: i64 = f(let x)? via From drop a, b
+    let tr: Result[i64, Bad] = try f(let x)
+    let cp: i64 = copy xs[0].f
+    let mv: i64 = move xs
+    let rs: Rest = rest r except a.b, c
+    let pr: i64 = xs.f
+    let ix: i64 = xs[i]
+    if x { let a: i64 = 1 } else { let b: i64 = 2 }
+    match x {
+        _ => { ret x }
+        1 | 2 => { ret x }
+        'a' ..= 'z' => { ret x }
+        (p, q) => { ret x }
+        [first, ..rest] => { ret x }
+        [..] => { ret x }
+        [a, b] => { ret x }
+        Shape.Dot => { ret x }
+        Shape.Rect { w: a, .. } => { ret x }
+        Circle { r: 1 } => { ret x }
+        v => { ret x }
+    }
+    loop 'outer invariant ok(let x) invariant ok(let y) decreases x {
+        loop 'inner { break 'outer x
+        continue 'inner }
+        break 'outer
+    }
+    jp k(let a: i64) { ret a }
+    jump k(1)
+    become f(let x)
+    deadline t { ret x }
+    with h = dyn handler { ret x }
+    with g = handler { ret x }
+    par { { ret x } { ret y } }
+    par concurrent { }
+    comptime for i: i64 in xs { ret i }
+    comptime if flag { ret 1 } else { ret 2 }
+    assert ok(let x)
+    assert flag
+    unreachable
+    unsafe { ret x }
+    asm("nop", in(rax) x, out("rbx") y, inout(reg) z, lateout(rcx) w, clobber_abi("C"), options(nomem, nostack))
+    drop x
+    reuse x as Pair { a: 1 }
+    reuse x as (a, b)
+    fail e
+    ret x
+}
+
+test works {
+    assert ok(let 1)
+}
+
+unsafe extern "C" lib libc link "c" {
+    type FILE drop libc.fclose
+    safe fn abs(x: i32) -> i32 uses none nonblocking
+    unsafe fn printf(fmt: str, ...) -> i32
+    @weak safe fn qsort(base: ptr, cmp: scoped Fn(let ptr, let ptr) -> i32, cb: escaping Fn() -> Unit) -> Unit from a, b
+    safe static errno: i32
+    unsafe static environ: ptr
+}

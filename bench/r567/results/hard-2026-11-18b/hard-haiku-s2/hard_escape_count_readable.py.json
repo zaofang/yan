@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3143,
+   "reasoning": 1484,
+   "out_bytes": 3820
+  },
+  "body": {
+   "in": 2841,
+   "out": 2842,
+   "reasoning": 875,
+   "out_bytes": 4692
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final[str] = \"notes\"\n\n\ndef _notes_base() -> Path:\n    return (Path.cwd() / NOTES_DIR).resolve()\n\n\ndef safe_note_path(name: str) -> Path | None:\n    \"\"\"Return the resolved path of `name` inside NOTES_DIR, or None if it escapes.\n\n    Rejects absolute paths, parent-directory components, NUL bytes, and any\n    name whose resolved location (after following symlinks) is outside\n    NOTES_DIR. Does not require the file to exist.\n    \"\"\"\n    if \"\\x00\" in name:\n        return None\n    if Path(name).is_absolute():\n        return None\n    base = _notes_base()\n    try:\n        candidate = (base / name).resolve()\n    except (OSError, RuntimeError, ValueError):\n        return None\n    if not candidate.is_relative_to(base):\n        return None\n    return candidate\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the contents of note `name` under NOTES_DIR.\n\n    Returns \"\" when the name is unsafe (see safe_note_path), the file is\n    missing, or the file cannot be read.\n    \"\"\"\n    path = safe_note_path(name)\n    if path is None:\n        return \"\"\n    try:\n        return path.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError):\n        return \"\"\n\n\ndef is_readable_note(name: str) -> bool:\n    \"\"\"True when `name` is a regular file inside NOTES_DIR that can be read.\n\n    Empty files count as readable. Missing, unsafe, directory, and\n    unreadable names return False.\n    \"\"\"\n    path = safe_note_path(name)\n    if path is None:\n        return False\n    try:\n        if not path.is_file():\n            return False\n        with path.open(\"rb\") as fh:\n            fh.read(0)\n        return True\n    except OSError:\n        return False\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count how many entries of `names` are readable notes under NOTES_DIR.\n\n    Relative to the current working directory. Untrusted names never cause\n    a read outside NOTES_DIR.\n    \"\"\"\n    return sum(1 for n in names if is_readable_note(n))\n\n\n@pytest.fixture\ndef notes_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"alpha\", encoding=\"utf-8\")\n    (notes / \"b.txt\").write_text(\"\", encoding=\"utf-8\")\n    (notes / \"sub\").mkdir()\n    return tmp_path\n\n\ndef test_count_readable_counts_existing_files(notes_cwd: Path) -> None:\n    assert count_readable([\"a.txt\", \"b.txt\"]) == 2\n\n\ndef test_count_readable_skips_missing(notes_cwd: Path) -> None:\n    assert count_readable([\"a.txt\", \"missing.txt\"]) == 1\n\n\ndef test_count_readable_empty_list(notes_cwd: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_count_readable_ignores_directories(notes_cwd: Path) -> None:\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_count_readable_rejects_traversal(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"nope\", encoding=\"utf-8\")\n    assert count_readable([\"../secret.txt\"]) == 0\n\n\ndef test_count_readable_rejects_absolute_path(notes_cwd: Path) -> None:\n    outside = notes_cwd / \"outside.txt\"\n    outside.write_text(\"nope\", encoding=\"utf-8\")\n    assert count_readable([str(outside)]) == 0\n\n\ndef test_count_readable_rejects_nul_byte(notes_cwd: Path) -> None:\n    assert count_readable([\"a.txt\\x00.png\"]) == 0\n\n\ndef test_count_readable_rejects_symlink_escape(notes_cwd: Path) -> None:\n    target = notes_cwd / \"secret.txt\"\n    target.write_text(\"nope\", encoding=\"utf-8\")\n    (notes_cwd / NOTES_DIR / \"link.txt\").symlink_to(target)\n    assert count_readable([\"link.txt\"]) == 0\n\n\ndef test_is_readable_note_true_for_empty_file(notes_cwd: Path) -> None:\n    assert is_readable_note(\"b.txt\") is True\n\n\ndef test_is_readable_note_false_for_missing(notes_cwd: Path) -> None:\n    assert is_readable_note(\"nope.txt\") is False\n\n\ndef test_is_readable_note_false_for_unsafe(notes_cwd: Path) -> None:\n    assert is_readable_note(\"../../etc/passwd\") is False\n\n\ndef test_safe_note_path_inside_notes(notes_cwd: Path) -> None:\n    result = safe_note_path(\"a.txt\")\n    assert result is not None\n    assert result.resolve() == (notes_cwd / NOTES_DIR / \"a.txt\").resolve()\n\n\ndef test_safe_note_path_rejects_escape(notes_cwd: Path) -> None:\n    assert safe_note_path(\"../a.txt\") is None\n\n\ndef test_read_note_returns_contents(notes_cwd: Path) -> None:\n    assert read_note(\"a.txt\") == \"alpha\"\n\n\ndef test_read_note_empty_for_missing(notes_cwd: Path) -> None:\n    assert read_note(\"missing.txt\") == \"\"\n\n\ndef test_read_note_empty_for_unsafe(notes_cwd: Path) -> None:\n    (notes_cwd / \"secret.txt\").write_text(\"nope\", encoding=\"utf-8\")\n    assert read_note(\"../secret.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3143,
+    "reasoning": 1484
+   },
+   "out_bytes": 3820,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2841,
+    "out": 2842,
+    "reasoning": 875
+   },
+   "out_bytes": 4692,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

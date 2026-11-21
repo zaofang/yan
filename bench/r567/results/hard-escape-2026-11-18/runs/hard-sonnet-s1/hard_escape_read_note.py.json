@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2039,
+   "reasoning": 515,
+   "out_bytes": 3389
+  },
+  "body": {
+   "in": 2697,
+   "out": 2525,
+   "reasoning": 833,
+   "out_bytes": 3879
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the directory `notes`.\n\n    `notes` is relative to the current working directory. `name` is\n    untrusted: absolute paths, `..` segments, symlinks, embedded NUL\n    characters, or any other spelling that would resolve to a location\n    outside `notes` must not be read. A missing, unreadable, undecodable\n    (not UTF-8) or non-regular file, or a rejected name, yields \"\".\n    \"\"\"\n    if not name or \"\\x00\" in name:\n        return \"\"\n    try:\n        rel = Path(name)\n        if rel.is_absolute() or rel.drive or rel.root:\n            return \"\"\n        base = Path(\"notes\").resolve()\n        target = (base / rel).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_existing_note(sandbox: Path) -> None:\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_unicode_note(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"u.txt\").write_text(\"h\u00e9llo \u2713\", encoding=\"utf-8\")\n    assert read_note(\"u.txt\") == \"h\u00e9llo \u2713\"\n\n\ndef test_reads_note_in_subdirectory(sandbox: Path) -> None:\n    sub = sandbox / \"notes\" / \"sub\"\n    sub.mkdir()\n    (sub / \"b.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    assert read_note(\"sub/b.txt\") == \"nested\"\n\n\ndef test_missing_file_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_name_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal_blocked(sandbox: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"../../secret.txt\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_sibling_with_same_prefix_blocked(sandbox: Path) -> None:\n    other = sandbox / \"notes2\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"sibling\", encoding=\"utf-8\")\n    assert read_note(\"../notes2/x.txt\") == \"\"\n\n\ndef test_absolute_path_blocked(sandbox: Path) -> None:\n    assert read_note(str(sandbox / \"secret.txt\")) == \"\"\n    assert read_note(str(sandbox / \"notes\" / \"a.txt\")) == \"\"\n\n\ndef test_nul_byte_gives_empty(sandbox: Path) -> None:\n    assert read_note(\"a.txt\\x00../secret.txt\") == \"\"\n    assert read_note(\"\\x00\") == \"\"\n\n\ndef test_symlink_escape_blocked(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(sandbox / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unavailable\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escape_blocked(sandbox: Path) -> None:\n    link = sandbox / \"notes\" / \"dirlink\"\n    try:\n        link.symlink_to(sandbox, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unavailable\")\n    assert read_note(\"dirlink/secret.txt\") == \"\"\n\n\ndef test_undecodable_file_gives_empty(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\x80\")\n    assert read_note(\"bin.dat\") == \"\"\n\n\ndef test_missing_notes_directory_gives_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert read_note(\"a.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2039,
+    "reasoning": 515
+   },
+   "out_bytes": 3389,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2697,
+    "out": 2525,
+    "reasoning": 833
+   },
+   "out_bytes": 3879,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

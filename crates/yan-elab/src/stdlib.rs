@@ -873,12 +873,22 @@ fn bodies(m: &j::Module) -> Vec<Body> {
 pub(crate) fn collect(g: &mut Globals, m: &j::Module) -> R<Vec<Body>> {
     // A method of a std class the program never names (regex's `Match.text` for a `Path.text`
     // call) cannot be called, and its types are not registered.
+    let unnamed_class = |ty: &j::Type| {
+        matches!(ty, j::Type::Named { path, .. }
+            if path.len() == 1 && STD.classes.contains_key(&path[0])
+                && !g.std_records.contains(&path[0]))
+    };
+    // The same holds for a function that returns one (`scope.root`).
     let unnamed = |b: &Body| {
-        b.def.params.first().is_some_and(|p| {
-            matches!(p, j::Param::Value { ty: j::Type::Named { path, .. }, .. }
-                if path.len() == 1 && STD.classes.contains_key(&path[0])
-                    && !g.std_records.contains(&path[0]))
-        })
+        b.def
+            .params
+            .first()
+            .is_some_and(|p| matches!(p, j::Param::Value { ty, .. } if unnamed_class(ty)))
+            || b.def
+                .ret
+                .as_ref()
+                .and_then(|r| r.ty.as_ref())
+                .is_some_and(unnamed_class)
     };
     let bs: Vec<Body> = bodies(m).into_iter().filter(|b| !unnamed(b)).collect();
     for b in &bs {

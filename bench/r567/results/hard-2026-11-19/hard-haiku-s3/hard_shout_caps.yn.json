@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1591,
+   "out": 823,
+   "reasoning": 699,
+   "out_bytes": 248
+  },
+  "body": {
+   "in": 1788,
+   "out": 625,
+   "reasoning": 486,
+   "out_bytes": 272
+  }
+ },
+ "final": "-- Phase 1: spec only. Bodies are placeholders until Phase 2.\n\nupper_of(s: str) -> str =\n  post out.char_count() == s.char_count()\n  ex upper_of(\"ab\") == \"AB\"\n  s.upper()\n\nshout(xs: List[str]) uses io =\n  pre xs.len() >= 0\n  for s in xs\n    io.print(upper_of(s))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1591,
+    "out": 823,
+    "reasoning": 699
+   },
+   "out_bytes": 248,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1788,
+    "out": 625,
+    "reasoning": 486
+   },
+   "out_bytes": 272,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

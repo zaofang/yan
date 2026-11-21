@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1143,
+   "out": 1109,
+   "reasoning": 649,
+   "out_bytes": 967
+  },
+  "body": {
+   "in": 1660,
+   "out": 756,
+   "reasoning": 240,
+   "out_bytes": 1099
+  }
+ },
+ "final": "from dataclasses import dataclass\n\nimport pytest\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\nShape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of the shape, rounded down. A triangle's area is b*h/2.\"\"\"\n    if isinstance(s, Rect):\n        return s.w * s.h\n    if isinstance(s, Square):\n        return s.side * s.side\n    return s.b * s.h // 2\n\n\ndef test_rect() -> None:\n    assert area(Rect(3, 4)) == 12\n\n\ndef test_rect_zero_width() -> None:\n    assert area(Rect(0, 7)) == 0\n\n\ndef test_square() -> None:\n    assert area(Square(5)) == 25\n\n\ndef test_tri_even_product() -> None:\n    assert area(Tri(4, 5)) == 10\n\n\ndef test_tri_odd_product_rounds_down() -> None:\n    assert area(Tri(3, 5)) == 7\n\n\ndef test_tri_unit() -> None:\n    assert area(Tri(1, 1)) == 0\n\n\ndef test_tri_zero_base() -> None:\n    assert area(Tri(0, 9)) == 0\n\n\ndef test_shape_union_dispatch() -> None:\n    shapes: list[Shape] = [Rect(2, 2), Square(3), Tri(6, 2)]\n    assert [area(s) for s in shapes] == [4, 9, 6]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1143,
+    "out": 1109,
+    "reasoning": 649
+   },
+   "out_bytes": 967,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1660,
+    "out": 756,
+    "reasoning": 240
+   },
+   "out_bytes": 1099,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

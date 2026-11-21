@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2548,
+   "reasoning": 814,
+   "out_bytes": 3989
+  },
+  "body": {
+   "in": 2983,
+   "out": 2757,
+   "reasoning": 851,
+   "out_bytes": 4457
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of the file at request path `path` inside the\n    directory `notes` (relative to the working directory), or \"\".\n\n    `path` is untrusted. A path that wanders but stays inside `notes`\n    (e.g. \"sub/../a.txt\") is allowed. Any path that leaves `notes`\n    (e.g. \"..\", an absolute path, \"sub/../../x\", or a symlink pointing\n    outside `notes`) reads nothing and yields \"\". A missing, unreadable,\n    undecodable, or non-regular file (e.g. a directory), an empty path,\n    or an invalid name (e.g. containing a NUL byte) also yields \"\".\n    \"\"\"\n    if not path or \"\\x00\" in path:\n        return \"\"\n    if path.startswith((\"/\", \"\\\\\")) or Path(path).is_absolute():\n        return \"\"\n    try:\n        base = Path(NOTES_DIR).resolve()\n        candidate = (base / path).resolve()\n        if not candidate.is_relative_to(base):\n            return \"\"\n        if not candidate.is_file():\n            return \"\"\n        return candidate.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"secret\", encoding=\"utf-8\")\n    (tmp_path / \"notes2\").mkdir()\n    (tmp_path / \"notes2\" / \"x.txt\").write_text(\"sibling\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_plain_file(root: Path) -> None:\n    assert read_public(\"a.txt\") == \"hello\"\n\n\ndef test_reads_nested_file(root: Path) -> None:\n    assert read_public(\"sub/b.txt\") == \"nested\"\n\n\ndef test_wandering_path_that_stays_inside(root: Path) -> None:\n    assert read_public(\"sub/../a.txt\") == \"hello\"\n    assert read_public(\"./sub/./b.txt\") == \"nested\"\n    assert read_public(\"sub/../sub/b.txt\") == \"nested\"\n\n\n@pytest.mark.parametrize(\n    \"bad\",\n    [\n        \"..\",\n        \"../secret.txt\",\n        \"sub/../../secret.txt\",\n        \"sub/../../notes2/x.txt\",\n        \"../notes2/x.txt\",\n        \"../../secret.txt\",\n        \"sub/../sub/../../secret.txt\",\n        \"..//secret.txt\",\n    ],\n)\ndef test_escaping_paths_read_nothing(root: Path, bad: str) -> None:\n    assert read_public(bad) == \"\"\n\n\ndef test_absolute_path_outside(root: Path) -> None:\n    assert read_public(str(root / \"secret.txt\")) == \"\"\n    assert read_public(\"/etc/passwd\") == \"\"\n\n\ndef test_absolute_path_even_if_inside(root: Path) -> None:\n    assert read_public(str(root / NOTES_DIR / \"a.txt\")) == \"\"\n\n\ndef test_missing_file(root: Path) -> None:\n    assert read_public(\"nope.txt\") == \"\"\n    assert read_public(\"sub/nope.txt\") == \"\"\n    assert read_public(\"nodir/nope.txt\") == \"\"\n\n\ndef test_directory_and_degenerate_paths(root: Path) -> None:\n    assert read_public(\"sub\") == \"\"\n    assert read_public(\"\") == \"\"\n    assert read_public(\".\") == \"\"\n    assert read_public(\"sub/\") == \"\"\n\n\ndef test_nul_byte_in_name(root: Path) -> None:\n    assert read_public(\"a.txt\\x00\") == \"\"\n    assert read_public(\"\\x00\") == \"\"\n    assert read_public(\"../secret.txt\\x00\") == \"\"\n\n\ndef test_symlink_escaping_notes(root: Path) -> None:\n    link = root / NOTES_DIR / \"link.txt\"\n    try:\n        os.symlink(root / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_public(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escaping_notes(root: Path) -> None:\n    link = root / NOTES_DIR / \"outdir\"\n    try:\n        os.symlink(root / \"notes2\", link, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert read_public(\"outdir/x.txt\") == \"\"\n\n\ndef test_undecodable_file_gives_empty(root: Path) -> None:\n    (root / NOTES_DIR / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x80\\x81\")\n    assert read_public(\"bin.dat\") == \"\"\n\n\ndef test_unreadable_file_gives_empty(root: Path) -> None:\n    target = root / NOTES_DIR / \"locked.txt\"\n    target.write_text(\"hidden\", encoding=\"utf-8\")\n    target.chmod(0)\n    try:\n        if os.access(target, os.R_OK):\n            pytest.skip(\"permissions not enforced (e.g. running as root)\")\n        assert read_public(\"locked.txt\") == \"\"\n    finally:\n        target.chmod(0o600)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2548,
+    "reasoning": 814
+   },
+   "out_bytes": 3989,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2983,
+    "out": 2757,
+    "reasoning": 851
+   },
+   "out_bytes": 4457,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

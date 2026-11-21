@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1627,
+   "out": 754,
+   "reasoning": 657,
+   "out_bytes": 177
+  },
+  "body": {
+   "in": 6103,
+   "out": 2057,
+   "reasoning": 1605,
+   "out_bytes": 838
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0 and out <= cap and out <= xs.len()\n  ex accepted(2, [1, 2, 3]) == 2\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else break\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1627,
+    "out": 754,
+    "reasoning": 657
+   },
+   "out_bytes": 177,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1797,
+    "out": 856,
+    "reasoning": 703
+   },
+   "out_bytes": 285,
+   "ok": false,
+   "report": "E110 task.yn:5:12 `_rx` value names are lowercase words joined by single underscores",
+   "codes": [
+    "E110"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2017,
+    "out": 397,
+    "reasoning": 245
+   },
+   "out_bytes": 284,
+   "ok": false,
+   "report": "E201 task.yn:8:8 accepted: `tx.try_send(x)` expected `bool`, found `()`\nE315 task.yn:8:8 accepted: `tx.try_send(x)` the failure of this call is not handled; add `?` or `else`",
+   "codes": [
+    "E201",
+    "E315"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2289,
+    "out": 804,
+    "reasoning": 657
+   },
+   "out_bytes": 269,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E110 ./task.yn:5:12 `_rx` value names are lowercase words joined by single underscores\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

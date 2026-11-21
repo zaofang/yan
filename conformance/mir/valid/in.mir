@@ -1,0 +1,7 @@
+mir 1
+main fn0
+
+fn 0 "main"() -> (unit) {
+bb0:
+  ret ()
+}

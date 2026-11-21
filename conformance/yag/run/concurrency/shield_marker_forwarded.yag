@@ -1,0 +1,16 @@
+# spec: 9.4
+# rows: R812
+# note: `uses shield` is forwarded like any capability and grants no authority of its own
+# stdout:
+# 1
+
+def hold() -> int fail Cancelled | Timeout | ShieldTimeout uses time, shield:
+    with shield(1 * s):
+        time.sleep(1 * ms)?
+        return 1
+
+def caller() -> int fail Cancelled | Timeout | ShieldTimeout uses time, shield:
+    return hold()?
+
+pub def main() uses io, time, shield:
+    io.print(f"{caller() else e -> 0}")

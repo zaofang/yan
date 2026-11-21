@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1548,
+   "reasoning": 1390,
+   "out_bytes": 329
+  },
+  "body": {
+   "in": 3704,
+   "out": 1616,
+   "reasoning": 1220,
+   "out_bytes": 818
+  }
+ },
+ "final": "-- Spec: append a copy of s to the borrowed list dst, in place.\n\nappended(xs: List[str], s: str) -> List[str] =\n  post out.len() == xs.len() + 1\n  ex appended([], \"a\") == [\"a\"]\n  var out: List[str] = []\n  for x in xs\n    out.append(copy x)\n  out.append(copy s)\n  out\n\nadd_name(var dst: List[str], s: str) =\n  pre s.char_count() >= 0\n  post dst.len() >= 1\n  ex add_name(&names, \"a\")\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1548,
+    "reasoning": 1390
+   },
+   "out_bytes": 329,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1682,
+    "out": 927,
+    "reasoning": 729
+   },
+   "out_bytes": 406,
+   "ok": false,
+   "report": "E203 task.yn:8:9 appended: `out.push(copy x)` `List[str]` has no method `push`\nE203 task.yn:9:7 appended: `out.push(copy s)` `List[str]` has no method `push`\nE203 task.yn:16:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2022,
+    "out": 689,
+    "reasoning": 491
+   },
+   "out_bytes": 412,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:8:9 appended: `push` `List[str]` has no method `push`\nE203 ./task.yn:9:7 appended: `push` `List[str]` has no method `push`\nE203 ./task.yn:16:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

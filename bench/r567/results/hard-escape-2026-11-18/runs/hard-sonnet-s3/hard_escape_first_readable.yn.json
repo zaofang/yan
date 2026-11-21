@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 3627,
+   "out": 1531,
+   "reasoning": 718,
+   "out_bytes": 2006
+  },
+  "body": {
+   "in": 5676,
+   "out": 2884,
+   "reasoning": 1841,
+   "out_bytes": 2587
+  }
+ },
+ "final": "-- Reads `name` inside the confined `notes` directory.\n-- None if the file is missing or unreadable, or if the name is not a plain\n-- file name (path separators, \"..\", absolute paths, empty names, NUL bytes).\nread_note(name: str) -> str? uses fs =\n  post out == None or name.char_count() > 0\n  ex read_note(\"../secret\") == None\n  ex read_note(\"/etc/passwd\") == None\n  ex read_note(\"a/../../b\") == None\n  ex read_note(\"\") == None\n  if name.char_count() == 0 or name == \".\" or name == \"..\"\n    return None\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return None\n  var found: str? = None\n  with fs = fs.sub(\"notes\")\n    found = fs.read(name) else None\n  found\n\n-- Text of the first name in `names` that can be read from `notes`, or \"\" if none can.\n-- A readable empty file counts as readable, and its empty text is the result.\nfirst_readable(names: List[str]) -> str uses fs =\n  post names.len() > 0 or out == \"\"\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\", \"/etc/passwd\"]) == \"\"\n  for n in names\n    let t = read_note(n)\n    if t != None\n      return t else \"\"\n  \"\"\n\ntest_first_readable_empty() uses fs =\n  assert first_readable([]) == \"\"\n\ntest_first_readable_escape() uses fs =\n  assert first_readable([\"../secret\", \"/etc/passwd\", \"a/../../b\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 961,
+    "reasoning": 550
+   },
+   "out_bytes": 1015,
+   "ok": false,
+   "report": "E017 task.yn:14:1 first_readable: `first_readable(names: List[str]) -> str uses fs =` a `decreases` measure that is not one operation: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2069,
+    "out": 570,
+    "reasoning": 168
+   },
+   "out_bytes": 991,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2544,
+    "out": 1707,
+    "reasoning": 1185
+   },
+   "out_bytes": 1294,
+   "ok": false,
+   "report": "E100 task.yn:16:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3132,
+    "out": 1177,
+    "reasoning": 656
+   },
+   "out_bytes": 1293,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:16:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:29:14\n  at main task.yn:39:16"
+ }
+}

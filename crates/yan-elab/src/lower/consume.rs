@@ -76,13 +76,14 @@ impl Lower<'_, '_, '_> {
         if t.is_copy() {
             return false;
         }
-        let later = if self.index_views.contains(n) {
+        let later = if let Some(&bound) = self.index_views.get(n) {
             self.err(
                 "E413",
                 sp,
                 "an element of a list cannot be moved out; use `.copy()`, or take it out with `pop`"
                     .into(),
             );
+            self.cx.label(bound, "bound to the element here");
             None
         } else if self.locals.contains_key(n)
             && !n.starts_with('_')

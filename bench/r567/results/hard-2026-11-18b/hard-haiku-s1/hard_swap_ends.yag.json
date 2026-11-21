@@ -1,0 +1,94 @@
+{
+ "final": "def swapped_ends(xs: list[int]) -> list[int]:\n    \"\"\"Copy of xs with its first and last elements exchanged.\"\"\"\n    ex swapped_ends([1, 2, 3]) == [3, 2, 1]\n    ex swapped_ends([7]) == [7]\n    ex swapped_ends([]) == []\n    out = [x for x in xs]\n    n = out.len()\n    if n < 2:\n        return out\n    first = out[0]\n    out[0] = out[n - 1]\n    out[n - 1] = first\n    return out\n\ndef swap_ends(var xs: list[int]):\n    \"\"\"Swap the first and last elements of xs in place.\n    An empty or one-element list is unchanged.\"\"\"\n    n = xs.len()\n    if n < 2:\n        return\n    first = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = first\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2024,
+    "out": 1265,
+    "reasoning": 1026
+   },
+   "out_bytes": 540
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2361,
+    "out": 1001,
+    "reasoning": 644
+   },
+   "out_bytes": 790
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/swap_ends",
+ "tokens": {
+  "body": {
+   "in": 2361,
+   "out": 1001,
+   "reasoning": 644,
+   "out_bytes": 790
+  },
+  "spec": {
+   "in": 2024,
+   "out": 1265,
+   "reasoning": 1026,
+   "out_bytes": 540
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2649,
+   "out": 1573,
+   "reasoning": 872,
+   "out_bytes": 1708
+  },
+  "body": {
+   "in": 1947,
+   "out": 464,
+   "reasoning": 109,
+   "out_bytes": 869
+  }
+ },
+ "final": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Return \"start:\" + job() + \":end\".\n\n    The helper itself performs no I/O, logging, or other side effects.\n    The job is called exactly once, and any exception it raises propagates\n    unchanged.\n    \"\"\"\n    return \"start:\" + job() + \":end\"\n\n\ndef test_wrapped_returns_framed_result() -> None:\n    assert wrapped(lambda: \"x\") == \"start:x:end\"\n\n\ndef test_wrapped_empty_result() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_wrapped_preserves_job_output_verbatim() -> None:\n    assert wrapped(lambda: \"a:b\\nc\") == \"start:a:b\\nc:end\"\n\n\ndef test_wrapped_propagates_job_exception() -> None:\n    def boom() -> str:\n        raise RuntimeError(\"job failed\")\n\n    with pytest.raises(RuntimeError, match=\"job failed\"):\n        wrapped(boom)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1103,
+    "out": 1038,
+    "reasoning": 681
+   },
+   "out_bytes": 868,
+   "ok": false,
+   "report": "test_task.py:6: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1546,
+    "out": 535,
+    "reasoning": 191
+   },
+   "out_bytes": 840,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1947,
+    "out": 464,
+    "reasoning": 109
+   },
+   "out_bytes": 869,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

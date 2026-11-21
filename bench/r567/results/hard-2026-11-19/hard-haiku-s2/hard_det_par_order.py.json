@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1530,
+   "reasoning": 1124,
+   "out_bytes": 1004
+  },
+  "body": {
+   "in": 1564,
+   "out": 644,
+   "reasoning": 173,
+   "out_bytes": 1161
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\n\ndef parity(x: int) -> int:\n    \"\"\"Return x modulo 2: 0 for even, 1 for odd. Negative inputs give 0 or 1.\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int], max_workers: int | None = None) -> list[int]:\n    \"\"\"Return the parity of each element of xs, computed in a thread pool.\n\n    The result is in input order. max_workers is passed to the thread pool\n    (None means the executor default). The result must not depend on it.\n    \"\"\"\n    with ThreadPoolExecutor(max_workers=max_workers) as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parity_basic() -> None:\n    assert parity(0) == 0\n    assert parity(7) == 1\n    assert parity(-3) == 1\n\n\ndef test_parities_order() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2]) == [1, 0]\n\n\ndef test_parities_independent_of_worker_count() -> None:\n    xs = list(range(100))\n    expected = [x % 2 for x in xs]\n    for workers in (1, 2, 8):\n        assert parities(xs, max_workers=workers) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1530,
+    "reasoning": 1124
+   },
+   "out_bytes": 1004,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1564,
+    "out": 644,
+    "reasoning": 173
+   },
+   "out_bytes": 1161,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

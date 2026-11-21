@@ -1,0 +1,190 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain relative path that stays inside the notes directory:\n    non-empty, not absolute, no \"..\" component, no backslash, no NUL, no drive prefix.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"a\\\\b\") == False\n    if \"\\\\\" in name or \"\\0\" in name or \":\" in name:\n        return False\n    for part in name.split(\"/\"):\n        if part == \"\" or part == \"..\":\n            return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read as a file inside the directory notes, or \"\" if none can.\n    Reads happen only within fs confined to notes (with fs = fs.sub(\"notes\")). Names are untrusted: a name that\n    fails is_safe_name, is missing, or is unreadable is skipped.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text: str | None = fs.read(name) else None\n            if text is not None:\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpdoxp5one/work/task.yag:5:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpdoxp5one/work/task.yag:6:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpdoxp5one/work/task.yag:7:8 first_readable: `assert first_readable([\"/etc/passwd\", \"../../etc/passwd\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 459,
+    "reasoning": 235
+   },
+   "out_bytes": 570
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2637,
+    "out": 648,
+    "reasoning": 300
+   },
+   "out_bytes": 866
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpdoxp5one/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmpdoxp5one/work/task.yag:11:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmpdoxp5one/work/task.yag:30:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3083,
+    "out": 1113,
+    "reasoning": 618
+   },
+   "out_bytes": 1359
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpdoxp5one/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpdoxp5one/work/task.yag:26:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpdoxp5one/work/task.yag:27:16 first_readable: `text is` a `str` is never `None`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3784,
+    "out": 1098,
+    "reasoning": 627
+   },
+   "out_bytes": 1278
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4436,
+    "out": 920,
+    "reasoning": 445
+   },
+   "out_bytes": 1290
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 11303,
+   "out": 3131,
+   "reasoning": 1690,
+   "out_bytes": 3927
+  },
+  "spec": {
+   "in": 4776,
+   "out": 1107,
+   "reasoning": 535,
+   "out_bytes": 1436
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpdoxp5one/work/task.yag:5:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpdoxp5one/work/task.yag:6:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmpdoxp5one/work/task.yag:7:8 first_readable: `assert first_readable([\"/et"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpdoxp5one/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 W806 /tmp/tmpdoxp5one/work/task.yag:11:8 is_safe_name: `name =` this branch special-cases an `ex` input\n#3 E017 /tmp/tmpdoxp5one/work/task.yag:30:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpdoxp5one/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpdoxp5one/work/task.yag:26:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpdoxp5one/work/task.yag:27:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "W806 task.yag:11:8 is_safe_name: `name` this branch special-cases an `ex` input\nE017 task.yag:30:20 first_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:27:16\n  at main task.yag:33:20"
+ }
+}

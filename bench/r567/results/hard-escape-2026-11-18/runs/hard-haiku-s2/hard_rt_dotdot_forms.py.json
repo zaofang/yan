@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1192,
+   "out": 2359,
+   "reasoning": 1172,
+   "out_bytes": 2530
+  },
+  "body": {
+   "in": 6558,
+   "out": 3918,
+   "reasoning": 1119,
+   "out_bytes": 6142
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = \"notes\"\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text of a file inside the ``notes`` directory.\n\n    ``path`` is relative to ``NOTES_DIR``, which is resolved against the\n    current working directory. A path that resolves to a file inside\n    ``NOTES_DIR`` is read, including paths that pass through subdirectories\n    and come back (``sub/../a.txt``). Any path that leaves ``NOTES_DIR``\n    (``..``, absolute paths, ``sub/../../x``), including through a symlink,\n    and any missing or unreadable file yields an empty string.\n    \"\"\"\n    try:\n        root = (Path.cwd() / NOTES_DIR).resolve()\n        target = (root / path).resolve()\n        if target == root or not target.is_relative_to(root):\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError):\n        return \"\"\n\n\ndef _setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    notes = tmp_path / NOTES_DIR\n    (notes / \"sub\").mkdir(parents=True)\n    (notes / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (notes / \"sub\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"S\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return notes\n\n\ndef test_reads_file_in_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(\"a.txt\") == \"A\"\n\n\ndef test_reads_nested_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(\"sub/b.txt\") == \"B\"\n\n\ndef test_path_that_returns_inside_notes(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(\"sub/../a.txt\") == \"A\"\n\n\ndef test_path_that_leaves_and_reenters_notes_by_name(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    # Resolves to <tmp>/notes/a.txt, which is inside notes, so it is readable.\n    _setup(tmp_path, monkeypatch)\n    assert read_public(\"sub/../../notes/a.txt\") == \"A\"\n\n\ndef test_missing_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(\"nope.txt\") == \"\"\n\n\n@pytest.mark.parametrize(\n    \"bad\",\n    [\n        \"..\",\n        \"../secret.txt\",\n        \"sub/../../secret.txt\",\n        \"sub\",\n        \".\",\n        \"\",\n    ],\n)\ndef test_relative_escape_or_non_file_is_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bad: str\n) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(bad) == \"\"\n\n\ndef test_absolute_path_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert read_public(str(tmp_path / \"secret.txt\")) == \"\"\n\n\ndef test_symlink_out_of_notes_is_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    notes = _setup(tmp_path, monkeypatch)\n    (notes / \"link.txt\").symlink_to(tmp_path / \"secret.txt\")\n    assert read_public(\"link.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1192,
+    "out": 2359,
+    "reasoning": 1172
+   },
+   "out_bytes": 2530,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2436,
+    "out": 1946,
+    "reasoning": 660
+   },
+   "out_bytes": 2808,
+   "ok": false,
+   "report": "        \"bad\",\n        [\n            \"..\",\n            \"../secret.txt\",\n            \"sub/../../secret.txt\",\n            \"sub/../../notes/a.txt\",\n            \"sub\",\n            \".\",\n            \"\",\n        ],\n    )\n    def test_relative_escape_or_non_file_is_empty(\n        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, bad: str\n    ) -> None:\n        _setup(tmp_path, monkeypatch)\n>       assert read_public(bad) == \"\"\nE       AssertionError: assert 'A' == ''\nE         \nE         + A\n\n/tmp/tmpnud2g8t_/test_task.py:77: AssertionError\n=========================== short test summary info ============================\nFAILED test_task.py::test_relative_escape_or_non_file_is_empty[sub/../../notes/a.txt]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 7 passed in 0.04s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 4122,
+    "out": 1972,
+    "reasoning": 459
+   },
+   "out_bytes": 3334,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

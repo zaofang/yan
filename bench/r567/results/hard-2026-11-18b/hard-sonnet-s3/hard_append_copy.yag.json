@@ -1,0 +1,94 @@
+{
+ "final": "def add_name(var dst: list[str], s: str):\n    \"\"\"Append a copy of s to the end of the caller's list dst, in place.\"\"\"\n    post dst.len() >= 1\n    post dst[dst.len() - 1] == s\n    dst.append(s.copy())\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 437,
+    "reasoning": 282
+   },
+   "out_bytes": 400
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2288,
+    "out": 96,
+    "reasoning": 0
+   },
+   "out_bytes": 218
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/append_copy",
+ "tokens": {
+  "body": {
+   "in": 2288,
+   "out": 96,
+   "reasoning": 0,
+   "out_bytes": 218
+  },
+  "spec": {
+   "in": 2035,
+   "out": 437,
+   "reasoning": 282,
+   "out_bytes": 400
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

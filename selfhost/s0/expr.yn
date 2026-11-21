@@ -1,0 +1,42 @@
+--- S0 readiness 1 and 7: recursive sum types, match that moves fields out, par joined in order.
+
+type Expr = Num(n: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr) | Neg(e: Expr)
+
+eval(e: Expr) -> int uses none =
+  match e
+    Num(n) -> n
+    Add(l, r) -> eval(l) + eval(r)
+    Mul(l, r) -> eval(l) * eval(r)
+    Neg(inner) -> 0 - eval(inner)
+
+--- Consumes the scrutinee and rebuilds it with operands swapped.
+swap(e: Expr) -> Expr uses none =
+  match e
+    Add(l, r) -> Add(l: swap(r), r: swap(l))
+    Mul(l, r) -> Mul(l: swap(r), r: swap(l))
+    Neg(inner) -> Neg(e: swap(inner))
+    Num(n) -> Num(n: n)
+
+show(e: Expr) -> str uses none =
+  match e
+    Num(n) -> str(n)
+    Add(l, r) -> "(\(show(l)) + \(show(r)))"
+    Mul(l, r) -> "(\(show(l)) * \(show(r)))"
+    Neg(inner) -> "-\(show(inner))"
+
+build(d: int) -> Expr uses none =
+  if d == 0
+    return Num(n: 1)
+  if d % 2 == 0
+    return Add(l: build(d - 1), r: Num(n: d))
+  Mul(l: Neg(e: build(d - 1)), r: Num(n: 2))
+
+main() uses io =
+  let e = build(5)
+  io.print(show(e))
+  io.print(str(eval(e)))
+  let s = swap(e)
+  io.print(show(s))
+  let sums = par for d in [1, 2, 3, 4, 5, 6]
+    eval(build(d))
+  io.print("\(sums)")

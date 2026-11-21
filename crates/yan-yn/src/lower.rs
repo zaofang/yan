@@ -38,8 +38,8 @@ fn unsupported<T>(what: impl Into<String>) -> R<T> {
 const COMPILE_TIME_CAPS: [&str; 5] = ["alloc", "rand", "time", "sched", "fault"];
 
 /// The std capabilities a body can name without declaring them (7.1).
-const CAPS: [&str; 9] = [
-    "io", "net", "fs", "time", "rand", "log", "nondet", "env", "proc",
+const CAPS: [&str; 10] = [
+    "io", "net", "fs", "time", "rand", "log", "nondet", "shield", "env", "proc",
 ];
 
 /// Where a file sits in its package, for `use` (15.2): its directory's module path, for `use .m`,
@@ -204,6 +204,59 @@ fn invalid_temporal(text: &str) -> Option<(&'static str, String)> {
         AmbiguousOffset::Fold { .. } => "is ambiguous (fold); give an offset",
     };
     Some(("E541", format!("`{text}` {why} in {zone}")))
+}
+
+/// R1132: `S[if c then a else d]` with a diverging `d` is `if not c: d` and then `S[a]`; the
+/// condition is evaluated once and the surviving branch after it, as the conditional does.
+/// Returns the guard and rewrites `s` to the surviving value; None when `s` has no such form.
+fn hoist_diverge(s: &mut Stmt) -> Option<Stmt> {
+    let value = match &mut s.kind {
+        StmtKind::Expr(e) | StmtKind::Let { value: e, .. } | StmtKind::Assign { value: e, .. } => e,
+        StmtKind::Return(Some(e)) => e,
+        _ => return None,
+    };
+    let ExprKind::If {
+        cond,
+        then,
+        otherwise,
+    } = &value.kind
+    else {
+        return None;
+    };
+    if has_is(cond) {
+        return None;
+    }
+    let (test, div, keep) = match (&then.kind, &otherwise.kind) {
+        (ExprKind::Diverge(_), ExprKind::Diverge(_)) => return None,
+        (ExprKind::Diverge(d), _) => ((**cond).clone(), d, (**otherwise).clone()),
+        (_, ExprKind::Diverge(d)) => (
+            Expr {
+                span: cond.span,
+                kind: ExprKind::Unary(UnOp::Not, cond.clone()),
+            },
+            d,
+            (**then).clone(),
+        ),
+        _ => return None,
+    };
+    let guard = Stmt {
+        span: div.span,
+        kind: StmtKind::If {
+            branches: vec![(test, vec![(**div).clone()])],
+            otherwise: None,
+        },
+    };
+    *value = keep;
+    Some(guard)
+}
+
+fn has_is(e: &Expr) -> bool {
+    match &e.kind {
+        ExprKind::Is { .. } => true,
+        ExprKind::Paren(x) | ExprKind::Unary(_, x) => has_is(x),
+        ExprKind::Binary(_, l, r) => has_is(l) || has_is(r),
+        _ => false,
+    }
 }
 
 fn stmt(kind: h::StmtKind, span: Span) -> h::Stmt {
@@ -1157,6 +1210,11 @@ impl Lower<'_> {
     fn stmts(&mut self, stmts: &[Stmt]) -> R<Vec<h::Stmt>> {
         let mut out = Vec::new();
         for s in stmts {
+            let mut s = s.clone();
+            while let Some(guard) = hoist_diverge(&mut s) {
+                out.push(self.stmt(&guard)?);
+            }
+            let s = &s;
             match self.is_binding(s) {
                 Some(r) => out.extend(r.map_err(|u| u.at(s.span))?),
                 None => out.push(self.stmt(s)?),
@@ -1451,6 +1509,7 @@ impl Lower<'_> {
                     }
                     WithKind::Deadline(e) => h::WithKind::Deadline(self.expr(e)?),
                     WithKind::Timeout(e) => h::WithKind::Timeout(self.expr(e)?),
+                    WithKind::Shield(e) => h::WithKind::Shield(self.expr(e)?),
                     WithKind::Supervisor(e) => h::WithKind::Supervisor(self.expr(e)?),
                 },
                 body: self.block(body)?,
@@ -1970,6 +2029,11 @@ impl Lower<'_> {
                 cond: b(self.expr(cond)?),
                 els: b(self.expr(otherwise)?),
             },
+            ExprKind::Diverge(_) => {
+                return unsupported(
+                    "a diverging branch outside a statement's whole value (`let`, `return`, assignment or tail)",
+                );
+            }
             ExprKind::Fallback(lhs, fb) => {
                 let lhs = b(self.expr(lhs)?);
                 let fb = match fb.as_ref() {
@@ -2019,9 +2083,16 @@ impl Lower<'_> {
             ),
             ExprKind::Stage(x) => K::Stage(b(self.expr(x)?)),
             ExprKind::Asm { .. } => return unsupported("`asm`"),
-            ExprKind::TypeField(..) | ExprKind::Reflect(..) => {
-                return unsupported("type fields and reflection");
+            // `T.V` is the sum `T`'s variant `V` (RFC 0093 D3); it lowers like a field of the type.
+            ExprKind::TypeField(x, n) => {
+                let at = Span {
+                    line: span.end_line,
+                    col: span.end_col.saturating_sub(n.len() as u32),
+                    ..span
+                };
+                K::Attr(b(self.expr(x)?), n.clone(), at)
             }
+            ExprKind::Reflect(..) => return unsupported("reflection"),
             ExprKind::Block(_) | ExprKind::ParFor { .. } => {
                 return unsupported("block and `par for` values");
             }
@@ -2125,6 +2196,8 @@ fn tail_return(stmts: &mut [h::Stmt]) {
         h::StmtKind::Select(arms) => {
             arms.iter_mut().for_each(|a| tail_return(&mut a.body.stmts));
         }
+        h::StmtKind::With { body, .. } => tail_return(&mut body.stmts),
+        h::StmtKind::Unsafe(body) => tail_return(body),
         _ => {}
     }
 }
@@ -2495,7 +2568,7 @@ fn stmt_names(s: &Stmt, names: &mut Names, bound: &mut HashSet<String>) {
                     e(value, names, bound);
                     bound.insert(name.clone());
                 }
-                WithKind::Deadline(x) | WithKind::Timeout(x) => {
+                WithKind::Deadline(x) | WithKind::Timeout(x) | WithKind::Shield(x) => {
                     // A cancel scope can expire (R472).
                     names.fails.insert("Timeout".into());
                     e(x, names, bound)

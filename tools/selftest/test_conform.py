@@ -1,9 +1,14 @@
+import signal
+import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import pytest
+
 from tools.conform import (
     Case,
+    CommandExecutor,
     Diag,
     ToolFailure,
     coverage,
@@ -39,6 +44,11 @@ class Fake:
         self.seen_flags.append(flags)
         return self.output
 
+    def run_signalled(
+        self, path: Path, flags: list[str], signals: list[tuple[str, str]]
+    ) -> tuple[str, int]:
+        return self.run(path, flags)
+
     def run_ub(self, path: Path, flags: list[str]) -> tuple[str, int]:
         return self.ub_output
 
@@ -59,6 +69,12 @@ class Fake:
         if self.formatted is not None:
             path.write_text(self.formatted)
         return self.fmt_exit
+
+    def view_as(self, path: Path, target: str) -> tuple[str, int]:
+        return "", 0
+
+    def mir_check(self, path: Path) -> tuple[str, str, int]:
+        return "", "", 0
 
     mcp_result: tuple[str, str, int] = ("", "", 0)
     seen_session: list[str] = field(default_factory=list)
@@ -92,6 +108,26 @@ def test_parse_case_headers() -> None:
     assert case.rows == ["R345"]
     assert case.milestone == "M2a"
     assert case.flags == ["--strict"]
+
+
+def test_signal_headers_are_sent_at_their_lines(tmp_path: Path) -> None:
+    text = "# signal: INT after ready\n# signal: TERM after again\n# stdout:\n# ready\n"
+    case = parse_case("run", Path("r.yag"), text)
+    assert case.signals == [("INT", "ready"), ("TERM", "again")]
+    assert case.stdout == "ready\n"
+    with pytest.raises(ValueError, match="signal"):
+        parse_case("run", Path("r.yag"), "# signal: KILL after x\n")
+    script = tmp_path / "prog.py"
+    script.write_text(
+        "import signal, sys, time\n"
+        "def on(n, _):\n    print('got', n, flush=True)\n    sys.exit(7)\n"
+        "signal.signal(signal.SIGTERM, on)\nprint('ready', flush=True)\ntime.sleep(30)\n"
+    )
+    ex = CommandExecutor(
+        "py", [sys.executable, "-c", "import runpy,sys; runpy.run_path(sys.argv[-1])"]
+    )
+    out = ex.run_signalled(script, [], [("TERM", "ready")])
+    assert out == (f"ready\ngot {int(signal.SIGTERM)}\n", 7)
 
 
 def test_defaults_by_surface() -> None:

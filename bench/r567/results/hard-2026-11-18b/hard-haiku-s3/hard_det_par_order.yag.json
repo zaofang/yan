@@ -1,0 +1,94 @@
+{
+ "final": "def parity(x: int) -> int:\n    \"\"\"Return 0 for even x and 1 for odd x.\"\"\"\n    ex parity(4) == 0\n    ex parity(-3) == 1\n    return x % 2\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, computed in parallel.\n\n    Results are in input order and do not depend on the thread count.\n    \"\"\"\n    post out.len() == xs.len()\n    ex parities([3, 4, 7]) == [1, 0, 1]\n    ex parities([]) == []\n    return par [parity(x) for x in xs]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2057,
+    "out": 1020,
+    "reasoning": 825
+   },
+   "out_bytes": 443
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2350,
+    "out": 529,
+    "reasoning": 319
+   },
+   "out_bytes": 483
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_order",
+ "tokens": {
+  "body": {
+   "in": 2350,
+   "out": 529,
+   "reasoning": 319,
+   "out_bytes": 483
+  },
+  "spec": {
+   "in": 2057,
+   "out": 1020,
+   "reasoning": 825,
+   "out_bytes": 443
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1770,
+   "reasoning": 588,
+   "out_bytes": 2681
+  },
+  "body": {
+   "in": 2407,
+   "out": 1699,
+   "reasoning": 385,
+   "out_bytes": 3050
+  }
+ },
+ "final": "import sys\nimport threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    thread finishes first.\n    \"\"\"\n    workers = min(32, max(1, len(xs)))\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in input order: the first future that raises is the\n        # lowest-index bad element. Leaving the with-block waits for all\n        # submitted checks to finish.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([2, 4, 7, 8])\n    assert excinfo.value.n == 7\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([2, 9, 4, 3, 5])\n    assert excinfo.value.n == 9\n\n\ndef test_all_even_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([5, 3, 1])\n    assert excinfo.value.n == 5\n\n\ndef test_all_even_lowest_index_even_if_slow(monkeypatch: pytest.MonkeyPatch) -> None:\n    def slow_check(x: int) -> int:\n        if x == 1:\n            time.sleep(0.05)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", slow_check)\n    with pytest.raises(Bad) as excinfo:\n        all_even([1, 3, 5])\n    assert excinfo.value.n == 1\n\n\ndef test_all_even_checks_every_element(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", recording_check)\n    with pytest.raises(Bad) as excinfo:\n        all_even([2, 3, 4, 5, 6])\n    assert excinfo.value.n == 3\n    assert sorted(seen) == [2, 3, 4, 5, 6]\n\n\ndef test_all_even_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(3, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", barrier_check)\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_all_even_uses_thread_pool_type() -> None:\n    # Sanity check that the expected executor is importable and usable.\n    with ThreadPoolExecutor(max_workers=1) as pool:\n        assert pool.submit(check, 2).result() == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1770,
+    "reasoning": 588
+   },
+   "out_bytes": 2681,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2407,
+    "out": 1699,
+    "reasoning": 385
+   },
+   "out_bytes": 3050,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

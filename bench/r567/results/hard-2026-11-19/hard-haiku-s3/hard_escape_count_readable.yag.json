@@ -1,0 +1,127 @@
+{
+ "final": "def safe_name(name: str) -> bool:\n    \"\"\"True when name is one plain file name: not empty, no NUL, no path separators, no parent references, not absolute.\"\"\"\n    ex safe_name(\"notes.txt\") == True\n    ex safe_name(\"../secret\") == False\n    ex safe_name(\"/etc/passwd\") == False\n    if name.char_count() == 0:\n        return False\n    if name == \".\" or name == \"..\":\n        return False\n    if \"\\0\" in name or \"/\" in name or \"\\\\\" in name or \":\" in name:\n        return False\n    if \"..\" in name:\n        return False\n    return True\n\ndef count_safe(names: list[str]) -> int:\n    \"\"\"Number of names that pass safe_name. Pure: opens no files, so it needs no capability.\"\"\"\n    ex count_safe([]) == 0\n    ex count_safe([\"notes.txt\", \"../secret\", \"/etc/passwd\"]) == 1\n    total = 0\n    for n in names:\n        if safe_name(n):\n            total += 1\n    return total\n\ndef note_readable(name: str) -> bool uses fs:\n    \"\"\"True when the file name is readable through fs. fs must already be confined to the notes directory by the caller. A missing or unreadable file gives False.\"\"\"\n    pre safe_name(name)\n    fs.read_text(name) else return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Number of names that are safe file names and readable files inside notes. Names that are not safe are skipped and never opened. The reads happen under with fs = fs.sub(\"notes\"). Examples that open files cannot run without fs, so the behaviour is checked by tests.\"\"\"\n    post out >= 0 and out <= count_safe(names)\n    total = 0\n    with fs = fs.sub(\"notes\"):\n        for n in names:\n            if not safe_name(n):\n                continue\n            if note_readable(n):\n                total += 1\n    return total\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpwxr6cvuq/work/task.yag:11:8 note_readable: `assert note_readable(\"missing-file.txt\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#2 E301 /tmp/tmpwxr6cvuq/work/task.yag:17:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmpwxr6cvuq/work/task.yag:18:8 count_readable: `assert count_readable([\"../secret\", \"/etc/passwd\"])` capability `fs` is not in scope | in `ex` of `count_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2129,
+    "out": 2239,
+    "reasoning": 1878
+   },
+   "out_bytes": 968
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2764,
+    "out": 994,
+    "reasoning": 560
+   },
+   "out_bytes": 1161
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3296,
+    "out": 2150,
+    "reasoning": 1533
+   },
+   "out_bytes": 1744
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 3296,
+   "out": 2150,
+   "reasoning": 1533,
+   "out_bytes": 1744
+  },
+  "spec": {
+   "in": 4893,
+   "out": 3233,
+   "reasoning": 2438,
+   "out_bytes": 2129
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpwxr6cvuq/work/task.yag:11:8 note_readable: `assert note_readable(\"missing-file.txt\")` capability `fs` is not in scope | in `ex` of `note_readable`\n#2 E301 /tmp/tmpwxr6cvuq/work/task.yag:17:8 count_readable: `assert count_readable([])` capability `fs` is not in scope | in `ex` of `count_readable`\n#3 E301 /tmp/tmpwxr6cvuq/work/task.yag:18:8 count_readable: `assert count_readable([\".."
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

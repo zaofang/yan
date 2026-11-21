@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3344,
+   "out": 972,
+   "reasoning": 849,
+   "out_bytes": 232
+  },
+  "body": {
+   "in": 1869,
+   "out": 67,
+   "reasoning": 0,
+   "out_bytes": 124
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() >= 1\n  ex add_name(&[\"a\"], \"b\") == ()\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1610,
+    "out": 680,
+    "reasoning": 619
+   },
+   "out_bytes": 115,
+   "ok": false,
+   "report": "E100 task.yn:1:37 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1734,
+    "out": 292,
+    "reasoning": 230
+   },
+   "out_bytes": 117,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1869,
+    "out": 67,
+    "reasoning": 0
+   },
+   "out_bytes": 124,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

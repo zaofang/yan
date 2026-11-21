@@ -21,6 +21,9 @@ import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 
+import hard
+import hard_py
+import hard_yn
 import model as models
 import tasks as taskset
 
@@ -39,6 +42,22 @@ PY_BODY_ASK = (
     "Phase 2, the bodies. Keep every line you wrote unchanged and replace each `...` body with "
     "the implementation. Reply with the whole file in one ```python code block only."
 )
+YN_SYSTEM = "You write Yan, the human surface of the Yan language (.yn files)."
+YN_SPEC_ASK = (
+    "Task: {prompt}\n\nPhase 1, the spec. Write the declarations the task needs and each "
+    "function's "
+    "signature, any pre and post lines and at least one ex line, with `unreachable` as the rest of "
+    "each body. Reply with one ```yn code block only."
+)
+YN_BODY_ASK = (
+    "Phase 2, the bodies. The spec is frozen: keep every signature and contract line you wrote "
+    "unchanged and replace each `unreachable` body with the implementation. Reply with the whole "
+    "file in one ```yn code block only."
+)
+YN_REPAIR_ASK = (
+    "{tool} reported:\n{report}\n\n"
+    "Reply with the whole corrected file in one ```yn code block only."
+)
 PY_REPAIR_ASK = (
     "{tool} reported:\n{report}\n\n"
     "Reply with the whole corrected file in one ```python code block only."
@@ -50,10 +69,18 @@ def extract(text: str) -> str:
     return (m.group(1) if m else text).rstrip() + "\n"
 
 
-def sh(cmd: list[str], cwd: str, timeout: int = 120) -> subprocess.CompletedProcess:
+def sh(
+    cmd: list[str], cwd: str, timeout: int = 120, env: dict | None = None
+) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, check=False
+            cmd,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+            env={**os.environ, **env} if env else None,
         )
     except subprocess.TimeoutExpired as e:
         return subprocess.CompletedProcess(cmd, 124, "", f"timeout after {e.timeout}s")
@@ -97,6 +124,10 @@ def py_check(src: str, spec_phase: bool) -> dict:
 
 
 def py_hidden(src: str, task: taskset.Task) -> dict:
+    if task.py_tests:
+        return hard_py.run_hidden(
+            src, task.py_tests, task.forbid, task.category == "determinism", task.expect
+        )
     with tempfile.TemporaryDirectory() as d:
         pathlib.Path(d, "test_hidden.py").write_text(src + taskset.python_tests(task))
         p = sh([sys.executable, "-m", "pytest", "-q", "--tb=no", "-rf", "test_hidden.py"], d, 300)
@@ -150,9 +181,8 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
     system = PY_SYSTEM + ("\n\n" + py_shots() if a.shots else "")
     chat = models.make(a.model, a.grammar_py_fenced)
     msgs: list[dict] = []
-    rounds = py_phase(
-        chat, system, msgs, PY_SPEC_ASK.format(prompt=task.prompt), True, SPEC_REPAIRS
-    )
+    ask = PY_SPEC_ASK.format(prompt=task.py_prompt or task.prompt)
+    rounds = py_phase(chat, system, msgs, ask, True, SPEC_REPAIRS)
     if rounds[-1]["ok"]:
         rounds += py_phase(chat, system, msgs, PY_BODY_ASK, False, BODY_REPAIRS)
     body = [r for r in rounds if r["phase"] == "body"]
@@ -168,15 +198,96 @@ def run_py(task: taskset.Task, a: argparse.Namespace) -> dict:
     }
 
 
+# Plain Yan arm (.yn): the loop runs here, as the Python arm does, because `yan agent` writes .yag
+
+
+def yn_check(yan: str, src: str, spec_phase: bool) -> dict:
+    """`yan check` errors; in the body phase also the file's own tests and ex lines."""
+    with tempfile.TemporaryDirectory() as d:
+        pathlib.Path(d, "task.yn").write_text(src)
+        c = sh([yan, "check", "--format", "line", "task.yn"], d)
+        errs = [ln for ln in (c.stdout + c.stderr).splitlines() if re.match(r"E\d+ ", ln)]
+        report = errs[:10]
+        if not errs and not spec_phase:
+            t = sh([yan, "test", "--no-cache"], d, 300)
+            if t.returncode:
+                report = (t.stdout + t.stderr).strip().splitlines()[-25:]
+        return {
+            "ok": not report,
+            "report": "\n".join(report),
+            "codes": sorted({ln.split()[0] for ln in errs}),
+        }
+
+
+def yn_phase(chat, system, msgs, yan, ask, spec_phase, repairs) -> list[dict]:
+    rounds = []
+    msgs.append({"role": "user", "content": ask})
+    for i in range(repairs + 1):
+        r = chat(system, msgs, MAX_TOKENS)
+        msgs.append({"role": "assistant", "content": r["text"]})
+        src = extract(r["text"])
+        res = yn_check(yan, src, spec_phase)
+        rounds.append(
+            {
+                "phase": "spec" if spec_phase else "body",
+                "round": i,
+                "usage": r["usage"],
+                "out_bytes": out_bytes(r["text"]),
+                "ok": res["ok"],
+                "report": res["report"],
+                "codes": res["codes"],
+                "src": src,
+            }
+        )
+        if res["ok"] or i == repairs:
+            break
+        msgs.append(
+            {"role": "user",
+             "content": YN_REPAIR_ASK.format(tool="yan check and yan test", report=res["report"])}
+        )  # fmt: skip
+    return rounds
+
+
+def yn_shots() -> str:
+    parts = [f"```yn\n{p.read_text()}```" for p in sorted((HERE / "shots").glob("s*.yn"))]
+    return "Examples:\n\n" + "\n\n".join(parts)
+
+
+def run_yn(task: taskset.Task, a: argparse.Namespace) -> dict:
+    system = a.primer_yn.read_text() + ("\n\n" + yn_shots() if a.shots else "")
+    chat = models.make(a.model, None)
+    msgs: list[dict] = []
+    rounds = yn_phase(
+        chat, system, msgs, a.yan, YN_SPEC_ASK.format(prompt=task.yn_prompt), True, SPEC_REPAIRS
+    )
+    if rounds[-1]["ok"]:
+        rounds += yn_phase(chat, system, msgs, a.yan, YN_BODY_ASK, False, BODY_REPAIRS)
+    body = [r for r in rounds if r["phase"] == "body"]
+    green = bool(body) and body[-1]["ok"]
+    return {
+        "status": "green" if green else ("body_failed" if body else "spec_failed"),
+        "rounds_to_green": len(body) if green else None,
+        "tokens": {"spec": totals(rounds, "spec"), "body": totals(rounds, "body")},
+        "first_body": body[0]["src"] if body else None,
+        "final": rounds[-1]["src"] if body else None,
+        "rounds": [{k: v for k, v in r.items() if k != "src"} for r in rounds],
+    }
+
+
 # Yan Agent arm
 
 
 def yan_hidden(src: str, task: taskset.Task, yan: str) -> dict:
     total = task.n_tests
-    with tempfile.TemporaryDirectory() as d:
-        pathlib.Path(d, "task.yag").write_text(src + taskset.yan_tests(task))
-        p = sh([yan, "test", "--no-cache"], d, 300)
-    text = p.stdout + p.stderr
+    if task.expect:
+        return hard.run_fixture(yan, "task.yag", src + taskset.yan_tests(task), task.expect)
+    counts = hard.THREAD_COUNTS if task.category == "determinism" else (None,)
+    text = ""
+    for n in counts:  # a determinism task must pass at every thread count
+        with tempfile.TemporaryDirectory() as d:
+            pathlib.Path(d, "task.yag").write_text(src + taskset.yan_tests(task))
+            p = sh([yan, "test", "--no-cache"], d, 300, {"YAN_THREADS": str(n)} if n else None)
+        text += p.stdout + p.stderr
     m = re.search(r"\d+ of (\d+) tests passed", text)
     if m is None or int(m.group(1)) < total:  # a checker error leaves the tests unrun
         return {"passed": 0, "total": total, "ok": False, "error": text.strip()[:300]}
@@ -247,13 +358,18 @@ def lowering_candidates(rec: dict) -> list[dict]:
 
 
 def run_one(task: taskset.Task, arm: str, a: argparse.Namespace) -> dict:
-    rec = run_yan(task, a) if arm == "yag" else run_py(task, a)
-    hid = (lambda s: yan_hidden(s, task, a.yan)) if arm == "yag" else (lambda s: py_hidden(s, task))
+    rec = {"yag": run_yan, "yn": run_yn, "py": run_py}[arm](task, a)
+    hid = {
+        "yag": lambda s: yan_hidden(s, task, a.yan),
+        "yn": lambda s: hard_yn.run_hidden(a.yan, s, task.id),
+        "py": lambda s: py_hidden(s, task),
+    }[arm]
     first = rec.pop("first_body", None)
     rec.update(
         schema=SCHEMA, task=task.id, suite=task.suite, arm=arm, model=a.model, shots=a.shots,
         decoding=a.decoding, tokenizer=TOKENIZER, impossible=task.impossible,
-        category=task.category, primer=a.primer.name,
+        category=task.category, first_draft=first,
+        primer=(a.primer_yn if arm == "yn" else a.primer).name,
         cases=task.n_tests,
         hidden_first=hid(first) if first else None,
         hidden_final=hid(rec["final"]) if rec.get("final") else None,
@@ -275,7 +391,7 @@ def main() -> None:
     )
     ap.add_argument("--only", default="", help="comma-separated task function names")
     ap.add_argument("--shots", type=int, choices=[0, 5], default=5)
-    ap.add_argument("--arms", default="yag,py")
+    ap.add_argument("--arms", default="yag,py", help="yag, yn (hard suite only) and py")
     ap.add_argument("--decoding", choices=["free", "grammar"], default="free")
     ap.add_argument("--grammar-yag", default=str(HERE / "out" / "yag.gbnf"))
     ap.add_argument("--grammar-py", default=None, help="GBNF for Python; its root is fenced here")
@@ -286,6 +402,7 @@ def main() -> None:
         help="share of tasks also run as impossible variants",
     )
     ap.add_argument("--primer", type=pathlib.Path, default=HERE / "primer.md")
+    ap.add_argument("--primer-yn", type=pathlib.Path, default=HERE / "primer-yn.md")
     ap.add_argument("--tag", default="", help="run directory name; default VENDOR-DECODING-Nshot")
     ap.add_argument("--impossible-only", action="store_true", help="run only impossible variants")
     ap.add_argument("--workers", type=int, default=4)
@@ -293,6 +410,9 @@ def main() -> None:
     a = ap.parse_args()
     a.yan = str(pathlib.Path(a.yan).resolve())
     a.primer = a.primer.resolve()
+    a.primer_yn = a.primer_yn.resolve()
+    if "yn" in a.arms.split(",") and a.suite != "hard":
+        sys.exit("the yn arm has only the hard suite: pass --suite hard")
     if a.model.startswith("oracle:"):  # the adapter runs from another directory
         d, _, flag = a.model[7:].partition("?")
         a.model = f"oracle:{pathlib.Path(d).resolve()}" + (f"?{flag}" if flag else "")

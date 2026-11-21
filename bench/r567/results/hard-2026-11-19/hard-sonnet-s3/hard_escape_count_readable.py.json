@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1125,
+   "out": 3614,
+   "reasoning": 788,
+   "out_bytes": 6312
+  },
+  "body": {
+   "in": 4008,
+   "out": 3822,
+   "reasoning": 667,
+   "out_bytes": 7317
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\nNOTES_DIR = Path(\"notes\")\n\n\ndef resolve_note(name: str) -> Path | None:\n    \"\"\"Map an untrusted `name` to a path strictly inside NOTES_DIR.\n\n    NOTES_DIR is relative to the current working directory. Returns the\n    resolved path (symlinks followed) only if it lies inside the resolved\n    NOTES_DIR. Returns None for names that are empty, contain NUL, are\n    absolute, use `..` to escape, or resolve through a symlink to a\n    location outside NOTES_DIR. Never raises. Does not require the path\n    to exist.\n    \"\"\"\n    if not name or \"\\x00\" in name:\n        return None\n    try:\n        if Path(name).is_absolute() or name.startswith((\"/\", \"\\\\\")):\n            return None\n        base = NOTES_DIR.resolve()\n        candidate = (base / name).resolve()\n        if not candidate.is_relative_to(base):\n            return None\n        return candidate\n    except (OSError, ValueError, RuntimeError):\n        return None\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside NOTES_DIR.\n\n    Returns \"\" if the name would escape NOTES_DIR, or if the file is\n    missing, is not a regular file, or cannot be read. Undecodable bytes\n    are replaced rather than raising. Never raises.\n    \"\"\"\n    path = resolve_note(name)\n    if path is None:\n        return \"\"\n    try:\n        if not path.is_file():\n            return \"\"\n        return path.read_text(encoding=\"utf-8\", errors=\"replace\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count the entries of `names` that are readable regular files in NOTES_DIR.\n\n    Names are untrusted. A name counts only if it resolves inside NOTES_DIR\n    and refers to an existing, readable regular file (an empty file counts).\n    Names that are missing, directories, unreadable, or that escape\n    NOTES_DIR (via `..`, absolute paths, symlinks, NUL bytes, etc.) do not\n    count. Duplicate names are each counted. Never raises.\n    \"\"\"\n    total = 0\n    for name in names:\n        path = resolve_note(name)\n        if path is None:\n            continue\n        try:\n            if not path.is_file():\n                continue\n            with path.open(\"rb\") as fh:\n                fh.read(1)\n        except (OSError, ValueError, RuntimeError):\n            continue\n        total += 1\n    return total\n\n\n@pytest.fixture\ndef sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Working dir containing `notes/` plus a secret file outside it.\"\"\"\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"top secret\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_counts_existing_files(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"hello\")\n    (sandbox / \"notes\" / \"b.txt\").write_text(\"world\")\n    assert count_readable([\"a.txt\", \"b.txt\"]) == 2\n\n\ndef test_empty_list(sandbox: Path) -> None:\n    assert count_readable([]) == 0\n\n\ndef test_missing_not_counted(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"hello\")\n    assert count_readable([\"a.txt\", \"nope.txt\"]) == 1\n\n\ndef test_empty_file_counts(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"empty.txt\").write_text(\"\")\n    assert count_readable([\"empty.txt\"]) == 1\n\n\ndef test_duplicates_counted_each(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"x\")\n    assert count_readable([\"a.txt\", \"a.txt\"]) == 2\n\n\ndef test_directory_not_counted(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    assert count_readable([\"sub\", \"\", \".\", \"./\"]) == 0\n\n\ndef test_nested_file_inside_notes(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    (sandbox / \"notes\" / \"sub\" / \"c.txt\").write_text(\"c\")\n    assert count_readable([\"sub/c.txt\"]) == 1\n\n\ndef test_inner_dotdot_staying_inside(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"sub\").mkdir()\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"a\")\n    assert count_readable([\"sub/../a.txt\"]) == 1\n\n\ndef test_parent_traversal_rejected(sandbox: Path) -> None:\n    assert count_readable([\"../secret.txt\"]) == 0\n    assert count_readable([\"sub/../../secret.txt\"]) == 0\n    assert count_readable([\"../notes/../secret.txt\"]) == 0\n\n\ndef test_absolute_path_rejected(sandbox: Path) -> None:\n    assert count_readable([str(sandbox / \"secret.txt\")]) == 0\n\n\ndef test_absolute_path_inside_notes_rejected(sandbox: Path) -> None:\n    inside = sandbox / \"notes\" / \"a.txt\"\n    inside.write_text(\"a\")\n    assert count_readable([str(inside.resolve())]) == 0\n\n\ndef test_nul_byte_name(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"a\")\n    assert count_readable([\"a.txt\\x00\", \"a\\x00.txt\", \"\\x00\"]) == 0\n\n\n@pytest.mark.skipif(os.name != \"posix\", reason=\"symlinks need posix\")\ndef test_symlink_escape_rejected(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"link.txt\").symlink_to(sandbox / \"secret.txt\")\n    (sandbox / \"notes\" / \"linkdir\").symlink_to(sandbox, target_is_directory=True)\n    assert count_readable([\"link.txt\", \"linkdir/secret.txt\"]) == 0\n    assert read_note(\"link.txt\") == \"\"\n\n\n@pytest.mark.skipif(os.name != \"posix\", reason=\"symlinks need posix\")\ndef test_symlink_inside_notes_ok(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"real.txt\").write_text(\"real\")\n    (sandbox / \"notes\" / \"alias.txt\").symlink_to(sandbox / \"notes\" / \"real.txt\")\n    assert count_readable([\"alias.txt\"]) == 1\n\n\n@pytest.mark.skipif(\n    os.name != \"posix\" or (hasattr(os, \"geteuid\") and os.geteuid() == 0),\n    reason=\"needs non-root posix to make a file unreadable\",\n)\ndef test_unreadable_not_counted(sandbox: Path) -> None:\n    p = sandbox / \"notes\" / \"locked.txt\"\n    p.write_text(\"x\")\n    p.chmod(0)\n    try:\n        assert count_readable([\"locked.txt\"]) == 0\n        assert read_note(\"locked.txt\") == \"\"\n    finally:\n        p.chmod(0o600)\n\n\ndef test_undecodable_bytes_still_readable(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00bad\")\n    assert count_readable([\"bin.dat\"]) == 1\n    assert isinstance(read_note(\"bin.dat\"), str)\n\n\ndef test_missing_notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert count_readable([\"a.txt\", \"../x\"]) == 0\n    assert read_note(\"a.txt\") == \"\"\n\n\ndef test_read_note_content(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"hello\")\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_read_note_missing_and_escape(sandbox: Path) -> None:\n    assert read_note(\"missing.txt\") == \"\"\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(str(sandbox / \"secret.txt\")) == \"\"\n    assert read_note(\"a\\x00b\") == \"\"\n    assert read_note(\"\") == \"\"\n\n\ndef test_resolve_note_inside_and_outside(sandbox: Path) -> None:\n    (sandbox / \"notes\" / \"a.txt\").write_text(\"a\")\n    got = resolve_note(\"a.txt\")\n    assert got is not None\n    assert got == (sandbox / \"notes\" / \"a.txt\").resolve()\n    assert resolve_note(\"../secret.txt\") is None\n    assert resolve_note(\"a\\x00\") is None\n    assert resolve_note(str(sandbox / \"secret.txt\")) is None\n\n\ndef test_resolve_note_nonexistent_inside_ok(sandbox: Path) -> None:\n    got = resolve_note(\"future.txt\")\n    assert got is not None\n    assert got == (sandbox / \"notes\" / \"future.txt\").resolve()\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1125,
+    "out": 3614,
+    "reasoning": 788
+   },
+   "out_bytes": 6312,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 4008,
+    "out": 3822,
+    "reasoning": 667
+   },
+   "out_bytes": 7317,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

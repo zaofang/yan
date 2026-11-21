@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1615,
+   "out": 1363,
+   "reasoning": 996,
+   "out_bytes": 855
+  },
+  "body": {
+   "in": 4715,
+   "out": 4137,
+   "reasoning": 3060,
+   "out_bytes": 2565
+  }
+ },
+ "final": "-- Phase 2: bodies filled in. Contracts and signatures are unchanged.\n\n-- True when `path` stays inside the notes directory once its\n-- `..` segments are resolved. Absolute paths and any path that\n-- climbs above the root are rejected.\nis_safe(path: str) -> bool =\n  pre path.char_count() >= 0\n  post not out or path.char_count() > 0\n  ex is_safe(\"a.txt\") == True\n  ex is_safe(\"sub/../a.txt\") == True\n  ex is_safe(\"\") == False\n  ex is_safe(\"..\") == False\n  ex is_safe(\"/etc/passwd\") == False\n  ex is_safe(\"sub/../../x\") == False\n  if path.char_count() == 0\n    return False\n  let parts = path.split(\"/\")\n  if parts[0] == \"\"\n    return False\n  var depth = 0\n  for seg in parts\n    if seg == \"\" or seg == \".\"\n      continue\n    if seg == \"..\"\n      depth = depth - 1\n      if depth < 0\n        return False\n    else\n      depth = depth + 1\n  depth > 0\n\n-- Returns the text of `notes/path`, or \"\" when the path is unsafe,\n-- the file is missing, or the file cannot be read. Reads only through\n-- `fs`, which is narrowed to the `notes` directory.\nread_public(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out == \"\" or is_safe(path)\n  if not is_safe(path)\n    return \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = fs.read(path) else \"\"\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1615,
+    "out": 1363,
+    "reasoning": 996
+   },
+   "out_bytes": 855,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2055,
+    "out": 3005,
+    "reasoning": 2466
+   },
+   "out_bytes": 1283,
+   "ok": false,
+   "report": "E100 task.yn:41:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2660,
+    "out": 1132,
+    "reasoning": 594
+   },
+   "out_bytes": 1282,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:41:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

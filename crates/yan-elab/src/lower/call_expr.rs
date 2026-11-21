@@ -12,12 +12,38 @@ impl Lower<'_, '_, '_> {
         at: Span,
         want: Option<&Ty>,
     ) -> R<(Rhs, Ty, Option<Ty>)> {
+        let r = self.call_expr_inner(f, args, at, want)?;
+        // A call that can fail `Cancelled` waits, so it is a blocking operation (R1111).
+        let cancelled = Ty::Data("Cancelled".into());
+        if match &r.2 {
+            Some(Ty::Union(ms)) => ms.contains(&cancelled),
+            Some(t) => *t == cancelled,
+            None => false,
+        } {
+            self.blocking_seen = true;
+        }
+        Ok(r)
+    }
+
+    fn call_expr_inner(
+        &mut self,
+        f: &j::Expr,
+        args: &[j::Arg],
+        at: Span,
+        want: Option<&Ty>,
+    ) -> R<(Rhs, Ty, Option<Ty>)> {
         self.want_ret = want.map(|w| (w.clone(), at));
+        if let Some(r) = self.channel_near_miss(f, at) {
+            return Ok(r);
+        }
         let session = |e: &j::Expr| matches!(&e.kind, j::ExprKind::Name(s) if s == "session" && !self.value_bound(s));
         match &f.kind {
             j::ExprKind::Index(b, k)
                 if let j::ExprKind::Name(c) = &b.kind
-                    && matches!(c.as_str(), "wrap_as" | "sat_as" | "trunc_as")
+                    && matches!(
+                        c.as_str(),
+                        "wrap_as" | "sat_as" | "checked_as" | "trunc_as" | "try_as"
+                    )
                     && !self.value_bound(c)
                     && !self.g.fns.contains_key(c) =>
             {

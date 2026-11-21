@@ -1,0 +1,116 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 6786,
+   "out": 3383,
+   "reasoning": 2185,
+   "out_bytes": 2673
+  },
+  "body": {
+   "in": 7285,
+   "out": 2549,
+   "reasoning": 1425,
+   "out_bytes": 2612
+  }
+ },
+ "final": "-- Phase 1: spec only. Bodies are placeholders until phase 2.\n\n-- Returns the value bound to `name`, or None if `name` is not in `keys`.\nfind_value(keys: List[str], values: List[str], name: str) -> str? =\n  pre keys.len() == values.len()\n  ex find_value([\"a\", \"b\"], [\"1\", \"2\"], \"b\") == \"2\"\n  ex find_value([\"a\"], [\"1\"], \"z\") == None\n  for i in range(0, keys.len())\n    if keys[i] == name\n      return values[i]\n  None\n\n-- Overlays `keys[i] = values[i]` on the defaults mode=fast and level=3.\n-- Output: mode's value, then level's value, then the other keys' values\n-- in the order given.\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([\"level\"], [\"5\"]) == [\"fast\", \"5\"]\n  ex settings([\"color\"], [\"red\"]) == [\"fast\", \"3\", \"red\"]\n  ex settings([], []) == [\"fast\", \"3\"]\n  let default_mode = \"fast\"\n  let default_level = \"3\"\n  var mode = default_mode\n  var level = default_level\n  var others: List[str] = []\n  for i in range(0, keys.len())\n    if keys[i] == \"mode\"\n      mode = values[i].copy()\n    if keys[i] == \"level\"\n      level = values[i].copy()\n    if keys[i] != \"mode\" and keys[i] != \"level\"\n      others.append(values[i].copy())\n  var result: List[str] = [mode, level]\n  for x in others\n    result.append(x.copy())\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1660,
+    "out": 1387,
+    "reasoning": 973
+   },
+   "out_bytes": 907,
+   "ok": false,
+   "report": "E100 task.yn:4:5 `DEFAULT_MODE` unexpected token; expected a name\nE112 task.yn:4:5 `DEFAULT_MODE` type names have no two consecutive capitals\nE100 task.yn:5:5 `DEFAULT_LEVEL` unexpected token; expected a name\nE112 task.yn:5:5 `DEFAULT_LEVEL` type names have no two consecutive capitals\nE100 task.yn:8:66 `end of line` unexpected token; expected `=`\nE100 task.yn:17:58 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100",
+    "E112"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2314,
+    "out": 715,
+    "reasoning": 314
+   },
+   "out_bytes": 911,
+   "ok": false,
+   "report": "E100 task.yn:4:18 `default_mode = \"` unexpected token; expected `:`\nE100 task.yn:5:19 `default_level = \"` unexpected token; expected `:`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 2,
+   "usage": {
+    "in": 2812,
+    "out": 1281,
+    "reasoning": 898
+   },
+   "out_bytes": 855,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3268,
+    "out": 1981,
+    "reasoning": 1425
+   },
+   "out_bytes": 1292,
+   "ok": false,
+   "report": "E413 task.yn:33:21 settings: `(values[i])` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 33:21 | fix: values[i] -> values[i].copy()\nE413 task.yn:36:19 settings: `(x)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 35:3 | fix: x -> x.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 4017,
+    "out": 568,
+    "reasoning": 0
+   },
+   "out_bytes": 1320,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E413 ./task.yn:33:21 settings: `values[i]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 33:21 | fix: values[i] -> values[i].copy()\nE413 ./task.yn:36:19 settings: `x` an element of a list cannot be moved out; use `.copy()`, or take "
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

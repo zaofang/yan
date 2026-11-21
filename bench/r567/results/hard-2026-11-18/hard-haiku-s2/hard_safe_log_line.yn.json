@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1454,
+   "out": 1668,
+   "reasoning": 1467,
+   "out_bytes": 489
+  },
+  "body": {
+   "in": 1728,
+   "out": 628,
+   "reasoning": 404,
+   "out_bytes": 548
+  }
+ },
+ "final": "-- Phase 2: bodies filled in. Signatures and contracts are unchanged from Phase 1.\n-- log_line uses only io. It declares no fs, so it cannot write a log file.\n\nformat_line(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  post out.char_count() == level.char_count() + message.char_count() + 3\n  ex format_line(\"INFO\", \"started\") == \"[INFO] started\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  ex log_line(\"INFO\", \"started\")\n  io.print(format_line(level, message))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1454,
+    "out": 1668,
+    "reasoning": 1467
+   },
+   "out_bytes": 489,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 628,
+    "reasoning": 404
+   },
+   "out_bytes": 548,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

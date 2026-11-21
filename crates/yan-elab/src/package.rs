@@ -640,6 +640,7 @@ impl<'a> Linker<'a> {
                     }
                     j::WithKind::Deadline(e)
                     | j::WithKind::Timeout(e)
+                    | j::WithKind::Shield(e)
                     | j::WithKind::Supervisor(e) => self.expr(e),
                 }
                 self.block(body);

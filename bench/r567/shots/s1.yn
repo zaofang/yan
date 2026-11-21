@@ -1,0 +1,13 @@
+type Bad = { text: str }
+
+total_of(xs: List[str]) -> int fail Bad =
+  pre xs.len() >= 0
+  ex total_of(["1", "2"]) == 3
+  var t = 0
+  for s in xs
+    let v = s.parse_int() else fail Bad(text: copy s)
+    t += v
+  t
+
+test_total() =
+  assert total_of(["4", "5"]) == 9

@@ -1,0 +1,7 @@
+# spec: 24.3
+# note: io.print appends a newline (assumption A1)
+# stdout:
+# hello, world
+
+pub def main() uses io:
+    io.print("hello, world")

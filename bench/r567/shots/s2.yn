@@ -1,0 +1,14 @@
+type Shape = Circle(r: int) | Rect(w: int, h: int)
+
+area2(s: Shape) -> int =
+  post out >= 0
+  match s
+    Circle(r:) -> 3 * r * r
+    Rect(w:, h:) -> w * h
+
+scale(var xs: List[int], k: int) =
+  for var x in xs
+    x *= k
+
+test_area2() =
+  assert area2(Rect(w: 2, h: 3)) == 6

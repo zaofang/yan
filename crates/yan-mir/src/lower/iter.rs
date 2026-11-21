@@ -351,6 +351,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 set(self, vec![rem]);
             }
             id::STD_ITER_OPS_SUM | id::STD_ITER_OPS_SUM_FLOAT => {
+                if matches!(&e, Shape::Scalar(Ty::F64)) {
+                    let r = self.rt(RtFn::SumF64, Ty::F64, vec![l.clone(), pos.clone()]);
+                    advance(self);
+                    set(self, vec![r]);
+                    return Ok(());
+                }
                 let (zero, op, ty) = match &e {
                     Shape::Scalar(t) if *t == I64 => (Operand::Int(0), ScalarOp::AddChecked, I64),
                     Shape::Scalar(Ty::F64) => (Operand::F64(0.0), ScalarOp::Add, Ty::F64),
@@ -379,6 +385,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let ds = d.shape.clone();
                     let best = self.var(e.clone());
                     let (best_key, have) = (self.local(I64), self.local(I64));
+                    self.zero_locals(&best.locals);
+                    self.zero_locals(&[best_key]);
                     self.emit(Inst::Copy {
                         dst: have,
                         src: Operand::Int(0),
@@ -449,6 +457,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let ds = d.shape.clone();
                 let best = self.local(I64);
                 let have = self.local(I64);
+                self.zero_locals(&[best]);
                 self.emit(Inst::Copy {
                     dst: have,
                     src: Operand::Int(0),
@@ -649,6 +658,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     src: Operand::Int(0),
                 });
                 let hit = self.var(e.clone());
+                self.zero_locals(&hit.locals);
                 self.each(rem, |me, i| {
                     let x = item(me, i)?;
                     let join = me.block_new();

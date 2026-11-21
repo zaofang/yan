@@ -22,6 +22,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return b.stmts.iter().try_for_each(|s| self.stmt(s));
         }
         let cont = self.local(I64);
+        let first = self.blocks.len();
         let mut jps = Vec::new();
         let mut jp_vars = Vec::new();
         for (name, params, _) in &decls {
@@ -65,6 +66,31 @@ impl<'a, 'm> Fn<'a, 'm> {
         if let Some(Scope::Jps { at, .. }) = self.scopes.last_mut() {
             *at = None;
         }
+        // Only a statement that jumps resumes through the switch; the others' targets would let the
+        // validator see paths no jump takes.
+        let dead = self.block_new();
+        let used: Vec<i128> = self.blocks[first..]
+            .iter()
+            .flat_map(|b| &b.insts)
+            .filter_map(|i| match i {
+                Inst::Copy {
+                    dst,
+                    src: Operand::Int(at),
+                } if *dst == cont => Some(*at),
+                _ => None,
+            })
+            .collect();
+        let resume: Vec<BlockId> = resume
+            .iter()
+            .enumerate()
+            .map(|(i, r)| {
+                if used.contains(&(i as i128)) {
+                    *r
+                } else {
+                    dead
+                }
+            })
+            .collect();
         let single = decls.len() == 1;
         let jps_in = decls.iter().zip(&jps).zip(jp_vars).zip(seen);
         for ((((_, _, body), (_, start, ..)), vs), names) in jps_in {
@@ -89,13 +115,20 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     pub(super) fn jump(&mut self, name: &str, args: &[y::Atom]) -> R<()> {
-        let found = self.scopes.iter().rev().find_map(|s| match s {
-            Scope::Jps { jps, cont, at } => jps
-                .iter()
-                .find(|(n, ..)| n == name)
-                .map(|(_, b, ps, ss)| (*b, ps.clone(), ss.clone(), *cont, *at)),
-            Scope::Loop { .. } => None,
-        });
+        let mut open = 0;
+        let mut found = None;
+        for s in self.scopes.iter().rev() {
+            match s {
+                Scope::Jps { jps, cont, at } => {
+                    if let Some((_, b, ps, ss)) = jps.iter().find(|(n, ..)| n == name) {
+                        found = Some((*b, ps.clone(), ss.clone(), *cont, *at));
+                        break;
+                    }
+                }
+                Scope::Deadline => open += 1,
+                Scope::Loop { .. } => {}
+            }
+        }
         let Some((target, params, shapes, cont, at)) = found else {
             return unsupported(format!("jump to `{name}`"));
         };
@@ -125,11 +158,21 @@ impl<'a, 'm> Fn<'a, 'm> {
                 src: Operand::Int(at),
             });
         }
+        for _ in 0..open {
+            self.end_deadline();
+        }
         self.end(Term::Jump(target));
         Ok(())
     }
 
     pub(super) fn leave(&mut self, label: &str, brk: bool) -> R<()> {
+        let open = self
+            .scopes
+            .iter()
+            .rev()
+            .take_while(|s| !matches!(s, Scope::Loop { label: l, .. } if l == label))
+            .filter(|s| matches!(s, Scope::Deadline))
+            .count();
         let to = self.scopes.iter().rev().find_map(|s| match s {
             Scope::Loop {
                 label: l,
@@ -140,6 +183,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         });
         match to {
             Some(b) => {
+                for _ in 0..open {
+                    self.end_deadline();
+                }
                 if !brk {
                     self.back_edge();
                 }
@@ -151,6 +197,27 @@ impl<'a, 'm> Fn<'a, 'm> {
     }
 
     pub(super) fn stmt(&mut self, s: &'m y::Stmt) -> R<()> {
+        self.lower_stmt(s)?;
+        // A terminator leaves the block; nothing after it reads what it moved. A drop marks
+        // where its glue runs, which a branch may defer to the exit (`drop_owned`).
+        if self.flagged_drop(&s.kind).is_none()
+            && !matches!(
+                s.kind,
+                y::StmtKind::Drop(_)
+                    | y::StmtKind::Ret(_)
+                    | y::StmtKind::Fail(_)
+                    | y::StmtKind::Yield(_)
+                    | y::StmtKind::Break { .. }
+                    | y::StmtKind::Jump { .. }
+                    | y::StmtKind::Become(_)
+            )
+        {
+            self.mark_moves(&s.kind);
+        }
+        Ok(())
+    }
+
+    fn lower_stmt(&mut self, s: &'m y::Stmt) -> R<()> {
         use y::StmtKind as K;
         self.line = s.span.line;
         if let Some(n) = self.flagged_drop(&s.kind) {
@@ -171,6 +238,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let v = self.value(rhs, &shape)?;
                 match pat {
                     y::Pat::Bind(n) => {
+                        self.bind_view(n, rhs, &shape);
                         match comparison(rhs) {
                             Some(sides) => self.cmps.insert(n.clone(), sides),
                             None => self.cmps.remove(n),
@@ -271,8 +339,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let mut leaves = vec![Vec::new(); arms.len()];
                 self.tree(&v, vec![Occ { at: 0, shape }], rows, &mut leaves)?;
                 let join = self.block_new();
-                for ((_, body), l) in arms.iter().zip(leaves) {
+                for ((p, body), l) in arms.iter().zip(leaves) {
+                    let bound = self.bind_arm_views(scrutinee, p);
                     self.arm(l, body, join)?;
+                    for n in bound {
+                        self.views.remove(&n);
+                    }
                 }
                 self.cur = join;
                 Ok(())
@@ -317,7 +389,10 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`fail` outside a failing function");
                 };
                 let e = fs[0].1.clone();
-                let v = self.atom(a, &e)?;
+                let mut v = self.atom(a, &e)?;
+                if self.shields > 0 {
+                    v = self.shield_failure(&e, v);
+                }
                 self.unwind(&[], Some((&e, &v)));
                 self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())
@@ -328,6 +403,9 @@ impl<'a, 'm> Fn<'a, 'm> {
                 }
                 if self.sup_depth.is_some() {
                     return unsupported("`become` in a function with `with supervisor`");
+                }
+                if self.deadline_depth.is_some() {
+                    return unsupported("`become` in a function with `with deadline`");
                 }
                 let name = c.path.join(".");
                 let Some(func) = self.callee(c)? else {
@@ -377,12 +455,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 });
                 for (k, (b, t)) in blocks.iter().zip(tasks).enumerate() {
                     self.cur = t;
-                    self.task_starts.push(self.locals.len() as Local);
+                    self.enter_frame(false);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
                     self.flush_deferred();
-                    self.task_starts.pop();
+                    self.leave_frame();
                     self.finish(Term::TaskEnd);
                 }
                 self.cur = join;
@@ -398,9 +476,12 @@ impl<'a, 'm> Fn<'a, 'm> {
                 for (k, b) in blocks.iter().enumerate() {
                     self.cur = entries[k];
                     self.emit(Inst::Arm(ArmEvent::Enter(k as u32)));
+                    self.enter_frame(true);
                     let saved = self.split_rands(k);
                     self.block_in(b)?;
                     self.restore_rands(saved);
+                    self.flush_deferred();
+                    self.leave_frame();
                     self.emit(Inst::Arm(ArmEvent::Exit));
                     self.finish(Term::Jump(entries.get(k + 1).copied().unwrap_or(join)));
                 }
@@ -502,7 +583,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             // The scheduler `pct` built is already installed.
             K::With { name, body, .. } if name == "sched" => self.block(body),
             K::With { .. } => unsupported("`with`"),
-            K::Deadline { .. } => unsupported("`deadline`"),
+            K::Deadline { at, body, shield } => self.with_deadline(at, body, *shield),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),

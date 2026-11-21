@@ -1,0 +1,123 @@
+{
+ "final": "def join_pipe(a: str, b: str) -> str:\n    \"\"\"Joins a and b with a '|' separator.\"\"\"\n    post \"|\" in out\n    ex join_pipe(\"a\", \"b\") == \"a|b\"\n    return a + \"|\" + b\n\ndef plugin(path: str) -> str uses fs:\n    \"\"\"Reads path and notes/../secret.txt through fs and returns both joined by '|'.\n    A read that fails yields an empty string.\"\"\"\n    post \"|\" in out\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return mine + \"|\" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Runs plugin(path) with fs narrowed to the notes directory, so every\n    read outside notes yields an empty string.\"\"\"\n    post \"|\" in out\n    with fs = fs.sub(\"notes\"):\n        return plugin(path)\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpzk6fj1ki/work/task.yag:10:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 2048,
+    "reasoning": 1869
+   },
+   "out_bytes": 448
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2516,
+    "out": 576,
+    "reasoning": 347
+   },
+   "out_bytes": 555
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2843,
+    "out": 822,
+    "reasoning": 518
+   },
+   "out_bytes": 729
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2843,
+   "out": 822,
+   "reasoning": 518,
+   "out_bytes": 729
+  },
+  "spec": {
+   "in": 4739,
+   "out": 2624,
+   "reasoning": 2216,
+   "out_bytes": 1003
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpzk6fj1ki/work/task.yag:10:8 run_plugin: `assert run_plugin(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

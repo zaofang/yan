@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1785,
+   "out": 1842,
+   "reasoning": 1561,
+   "out_bytes": 674
+  },
+  "body": {
+   "in": 2139,
+   "out": 1905,
+   "reasoning": 1333,
+   "out_bytes": 1389
+  }
+ },
+ "final": "type Bad = { text: str }\n\n-- Phase 1: declarations and contracts for read_public.\n\n-- True when path stays inside the notes directory.\n-- Rejects absolute paths, empty segments, and any \"..\" that climbs out of notes.\ninside(path: str) -> bool =\n  pre path.char_count() >= 0\n  post not out or path.char_count() > 0\n  ex inside(\"a.txt\") == True\n  ex inside(\"sub/../a.txt\") == True\n  ex inside(\"../x\") == False\n  ex inside(\"sub/../../x\") == False\n  ex inside(\"/etc/passwd\") == False\n  let parts = path.split(\"/\")\n  var depth = 0\n  for seg in parts\n    if seg == \"\"\n      return False\n    if seg == \".\"\n      continue\n    if seg == \"..\"\n      if depth == 0\n        return False\n      depth -= 1\n      continue\n    depth += 1\n  True\n\n-- Text of notes/path, or \"\" when path leaves notes or the file cannot be read.\nread_public(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post inside(path) or out == \"\"\n  if not inside(path)\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(path) else \"\"\n    text\n\ntest_inside() =\n  assert inside(\"a.txt\") == True\n  assert inside(\"sub/../a.txt\") == True\n  assert inside(\"../x\") == False\n  assert inside(\"sub/../../x\") == False\n  assert inside(\"/etc/passwd\") == False\n\ntest_read_public_escape() uses fs =\n  assert read_public(\"../x\") == \"\"\n  assert read_public(\"/etc/passwd\") == \"\"\n  assert read_public(\"sub/../../x\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1785,
+    "out": 1842,
+    "reasoning": 1561
+   },
+   "out_bytes": 674,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2139,
+    "out": 1905,
+    "reasoning": 1333
+   },
+   "out_bytes": 1389,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

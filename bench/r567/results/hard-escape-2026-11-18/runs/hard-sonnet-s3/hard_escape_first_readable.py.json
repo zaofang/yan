@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 3938,
+   "reasoning": 954,
+   "out_bytes": 5980
+  },
+  "body": {
+   "in": 4176,
+   "out": 4017,
+   "reasoning": 834,
+   "out_bytes": 6595
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\nNOTES_DIR = \"notes\"\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first name in `names` readable from `notes`.\n\n    Names are untrusted and are resolved relative to the directory `notes`\n    in the current working directory. A name is skipped (treated as\n    unreadable) if the file is missing, is not a regular readable file\n    (e.g. a directory), cannot be decoded as UTF-8 text, contains a NUL\n    byte, or would resolve outside `notes` by any means (absolute paths,\n    `..` components, sibling directories sharing the `notes` prefix, or\n    symlinks pointing outside). Files in subdirectories of `notes` are\n    allowed. Returns \"\" when no name is readable.\n    \"\"\"\n    try:\n        base = Path(NOTES_DIR).resolve()\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n    for name in names:\n        if \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n            if candidate == base or not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            text = candidate.read_bytes().decode(\"utf-8\")\n        except (OSError, ValueError, RuntimeError):\n            continue\n        if \"\\x00\" in text:\n            continue\n        return text\n    return \"\"\n\n\ndef _setup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    cwd = tmp_path / \"cwd\"\n    (cwd / NOTES_DIR).mkdir(parents=True)\n    monkeypatch.chdir(cwd)\n    return cwd\n\n\ndef test_returns_first_readable(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    (cwd / NOTES_DIR / \"b.txt\").write_text(\"B\")\n    assert first_readable([\"a.txt\", \"b.txt\"]) == \"A\"\n    assert first_readable([\"b.txt\", \"a.txt\"]) == \"B\"\n\n\ndef test_skips_missing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"b.txt\").write_text(\"B\")\n    assert first_readable([\"missing.txt\", \"b.txt\"]) == \"B\"\n\n\ndef test_empty_and_none_readable(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    _setup(tmp_path, monkeypatch)\n    assert first_readable([]) == \"\"\n    assert first_readable([\"nope.txt\", \"also-nope.txt\"]) == \"\"\n\n\ndef test_empty_file_is_readable(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"empty.txt\").write_text(\"\")\n    (cwd / NOTES_DIR / \"b.txt\").write_text(\"B\")\n    assert first_readable([\"empty.txt\", \"b.txt\"]) == \"\"\n\n\ndef test_nested_file_allowed(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"sub\").mkdir()\n    (cwd / NOTES_DIR / \"sub\" / \"n.txt\").write_text(\"N\")\n    assert first_readable([\"sub/n.txt\"]) == \"N\"\n\n\ndef test_directory_names_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"sub\").mkdir()\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([\"sub\", \"\", \".\", \"a.txt\"]) == \"A\"\n    assert first_readable([\"sub\", \"\", \".\"]) == \"\"\n\n\ndef test_parent_traversal_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / \"secret.txt\").write_text(\"SECRET\")\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\")\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"../../secret.txt\"]) == \"\"\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n    assert first_readable([\"../secret.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_absolute_path_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    secret = cwd / \"secret.txt\"\n    secret.write_text(\"SECRET\")\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([str(secret)]) == \"\"\n    assert first_readable([str(secret.resolve()), \"a.txt\"]) == \"A\"\n\n\ndef test_inside_absolute_path_not_a_bypass(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / \"secret.txt\").write_text(\"SECRET\")\n    assert first_readable([\"/etc/passwd\"]) == \"\"\n\n\ndef test_sibling_with_shared_prefix_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    evil = cwd / \"notes_evil\"\n    evil.mkdir()\n    (evil / \"x.txt\").write_text(\"EVIL\")\n    assert first_readable([\"../notes_evil/x.txt\"]) == \"\"\n\n\ndef test_symlink_escape_rejected(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    secret = cwd / \"secret.txt\"\n    secret.write_text(\"SECRET\")\n    outside_dir = tmp_path / \"outside\"\n    outside_dir.mkdir()\n    (outside_dir / \"o.txt\").write_text(\"OUT\")\n    try:\n        (cwd / NOTES_DIR / \"link.txt\").symlink_to(secret)\n        (cwd / NOTES_DIR / \"linkdir\").symlink_to(outside_dir, target_is_directory=True)\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"linkdir/o.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"linkdir/o.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_symlink_inside_notes_allowed(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"real.txt\").write_text(\"R\")\n    try:\n        (cwd / NOTES_DIR / \"alias.txt\").symlink_to(cwd / NOTES_DIR / \"real.txt\")\n    except OSError:\n        pytest.skip(\"symlinks not supported\")\n    assert first_readable([\"alias.txt\"]) == \"R\"\n\n\ndef test_nul_byte_name_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([\"a.txt\\x00.png\"]) == \"\"\n    assert first_readable([\"bad\\x00name\", \"a.txt\"]) == \"A\"\n\n\ndef test_undecodable_file_skipped(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    cwd = _setup(tmp_path, monkeypatch)\n    (cwd / NOTES_DIR / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\xfa\")\n    (cwd / NOTES_DIR / \"a.txt\").write_text(\"A\")\n    assert first_readable([\"bin.dat\", \"a.txt\"]) == \"A\"\n\n\ndef test_missing_notes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 3938,
+    "reasoning": 954
+   },
+   "out_bytes": 5980,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 4176,
+    "out": 4017,
+    "reasoning": 834
+   },
+   "out_bytes": 6595,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

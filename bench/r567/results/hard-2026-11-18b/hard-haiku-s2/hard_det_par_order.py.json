@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1101,
+   "out": 1090,
+   "reasoning": 541,
+   "out_bytes": 1277
+  },
+  "body": {
+   "in": 1707,
+   "out": 795,
+   "reasoning": 215,
+   "out_bytes": 1350
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return parity(x) for each x in xs, computed on a thread pool.\n\n    Results are returned in input order, and the output must not\n    depend on the number of worker threads used.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        return list(pool.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([0, 1, 2, 3]) == [0, 1, 0, 1]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_negative() -> None:\n    assert parities([-3, -2, -1, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_preserves_order() -> None:\n    xs = list(range(1000))\n    assert parities(xs) == [x % 2 for x in xs]\n\n\ndef test_parities_independent_of_worker_count() -> None:\n    xs = [7, 8, 9, -4, 0, 15, 22]\n    expected = [parity(x) for x in xs]\n    with ThreadPoolExecutor(max_workers=1) as pool:\n        single = list(pool.map(parity, xs))\n    with ThreadPoolExecutor(max_workers=8) as pool:\n        many = list(pool.map(parity, xs))\n    assert single == expected\n    assert many == expected\n    assert parities(xs) == expected\n\n\n@pytest.mark.parametrize(\"x\", [0, 1, 2, 10**12 + 1])\ndef test_parity_single(x: int) -> None:\n    assert parity(x) == x % 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1090,
+    "reasoning": 541
+   },
+   "out_bytes": 1277,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1707,
+    "out": 795,
+    "reasoning": 215
+   },
+   "out_bytes": 1350,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,94 @@
+{
+ "final": "def shout(xs: list[str]) uses io:\n    \"\"\"Print each string of xs upper-cased on its own line.\"\"\"\n    for s in xs:\n        io.print(s.upper())\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2017,
+    "out": 334,
+    "reasoning": 217
+   },
+   "out_bytes": 299
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2232,
+    "out": 67,
+    "reasoning": 0
+   },
+   "out_bytes": 160
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shout_caps",
+ "tokens": {
+  "body": {
+   "in": 2232,
+   "out": 67,
+   "reasoning": 0,
+   "out_bytes": 160
+  },
+  "spec": {
+   "in": 2017,
+   "out": 334,
+   "reasoning": 217,
+   "out_bytes": 299
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

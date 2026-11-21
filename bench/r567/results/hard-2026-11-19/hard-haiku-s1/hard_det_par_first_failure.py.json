@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1153,
+   "out": 1313,
+   "reasoning": 822,
+   "out_bytes": 1177
+  },
+  "body": {
+   "in": 1701,
+   "out": 1219,
+   "reasoning": 616,
+   "out_bytes": 1507
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check on every element of xs in a thread pool and return the results in input order.\n\n    If any element is odd, raise Bad for the element at the lowest index,\n    regardless of which worker finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Collect in index order: the first future whose result() raises is\n        # the lowest-index bad element, independent of completion order.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_odd_raises() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 5, 4])\n    assert info.value.n == 5\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    # Odd values at indices 1 and 2; index 1 (value 3) must win over index 2 (value 5).\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 5, 8])\n    assert info.value.n == 3\n\n\ndef test_all_even_lowest_index_bad_is_first_element() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([7, 1, 9])\n    assert info.value.n == 7\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1153,
+    "out": 1313,
+    "reasoning": 822
+   },
+   "out_bytes": 1177,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1701,
+    "out": 1219,
+    "reasoning": 616
+   },
+   "out_bytes": 1507,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}
