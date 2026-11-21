@@ -397,7 +397,26 @@ fn resolve(f: &FnDef, fact: &str) -> Result<Fact, String> {
 }
 
 /// The lines of the chain, or the empty-chain report: the declaration is unneeded.
-pub fn run(file: &str, m: &Module, item: &str, fact: &str) -> Result<Vec<String>, String> {
+pub struct Line {
+    file: String,
+    line: u32,
+    col: u32,
+    text: String,
+}
+
+impl std::fmt::Display for Line {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}:{}:{}: {}", self.file, self.line, self.col, self.text)
+    }
+}
+
+impl Line {
+    fn to_json(&self) -> serde_json::Value {
+        serde_json::json!({"file": self.file, "line": self.line, "col": self.col, "text": self.text})
+    }
+}
+
+pub fn run(file: &str, m: &Module, item: &str, fact: &str) -> Result<Vec<Line>, String> {
     let fns = module_fns(m);
     let def = *fns
         .get(item)
@@ -415,11 +434,16 @@ pub fn run(file: &str, m: &Module, item: &str, fact: &str) -> Result<Vec<String>
     }
     Ok(steps
         .into_iter()
-        .map(|s| format!("{file}:{}:{}: {}", s.span.line, s.span.col, s.text))
+        .map(|s| Line {
+            file: file.to_owned(),
+            line: s.span.line,
+            col: s.span.col,
+            text: s.text,
+        })
         .collect())
 }
 
-pub fn command(item: &str, fact: &str) -> ExitCode {
+pub fn command(item: &str, fact: &str, json: bool) -> ExitCode {
     let Some((module, name)) = item.rsplit_once('.') else {
         return crate::tool_failure(&format!("`{item}` is not `module.item`"));
     };
@@ -437,7 +461,14 @@ pub fn command(item: &str, fact: &str) -> ExitCode {
     };
     match run(&file, m, name, fact) {
         Ok(lines) => {
-            lines.iter().for_each(|l| println!("{l}"));
+            if json {
+                println!(
+                    "{}",
+                    serde_json::Value::Array(lines.iter().map(|l| l.to_json()).collect())
+                );
+            } else {
+                lines.iter().for_each(|l| println!("{l}"));
+            }
             ExitCode::SUCCESS
         }
         Err(msg) => {
@@ -452,13 +483,17 @@ mod tests {
     const SRC: &str = "class Oops:\n    n: int\n\ndef leaf(n: int) -> int fail Oops uses fs, io:\n    assert n > 0\n    txt = fs.read(\"x\") else \"x\"\n    io.print(txt)\n    if n > 3:\n        fail Oops(n)\n    return n // 2\n\npub def mid(n: int) -> int fail Oops uses fs, io:\n    \"\"\"Doc.\"\"\"\n    return leaf(n)?\n\npub def idle(n: int) -> int uses fs:\n    \"\"\"Doc.\"\"\"\n    return n\n";
 
     fn lines(item: &str, fact: &str) -> Result<Vec<String>, String> {
-        let dir = std::env::temp_dir().join(format!("yan-why-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!(
+            "yan-why-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("m.yag");
         std::fs::write(&path, SRC).unwrap();
         let mut db = yan_db::Database::new(false, false);
         let core = crate::checked(&mut db, &path).unwrap_or_else(|_| panic!("checks"));
-        super::run("m.yag", core, item, fact)
+        super::run("m.yag", core, item, fact).map(|l| l.iter().map(ToString::to_string).collect())
     }
 
     #[test]
