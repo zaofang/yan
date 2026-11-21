@@ -93,7 +93,7 @@ lambda    = (NAME | "(" [NAME {"," NAME}] ")") "->" expr
 fallback  = cond ["else" (NAME "->" expr | diverge | cond)]
 dblock    = NEWLINE INDENT stmt {stmt} DEDENT                          -- R433; the last statement diverges, checked after parsing
 diverge   = "return" [cond] | "fail" cond | "break" [NAME] | "continue" [NAME] | "unreachable"
-cond      = "if" disj "then" disj "else" cond | disj                 -- branches as in Yan Agent (R464)
+cond      = "if" disj "then" (diverge | disj) "else" (diverge | cond) | disj   -- branches as in Yan Agent (R464); a diverge in one branch only (R1132)
 disj      = conj {"or" conj}
 conj      = neg {"and" neg}
 neg       = "not" neg | comp
@@ -179,7 +179,7 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Optional values.** `T?` is `Option[T]`. `x is None` and `x is not None` narrow as in Yan Agent. `x?` propagates None in a function returning an optional type, and `x else y` falls back.
 
-**Failure.** `-> T fail E` is Yan's `-> T fail E`. `fail e` returns a failure. `x?` propagates, injecting into a union or converting through `From`. `x else y` handles None and failure; `x else err -> h` binds the failure; `x else return` and `x else fail e` exit. `try x` gives `Result[T, E]` for `match`. `.context(msg)` wraps a failure. Closures passed to non-escaping parameters may use `?`. In let P = e else and x else err ->, the fallback may also be an indented block whose last statement diverges (return, fail, break, continue, unreachable), as in Swift's guard (R433).
+**Failure.** `-> T fail E` is Yan's `-> T fail E`. `fail e` returns a failure. `x?` propagates, injecting into a union or converting through `From`. `x else y` handles None and failure; `x else err -> h` binds the failure; `x else return` and `x else fail e` exit. `try x` gives `Result[T, E]` for `match`. `.context(msg)` wraps a failure. Closures passed to non-escaping parameters may use `?`. In let P = e else and x else err ->, the fallback may also be an indented block whose last statement diverges (return, fail, break, continue, unreachable), as in Swift's guard (R433). A diverging form may also be either branch of `if c then a else b`, `if b == 0 then fail Zero() else a // b`: the conditional has the type of the other branch, and two diverging branches are E100 (R1132). The conditional's value is the whole of a `let` initializer, an assignment, a `return` or an expression statement; a diverging branch deeper inside an operand is E017.
 
 **Lambdas and the implicit subject.** `x -> e` and `(a, b) -> e` are closures. `.a.b(...)` in argument position elaborates against the parameter's expected type: a function type `R -> T` gives a closure; a type implementing `Subject[R]` (`ColExpr`, the one column-expression type of 5.6, for `Soa`, tables and frames; R448) gives a column expression rooted at the receiver's current row type R, and several `.field` uses in one argument are one subject. Implicit-subject closures may not nest (E135).
 

@@ -1653,24 +1653,7 @@ impl<'a> Parser<'a> {
             }
             Tok::Newline if *self.peek_n(1) == Tok::Indent => Fallback::Block(None, self.block()?),
             Tok::Kw("return" | "fail" | "break" | "continue" | "unreachable") => {
-                let s = self.span();
-                let kind = match self.bump().tok {
-                    Tok::Kw("return") => StmtKind::Return(
-                        if self.at_line_end() || self.is_p(")") || self.is_p(",") {
-                            None
-                        } else {
-                            Some(self.cond()?)
-                        },
-                    ),
-                    Tok::Kw("fail") => StmtKind::Fail(self.cond()?),
-                    Tok::Kw("break") => StmtKind::Break(self.label()),
-                    Tok::Kw("continue") => StmtKind::Continue(self.label()),
-                    _ => StmtKind::Unreachable,
-                };
-                Fallback::Diverge(Stmt {
-                    kind,
-                    span: self.since(s),
-                })
+                Fallback::Diverge(self.diverge()?)
             }
             _ => {
                 let rhs = self.cond()?;
@@ -1698,11 +1681,63 @@ impl<'a> Parser<'a> {
         self.disj()
     }
 
+    fn at_diverge(&self) -> bool {
+        matches!(
+            self.peek(),
+            Tok::Kw("return" | "fail" | "break" | "continue" | "unreachable")
+        )
+    }
+
+    fn diverge(&mut self) -> P<Stmt> {
+        let s = self.span();
+        let kind = match self.bump().tok {
+            Tok::Kw("return") => StmtKind::Return(
+                if self.at_line_end() || self.is_p(")") || self.is_p(",") || self.is_kw("else") {
+                    None
+                } else {
+                    Some(self.cond()?)
+                },
+            ),
+            Tok::Kw("fail") => StmtKind::Fail(self.cond()?),
+            Tok::Kw("break") => StmtKind::Break(self.label()),
+            Tok::Kw("continue") => StmtKind::Continue(self.label()),
+            _ => StmtKind::Unreachable,
+        };
+        Ok(Stmt {
+            kind,
+            span: self.since(s),
+        })
+    }
+
+    fn branch(&mut self) -> P<Expr> {
+        if self.at_diverge() {
+            let s = self.diverge()?;
+            return Ok(Expr {
+                span: s.span,
+                kind: ExprKind::Diverge(Box::new(s)),
+            });
+        }
+        self.disj()
+    }
+
     fn cond_rest(&mut self, start: Span, cond: Expr) -> P<Expr> {
         self.expect_kw("then")?;
-        let then = self.disj()?;
+        let then = self.branch()?;
         self.expect_kw("else")?;
-        let otherwise = self.cond()?;
+        let otherwise = if self.at_diverge() {
+            self.branch()?
+        } else {
+            self.cond()?
+        };
+        if matches!(then.kind, ExprKind::Diverge(_))
+            && matches!(otherwise.kind, ExprKind::Diverge(_))
+        {
+            self.report(
+                "E100",
+                otherwise.span,
+                "both branches diverge; one branch must give a value",
+            );
+        }
         Ok(self.mk(
             start,
             ExprKind::If {

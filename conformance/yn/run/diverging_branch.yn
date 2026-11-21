@@ -1,0 +1,23 @@
+-- spec: 15.3
+-- rows: R1132
+-- note: a diverging form is a branch of the conditional; it has the type of the other branch (RFC 0099 D2)
+-- stdout:
+-- 3 -1 0 5 3
+
+type Zero = Zero(code: int)
+
+div(a: int, b: int) -> int fail Zero =
+  if b == 0 then fail Zero(code: 1) else a // b
+
+first(xs: List[int]) -> int =
+  let v = if xs.len() == 0 then return 0 else xs[0]
+  v + 1
+
+stop() -> int =
+  var n = 0
+  for i in range(0, 10)
+    n += if i == 3 then break else i
+  n
+
+main() =
+  io.print("\(div(7, 2) else 0) \(div(1, 0) else -1) \(first([])) \(first([4])) \(stop())")

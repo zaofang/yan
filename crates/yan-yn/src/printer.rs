@@ -1165,6 +1165,7 @@ pub fn expr(e: &Expr) -> String {
             operand(then, OR, false),
             operand(otherwise, COND, false)
         ),
+        ExprKind::Diverge(s) => diverge(s),
         ExprKind::Fallback(lhs, fb) => {
             let l = operand(lhs, COND, matches!(strip(lhs).kind, ExprKind::If { .. }));
             let r = match fb.as_ref() {
