@@ -107,13 +107,23 @@ fn item_vis(items: &[j::Item], item: &str) -> Option<j::Vis> {
             }
             _ => (t.name == item).then_some(it.vis),
         },
-        j::ItemKind::Func(_) | j::ItemKind::Record(_) | j::ItemKind::Const { .. }
+        j::ItemKind::Func(_)
+        | j::ItemKind::Record(_)
+        | j::ItemKind::Const { .. }
+        | j::ItemKind::Trait(_)
             if it.kind.name() == item =>
         {
             Some(it.vis)
         }
         _ => None,
     })
+}
+
+fn ty_name(t: &j::Type) -> String {
+    match t {
+        j::Type::Named { path, .. } => path.join("."),
+        _ => "_".into(),
+    }
 }
 
 struct Linker<'a> {
@@ -506,8 +516,10 @@ impl<'a> Linker<'a> {
                         | j::ItemKind::Record(_)
                         | j::ItemKind::Const { .. }
                         | j::ItemKind::Type(_)
+                        | j::ItemKind::Trait(_)
                 ))
             .then(|| it.kind.name().to_owned());
+            let owner = self.exported.clone();
             match &mut it.kind {
                 j::ItemKind::Func(f) => self.func(f),
                 j::ItemKind::Record(r) => {
@@ -540,15 +552,52 @@ impl<'a> Linker<'a> {
                     self.exported = None;
                     self.expr(value);
                 }
+                j::ItemKind::Trait(t) => {
+                    self.tps(&t.tparams);
+                    for (_, f) in &mut t.sigs {
+                        self.exported = owner.clone();
+                        self.locals.clear();
+                        self.func(f);
+                    }
+                }
                 j::ItemKind::Impl(i) => {
+                    // A method inherits the visibility of its trait or type (RFC 0084 D3).
+                    let public = self.at.is_none() && self.impl_is_pub(i);
+                    let owner = public
+                        .then(|| format!("{} for {}", i.trait_.join("."), ty_name(&i.for_ty)));
                     self.ty(&mut i.for_ty);
                     for f in &mut i.fns {
+                        self.exported = owner.clone();
                         self.locals.clear();
                         self.func(f);
                     }
                 }
                 _ => {}
             }
+        }
+    }
+
+    /// Whether the trait or the type of an `impl` in the module being elaborated is `pub`.
+    fn impl_is_pub(&mut self, i: &j::Impl) -> bool {
+        let for_path = match &i.for_ty {
+            j::Type::Named { path, .. } => Some(path.clone()),
+            _ => None,
+        };
+        [Some(i.trait_.clone()), for_path]
+            .into_iter()
+            .flatten()
+            .any(|p| self.path_vis(&p) == Some(j::Vis::Pub))
+    }
+
+    fn path_vis(&mut self, path: &[String]) -> Option<j::Vis> {
+        match self.split(path) {
+            Some((module, [item])) if module == self.env.this => item_vis(&self.own_items, item),
+            Some((module, [item])) => self.module(&module).and_then(|m| item_vis(&m.items, item)),
+            Some(_) => None,
+            None => match path {
+                [item] => item_vis(&self.own_items, item),
+                _ => None,
+            },
         }
     }
 
@@ -571,6 +620,9 @@ impl<'a> Linker<'a> {
 
     fn func(&mut self, f: &mut j::FuncDef) {
         self.sp(&mut f.name_span);
+        if self.exported.is_some() {
+            self.site = f.name_span;
+        }
         self.tps(&f.tparams);
         // A name bound anywhere in the function is a local throughout: bare names are resolved
         // flow-insensitively, so a local that shares a module item's name wins.

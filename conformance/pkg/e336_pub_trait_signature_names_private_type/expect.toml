@@ -1,0 +1,6 @@
+spec = "3.5"
+rows = "R1139"
+note = "a method signature of a pub trait that names a private type of its own module is E336, which proposes pub"
+command = ["check"]
+code = "E336"
+at = "src/main.yag:5:9"
