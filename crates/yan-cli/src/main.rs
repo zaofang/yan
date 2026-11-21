@@ -1137,6 +1137,14 @@ fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::M
         Ok(Loaded::Ready(m, _, _)) => {
             let mut diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
             diags.extend(db.graph_diagnostics());
+            for dep in yan_db::dependency_modules(db, f) {
+                diags.extend(
+                    yan_ide::diagnostics(db, dep)
+                        .into_iter()
+                        .flatten()
+                        .filter(|d| d.severity == Severity::Error),
+                );
+            }
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
             if diags.iter().any(|d| d.severity == Severity::Error) {
                 print_diags(&diags);
@@ -1296,6 +1304,24 @@ fn check(
         });
         match d {
             Ok(mut d) => diags.append(&mut d),
+            Err(msg) => return tool_failure(&msg),
+        }
+    }
+    // A module of another package that a checked file names is judged by its own package's
+    // manifest and ceiling; only its errors are reported here.
+    let opened: Vec<_> = files.iter().filter_map(|f| db.open(f).ok()).collect();
+    let named: Vec<_> = opened
+        .iter()
+        .flat_map(|f| yan_db::dependency_modules(&db, *f))
+        .collect();
+    for dep in named {
+        let key = dep.path(&db).display().to_string();
+        if texts.contains_key(&key) {
+            continue;
+        }
+        texts.insert(key, dep.text(&db).clone());
+        match yan_ide::diagnostics(&db, dep) {
+            Ok(d) => diags.extend(d.into_iter().filter(|d| d.severity == Severity::Error)),
             Err(msg) => return tool_failure(&msg),
         }
     }

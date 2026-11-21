@@ -18304,6 +18304,30 @@
    }
   },
   {
+   "path": "pkg/e314_dependency_module_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1133"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1133",
+    "note": "checking a file that names a dependency's module reports that module's own ceiling: http declares no capabilities, so its use of io is E314 on its file, not accepted because the root grants io",
+    "command": [
+     "check",
+     "src/main.yag"
+    ],
+    "code": "E314",
+    "at": "http/src/lib.yag:1:28"
+   }
+  },
+  {
    "path": "pkg/e314_same_library_name_in_two_packages",
    "kind": "pkg",
    "milestone": "M1",

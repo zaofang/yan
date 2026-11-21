@@ -1,0 +1,3 @@
+pub def leak() -> int uses io:
+    io.print("not granted")
+    return 1
