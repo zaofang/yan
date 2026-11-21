@@ -7377,6 +7377,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/shield_expiry_then_fail_timeout.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R811",
+    "R812"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ShieldTimeout()\nTimeout()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/shield_holds_cancel.yag",
    "kind": "run",
    "milestone": "M1",
