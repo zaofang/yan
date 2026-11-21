@@ -7915,6 +7915,36 @@
    "exit": 0
   },
   {
+   "path": "yag/run/lenient/n08_dataclass.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R217"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n09_self_methods.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R217"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "7\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/lenient/n13_n24_sums_from_names.yag",
    "kind": "run",
    "milestone": "M1",
@@ -7943,6 +7973,32 @@
    "flags": [],
    "expect": [],
    "stdout": "6\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n19_forward_reference.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "2\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n20_alias_and_exception.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 4\n",
    "exit": 0
   },
   {
@@ -7988,6 +8044,37 @@
    "flags": [],
    "expect": [],
    "stdout": "1 3\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n31_nested_def.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R661",
+    "R662"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "9 4\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/lenient/n32_loose_ex.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "14.4"
+   ],
+   "rows": [
+    "R766"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "4\n",
    "exit": 0
   },
   {
@@ -9601,6 +9688,22 @@
    "flags": [],
    "expect": [],
    "stdout": "Secret(***) hunter2 True None\n[Secret(***)]\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/fake_fs_isolation.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.3",
+    "17.3"
+   ],
+   "rows": [
+    "R377"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "a\nnot found\nnot found\n",
    "exit": 0
   },
   {
