@@ -2373,5 +2373,5 @@ sections = "3.5, 25"
 
 [[entry]]
 rows = "R1140"
-topic = "`bins` maps a tool name to a module path under `src/`; `yan x PKG TOOL [-- ARGS]` runs that module's `main` for a locked `tools` package under that package's own ceiling, and fails listing the valid names when PKG or TOOL is not declared (RFC 0100 D1)"
+topic = "`bins` maps a tool name to a module path under `src/`; `yan x PKG TOOL [-- ARGS]` runs that module's `main` for a locked `tools` package under that package's own ceiling, and fails listing the valid names when PKG or TOOL is not declared; `--format json` checks the tool under its ceiling and prints the diagnostic records without running it (RFC 0100 D1)"
 sections = "18, 19.1, 19.2"

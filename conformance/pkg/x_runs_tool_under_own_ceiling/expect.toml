@@ -1,4 +1,4 @@
 spec = "19.1"
 rows = "R1140"
-note = "yan x runs a bins entry of a locked tools package that holds io in its own ceiling; the root declares no capability"
+note = "yan x --format json resolves a bins entry of a locked tools package and finds no error under that package's own ceiling, which holds io; the root declares no capability"
 command = ["x", "@t/hello", "hi"]

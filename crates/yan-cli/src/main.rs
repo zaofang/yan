@@ -298,6 +298,9 @@ enum Command {
         pkg: String,
         /// The entry point, a key of the package's `bins`.
         tool: String,
+        /// `json` checks the tool under its ceiling and prints the diagnostic records without running it.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
         /// The tool's arguments, after `--`.
         #[arg(last = true)]
         args: Vec<String>,
@@ -725,7 +728,19 @@ fn main() -> ExitCode {
             }
         },
         Command::Sig { module, budget } => sig::command(&module, budget),
-        Command::X { pkg, tool, args } => match x::resolve(Path::new("."), &pkg, &tool) {
+        Command::X {
+            pkg,
+            tool,
+            format,
+            args,
+        } => match x::resolve(Path::new("."), &pkg, &tool) {
+            Ok(file) if matches!(format, Some(Format::Json)) => check(
+                &[file],
+                (false, false),
+                format,
+                DEFAULT_MAX_ERRORS,
+                Database::new(false, false),
+            ),
             Ok(file) => run_program(
                 &file,
                 Database::new(false, false),
