@@ -123,7 +123,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return Vec::new();
         };
         let base = own::scrutinee_view(&self.views, x);
-        let bound = own::pat_views(p, &self.types.ctors, &base);
+        let bound = own::pat_views(p, &self.types.ctors, None, &base);
         let names = bound.iter().map(|(n, _)| n.clone()).collect();
         self.views.extend(bound);
         names

@@ -197,7 +197,7 @@ impl Scan<'_> {
             } if self.borrowed.contains_key(s) => {
                 for (p, _) in arms {
                     let base = own::scrutinee_view(&Default::default(), s);
-                    for (n, _) in own::pat_views(p, self.ctors, &base) {
+                    for (n, _) in own::pat_views(p, self.ctors, None, &base) {
                         self.borrowed.insert(n, Def::Binder(at, s.clone()));
                     }
                 }
