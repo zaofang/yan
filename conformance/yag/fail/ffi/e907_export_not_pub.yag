@@ -1,0 +1,8 @@
+# spec: 12.7
+# rows: R920
+# note: an exported function must be pub
+# expect: E907 at 7:5
+
+@export
+def twice(a: int) -> int:
+    return a + a
