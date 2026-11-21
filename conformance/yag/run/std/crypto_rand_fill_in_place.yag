@@ -1,0 +1,18 @@
+# spec: 7.1, 17.3
+# rows: R897
+# note: fill_bytes overwrites every byte in place and never resizes; a 64-byte all-zero result has probability 2^-512
+# stdout:
+# 64 True
+# 0 0
+
+pub def main() uses io, crypto_rand:
+    buf = bytearray.from_bytes(bytes.from_list([0] * 64))
+    crypto_rand.fill_bytes(&buf)
+    nonzero = 0
+    for b in buf.to_bytes():
+        if b != 0:
+            nonzero += 1
+    io.print(f"{len(buf)} {nonzero > 0}")
+    empty = bytearray()
+    crypto_rand.fill_bytes(&empty)
+    io.print(f"{len(empty)} {empty.len()}")

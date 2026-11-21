@@ -1,0 +1,8 @@
+# spec: 17.3
+# rows: R897
+# note: the OS handler fills a fresh buffer with exactly n bytes; n = 0 gives empty bytes
+# stdout:
+# 0 1 16 64
+
+pub def main() uses io, crypto_rand:
+    io.print(f"{len(crypto_rand.random_bytes(0))} {len(crypto_rand.random_bytes(1))} {len(crypto_rand.random_bytes(16))} {len(crypto_rand.random_bytes(64))}")

@@ -9360,6 +9360,68 @@
    "exit": 0
   },
   {
+   "path": "yag/run/std/crypto_rand_fill_in_place.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "17.3"
+   ],
+   "rows": [
+    "R897"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "64 True\n0 0\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/crypto_rand_negative_length.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R897"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0\n",
+   "exit": 101
+  },
+  {
+   "path": "yag/run/std/crypto_rand_os_lengths.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "17.3"
+   ],
+   "rows": [
+    "R897"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "0 1 16 64\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/std/crypto_rand_release_ignores_fake.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "7.1",
+    "17.3"
+   ],
+   "rows": [
+    "R897"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "32 True\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/std/deque_empty_pop.yag",
    "kind": "run",
    "milestone": "M1",
