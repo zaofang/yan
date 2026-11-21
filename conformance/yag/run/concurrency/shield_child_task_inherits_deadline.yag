@@ -1,0 +1,27 @@
+# spec: 9.4
+# rows: R811
+# note: a par branch inside a shield inherits the shield's deadline, not the enclosing timeout's earlier one
+# stdout:
+# ok after PT0.5S
+# ShieldTimeout()
+
+def nap(d: Duration) -> None fail Cancelled | Timeout uses time:
+    time.sleep(d)?
+
+def idle() -> None:
+    pass
+
+def run(d: Duration) -> str fail Cancelled | Timeout | ShieldTimeout uses time, shield:
+    t0 = time.monotonic()
+    with timeout(100 * ms):
+        with shield(1 * s):
+            par concurrent:
+                nap(d)?
+                idle()
+    return f"ok after {time.monotonic() - t0}"
+
+pub def main() uses io, time, shield:
+    with time = virtual(time.now()):
+        with sched = sequential():
+            io.print(run(500 * ms) else e -> f"{e}")
+            io.print(run(2 * s) else e -> f"{e}")

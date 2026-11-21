@@ -6739,6 +6739,21 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/shield_child_task_inherits_deadline.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [
+    "R811"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "ok after PT0.5S\nShieldTimeout()\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/contracts/assert_panics.yag",
    "kind": "run",
    "milestone": "M1",
