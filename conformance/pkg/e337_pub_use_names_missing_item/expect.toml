@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1137"
+note = "a re-export whose target names no item of the package is E337 at the use"
+command = ["check"]
+code = "E337"
+at = "src/main.yag:2:18"

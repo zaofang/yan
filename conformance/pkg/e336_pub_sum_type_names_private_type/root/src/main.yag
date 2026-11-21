@@ -1,0 +1,7 @@
+class Fee:
+    bps: int
+
+pub type Quote = Priced(fee: Fee) | Unpriced()
+
+pub def main() -> None uses io:
+    io.print("ok")

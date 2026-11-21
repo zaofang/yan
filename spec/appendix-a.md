@@ -477,6 +477,8 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1133 | a check or build of a file that names a module of another package also reports that module's own errors, such as E314 against its own capability ceiling, judged by its own manifest and not the dependent's (RFC 0084 D12 step 3, #1452) | 19.1 |
 | R1134 | an item named in the signature of a `pub` function, record or constant must be `pub`: a `pkg` or private item there is E336, which proposes `pub` (RFC 0084 D3, slice 3) | 3.5, 25 |
 | R1135 | `pub use path.item as name` re-exports one module or item of the package as an alias in its name table: no globs, one name per line, same hash and capability set, a dependent reaches it as `lib.name`, the target must be `pub` (E287 otherwise) (RFC 0084 D5) | 15.2, 19.1 |
+| R1136 | R1134 also holds for a `pub` type declaration (sum type, alias, newtype): a `pkg` or private item in a variant field or its right-hand side is E336 (RFC 0084 D3) | 3.5, 25 |
+| R1137 | a `pub use` whose target names no item of the package is E337, reported where a dependent or the module uses the alias (RFC 0084 D5) | 19.1, 25 |
 
 <!-- /rows -->
 

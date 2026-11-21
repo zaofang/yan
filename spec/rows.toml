@@ -2350,3 +2350,13 @@ sections = "3.5, 25"
 rows = "R1135"
 topic = "`pub use path.item as name` re-exports one module or item of the package as an alias in its name table: no globs, one name per line, same hash and capability set, a dependent reaches it as `lib.name`, the target must be `pub` (E287 otherwise) (RFC 0084 D5)"
 sections = "15.2, 19.1"
+
+[[entry]]
+rows = "R1136"
+topic = "R1134 also holds for a `pub` type declaration (sum type, alias, newtype): a `pkg` or private item in a variant field or its right-hand side is E336 (RFC 0084 D3)"
+sections = "3.5, 25"
+
+[[entry]]
+rows = "R1137"
+topic = "a `pub use` whose target names no item of the package is E337, reported where a dependent or the module uses the alias (RFC 0084 D5)"
+sections = "19.1, 25"

@@ -122,7 +122,8 @@ E332 = { section = "20.4", status = "active", meaning = "a manifest edition that
 E333 = { section = "10.2", status = "active", meaning = "dyn Trait of a trait that is not object-safe (R1005)" }
 E334 = { section = "19.1", status = "active", meaning = "dev_dependencies of a package reach the package itself, directly or through a dev dependency's normal requirements (R1076)" }
 E335 = { section = "19.1", status = "active", meaning = "a requirement names a package and major a workspace member has, but the member's version is below its minimum (R1077)" }
-E336 = { section = "3.5", status = "active", meaning = "a pub function, record or constant names a pkg or private item in its signature; a public signature may only name pub items (R1134)" }
+E336 = { section = "3.5", status = "active", meaning = "a pub function, record, constant or type declaration names a pkg or private item in its signature; a public signature may only name pub items (R1134)" }
+E337 = { section = "19.1", status = "active", meaning = "a pub use names a target that is no item of the package (R1137)" }
 E401 = { section = "4.1", status = "active", meaning = "use after move" }
 E402 = { section = "4.3", status = "active", meaning = "exclusivity violation" }
 E403 = { section = "4.1", status = "active", meaning = "assignment to an immutable binding" }

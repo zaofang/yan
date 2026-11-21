@@ -253,21 +253,39 @@ impl<'a> Linker<'a> {
 
     /// The module and item that `pub use` in `module` makes of `item` (RFC 0084 D5), in the
     /// namespace of the package being elaborated. A re-export is an alias: the target is the item.
-    fn reexported(&mut self, module: &str, item: &str) -> Option<(String, String)> {
+    fn reexported(&mut self, module: &str, name: &str, at: Span) -> Option<(String, String)> {
         let path = self
             .module(module)?
             .reexports
             .iter()
-            .find(|r| r.name == item)?
+            .find(|r| r.name == name)?
             .path
             .clone();
         let (item, parent) = path.split_last()?;
         let rel = parent.join(".");
         let target = match self.dep_of(module) {
-            Some(dep) => dep.modules.contains(&rel).then(|| dep.global(&rel))?,
-            None => self.env.modules.contains(&rel).then_some(rel)?,
+            Some(dep) => dep.modules.contains(&rel).then(|| dep.global(&rel)),
+            None => self.env.modules.contains(&rel).then_some(rel),
         };
-        Some((target, item.clone()))
+        let found = target.filter(|t| {
+            let items = if *t == self.env.this {
+                Some(&self.own_items[..])
+            } else {
+                self.module(t).map(|m| &m.items[..])
+            };
+            items.is_some_and(|i| item_vis(i, item).is_some())
+        });
+        if found.is_none() {
+            let shown = path.join(".");
+            self.error.get_or_insert(LinkError {
+                what: format!(
+                    "`pub use {shown}` in `{module}` names no item of the package; the target of a re-export must be an item that exists"
+                ),
+                code: Some("E337"),
+                at: Some(at),
+            });
+        }
+        Some((found?, item.clone()))
     }
 
     /// The expression for `item` of `module`: a bare variant, or the qualified name.
@@ -275,7 +293,7 @@ impl<'a> Linker<'a> {
         let (mut module, mut item) = (module.to_owned(), item.to_owned());
         // A chain of re-exports is followed to its item; the hop limit stops a cycle.
         for _ in 0..16 {
-            match self.reexported(&module, &item) {
+            match self.reexported(&module, &item, at) {
                 Some(t) => (module, item) = t,
                 None => break,
             }
@@ -456,7 +474,10 @@ impl<'a> Linker<'a> {
                 && self.at.is_none()
                 && matches!(
                     it.kind,
-                    j::ItemKind::Func(_) | j::ItemKind::Record(_) | j::ItemKind::Const { .. }
+                    j::ItemKind::Func(_)
+                        | j::ItemKind::Record(_)
+                        | j::ItemKind::Const { .. }
+                        | j::ItemKind::Type(_)
                 ))
             .then(|| it.kind.name().to_owned());
             match &mut it.kind {
@@ -482,6 +503,7 @@ impl<'a> Linker<'a> {
                         j::TypeRhs::Caps(_) => {}
                     }
                     if let Some(w) = &mut t.where_ {
+                        self.exported = None;
                         self.expr(w);
                     }
                 }
