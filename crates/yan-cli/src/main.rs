@@ -26,6 +26,7 @@ mod review;
 mod schema;
 mod semver;
 mod serve;
+mod sig;
 mod store;
 mod term;
 mod test;
@@ -271,6 +272,14 @@ enum Command {
         #[arg(long)]
         check: bool,
         file: PathBuf,
+    },
+    /// Print a module's signatures, contracts and examples only (18.1).
+    Sig {
+        /// The module's dotted path under `src/`.
+        module: String,
+        /// Keep the most relevant items within this many tokens.
+        #[arg(long)]
+        budget: Option<usize>,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
     Fmt {
@@ -694,6 +703,7 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Command::Sig { module, budget } => sig::command(&module, budget),
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
