@@ -145,6 +145,10 @@ rename. A type with a private field cannot be constructed or destructured outsid
 types need no further feature. A `pkg` or private item named in a `pub` signature is an error: a public
 signature may only name types a dependent can name.
 
+Amendment (D3, impl-item visibility): methods of a trait and of an `impl` take no modifier and inherit
+visibility: a method is public iff its trait or its implementing type is `pub`, and the rule above
+applies to its signature (decided by the lead, 2026-11-21, #1608 item 3).
+
 Options: (a) private, `pkg`, `pub` (recommended); (b) two levels (private, `pub`) as now, with sharing
 inside a package done by making things `pub`; (c) Rust's `pub(crate)`, `pub(super)`, `pub(in path)`;
 (d) Go's `internal/` by directory; (e) an export list in the module header (Roc, Haskell). (b) makes

@@ -1,0 +1,8 @@
+class Fee:
+    bps: int
+
+pub trait Priced:
+    def fee(self: Self) -> Fee: ...
+
+pub def main() -> None uses io:
+    io.print("ok")

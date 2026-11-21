@@ -18658,6 +18658,52 @@
    }
   },
   {
+   "path": "pkg/e336_pub_trait_signature_names_private_type",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1139"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1139",
+    "note": "a method signature of a pub trait that names a private type of its own module is E336, which proposes pub",
+    "command": [
+     "check"
+    ],
+    "code": "E336",
+    "at": "src/main.yag:5:9"
+   }
+  },
+  {
+   "path": "pkg/e336_pub_type_impl_method_names_private_type",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1139"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1139",
+    "note": "a method of an impl for a pub type whose signature names a private type is E336, even when the trait is private",
+    "command": [
+     "check"
+    ],
+    "code": "E336",
+    "at": "src/main.yag:11:9"
+   }
+  },
+  {
    "path": "pkg/e337_pub_use_names_missing_item",
    "kind": "pkg",
    "milestone": "M1",
@@ -18974,6 +19020,27 @@
    "expect_toml": {
     "spec": "20.6",
     "rows": "R180",
+    "command": [
+     "check"
+    ]
+   }
+  },
+  {
+   "path": "pkg/private_trait_impl_may_name_private_type",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "3.5"
+   ],
+   "rows": [
+    "R1139"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "3.5",
+    "rows": "R1139",
+    "note": "a private trait implemented for a private type may name private types in its method signatures",
     "command": [
      "check"
     ]

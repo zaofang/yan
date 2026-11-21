@@ -1,0 +1,6 @@
+spec = "3.5"
+rows = "R1139"
+note = "a method of an impl for a pub type whose signature names a private type is E336, even when the trait is private"
+command = ["check"]
+code = "E336"
+at = "src/main.yag:11:9"
