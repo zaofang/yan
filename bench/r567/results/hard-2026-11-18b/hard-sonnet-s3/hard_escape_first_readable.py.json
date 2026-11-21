@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 3270,
+   "reasoning": 857,
+   "out_bytes": 5473
+  },
+  "body": {
+   "in": 3605,
+   "out": 3452,
+   "reasoning": 864,
+   "out_bytes": 6029
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first readable file among `names`, read from\n    the directory `notes` (relative to the current working directory).\n\n    Names are untrusted. Each name is looked up inside `notes`, and a name is\n    skipped (never raising) when any of these holds:\n      * the file is missing, is not a regular file, or cannot be read or\n        decoded as UTF-8;\n      * the name is empty, contains a NUL byte, or is too long for the OS;\n      * the name, however written (absolute path, `..` components, symlinks,\n        sibling directories with a shared prefix such as `notes_evil`), would\n        resolve to a location outside `notes`.\n\n    Files in subdirectories of `notes` are allowed when they resolve inside\n    `notes`. The first name that passes all checks and is read successfully\n    determines the result, even if its content is empty. Returns \"\" when the\n    list is empty or no name is readable.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n    for name in names:\n        if not name or \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n            if candidate == base or not candidate.is_relative_to(base):\n                continue\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError, RuntimeError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_empty_list(env: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_returns_first_readable(env: Path) -> None:\n    (env / \"notes\" / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"b.txt\", \"a.txt\"]) == \"B\"\n\n\ndef test_skips_missing(env: Path) -> None:\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"nope.txt\", \"b.txt\"]) == \"B\"\n\n\ndef test_all_missing(env: Path) -> None:\n    assert first_readable([\"x\", \"y\"]) == \"\"\n\n\ndef test_empty_file_counts_as_read(env: Path) -> None:\n    (env / \"notes\" / \"e.txt\").write_text(\"\", encoding=\"utf-8\")\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"e.txt\", \"b.txt\"]) == \"\"\n\n\ndef test_nested_file_allowed(env: Path) -> None:\n    (env / \"notes\" / \"sub\").mkdir()\n    (env / \"notes\" / \"sub\" / \"c.txt\").write_text(\"C\", encoding=\"utf-8\")\n    assert first_readable([\"sub/c.txt\"]) == \"C\"\n\n\ndef test_dotdot_staying_inside_is_ok_or_skipped_but_safe(env: Path) -> None:\n    (env / \"notes\" / \"sub\").mkdir()\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"sub/../b.txt\"]) in (\"B\", \"\")\n\n\ndef test_parent_traversal_blocked(env: Path) -> None:\n    assert first_readable([\"../secret.txt\"]) == \"\"\n\n\ndef test_parent_traversal_skipped_then_next_read(env: Path) -> None:\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\", \"b.txt\"]) == \"B\"\n\n\ndef test_nested_traversal_blocked(env: Path) -> None:\n    (env / \"notes\" / \"sub\").mkdir()\n    assert first_readable([\"sub/../../secret.txt\"]) == \"\"\n\n\ndef test_absolute_path_outside_blocked(env: Path) -> None:\n    assert first_readable([str(env / \"secret.txt\")]) == \"\"\n\n\ndef test_sibling_with_shared_prefix_blocked(env: Path) -> None:\n    evil = env / \"notes_evil\"\n    evil.mkdir()\n    (evil / \"x.txt\").write_text(\"EVIL\", encoding=\"utf-8\")\n    assert first_readable([\"../notes_evil/x.txt\"]) == \"\"\n\n\ndef test_symlink_file_escape_blocked(env: Path) -> None:\n    link = env / \"notes\" / \"link.txt\"\n    try:\n        os.symlink(env / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"link.txt\"]) == \"\"\n\n\ndef test_symlink_dir_escape_blocked(env: Path) -> None:\n    link = env / \"notes\" / \"linkdir\"\n    try:\n        os.symlink(env, link, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks unsupported\")\n    assert first_readable([\"linkdir/secret.txt\"]) == \"\"\n\n\ndef test_directory_name_skipped(env: Path) -> None:\n    (env / \"notes\" / \"d\").mkdir()\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"d\", \".\", \"b.txt\"]) == \"B\"\n\n\ndef test_empty_name_skipped(env: Path) -> None:\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"\", \"b.txt\"]) == \"B\"\n\n\ndef test_nul_byte_name_skipped(env: Path) -> None:\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"a\\x00b\", \"b.txt\"]) == \"B\"\n\n\ndef test_overlong_name_skipped(env: Path) -> None:\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"a\" * 10000, \"b.txt\"]) == \"B\"\n\n\ndef test_undecodable_file_skipped(env: Path) -> None:\n    (env / \"notes\" / \"bad.bin\").write_bytes(b\"\\xff\\xfe\\xfa\")\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    assert first_readable([\"bad.bin\", \"b.txt\"]) == \"B\"\n\n\ndef test_unreadable_permissions_skipped(env: Path) -> None:\n    p = env / \"notes\" / \"locked.txt\"\n    p.write_text(\"L\", encoding=\"utf-8\")\n    (env / \"notes\" / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    p.chmod(0)\n    try:\n        if os.access(p, os.R_OK):\n            pytest.skip(\"permissions not enforced (e.g. running as root)\")\n        assert first_readable([\"locked.txt\", \"b.txt\"]) == \"B\"\n    finally:\n        p.chmod(0o600)\n\n\ndef test_missing_notes_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert first_readable([\"a.txt\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 3270,
+    "reasoning": 857
+   },
+   "out_bytes": 5473,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3605,
+    "out": 3452,
+    "reasoning": 864
+   },
+   "out_bytes": 6029,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

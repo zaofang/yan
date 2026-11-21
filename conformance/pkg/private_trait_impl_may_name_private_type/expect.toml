@@ -1,0 +1,4 @@
+spec = "3.5"
+rows = "R1139"
+note = "a private trait implemented for a private type may name private types in its method signatures"
+command = ["check"]

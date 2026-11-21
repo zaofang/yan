@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1451,
+   "out": 1791,
+   "reasoning": 1618,
+   "out_bytes": 366
+  },
+  "body": {
+   "in": 3663,
+   "out": 1502,
+   "reasoning": 1096,
+   "out_bytes": 832
+  }
+ },
+ "final": "-- Returns the last element of xs, or None when xs is empty.\nlast_of(xs: List[str]) -> str? =\n  ex last_of([\"a\", \"b\"]) == \"b\"\n  ex last_of([]) == None\n  if xs.len() == 0\n    return None\n  xs.get(xs.len() - 1)\n\n-- Appends a copy of s to the borrowed list dst, editing it in place.\nadd_name(var dst: List[str], s: str) =\n  pre dst.len() >= 0\n  post last_of(dst) == s\n  post dst.len() >= 1\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1791,
+    "reasoning": 1618
+   },
+   "out_bytes": 366,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1697,
+    "out": 866,
+    "reasoning": 663
+   },
+   "out_bytes": 415,
+   "ok": false,
+   "report": "E203 task.yn:14:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1966,
+    "out": 636,
+    "reasoning": 433
+   },
+   "out_bytes": 417,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:14:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

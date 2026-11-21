@@ -1,0 +1,7 @@
+# spec: 9.5
+# rows: R1108
+# expect: E200 at 6:9
+
+def accepted(cap: int) -> int:
+    q = queue.Queue(cap)
+    return 0

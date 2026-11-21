@@ -1,0 +1,127 @@
+{
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of a shape, rounded down; a triangle's area is b*h/2.\"\"\"\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    ex area(Tri(b=4, h=6)) == 12\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmplortvcgq/work/task.yag:5:9 area: `pre match_nonneg(s)` cannot find function `match_nonneg`\n#2 E200 /tmp/tmplortvcgq/work/task.yag:7:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of `area`\n#3 E200 /tmp/tmplortvcgq/work/task.yag:8:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of `area`\n#4 E200 /tmp/tmplortvcgq/work/task.yag:9:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of `area`\n#5 E200 /tmp/tmplortvcgq/work/task.yag:10:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of `area`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200",
+      "E200",
+      "E200",
+      "E200",
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2057,
+    "out": 403,
+    "reasoning": 0
+   },
+   "out_bytes": 794
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2863,
+    "out": 168,
+    "reasoning": 0
+   },
+   "out_bytes": 311
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3129,
+    "out": 407,
+    "reasoning": 175
+   },
+   "out_bytes": 493
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shape_area",
+ "tokens": {
+  "body": {
+   "in": 3129,
+   "out": 407,
+   "reasoning": 175,
+   "out_bytes": 493
+  },
+  "spec": {
+   "in": 4920,
+   "out": 571,
+   "reasoning": 0,
+   "out_bytes": 1105
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmplortvcgq/work/task.yag:5:9 area: `pre match_nonneg(s)` cannot find function `match_nonneg`\n#2 E200 /tmp/tmplortvcgq/work/task.yag:7:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of `area`\n#3 E200 /tmp/tmplortvcgq/work/task.yag:8:8 area: `assert (match_nonneg(s))` cannot find function `match_nonneg` | in `pre` for an `ex` line of "
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

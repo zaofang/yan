@@ -418,8 +418,8 @@ fn unwait(st: &mut State, me: &[usize]) {
 }
 
 /// Task `me` waits on actor `id`, keyed apart from channels (R959): 1 when it parked. Where it
-/// cannot, nothing else runs, so it fails [`TIMEOUT`] 5 s after the wait began (9.6); native
-/// code has no deadline scopes.
+/// cannot, nothing else runs, so it fails [`TIMEOUT`] at the enclosing deadline scope's end, or
+/// 5 s after the wait began outside every scope (9.6).
 fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
     if sched::park(key(id), in_task) {
         with(|st| {
@@ -439,13 +439,19 @@ fn wait(id: usize, me: Vec<usize>, in_task: bool, what: &str) -> u64 {
         s
     });
     // Under `fixed_time` or `virtual` handlers the wait takes no host time: their clocks jump.
-    if let Some(now) = since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
-        crate::civil::clocks_advance_to(now + DEFAULT_DEADLINE.as_nanos() as i128);
-        return TIMEOUT;
-    }
-    let end = since.map(|s| s.0).unwrap_or_else(Instant::now) + DEFAULT_DEADLINE;
-    std::thread::sleep(end.saturating_duration_since(Instant::now()));
-    TIMEOUT
+    // A drain's grace end cuts the wait only when it comes before the deadline or the default.
+    let cut = crate::deadline::current();
+    let default = DEFAULT_DEADLINE.as_nanos() as i128;
+    let end = match since.and_then(|s| s.1).or_else(crate::civil::clocks_last) {
+        Some(now) => now + default,
+        None => {
+            let waited = since.map_or(0, |s| s.0.elapsed().as_nanos() as i128);
+            crate::civil::mono_now() + default - waited
+        }
+    };
+    let end = crate::deadline::in_force().unwrap_or(end);
+    crate::civil::wait_until(cut.map_or(end, |c| c.min(end)));
+    crate::deadline::cut_status(TIMEOUT, CANCELLED)
 }
 
 /// The youngest caller of a wait cycle that `me` closes by waiting on actor `id`, if it closes
@@ -972,6 +978,7 @@ pub fn deliver_stopped(ch: usize, text: u64) {
 
 /// The program ends: the root supervisor's children stop, the last started first (R957).
 pub fn end_root() {
+    crate::scope::reset();
     with(|st| {
         for c in st.sups[0].children.clone().into_iter().rev() {
             st.actors[c].end();

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 1146,
+   "reasoning": 442,
+   "out_bytes": 1744
+  },
+  "body": {
+   "in": 1837,
+   "out": 1253,
+   "reasoning": 478,
+   "out_bytes": 1901
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the next `</title>`.\n\n    Tag names are matched case-insensitively. The text is returned exactly\n    as it appears, with no whitespace stripping or entity decoding.\n    Returns \"\" if there is no `<title>` or no closing `</title>` after it.\n    Does not access the network.\n    \"\"\"\n    m = re.search(\n        r\"<title>(.*?)</title>\",\n        html,\n        re.IGNORECASE | re.DOTALL | re.ASCII,\n    )\n    return m.group(1) if m else \"\"\n\n\ndef test_basic() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>No title here</body></html>\") == \"\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops</html>\") == \"\"\n\n\ndef test_closing_tag_only() -> None:\n    assert title_of(\"</title>\") == \"\"\n\n\ndef test_closing_before_opening() -> None:\n    assert title_of(\"</title><title>x</title>\") == \"x\"\n\n\ndef test_case_insensitive() -> None:\n    assert title_of(\"<TITLE>Upper</TITLE>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_first_title_only() -> None:\n    assert title_of(\"<title>A</title><title>B</title>\") == \"A\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out  </title>\") == \"  spaced \\n out  \"\n\n\ndef test_multiline_title() -> None:\n    assert title_of(\"<title>\\nLine one\\nLine two\\n</title>\") == \"\\nLine one\\nLine two\\n\"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>Tom &amp; Jerry</title>\") == \"Tom &amp; Jerry\"\n\n\ndef test_unicode() -> None:\n    assert title_of(\"<title>Z\u00fcrich \u2014 caf\u00e9 \u2615</title>\") == \"Z\u00fcrich \u2014 caf\u00e9 \u2615\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 1146,
+    "reasoning": 442
+   },
+   "out_bytes": 1744,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1837,
+    "out": 1253,
+    "reasoning": 478
+   },
+   "out_bytes": 1901,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

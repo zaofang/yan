@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 638,
+   "reasoning": 573,
+   "out_bytes": 129
+  },
+  "body": {
+   "in": 6002,
+   "out": 1477,
+   "reasoning": 1008,
+   "out_bytes": 943
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex run_plugin(\"missing.txt\") == \"|\"\n  var r = \"\"\n  with fs = fs.sub(\"notes\")\n    r = plugin(path)\n  r\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 638,
+    "reasoning": 573
+   },
+   "out_bytes": 129,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1780,
+    "out": 684,
+    "reasoning": 531
+   },
+   "out_bytes": 308,
+   "ok": false,
+   "report": "E100 task.yn:9:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1999,
+    "out": 383,
+    "reasoning": 231
+   },
+   "out_bytes": 307,
+   "ok": false,
+   "report": "E312 task.yn:10:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2223,
+    "out": 410,
+    "reasoning": 246
+   },
+   "out_bytes": 328,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:9:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

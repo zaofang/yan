@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2441,
+   "out": 1392,
+   "reasoning": 907,
+   "out_bytes": 1214
+  },
+  "body": {
+   "in": 1681,
+   "out": 251,
+   "reasoning": 0,
+   "out_bytes": 623
+  }
+ },
+ "final": "def parity(x: int) -> bool:\n    \"\"\"True when the byte (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    return bin(x).count(\"1\") % 2 == 1\n\n\ndef test_parity_zero() -> None:\n    assert parity(0) is False\n\n\ndef test_parity_single_bit() -> None:\n    assert parity(1) is True\n    assert parity(128) is True\n\n\ndef test_parity_two_bits() -> None:\n    assert parity(3) is False\n    assert parity(170) is False  # 0b10101010, four set bits\n\n\ndef test_parity_three_bits() -> None:\n    assert parity(11) is True  # 0b1011\n\n\ndef test_parity_all_bits() -> None:\n    assert parity(255) is False  # eight set bits\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1053,
+    "out": 937,
+    "reasoning": 688
+   },
+   "out_bytes": 621,
+   "ok": false,
+   "report": "test_task.py:3: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1388,
+    "out": 455,
+    "reasoning": 219
+   },
+   "out_bytes": 593,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1681,
+    "out": 251,
+    "reasoning": 0
+   },
+   "out_bytes": 623,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

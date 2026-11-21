@@ -1,0 +1,94 @@
+{
+ "final": "# uint8 has no declared type in Yan, so x is an int constrained to 0..255.\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits, wrapping the high bits to the low end.\"\"\"\n    pre 0 <= x and x <= 255\n    pre 0 <= k and k <= 7\n    post 0 <= out and out <= 255\n    ex rotl8(129, 1) == 3\n    ex rotl8(240, 4) == 15\n    ex rotl8(1, 0) == 1\n    return ((x << k) | (x >> (8 - k))) & 255\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2034,
+    "out": 1136,
+    "reasoning": 943
+   },
+   "out_bytes": 382
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2325,
+    "out": 589,
+    "reasoning": 376
+   },
+   "out_bytes": 419
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rotl8",
+ "tokens": {
+  "body": {
+   "in": 2325,
+   "out": 589,
+   "reasoning": 376,
+   "out_bytes": 419
+  },
+  "spec": {
+   "in": 2034,
+   "out": 1136,
+   "reasoning": 943,
+   "out_bytes": 382
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1643,
+   "out": 804,
+   "reasoning": 668,
+   "out_bytes": 296
+  },
+  "body": {
+   "in": 1852,
+   "out": 144,
+   "reasoning": 0,
+   "out_bytes": 310
+  }
+ },
+ "final": "-- Test job for the ex line: a closure-free job that returns a fixed string.\nsample_job() -> str = \"x\"\n\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(sample_job) == \"start:x:end\"\n  \"start:\" + job() + \":end\"\n\ntest_wrapped() =\n  assert wrapped(sample_job) == \"start:x:end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1643,
+    "out": 804,
+    "reasoning": 668
+   },
+   "out_bytes": 296,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1852,
+    "out": 144,
+    "reasoning": 0
+   },
+   "out_bytes": 310,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,1344 @@
+--- S0 Yan Core reader, slice 2 (#1505): the AST of crates/yan-core/src/ast.rs and the parser of
+--- crates/yan-core/src/parser.rs, ported. Needs core_lex.yn in the same program. Enum-like Rust values are
+--- strings: visibility "private" | "pkg" | "pub", conventions "let" | "inout" | "sink", kinds "type" | "nat" | "dim",
+--- asm directions "in" | "out" | "inout" | "lateout".
+
+--- Statement lists, types, right-hand sides and functions are not nested in the tree: each is stored once in `Pools`
+--- and referred to by index (an `int` field below named like its pool entry). Native glue expands a type inline at
+--- every use, so a fully nested AST needs gigabytes to build natively.
+type Span = { line: int, col: int, end_line: int, end_col: int }
+
+type Lit = LitInt(s: str) | LitFloat(s: str) | LitStr(s: str) | LitChar(s: str) | LitBool(b: bool) | LitUnit()
+
+type TArg = TargTy(t: int) | TargNat(n: str)
+
+type Named = { path: List[str], args: List[TArg] }
+
+type CapSet = CapNone() | CapNames(names: List[str])
+
+type ConvTy = { conv: str, ty: int }
+
+type FnType = { params: List[ConvTy], ret: int, caps: Option[CapSet], failty: Option[int] }
+
+type Ty = TyNamed(n: Named) | TyTuple(v: List[int]) | TyDyn(n: Named) | TyFn(f: FnType) | TyRefined(name: str, ty: int, pred: Expr) | TyUnion(v: List[int])
+
+type Atom = AtomName(name: str, span: Span) | AtomLit(lit: Lit, span: Span)
+
+type Arg = ArgVal(conv: str, atom: Atom, span: Span) | ArgCap(name: str, span: Span)
+
+type Call = { path: List[str], span: Span, targs: List[TArg], args: List[Arg] }
+
+type Expr = ExprAtom(a: Atom) | ExprCall(c: Call)
+
+type AttrArg = { name: Option[str], value: ConstVal }
+
+type CField = { name: str, value: ConstVal }
+
+type ConstVal = ConstLit(l: Lit) | ConstPath(path: List[str], fields: Option[List[CField]]) | ConstList(v: List[ConstVal]) | ConstTuple(v: List[ConstVal]) | ConstCall(path: List[str], args: List[AttrArg])
+
+type Attr = { name: str, args: Option[List[AttrArg]] }
+
+type TParam = { is_comptime: bool, name: str, kind: str, bounds: List[List[str]] }
+
+type Param = ParValue(is_comptime: bool, conv: str, name: str, ty: int) | ParCap(name: str, ty: Named)
+
+type Contract = CtReq(e: Expr) | CtEns(e: Expr) | CtDec(v: List[Expr]) | CtEx(e: Expr) | CtCost(steps: Option[Expr], alloc: Option[Expr])
+
+type Field = { attrs: List[Attr], vis: str, name: str, ty: int, dflt: Option[ConstVal] }
+
+type Variant = { name: str, fields: Option[List[Field]] }
+
+type FnDef = { vis: str, is_unsafe: bool, path: List[str], name_span: Span, tparams: List[TParam], params: List[Param], ret: int, froms: List[str], failty: Option[int], contracts: List[Contract], body: Option[int] }
+
+type AssocTy = { name: str, ty: int }
+
+type ExtParam = ExtValue(name: str, ty: int) | ExtCallback(name: str, escaping: bool, ty: FnType)
+
+type ExtItem = ExtFn(attrs: List[Attr], is_safe: bool, name: str, params: List[ExtParam], variadic: bool, ret: int, froms: List[str], uses_none: bool, nonblocking: bool) | ExtType(name: str, dropfn: List[str]) | ExtStatic(is_safe: bool, name: str, ty: int)
+
+--- `ItemFn` is `fn`, `gen` or `inst fn` by `kw`; only `inst` has `args`. One variant: four variants holding a `FnDef` make the native build run out of memory.
+type ItemKind = ItemFn(kw: str, args: List[TArg], def: int) | ItemRecord(vis: str, path: List[str], tparams: List[TParam], fields: List[Field]) | ItemSum(vis: str, path: List[str], tparams: List[TParam], variants: List[Variant]) | ItemNewtype(vis: str, path: List[str], tparams: List[TParam], ty: int, pred: Option[Expr]) | ItemTrait(vis: str, path: List[str], tparams: List[TParam], assoc: List[str], sigs: List[int], derived: Option[int]) | ItemImpl(is_unsafe: bool, trait_ref: Named, for_ty: int, assoc: List[AssocTy], fns: List[int]) | ItemConst(vis: str, path: List[str], ty: int, value: ConstVal) | ItemTest(path: List[str], body: int) | ItemExtern(abi: str, lib: str, link: Option[str], items: List[ExtItem])
+
+type Item = { attrs: List[Attr], kind: ItemKind, span: Span }
+
+type Pools = { blocks: List[List[Stmt]], tys: List[Ty], rhss: List[Rhs], fns: List[FnDef] }
+
+type Module = { header: List[str], path: List[str], items: List[Item], pools: Pools }
+
+type Proj = ProjField(name: str, span: Span) | ProjIndex(a: Atom)
+
+type Place = { root: str, root_span: Span, projs: List[Proj] }
+
+type Ctor = CtorNamed(path: List[str], targs: List[TArg], fields: List[CtorField]) | CtorTuple(v: List[Atom])
+
+type CtorField = { name: str, a: Atom }
+
+type Capture = { conv: str, name: str, span: Span }
+
+type Closure = { captures: List[Capture], params: List[Param], ret: int, caps: Option[CapSet], failty: Option[int], body: int }
+
+type Rhs = RhsAtom(a: Atom) | RhsCall(c: Call) | RhsProp(call: Call, via: Option[List[str]], drops: List[str]) | RhsTry(c: Call) | RhsRest(root: str, moved: List[List[str]]) | RhsCtor(c: Ctor) | RhsProj(pl: Place) | RhsCopy(pl: Place) | RhsMove(pl: Place) | RhsClosure(c: Closure)
+
+type FieldPat = { name: str, pat: Pat }
+
+type CtorPat = { fields: List[FieldPat], rest: bool }
+
+--- `rest` of a slice pattern: 0 none, 1 anonymous `..`, 2 `.. name` bound to `rest_name`.
+type Pat = PatWild() | PatLit(l: Lit) | PatBind(name: str) | PatCtor(path: List[str], fields: Option[CtorPat]) | PatTuple(v: List[Pat]) | PatOr(v: List[Pat]) | PatRange(lo: Lit, hi: Lit) | PatSlice(elems: List[Pat], rest: int, rest_name: str)
+
+type AsmReg = RegClass(name: str) | RegExplicit(s: str)
+
+type AsmOperand = AsmOpReg(dir: str, reg: AsmReg, value: Atom) | AsmOpClobber(s: str) | AsmOpOptions(names: List[str])
+
+type Arm = { pat: Pat, body: int }
+
+type Stmt = { kind: StmtKind, span: Span }
+
+type StmtKind = StmtLet(mutable: bool, pat: Pat, pat_span: Span, ty: int, rhs: int, rhs_span: Span) | StmtAssign(place: Place, rhs: int, rhs_span: Span) | StmtIf(cond: Atom, yes: int, no: Option[int]) | StmtMatch(scrutinee: Atom, arms: List[Arm]) | StmtLoop(label: str, invariants: List[Expr], decs: List[Expr], body: int) | StmtBreak(label: str, value: Option[Atom]) | StmtContinue(label: str) | StmtJp(name: str, params: List[Param], body: int) | StmtJump(name: str, args: List[Atom]) | StmtRet(a: Atom) | StmtFail(a: Atom) | StmtYield(a: Atom) | StmtBecome(c: Call) | StmtWith(name: str, is_dyn: bool, handler: Atom, body: int) | StmtDeadline(at: Atom, body: int) | StmtPar(concurrent: bool, blocks: List[int]) | StmtComptimeFor(name: str, ty: int, iter: Atom, body: int) | StmtComptimeIf(cond: Atom, yes: int, no: Option[int]) | StmtAssert(e: Expr) | StmtUnreachable() | StmtUnsafe(body: int) | StmtAsm(template: str, operands: List[AsmOperand]) | StmtDrop(name: str) | StmtReuse(name: str, ctor: Ctor) | StmtRhs(rhs: int)
+
+type PErr = { code: str, at: int, message: str }
+
+type P = { toks: List[Token], pos: int, pl: Pools }
+
+--- A parse diagnostic: the error with the item it was found in.
+type Diag = { code: str, span: Span, item: str, quote: str, message: str }
+
+type Parsed = { module: Option[Module], diags: List[Diag] }
+
+type Opened = { at: int, empty: bool }
+
+type FnRest = { def: int, targs: List[TArg] }
+
+item_starts() -> List[str] uses none =
+  ["fn", "gen", "record", "sum", "newtype", "trait", "impl", "const", "test", "unsafe", "pub", "@"]
+
+--- Parses one file. Lexer errors and the first error of each item are diagnostics; recovery is at items.
+parse(src: str) -> Parsed uses none =
+  let cs: List[char] = src.chars().collect()
+  let lexed = lex(src) else e ->
+    return Parsed(module: None, diags: [Diag(code: e.code, span: Span(line: e.line, col: e.col, end_line: e.end_line, end_col: e.end_col), item: "", quote: byte_slice(cs, from: e.start, to: e.end), message: e.message)])
+  var p = P(toks: lexed.tokens, pos: 0, pl: Pools(blocks: [], tys: [], rhss: [], fns: []))
+  var diags: List[Diag] = []
+  let hp = module_header(&p) else e ->
+    return Parsed(module: None, diags: [diagnostic(p, cs, "", e)])
+  let module_name = ".".join(hp)
+  var items: List[Item] = []
+  while not at_eof(p)
+    let start = p.pos
+    let it = item(&p) else e ->
+      let name = item_name_from(p, start, module_name)
+      diags.append(diagnostic(p, cs, name, e))
+      recover(&p)
+      continue
+    items.append(it)
+  if len(diags) > 0
+    return Parsed(module: None, diags: diags)
+  Parsed(module: Some(Module(header: lexed.header, path: hp, items: items, pools: p.pl.copy())), diags: [])
+
+--- The source text of the chars at byte offsets [from, to).
+byte_slice(cs: List[char], from: int, to: int) -> str uses none =
+  var out = ""
+  var b = 0
+  for c in cs
+    if b >= from and b < to
+      out = out + c.to_str()
+    b += utf8_len(c)
+  out
+
+diagnostic(p: P, cs: List[char], item: str, e: PErr) -> Diag uses none =
+  let t = p.toks[e.at].copy()
+  Diag(code: e.code, span: tok_span(t), item: item, quote: byte_slice(cs, from: t.start, to: t.end), message: e.message)
+
+item_name_from(p: P, start: int, module: str) -> str uses none =
+  let stop = max(p.pos, start + 1)
+  let starts = item_starts()
+  for i in range(start, stop - 1)
+    if p.toks[i].kind == "name" and p.toks[i + 1].kind == "name" and p.toks[i].text in starts
+      return "\(module).\(p.toks[i + 1].text)"
+  module
+
+tok_span(t: Token) -> Span uses none =
+  Span(line: t.line, col: t.col, end_line: t.end_line, end_col: t.end_col)
+
+describe(t: Token) -> str uses none =
+  if t.kind == "name"
+    return "`\(t.text)`"
+  if t.kind == "int" or t.kind == "float"
+    return "number `\(t.text)`"
+  if t.kind == "str"
+    return "string"
+  if t.kind == "char"
+    return "character"
+  if t.kind == "label"
+    return "label `'\(t.text)`"
+  if t.kind == "punct"
+    return "`\(t.text)`"
+  "end of file"
+
+join_end(a: Span, b: Span) -> Span uses none =
+  Span(line: a.line, col: a.col, end_line: b.end_line, end_col: b.end_col)
+
+--- Skips to the next token that starts an item in column 1.
+recover(var p: P) uses none =
+  advance(&p)
+  let starts = item_starts()
+  while not at_eof(p)
+    let t = p.toks[p.pos].copy()
+    let hit = (t.kind == "name" and t.text in starts) or (t.kind == "punct" and t.text == "@")
+    if hit and t.col == 1
+      return
+    advance(&p)
+
+idx(p: P, n: int) -> int uses none = min(p.pos + n, len(p.toks) - 1)
+
+kind_at(p: P, n: int) -> str uses none = p.toks[idx(p, n)].kind.copy()
+
+text_at(p: P, n: int) -> str uses none = p.toks[idx(p, n)].text.copy()
+
+at_eof(p: P) -> bool uses none = kind_at(p, 0) == "eof"
+
+advance(var p: P) uses none =
+  if p.pos < len(p.toks) - 1
+    p.pos += 1
+
+span_now(p: P) -> Span uses none = tok_span(p.toks[p.pos].copy())
+
+prev_span(p: P) -> Span uses none = tok_span(p.toks[max(p.pos - 1, 0)].copy())
+
+same_line(p: P) -> bool uses none = p.pos > 0 and span_now(p).line == prev_span(p).end_line
+
+unexpected(p: P, expected: str) -> PErr uses none =
+  PErr(code: "E100", at: p.pos, message: "unexpected \(describe(p.toks[p.pos].copy())); expected \(expected)")
+
+is_punct(p: P, s: str) -> bool uses none = kind_at(p, 0) == "punct" and text_at(p, 0) == s
+
+is_kw(p: P, s: str) -> bool uses none = kind_at(p, 0) == "name" and text_at(p, 0) == s
+
+next_is_punct(p: P, s: str) -> bool uses none = kind_at(p, 1) == "punct" and text_at(p, 1) == s
+
+next_is_kw(p: P, s: str) -> bool uses none = kind_at(p, 1) == "name" and text_at(p, 1) == s
+
+eat_punct(var p: P, s: str) -> bool uses none =
+  let hit = is_punct(p, s)
+  if hit
+    advance(&p)
+  hit
+
+eat_kw(var p: P, s: str) -> bool uses none =
+  let hit = is_kw(p, s)
+  if hit
+    advance(&p)
+  hit
+
+--- `pub`, or `pkg` where a name follows (RFC 0084 D3: soft outside this position).
+vis(var p: P) -> str uses none =
+  if eat_kw(&p, "pub")
+    return "pub"
+  if is_kw(p, "pkg") and kind_at(p, 1) == "name"
+    advance(&p)
+    return "pkg"
+  "private"
+
+expect_punct(var p: P, s: str) fail PErr =
+  if not eat_punct(&p, s)
+    fail unexpected(p, "`\(s)`")
+
+expect_kw(var p: P, s: str) fail PErr =
+  if not eat_kw(&p, s)
+    fail unexpected(p, "`\(s)`")
+
+--- Expects the closer of the bracket opened at token `open`; at end of file that is E102.
+close(var p: P, s: str, open: int) fail PErr =
+  if at_eof(p)
+    fail PErr(code: "E102", at: open, message: "unclosed \(describe(p.toks[open].copy()))")
+  expect_punct(&p, s)?
+
+name(var p: P) -> str fail PErr =
+  if kind_at(p, 0) != "name"
+    fail unexpected(p, "a name")
+  let n = text_at(p, 0)
+  advance(&p)
+  n
+
+path(var p: P) -> List[str] fail PErr =
+  var out: List[str] = []
+  out.append(name(&p)?)
+  while is_punct(p, ".") and kind_at(p, 1) == "name"
+    advance(&p)
+    out.append(name(&p)?)
+  out
+
+string(var p: P) -> str fail PErr =
+  if kind_at(p, 0) != "str"
+    fail unexpected(p, "a string")
+  let s = text_at(p, 0)
+  advance(&p)
+  s
+
+label(var p: P) -> str fail PErr =
+  if kind_at(p, 0) != "label"
+    fail unexpected(p, "a label")
+  let s = text_at(p, 0)
+  advance(&p)
+  s
+
+--- `open item { , item } close`: begin_list consumes the opener, more after each item.
+begin_list(var p: P, open: str, closer: str) -> Opened fail PErr =
+  let at = p.pos
+  expect_punct(&p, open)?
+  Opened(at: at, empty: eat_punct(&p, closer))
+
+--- True when another item follows; otherwise consumes the closer.
+more(var p: P, closer: str, at: int) -> bool fail PErr =
+  if eat_punct(&p, ",")
+    return True
+  close(&p, closer, at)?
+  False
+
+module_header(var p: P) -> List[str] fail PErr =
+  expect_kw(&p, "module")?
+  path(&p)?
+
+item(var p: P) -> Item fail PErr =
+  let start = span_now(p)
+  let attrs = attr_list(&p)?
+  let v = vis(&p)
+  let is_unsafe = eat_kw(&p, "unsafe")
+  if kind_at(p, 0) != "name"
+    fail unexpected(p, "an item")
+  let k = item_kind(&p, v, is_unsafe)?
+  Item(attrs: attrs, kind: k, span: join_end(start, prev_span(p)))
+
+item_kind(var p: P, v: str, is_unsafe: bool) -> ItemKind fail PErr =
+  let kw = text_at(p, 0)
+  let has_vis = v != "private"
+  if kw == "fn"
+    advance(&p)
+    let r = fn_rest(&p, v, is_unsafe, True, False, False)?
+    return ItemFn(kw: "fn", args: [], def: r.def)
+  if kw == "gen" and not is_unsafe
+    advance(&p)
+    let r = fn_rest(&p, v, False, True, True, False)?
+    return ItemFn(kw: "gen", args: [], def: r.def)
+  if kw == "inst" and next_is_kw(p, "fn")
+    advance(&p)
+    advance(&p)
+    let r = fn_rest(&p, v, is_unsafe, True, False, True)?
+    return ItemFn(kw: "inst", args: r.targs, def: r.def)
+  if kw == "record" and not is_unsafe
+    advance(&p)
+    let pth = path(&p)?
+    let tps = tparam_list(&p)?
+    let fs = field_list(&p)?
+    return ItemRecord(vis: v, path: pth, tparams: tps, fields: fs)
+  if kw == "sum" and not is_unsafe
+    advance(&p)
+    let pth = path(&p)?
+    let tps = tparam_list(&p)?
+    let vs = variant_list(&p)?
+    if len(vs) == 0
+      fail unexpected(p, "a variant")
+    return ItemSum(vis: v, path: pth, tparams: tps, variants: vs)
+  if kw == "newtype" and not is_unsafe
+    advance(&p)
+    let pth = path(&p)?
+    let tps = tparam_list(&p)?
+    expect_punct(&p, "=")?
+    let t = ty(&p)?
+    var pred: Option[Expr] = None
+    if eat_kw(&p, "where")
+      pred = Some(expr(&p)?)
+    return ItemNewtype(vis: v, path: pth, tparams: tps, ty: t, pred: pred)
+  if kw == "trait" and not is_unsafe
+    advance(&p)
+    return trait_rest(&p, v)?
+  if kw == "impl" and not has_vis
+    advance(&p)
+    return impl_rest(&p, is_unsafe)?
+  if kw == "const" and not is_unsafe
+    advance(&p)
+    let pth = path(&p)?
+    expect_punct(&p, ":")?
+    let t = ty(&p)?
+    expect_punct(&p, "=")?
+    let value = const_val(&p)?
+    return ItemConst(vis: v, path: pth, ty: t, value: value)
+  if kw == "test" and not has_vis and not is_unsafe
+    advance(&p)
+    let pth = path(&p)?
+    return ItemTest(path: pth, body: block(&p)?)
+  if kw == "extern" and not has_vis and is_unsafe
+    advance(&p)
+    return extern_rest(&p)?
+  fail unexpected(p, "an item")
+
+field_list(var p: P) -> List[Field] fail PErr =
+  var out: List[Field] = []
+  let o = begin_list(&p, "{", "}")?
+  if not o.empty
+    loop
+      out.append(field(&p)?)
+      if not more(&p, "}", o.at)?
+        break
+  out
+
+variant_list(var p: P) -> List[Variant] fail PErr =
+  var out: List[Variant] = []
+  let o = begin_list(&p, "{", "}")?
+  if not o.empty
+    loop
+      let n = name(&p)?
+      var fs: Option[List[Field]] = None
+      if is_punct(p, "{")
+        fs = Some(field_list(&p)?)
+      out.append(Variant(name: n, fields: fs))
+      if not more(&p, "}", o.at)?
+        break
+  out
+
+attr_list(var p: P) -> List[Attr] fail PErr =
+  var out: List[Attr] = []
+  while eat_punct(&p, "@")
+    let n = name(&p)?
+    var args: Option[List[AttrArg]] = None
+    if is_punct(p, "(")
+      args = Some(attr_args(&p)?)
+    out.append(Attr(name: n, args: args))
+  out
+
+attr_args(var p: P) -> List[AttrArg] fail PErr =
+  var out: List[AttrArg] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      out.append(attr_arg(&p)?)
+      if not more(&p, ")", o.at)?
+        break
+  out
+
+attr_arg(var p: P) -> AttrArg fail PErr =
+  var n: Option[str] = None
+  if kind_at(p, 0) == "name" and next_is_punct(p, "=")
+    n = Some(name(&p)?)
+    advance(&p)
+  AttrArg(name: n, value: const_val(&p)?)
+
+--- After `fn` or `gen`. `item` false parses a trait signature: one-name path, optional body.
+--- `inst` reads the type arguments of an `inst fn` instead of type parameters.
+fn_rest(var p: P, v: str, is_unsafe: bool, item: bool, is_gen: bool, inst: bool) -> FnRest fail PErr =
+  let name_span = span_now(p)
+  var pth: List[str] = []
+  if item
+    pth = path(&p)?
+  else
+    pth = [name(&p)?]
+  var tps: List[TParam] = []
+  var targs_out: List[TArg] = []
+  if inst
+    targs_out = targs(&p)?
+  else
+    tps = tparam_list(&p)?
+  let ps = param_list(&p)?
+  expect_punct(&p, "->")?
+  let ret = ty(&p)?
+  let froms = from_names(&p)?
+  var failty: Option[int] = None
+  if not is_gen and eat_kw(&p, "fail")
+    failty = Some(fail_ty(&p)?)
+  var contracts: List[Contract] = []
+  loop
+    if eat_kw(&p, "requires")
+      contracts.append(CtReq(e: expr(&p)?))
+    else if eat_kw(&p, "ensures")
+      contracts.append(CtEns(e: expr(&p)?))
+    else if eat_kw(&p, "decreases")
+      contracts.append(CtDec(v: exprs(&p)?))
+    else if eat_kw(&p, "example")
+      contracts.append(CtEx(e: expr(&p)?))
+    else if eat_kw(&p, "cost")
+      var steps: Option[Expr] = None
+      var alloc: Option[Expr] = None
+      loop
+        if eat_kw(&p, "steps")
+          expect_punct(&p, "<=")?
+          steps = Some(expr(&p)?)
+        else if eat_kw(&p, "alloc")
+          expect_punct(&p, "<=")?
+          alloc = Some(expr(&p)?)
+        else
+          fail unexpected(p, "`steps` or `alloc`")
+        if not eat_punct(&p, ",")
+          break
+      contracts.append(CtCost(steps: steps, alloc: alloc))
+    else
+      break
+  var body: Option[int] = None
+  if item or is_punct(p, "{")
+    body = Some(block(&p)?)
+  p.pl.fns.append(FnDef(vis: v, is_unsafe: is_unsafe, path: pth, name_span: name_span, tparams: tps, params: ps, ret: ret, froms: froms, failty: failty, contracts: contracts, body: body))
+  FnRest(def: len(p.pl.fns) - 1, targs: targs_out)
+
+from_names(var p: P) -> List[str] fail PErr =
+  var out: List[str] = []
+  if eat_kw(&p, "from")
+    out.append(name(&p)?)
+    while eat_punct(&p, ",")
+      out.append(name(&p)?)
+  out
+
+conv(var p: P) -> str fail PErr =
+  let c = text_at(p, 0)
+  if kind_at(p, 0) != "name" or (c != "let" and c != "inout" and c != "sink")
+    fail unexpected(p, "`let`, `inout` or `sink`")
+  advance(&p)
+  c
+
+param_list(var p: P) -> List[Param] fail PErr =
+  var out: List[Param] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      out.append(param(&p)?)
+      if not more(&p, ")", o.at)?
+        break
+  out
+
+param(var p: P) -> Param fail PErr =
+  if eat_kw(&p, "cap")
+    let n = name(&p)?
+    expect_punct(&p, ":")?
+    return ParCap(name: n, ty: named(&p)?)
+  let ct = eat_kw(&p, "comptime")
+  let c = conv(&p)?
+  let n = name(&p)?
+  expect_punct(&p, ":")?
+  ParValue(is_comptime: ct, conv: c, name: n, ty: ty(&p)?)
+
+field(var p: P) -> Field fail PErr =
+  let attrs = attr_list(&p)?
+  let v = vis(&p)
+  let n = name(&p)?
+  expect_punct(&p, ":")?
+  let t = ty(&p)?
+  var dflt: Option[ConstVal] = None
+  if eat_punct(&p, "=")
+    dflt = Some(const_val(&p)?)
+  Field(attrs: attrs, vis: v, name: n, ty: t, dflt: dflt)
+
+tparam_list(var p: P) -> List[TParam] fail PErr =
+  var out: List[TParam] = []
+  if not is_punct(p, "[")
+    return out
+  let o = begin_list(&p, "[", "]")?
+  if not o.empty
+    loop
+      let ct = eat_kw(&p, "comptime")
+      let n = name(&p)?
+      expect_punct(&p, ":")?
+      let kn = name(&p)?
+      var kind = ""
+      if kn == "Type"
+        kind = "type"
+      else if kn == "Nat"
+        kind = "nat"
+      else if kn == "Dim"
+        kind = "dim"
+      else
+        p.pos -= 1
+        fail unexpected(p, "`Type`, `Nat` or `Dim`")
+      var bounds: List[List[str]] = []
+      if eat_kw(&p, "is")
+        bounds.append(path(&p)?)
+        while eat_punct(&p, "+")
+          bounds.append(path(&p)?)
+      out.append(TParam(is_comptime: ct, name: n, kind: kind, bounds: bounds))
+      if not more(&p, "]", o.at)?
+        break
+  if len(out) == 0
+    fail unexpected(p, "a type parameter")
+  out
+
+trait_rest(var p: P, v: str) -> ItemKind fail PErr =
+  let pth = path(&p)?
+  let tps = tparam_list(&p)?
+  let open = p.pos
+  expect_punct(&p, "{")?
+  var assoc: List[str] = []
+  while eat_kw(&p, "type")
+    assoc.append(name(&p)?)
+  var sigs: List[int] = []
+  while eat_kw(&p, "fn")
+    sigs.append(fn_rest(&p, "private", False, False, False, False)?.def)
+  var derived: Option[int] = None
+  if eat_kw(&p, "derived")
+    derived = Some(block(&p)?)
+  close(&p, "}", open)?
+  ItemTrait(vis: v, path: pth, tparams: tps, assoc: assoc, sigs: sigs, derived: derived)
+
+impl_rest(var p: P, is_unsafe: bool) -> ItemKind fail PErr =
+  let tr = named(&p)?
+  expect_kw(&p, "for")?
+  let for_ty = ty(&p)?
+  let open = p.pos
+  expect_punct(&p, "{")?
+  var assoc: List[AssocTy] = []
+  while eat_kw(&p, "type")
+    let n = name(&p)?
+    expect_punct(&p, "=")?
+    assoc.append(AssocTy(name: n, ty: ty(&p)?))
+  var fns: List[int] = []
+  loop
+    let v = vis(&p)
+    let uns = eat_kw(&p, "unsafe")
+    if not eat_kw(&p, "fn")
+      if v != "private" or uns
+        fail unexpected(p, "`fn`")
+      break
+    fns.append(fn_rest(&p, v, is_unsafe: uns, item: True, is_gen: False, inst: False)?.def)
+  close(&p, "}", open)?
+  ItemImpl(is_unsafe: is_unsafe, trait_ref: tr, for_ty: for_ty, assoc: assoc, fns: fns)
+
+extern_rest(var p: P) -> ItemKind fail PErr =
+  let abi = string(&p)?
+  expect_kw(&p, "lib")?
+  let lib = name(&p)?
+  var link: Option[str] = None
+  if eat_kw(&p, "link")
+    link = Some(string(&p)?)
+  let open = p.pos
+  expect_punct(&p, "{")?
+  var items: List[ExtItem] = []
+  while not is_punct(p, "}") and not at_eof(p)
+    items.append(xitem(&p)?)
+  close(&p, "}", open)?
+  ItemExtern(abi: abi, lib: lib, link: link, items: items)
+
+xitem(var p: P) -> ExtItem fail PErr =
+  if eat_kw(&p, "type")
+    let n = name(&p)?
+    expect_kw(&p, "drop")?
+    return ExtType(name: n, dropfn: path(&p)?)
+  let attrs = attr_list(&p)?
+  var is_safe = False
+  if eat_kw(&p, "safe")
+    is_safe = True
+  else if eat_kw(&p, "unsafe")
+    is_safe = False
+  else
+    fail unexpected(p, "`safe`, `unsafe` or `type`")
+  if eat_kw(&p, "static")
+    if len(attrs) > 0
+      fail unexpected(p, "`fn`; attributes on extern statics are not supported")
+    let n = name(&p)?
+    expect_punct(&p, ":")?
+    return ExtStatic(is_safe: is_safe, name: n, ty: ty(&p)?)
+  expect_kw(&p, "fn")?
+  let n = name(&p)?
+  let open = p.pos
+  expect_punct(&p, "(")?
+  var params: List[ExtParam] = []
+  var variadic = False
+  if not is_punct(p, ")")
+    loop
+      if eat_punct(&p, "...")
+        variadic = True
+        break
+      let pn = name(&p)?
+      expect_punct(&p, ":")?
+      if is_kw(p, "scoped") or is_kw(p, "escaping")
+        let escaping = is_kw(p, "escaping")
+        advance(&p)
+        expect_kw(&p, "Fn")?
+        params.append(ExtCallback(name: pn, escaping: escaping, ty: fn_type(&p)?))
+      else
+        params.append(ExtValue(name: pn, ty: ty(&p)?))
+      if not eat_punct(&p, ",")
+        break
+  close(&p, ")", open)?
+  expect_punct(&p, "->")?
+  let ret = ty(&p)?
+  let froms = from_names(&p)?
+  let uses_none = is_kw(p, "uses") and next_is_kw(p, "none")
+  if uses_none
+    advance(&p)
+    advance(&p)
+  let nonblocking = eat_kw(&p, "nonblocking")
+  ExtFn(attrs: attrs, is_safe: is_safe, name: n, params: params, variadic: variadic, ret: ret, froms: froms, uses_none: uses_none, nonblocking: nonblocking)
+
+--- Types.
+
+named(var p: P) -> Named fail PErr =
+  let pth = path(&p)?
+  var args: List[TArg] = []
+  if is_punct(p, "[")
+    args = targs(&p)?
+  Named(path: pth, args: args)
+
+targs(var p: P) -> List[TArg] fail PErr =
+  var out: List[TArg] = []
+  let o = begin_list(&p, "[", "]")?
+  if not o.empty
+    loop
+      if kind_at(p, 0) == "int"
+        out.append(TargNat(n: text_at(p, 0)))
+        advance(&p)
+      else
+        out.append(TargTy(t: ty(&p)?))
+      if not more(&p, "]", o.at)?
+        break
+  if len(out) == 0
+    fail unexpected(p, "a type argument")
+  out
+
+types_in_parens(var p: P) -> List[int] fail PErr =
+  var out: List[int] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      out.append(ty(&p)?)
+      if not more(&p, ")", o.at)?
+        break
+  out
+
+ty(var p: P) -> int fail PErr =
+  let t = ty_val(&p)?
+  p.pl.tys.append(t)
+  len(p.pl.tys) - 1
+
+ty_val(var p: P) -> Ty fail PErr =
+  let next_is_paren = next_is_punct(p, "(")
+  if is_kw(p, "Tuple") and next_is_paren
+    advance(&p)
+    return TyTuple(v: types_in_parens(&p)?)
+  if is_kw(p, "Fn") and next_is_paren
+    advance(&p)
+    return TyFn(f: fn_type(&p)?)
+  if eat_kw(&p, "dyn")
+    return TyDyn(n: named(&p)?)
+  if is_punct(p, "{")
+    let open = p.pos
+    advance(&p)
+    let n = name(&p)?
+    expect_punct(&p, ":")?
+    let inner = ty(&p)?
+    expect_punct(&p, "|")?
+    let pred = expr(&p)?
+    close(&p, "}", open)?
+    return TyRefined(name: n, ty: inner, pred: pred)
+  if kind_at(p, 0) != "name"
+    fail unexpected(p, "a type")
+  TyNamed(n: named(&p)?)
+
+fail_ty(var p: P) -> int fail PErr =
+  let first = ty(&p)?
+  if not is_punct(p, "|")
+    return first
+  var alts: List[int] = [first]
+  while eat_punct(&p, "|")
+    alts.append(ty(&p)?)
+  p.pl.tys.append(TyUnion(v: alts))
+  len(p.pl.tys) - 1
+
+--- After `Fn`.
+fn_type(var p: P) -> FnType fail PErr =
+  var params: List[ConvTy] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      let c = conv(&p)?
+      params.append(ConvTy(conv: c, ty: ty(&p)?))
+      if not more(&p, ")", o.at)?
+        break
+  expect_punct(&p, "->")?
+  let ret = ty(&p)?
+  let caps = cap_set(&p)?
+  var failty: Option[int] = None
+  if eat_kw(&p, "fail")
+    failty = Some(fail_ty(&p)?)
+  FnType(params: params, ret: ret, caps: caps, failty: failty)
+
+--- SPEC-Q: `uses a, b` inside a parameter or type-argument list is ambiguous with the list's own commas.
+--- A comma continues the set unless the next name is followed by `:`, `[` or `.`, or is not a plain name.
+cap_set(var p: P) -> Option[CapSet] fail PErr =
+  if not eat_kw(&p, "uses")
+    return None
+  if eat_kw(&p, "none")
+    return Some(CapNone())
+  var names: List[str] = []
+  names.append(name(&p)?)
+  while is_punct(p, ",") and kind_at(p, 1) == "name" and not (kind_at(p, 2) == "punct" and (text_at(p, 2) == ":" or text_at(p, 2) == "[" or text_at(p, 2) == "."))
+    advance(&p)
+    names.append(name(&p)?)
+  Some(CapNames(names: names))
+
+--- Statements.
+
+block(var p: P) -> int fail PErr =
+  let open = p.pos
+  expect_punct(&p, "{")?
+  var stmts: List[Stmt] = []
+  while not is_punct(p, "}") and not at_eof(p)
+    stmts.append(stmt(&p)?)
+  close(&p, "}", open)?
+  p.pl.blocks.append(stmts)
+  len(p.pl.blocks) - 1
+
+stmt(var p: P) -> Stmt fail PErr =
+  let start = span_now(p)
+  let k = stmt_kind(&p)?
+  Stmt(kind: k, span: join_end(start, prev_span(p)))
+
+else_block(var p: P) -> Option[int] fail PErr =
+  if eat_kw(&p, "else")
+    return Some(block(&p)?)
+  None
+
+stmt_kind(var p: P) -> StmtKind fail PErr =
+  var kw = ""
+  if kind_at(p, 0) == "name"
+    kw = text_at(p, 0)
+  let next_name = kind_at(p, 1) == "name"
+  if kw == "let" or kw == "var"
+    advance(&p)
+    let pat_span = span_now(p)
+    let pt = pat(&p)?
+    expect_punct(&p, ":")?
+    let t = ty(&p)?
+    expect_punct(&p, "=")?
+    let rhs_span = span_now(p)
+    return StmtLet(mutable: kw == "var", pat: pt, pat_span: pat_span, ty: t, rhs: rhs(&p)?, rhs_span: rhs_span)
+  if kw == "if"
+    advance(&p)
+    let cond = atom(&p)?
+    let yes = block(&p)?
+    return StmtIf(cond: cond, yes: yes, no: else_block(&p)?)
+  if kw == "match"
+    advance(&p)
+    let scrutinee = atom(&p)?
+    let open = p.pos
+    expect_punct(&p, "{")?
+    var arms: List[Arm] = []
+    while not is_punct(p, "}") and not at_eof(p)
+      let pt = pat(&p)?
+      expect_punct(&p, "=>")?
+      arms.append(Arm(pat: pt, body: block(&p)?))
+    close(&p, "}", open)?
+    return StmtMatch(scrutinee: scrutinee, arms: arms)
+  if kw == "loop"
+    advance(&p)
+    let lb = label(&p)?
+    var invariants: List[Expr] = []
+    while eat_kw(&p, "invariant")
+      invariants.append(expr(&p)?)
+    var decs: List[Expr] = []
+    if eat_kw(&p, "decreases")
+      decs = exprs(&p)?
+    return StmtLoop(label: lb, invariants: invariants, decs: decs, body: block(&p)?)
+  if kw == "break"
+    advance(&p)
+    let lb = label(&p)?
+    let k1 = kind_at(p, 0)
+    let has_value = same_line(p) and (k1 == "name" or k1 == "int" or k1 == "float" or k1 == "str" or k1 == "char" or is_punct(p, "("))
+    var value: Option[Atom] = None
+    if has_value
+      value = Some(atom(&p)?)
+    return StmtBreak(label: lb, value: value)
+  if kw == "continue"
+    advance(&p)
+    return StmtContinue(label: label(&p)?)
+  if kw == "jp"
+    advance(&p)
+    let n = name(&p)?
+    let ps = param_list(&p)?
+    return StmtJp(name: n, params: ps, body: block(&p)?)
+  if kw == "jump"
+    advance(&p)
+    let n = name(&p)?
+    var args: List[Atom] = []
+    let o = begin_list(&p, "(", ")")?
+    if not o.empty
+      loop
+        args.append(atom(&p)?)
+        if not more(&p, ")", o.at)?
+          break
+    return StmtJump(name: n, args: args)
+  if kw == "ret"
+    advance(&p)
+    return StmtRet(a: atom(&p)?)
+  if kw == "fail"
+    advance(&p)
+    return StmtFail(a: atom(&p)?)
+  if kw == "yield"
+    advance(&p)
+    return StmtYield(a: atom(&p)?)
+  if kw == "become"
+    advance(&p)
+    return StmtBecome(c: call(&p)?)
+  if kw == "deadline" and not next_is_punct(p, "=")
+    advance(&p)
+    let at = atom(&p)?
+    return StmtDeadline(at: at, body: block(&p)?)
+  if kw == "with"
+    advance(&p)
+    let n = name(&p)?
+    expect_punct(&p, "=")?
+    let is_dyn = eat_kw(&p, "dyn")
+    let handler = atom(&p)?
+    return StmtWith(name: n, is_dyn: is_dyn, handler: handler, body: block(&p)?)
+  if kw == "par" and (next_is_punct(p, "{") or next_is_kw(p, "concurrent"))
+    advance(&p)
+    let concurrent = eat_kw(&p, "concurrent")
+    let open = p.pos
+    expect_punct(&p, "{")?
+    var blocks: List[int] = []
+    while is_punct(p, "{")
+      blocks.append(block(&p)?)
+    close(&p, "}", open)?
+    return StmtPar(concurrent: concurrent, blocks: blocks)
+  if kw == "comptime"
+    advance(&p)
+    if eat_kw(&p, "for")
+      let n = name(&p)?
+      expect_punct(&p, ":")?
+      let t = ty(&p)?
+      expect_kw(&p, "in")?
+      let iter = atom(&p)?
+      return StmtComptimeFor(name: n, ty: t, iter: iter, body: block(&p)?)
+    if eat_kw(&p, "if")
+      let cond = atom(&p)?
+      let yes = block(&p)?
+      return StmtComptimeIf(cond: cond, yes: yes, no: else_block(&p)?)
+    fail unexpected(p, "`for` or `if`")
+  if kw == "assert"
+    advance(&p)
+    return StmtAssert(e: expr(&p)?)
+  if kw == "unreachable"
+    advance(&p)
+    return StmtUnreachable()
+  if kw == "unsafe" and next_is_punct(p, "{")
+    advance(&p)
+    return StmtUnsafe(body: block(&p)?)
+  if kw == "asm" and next_is_punct(p, "(")
+    advance(&p)
+    let open = p.pos
+    advance(&p)
+    let template = string(&p)?
+    var operands: List[AsmOperand] = []
+    while eat_punct(&p, ",")
+      operands.append(asm_operand(&p)?)
+    close(&p, ")", open)?
+    return StmtAsm(template: template, operands: operands)
+  if kw == "drop" and next_name
+    advance(&p)
+    return StmtDrop(name: name(&p)?)
+  if kw == "reuse" and next_name
+    advance(&p)
+    let n = name(&p)?
+    expect_kw(&p, "as")?
+    return StmtReuse(name: n, ctor: ctor(&p)?)
+  let r = rhs_val(&p)?
+  let target = assign_target(r)
+  if len(target) > 0 and eat_punct(&p, "=")
+    let rhs_span = span_now(p)
+    return StmtAssign(place: target[0].copy(), rhs: rhs(&p)?, rhs_span: rhs_span)
+  p.pl.rhss.append(r)
+  StmtRhs(rhs: len(p.pl.rhss) - 1)
+
+--- The place a statement-level `rhs` can be assigned to: a projection or a bare name; empty if none.
+assign_target(r: Rhs) -> List[Place] uses none =
+  match r
+    RhsProj(pl) -> [pl]
+    RhsAtom(a) -> atom_place(a)
+    RhsCall(c) -> []
+    RhsProp(c, via, drops) -> []
+    RhsTry(c) -> []
+    RhsRest(root, moved) -> []
+    RhsCtor(c) -> []
+    RhsCopy(c) -> []
+    RhsMove(c) -> []
+    RhsClosure(c) -> []
+
+atom_place(a: Atom) -> List[Place] uses none =
+  match a
+    AtomName(n, sp) -> [Place(root: n, root_span: sp, projs: [])]
+    AtomLit(l, sp) -> []
+
+asm_operand(var p: P) -> AsmOperand fail PErr =
+  let k = text_at(p, 0)
+  let is_name = kind_at(p, 0) == "name"
+  if is_name and k == "clobber_abi"
+    advance(&p)
+    let open = p.pos
+    expect_punct(&p, "(")?
+    let s = string(&p)?
+    close(&p, ")", open)?
+    return AsmOpClobber(s: s)
+  if is_name and k == "options"
+    advance(&p)
+    var names: List[str] = []
+    let o = begin_list(&p, "(", ")")?
+    if not o.empty
+      loop
+        names.append(name(&p)?)
+        if not more(&p, ")", o.at)?
+          break
+    return AsmOpOptions(names: names)
+  if not (is_name and (k == "in" or k == "out" or k == "inout" or k == "lateout"))
+    fail unexpected(p, "an asm operand")
+  advance(&p)
+  let open = p.pos
+  expect_punct(&p, "(")?
+  var reg = RegClass(name: "")
+  if kind_at(p, 0) == "str"
+    reg = RegExplicit(s: string(&p)?)
+  else
+    reg = RegClass(name: name(&p)?)
+  close(&p, ")", open)?
+  AsmOpReg(dir: k, reg: reg, value: atom(&p)?)
+
+rhs(var p: P) -> int fail PErr =
+  let r = rhs_val(&p)?
+  p.pl.rhss.append(r)
+  len(p.pl.rhss) - 1
+
+rhs_val(var p: P) -> Rhs fail PErr =
+  if eat_kw(&p, "try")
+    return RhsTry(c: call(&p)?)
+  if eat_kw(&p, "copy")
+    return RhsCopy(pl: place(&p)?)
+  if eat_kw(&p, "move")
+    return RhsMove(pl: place(&p)?)
+  if is_kw(p, "rest") and kind_at(p, 2) == "name" and text_at(p, 2) == "except"
+    advance(&p)
+    let root = name(&p)?
+    expect_kw(&p, "except")?
+    var moved: List[List[str]] = []
+    moved.append(path(&p)?)
+    while eat_punct(&p, ",")
+      moved.append(path(&p)?)
+    return RhsRest(root: root, moved: moved)
+  if is_kw(p, "fn") and next_is_punct(p, "[")
+    advance(&p)
+    return RhsClosure(c: closure_rest(&p)?)
+  if is_punct(p, "(")
+    let at = span_now(p)
+    let atoms = tuple_atoms(&p)?
+    if len(atoms) == 0
+      return RhsAtom(a: AtomLit(lit: LitUnit(), span: at))
+    return RhsCtor(c: CtorTuple(v: atoms))
+  if kind_at(p, 0) != "name" or is_kw(p, "true") or is_kw(p, "false")
+    return RhsAtom(a: atom(&p)?)
+  let start = p.pos
+  let sp = span_now(p)
+  let pth = path(&p)?
+  var ta: List[TArg] = []
+  try_targs(&p, &ta)
+  if is_punct(p, "(")
+    var args: List[Arg] = []
+    let o = begin_list(&p, "(", ")")?
+    if not o.empty
+      loop
+        args.append(arg(&p)?)
+        if not more(&p, ")", o.at)?
+          break
+    let c = Call(path: pth, span: sp, targs: ta, args: args)
+    if eat_punct(&p, "?")
+      var via: Option[List[str]] = None
+      if eat_kw(&p, "via")
+        via = Some(path(&p)?)
+      var drops: List[str] = []
+      if eat_kw(&p, "drop")
+        drops.append(name(&p)?)
+        while eat_punct(&p, ",")
+          drops.append(name(&p)?)
+      return RhsProp(call: c, via: via, drops: drops)
+    return RhsCall(c: c)
+  if is_punct(p, "{")
+    return RhsCtor(c: CtorNamed(path: pth, targs: ta, fields: ctor_field_list(&p)?))
+  p.pos = start
+  let pl = place(&p)?
+  if len(pl.projs) == 0
+    return RhsAtom(a: AtomName(name: pl.root, span: sp))
+  RhsProj(pl: pl)
+
+ctor_field_list(var p: P) -> List[CtorField] fail PErr =
+  var out: List[CtorField] = []
+  let o = begin_list(&p, "{", "}")?
+  if not o.empty
+    loop
+      let n = name(&p)?
+      expect_punct(&p, ":")?
+      out.append(CtorField(name: n, a: atom(&p)?))
+      if not more(&p, "}", o.at)?
+        break
+  out
+
+tuple_atoms(var p: P) -> List[Atom] fail PErr =
+  var out: List[Atom] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      out.append(atom(&p)?)
+      if not more(&p, ")", o.at)?
+        break
+  out
+
+--- `[TArg, ...]` when it is followed by `(` or `{`; otherwise nothing is consumed.
+try_targs(var p: P, var out: List[TArg]) uses none =
+  if not is_punct(p, "[")
+    return
+  let start = p.pos
+  let found = targs(&p) else e ->
+    p.pos = start
+    return
+  if is_punct(p, "(") or is_punct(p, "{")
+    out = found
+    return
+  p.pos = start
+
+call(var p: P) -> Call fail PErr =
+  let sp = span_now(p)
+  let pth = path(&p)?
+  var ta: List[TArg] = []
+  if is_punct(p, "[")
+    ta = targs(&p)?
+  var args: List[Arg] = []
+  let o = begin_list(&p, "(", ")")?
+  if not o.empty
+    loop
+      args.append(arg(&p)?)
+      if not more(&p, ")", o.at)?
+        break
+  Call(path: pth, span: sp, targs: ta, args: args)
+
+arg(var p: P) -> Arg fail PErr =
+  let sp = span_now(p)
+  if eat_kw(&p, "cap")
+    return ArgCap(name: name(&p)?, span: sp)
+  let c = conv(&p)?
+  ArgVal(conv: c, atom: atom(&p)?, span: sp)
+
+ctor(var p: P) -> Ctor fail PErr =
+  if is_punct(p, "(")
+    let atoms = tuple_atoms(&p)?
+    if len(atoms) == 0
+      p.pos -= 1
+      fail unexpected(p, "an atom")
+    return CtorTuple(v: atoms)
+  let pth = path(&p)?
+  var ta: List[TArg] = []
+  if is_punct(p, "[")
+    ta = targs(&p)?
+  CtorNamed(path: pth, targs: ta, fields: ctor_field_list(&p)?)
+
+place(var p: P) -> Place fail PErr =
+  let root_span = span_now(p)
+  let root = name(&p)?
+  var projs: List[Proj] = []
+  loop
+    if is_punct(p, ".") and kind_at(p, 1) == "name"
+      advance(&p)
+      let sp = span_now(p)
+      projs.append(ProjField(name: name(&p)?, span: sp))
+    else if is_punct(p, "[") and same_line(p)
+      let open = p.pos
+      advance(&p)
+      projs.append(ProjIndex(a: atom(&p)?))
+      close(&p, "]", open)?
+    else
+      return Place(root: root, root_span: root_span, projs: projs)
+  Place(root: root, root_span: root_span, projs: projs)
+
+--- After `fn`.
+closure_rest(var p: P) -> Closure fail PErr =
+  let open = p.pos
+  expect_punct(&p, "[")?
+  var captures: List[Capture] = []
+  while not is_punct(p, "]") and not at_eof(p)
+    let sp = span_now(p)
+    let c = conv(&p)?
+    captures.append(Capture(conv: c, name: name(&p)?, span: sp))
+  close(&p, "]", open)?
+  let ps = param_list(&p)?
+  expect_punct(&p, "->")?
+  let ret = ty(&p)?
+  let caps = cap_set(&p)?
+  var failty: Option[int] = None
+  if eat_kw(&p, "fail")
+    failty = Some(fail_ty(&p)?)
+  Closure(captures: captures, params: ps, ret: ret, caps: caps, failty: failty, body: block(&p)?)
+
+--- Atoms, expressions, patterns, constants.
+
+--- Consumes and returns a literal if one starts here.
+literal(var p: P) -> List[Lit] uses none =
+  let k = kind_at(p, 0)
+  let t = text_at(p, 0)
+  var lit = LitUnit()
+  if k == "int"
+    lit = LitInt(s: t)
+  else if k == "float"
+    lit = LitFloat(s: t)
+  else if k == "str"
+    lit = LitStr(s: t)
+  else if k == "char"
+    lit = LitChar(s: t)
+  else if k == "name" and t == "true"
+    lit = LitBool(b: True)
+  else if k == "name" and t == "false"
+    lit = LitBool(b: False)
+  else if is_punct(p, "(") and next_is_punct(p, ")")
+    advance(&p)
+  else
+    return []
+  advance(&p)
+  [lit]
+
+atom(var p: P) -> Atom fail PErr =
+  let sp = span_now(p)
+  let l = literal(&p)
+  if len(l) > 0
+    return AtomLit(lit: l[0].copy(), span: sp)
+  if kind_at(p, 0) == "name"
+    return AtomName(name: name(&p)?, span: sp)
+  fail unexpected(p, "a name or a literal")
+
+expr(var p: P) -> Expr fail PErr =
+  if kind_at(p, 0) == "name" and call_ahead(&p)
+    return ExprCall(c: call(&p)?)
+  ExprAtom(a: atom(&p)?)
+
+--- Whether a path, optional type arguments and `(` start here; consumes nothing.
+call_ahead(var p: P) -> bool uses none =
+  let start = p.pos
+  advance(&p)
+  while is_punct(p, ".") and kind_at(p, 1) == "name"
+    advance(&p)
+    advance(&p)
+  var scratch: List[TArg] = []
+  try_targs(&p, &scratch)
+  let ok = is_punct(p, "(")
+  p.pos = start
+  ok
+
+exprs(var p: P) -> List[Expr] fail PErr =
+  var out: List[Expr] = []
+  out.append(expr(&p)?)
+  while eat_punct(&p, ",")
+    out.append(expr(&p)?)
+  out
+
+pat(var p: P) -> Pat fail PErr =
+  let first = pat_one(&p)?
+  if not is_punct(p, "|")
+    return first
+  var alts: List[Pat] = [first]
+  while eat_punct(&p, "|")
+    alts.append(pat_one(&p)?)
+  PatOr(v: alts)
+
+pat_one(var p: P) -> Pat fail PErr =
+  if eat_kw(&p, "_")
+    return PatWild()
+  let lo = literal(&p)
+  if len(lo) > 0
+    return pat_lit(&p, lo[0].copy())?
+  if is_punct(p, "(")
+    var elems: List[Pat] = []
+    let o = begin_list(&p, "(", ")")?
+    if not o.empty
+      loop
+        elems.append(pat(&p)?)
+        if not more(&p, ")", o.at)?
+          break
+    return PatTuple(v: elems)
+  if is_punct(p, "[")
+    return pat_slice(&p)?
+  let pth = path(&p)?
+  if not is_punct(p, "{")
+    if len(pth) == 1
+      return PatBind(name: pth[0].copy())
+    return PatCtor(path: pth, fields: None)
+  let open = p.pos
+  advance(&p)
+  var fs: List[FieldPat] = []
+  var rest = False
+  loop
+    if eat_punct(&p, "..")
+      rest = True
+      break
+    let n = name(&p)?
+    expect_punct(&p, ":")?
+    fs.append(FieldPat(name: n, pat: pat(&p)?))
+    if not eat_punct(&p, ",")
+      break
+  close(&p, "}", open)?
+  PatCtor(path: pth, fields: Some(CtorPat(fields: fs, rest: rest)))
+
+--- After a literal pattern: `lo ..= hi` or the literal itself.
+pat_lit(var p: P, lo: Lit) -> Pat fail PErr =
+  if eat_punct(&p, "..=")
+    let hi = literal(&p)
+    if len(hi) == 0
+      fail unexpected(p, "a literal")
+    return PatRange(lo: lo.copy(), hi: hi[0].copy())
+  PatLit(l: lo.copy())
+
+pat_slice(var p: P) -> Pat fail PErr =
+  let open = p.pos
+  advance(&p)
+  var elems: List[Pat] = []
+  var rest = 0
+  var rest_name = ""
+  while not is_punct(p, "]") and not at_eof(p)
+    if eat_punct(&p, "..")
+      rest = 1
+      if kind_at(p, 0) == "name"
+        rest = 2
+        rest_name = name(&p)?
+      break
+    elems.append(pat(&p)?)
+    if not eat_punct(&p, ",")
+      break
+  close(&p, "]", open)?
+  PatSlice(elems: elems, rest: rest, rest_name: rest_name)
+
+const_val(var p: P) -> ConstVal fail PErr =
+  let l = literal(&p)
+  if len(l) > 0
+    return ConstLit(l: l[0].copy())
+  if is_punct(p, "[")
+    var out: List[ConstVal] = []
+    let o = begin_list(&p, "[", "]")?
+    if not o.empty
+      loop
+        out.append(const_val(&p)?)
+        if not more(&p, "]", o.at)?
+          break
+    return ConstList(v: out)
+  if is_punct(p, "(")
+    var items: List[ConstVal] = []
+    let o = begin_list(&p, "(", ")")?
+    if not o.empty
+      loop
+        items.append(const_val(&p)?)
+        if not more(&p, ")", o.at)?
+          break
+    return ConstTuple(v: items)
+  if kind_at(p, 0) != "name"
+    fail unexpected(p, "a constant")
+  let pth = path(&p)?
+  if is_punct(p, "{")
+    var fs: List[CField] = []
+    let o = begin_list(&p, "{", "}")?
+    if not o.empty
+      loop
+        let n = name(&p)?
+        expect_punct(&p, ":")?
+        fs.append(CField(name: n, value: const_val(&p)?))
+        if not more(&p, "}", o.at)?
+          break
+    return ConstPath(path: pth, fields: Some(fs))
+  if is_punct(p, "(")
+    return ConstCall(path: pth, args: attr_args(&p)?)
+  ConstPath(path: pth, fields: None)

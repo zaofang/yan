@@ -1,0 +1,157 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single non-empty path component that cannot leave the directory: no separators, no NUL, and not \".\" or \"..\".\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"..\") == False\n    ex is_plain_name(\".\") == False\n    ex is_plain_name(\"\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"a\\\\b\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \"\\0\":\n            return False\n    return True\n\ndef plain_names(names: list[str]) -> list[str]:\n    \"\"\"The names that pass is_plain_name, in order.\"\"\"\n    ex plain_names([\"a\", \"../b\", \"c\"]) == [\"a\", \"c\"]\n    ex plain_names([\"..\", \"/x\"]) == []\n    return [n.copy() for n in names if is_plain_name(n)]\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first file in names that can be read from the directory `notes`, or \"\" when none can.\n    Names are untrusted: reads happen only under `with fs = fs.sub(\"notes\")`, and names that are not plain single-component names are skipped.\n    Missing or unreadable files are skipped.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        for n in plain_names(names):\n            text = fs.read_text(n) else continue\n            return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpbxsjfc_k/work/task.yag:14:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpbxsjfc_k/work/task.yag:15:8 first_readable: `assert first_readable([\"../secret\", \"/etc/passwd\", \"..\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 678,
+    "reasoning": 353
+   },
+   "out_bytes": 845
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2660,
+    "out": 659,
+    "reasoning": 252
+   },
+   "out_bytes": 1026
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpbxsjfc_k/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpbxsjfc_k/work/task.yag:29:41 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpbxsjfc_k/work/task.yag:30:16 first_readable: `text is` a `str` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3165,
+    "out": 1093,
+    "reasoning": 551
+   },
+   "out_bytes": 1435
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3894,
+    "out": 1053,
+    "reasoning": 518
+   },
+   "out_bytes": 1402
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 7059,
+   "out": 2146,
+   "reasoning": 1069,
+   "out_bytes": 2837
+  },
+  "spec": {
+   "in": 4799,
+   "out": 1337,
+   "reasoning": 605,
+   "out_bytes": 1871
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpbxsjfc_k/work/task.yag:14:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmpbxsjfc_k/work/task.yag:15:8 first_readable: `assert first_readable([\"../secret\", \"/etc/passwd\", \"..\"])` capability `fs` is not in scope | in `ex` of `first_readable`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpbxsjfc_k/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmpbxsjfc_k/work/task.yag:29:41 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmpbxsjfc_k/work/task.yag:30:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "N57 task.yag:29:20 first_readable: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nE201 task.yag:29:41 first_readable: `None` expected `str`, found `None`\nE201 task.yag:30:16 first_readable: `text` a `str` is never `None`"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "<alpha>\n<>\n<alpha>"
+ }
+}

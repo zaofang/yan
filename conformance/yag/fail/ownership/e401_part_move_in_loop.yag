@@ -1,0 +1,16 @@
+# spec: 4.2
+# rows: R1086
+# expect: E401 at 16:22
+# note: a field moved out in one iteration is read in the next (#1625)
+
+class H:
+    s: str
+    n: int
+
+def eat(take s: str) -> str:
+    return s
+
+def main() -> None uses io:
+    h = H(s="x".upper(), n=1)
+    for i in range(2):
+        io.print(eat(h.s))

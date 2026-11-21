@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1722,
+   "reasoning": 688,
+   "out_bytes": 2322
+  },
+  "body": {
+   "in": 5984,
+   "out": 3235,
+   "reasoning": 909,
+   "out_bytes": 5317
+  }
+ },
+ "final": "import sys\nimport threading\nfrom concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element (not the first one\n    to finish), regardless of thread completion order.\n    \"\"\"\n    workers = max(1, min(32, len(xs)))\n    with ThreadPoolExecutor(max_workers=workers) as pool:\n        futures: list[Future[int]] = [pool.submit(check, x) for x in xs]\n        results: list[int] = []\n        for fut in futures:\n            results.append(fut.result())\n    return results\n\n\ndef test_all_even_returns_in_order() -> None:\n    assert all_even([4, 2, 8, 0, -6]) == [4, 2, 8, 0, -6]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 4, 7, 6])\n    assert ei.value.n == 7\n\n\ndef test_all_even_lowest_index_not_lowest_value() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([2, 9, 4, 1, 3])\n    assert ei.value.n == 9\n\n\ndef test_all_even_first_element_bad() -> None:\n    with pytest.raises(Bad) as ei:\n        all_even([3, 1])\n    assert ei.value.n == 3\n\n\ndef test_all_even_many_elements_lowest_index_wins() -> None:\n    xs = list(range(0, 200, 2))\n    xs[90] = 301\n    xs[40] = 205\n    xs[70] = 7\n    for _ in range(20):\n        with pytest.raises(Bad) as ei:\n            all_even(xs)\n        assert ei.value.n == 205\n\n\ndef test_all_even_large_valid() -> None:\n    xs = list(range(0, 2000, 2))\n    assert all_even(xs) == xs\n\n\ndef test_all_even_checks_every_element(monkeypatch: pytest.MonkeyPatch) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n\n    def fake_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", fake_check)\n    xs = [1, 2, 3, 4, 5, 6]\n    with pytest.raises(Bad) as ei:\n        all_even(xs)\n    assert ei.value.n == 1\n    assert sorted(seen) == xs\n\n\ndef test_all_even_runs_in_parallel(monkeypatch: pytest.MonkeyPatch) -> None:\n    barrier = threading.Barrier(2, timeout=5)\n\n    def fake_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(sys.modules[__name__], \"check\", fake_check)\n    assert all_even([2, 4]) == [2, 4]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1722,
+    "reasoning": 688
+   },
+   "out_bytes": 2322,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2259,
+    "out": 1763,
+    "reasoning": 598
+   },
+   "out_bytes": 2662,
+   "ok": false,
+   "report": ".....F\n=================================== FAILURES ===================================\n________________ test_all_even_many_elements_lowest_index_wins _________________\n\n    def test_all_even_many_elements_lowest_index_wins() -> None:\n        xs = list(range(0, 200, 2))\n>       xs[150] = 301\n        ^^^^^^^\nE       IndexError: list assignment index out of range\n\ntest_task.py:63: IndexError\n=========================== short test summary info ============================\nFAILED test_task.py::test_all_even_many_elements_lowest_index_wins - IndexErr...\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 5 passed in 0.03s"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3725,
+    "out": 1472,
+    "reasoning": 311
+   },
+   "out_bytes": 2655,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": ".....F......                                                             [100%]\n=================================== FAILURES ===================================\nE   IndexError: list assignment index out of range\n/tmp/tmph7ilffvx/test_hidden.py:63: IndexError: list assignment index out of range\n====="
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

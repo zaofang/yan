@@ -1,0 +1,187 @@
+{
+ "final": "def first_text(texts: list[str | None]) -> str:\n    \"\"\"Return the first text in texts that is not None, or \"\" when there is none.\"\"\"\n    ex first_text([None, \"a\", \"b\"]) == \"a\"\n    ex first_text([None, None]) == \"\"\n    for t in texts:\n        if t is not None:\n            return t\n    return \"\"\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Return the text of the first file in names that can be read from the\n    directory notes, or \"\" when none can. Only files inside notes are read: the\n    body narrows fs with fs.sub(\"notes\") before any read. Missing or unreadable\n    files are skipped, and a name that escapes notes (for example \"../x\" or an\n    absolute path) is treated as unreadable.\"\"\"\n    post out == \"\" or out.byte_len() > 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            text = fs.read(name) else \"\"\n            if text != \"\":\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp68cpzjd_/work/task.yag:8:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmp68cpzjd_/work/task.yag:9:8 first_readable: `assert first_readable([\"missing.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmp68cpzjd_/work/task.yag:10:8 first_readable: `assert first_readable([\"../secret.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2139,
+    "out": 1177,
+    "reasoning": 946
+   },
+   "out_bytes": 616
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2635,
+    "out": 1323,
+    "reasoning": 1047
+   },
+   "out_bytes": 772
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp68cpzjd_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp68cpzjd_/work/task.yag:19:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3009,
+    "out": 1705,
+    "reasoning": 1378
+   },
+   "out_bytes": 945
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp68cpzjd_/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp68cpzjd_/work/task.yag:19:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmp68cpzjd_/work/task.yag:20:16 first_readable: `text is` a `str` is never `None`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3487,
+    "out": 1065,
+    "reasoning": 740
+   },
+   "out_bytes": 940
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3996,
+    "out": 929,
+    "reasoning": 604
+   },
+   "out_bytes": 932
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 10492,
+   "out": 3699,
+   "reasoning": 2722,
+   "out_bytes": 2817
+  },
+  "spec": {
+   "in": 4774,
+   "out": 2500,
+   "reasoning": 1993,
+   "out_bytes": 1388
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp68cpzjd_/work/task.yag:8:8 first_readable: `assert first_readable([])` capability `fs` is not in scope | in `ex` of `first_readable`\n#2 E301 /tmp/tmp68cpzjd_/work/task.yag:9:8 first_readable: `assert first_readable([\"missing.txt\"])` capability `fs` is not in scope | in `ex` of `first_readable`\n#3 E301 /tmp/tmp68cpzjd_/work/task.yag:10:8 first_readable: `assert first_readable([\"../s"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp68cpzjd_/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp68cpzjd_/work/task.yag:19:20 first_readable: `= fs.read_text` capability operation `fs.read_text`: not supported by this toolchain yet"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp68cpzjd_/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp68cpzjd_/work/task.yag:19:39 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmp68cpzjd_/work/task.yag:20:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E017 task.yag:20:20 first_readable: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

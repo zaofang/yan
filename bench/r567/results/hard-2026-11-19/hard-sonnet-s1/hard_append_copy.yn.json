@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1610,
+   "out": 507,
+   "reasoning": 447,
+   "out_bytes": 114
+  },
+  "body": {
+   "in": 1743,
+   "out": 65,
+   "reasoning": 0,
+   "out_bytes": 121
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() >= 1\n  ex add_name(&[], \"a\") == ()\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1610,
+    "out": 507,
+    "reasoning": 447
+   },
+   "out_bytes": 114,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1743,
+    "out": 65,
+    "reasoning": 0
+   },
+   "out_bytes": 121,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

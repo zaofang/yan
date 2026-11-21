@@ -1,0 +1,2 @@
+module edge.err3
+record R { a: i64

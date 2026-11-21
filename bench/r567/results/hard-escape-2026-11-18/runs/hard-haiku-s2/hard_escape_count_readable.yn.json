@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1548,
+   "out": 1829,
+   "reasoning": 1450,
+   "out_bytes": 906
+  },
+  "body": {
+   "in": 4565,
+   "out": 2817,
+   "reasoning": 1820,
+   "out_bytes": 2371
+  }
+ },
+ "final": "-- Phase 2: bodies implemented. Signatures and contracts are unchanged.\n\ntype NoteError = { name: str }\n\n-- True only for a plain file name: no separators, no \"..\", no absolute paths.\nsafe_name(name: str) -> bool =\n  post out == False or (name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1 and name.split(\"..\").len() == 1)\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"../secret\") == False\n  name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1 and name.split(\"..\").len() == 1\n\n-- Reads notes/name. Missing or unreadable gives \"\". Only safe names reach the read.\nread_note(name: str) -> str uses fs =\n  pre safe_name(name)\n  post out.char_count() >= 0\n  ex read_note(\"missing.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else \"\"\n\n-- Counts names that are readable notes. Unsafe names are never opened.\n-- Note: an existing empty file reads as \"\" and so is not counted.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0 and out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret\", \"missing.txt\"]) == 0\n  var n = 0\n  for name in names\n    if safe_name(name)\n      if read_note(name) != \"\"\n        n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1548,
+    "out": 1829,
+    "reasoning": 1450
+   },
+   "out_bytes": 906,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2000,
+    "out": 1878,
+    "reasoning": 1379
+   },
+   "out_bytes": 1186,
+   "ok": false,
+   "report": "E100 task.yn:17:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2565,
+    "out": 939,
+    "reasoning": 441
+   },
+   "out_bytes": 1185,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:17:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

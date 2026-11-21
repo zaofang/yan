@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1611,
+   "out": 645,
+   "reasoning": 468,
+   "out_bytes": 359
+  },
+  "body": {
+   "in": 4167,
+   "out": 1599,
+   "reasoning": 1050,
+   "out_bytes": 1225
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  ex (checked_add(1, 2) else 0) == 3\n  ex (checked_add(-5, 3) else 0) == -2\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807 - 1, -1) == None\n  ex (checked_add(9223372036854775807, -1) else 0) == 9223372036854775806\n  let max = 9223372036854775807\n  let min = -9223372036854775807 - 1\n  if b > 0 and a > max - b\n    return None\n  if b < 0 and a < min - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1611,
+    "out": 645,
+    "reasoning": 468
+   },
+   "out_bytes": 359,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1861,
+    "out": 638,
+    "reasoning": 396
+   },
+   "out_bytes": 508,
+   "ok": false,
+   "report": "E401 task.yn:11:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:13:5 task.checked_add: `return None` `_out20` is used after `_out20.Some.value` was moved out of it | moved at 2:24\nE401 task.yn:14:3 task.checked_add: `a + b` `_t30` is used after `_t30.Some.value` was moved out of it | moved at 2:24",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2306,
+    "out": 961,
+    "reasoning": 654
+   },
+   "out_bytes": 717,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yn:11:5 task.checked_add: `return None` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:13:5 task.checked_add: `return None` `_out20` is used after `_out20.Some.value` was moved out of it | moved at 2:24\nE401 ./task.yn:14:3 task.checked_add: `a"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

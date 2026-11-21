@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1069,
+   "out": 851,
+   "reasoning": 553,
+   "out_bytes": 662
+  },
+  "body": {
+   "in": 1424,
+   "out": 367,
+   "reasoning": 64,
+   "out_bytes": 672
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place; return nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"b\")\n    assert dst == [\"a\", \"b\"]\n\n\ndef test_add_name_mutates_same_list() -> None:\n    dst: list[str] = []\n    ref = dst\n    add_name(dst, \"x\")\n    assert ref is dst\n    assert ref == [\"x\"]\n\n\ndef test_add_name_repeated_values() -> None:\n    dst: list[str] = []\n    add_name(dst, \"x\")\n    add_name(dst, \"x\")\n    assert dst == [\"x\", \"x\"]\n\n\ndef test_add_name_empty_string() -> None:\n    dst: list[str] = []\n    add_name(dst, \"\")\n    assert dst == [\"\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 851,
+    "reasoning": 553
+   },
+   "out_bytes": 662,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1424,
+    "out": 367,
+    "reasoning": 64
+   },
+   "out_bytes": 672,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

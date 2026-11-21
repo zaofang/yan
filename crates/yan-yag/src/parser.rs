@@ -521,6 +521,7 @@ impl Parser {
             attrs: Vec::new(),
             doc: None,
             items: Vec::new(),
+            reexports: Vec::new(),
         };
         while self.is_op("@@") {
             self.bump();
@@ -563,6 +564,13 @@ impl Parser {
                         );
                         body.contracts.push(c);
                     }
+                    Err(e) => self.recover(e),
+                }
+                continue;
+            }
+            if self.is_kw("pub") && matches!(self.tok_at(1), Tok::Name(n) if n == "use") {
+                match self.reexport() {
+                    Ok(r) => m.reexports.push(r),
                     Err(e) => self.recover(e),
                 }
                 continue;
@@ -736,6 +744,21 @@ impl Parser {
         };
         self.expect_newline()?;
         Ok(Decorator { path, args })
+    }
+
+    /// `pub use path.item as name` (RFC 0084 D5), one name per line, no globs.
+    fn reexport(&mut self) -> P<Reexport> {
+        let span = self.span();
+        self.bump();
+        self.bump();
+        let path = self.path()?;
+        let name = if self.eat_kw("as") {
+            self.name()?
+        } else {
+            path[path.len() - 1].clone()
+        };
+        self.expect_newline()?;
+        Ok(Reexport { name, path, span })
     }
 
     fn item(&mut self) -> P<Item> {
@@ -1965,14 +1988,19 @@ impl Parser {
             "with" => {
                 self.bump();
                 let kind =
-                    if (self.is_kw("deadline") || self.is_kw("timeout")) && self.is_op_at(1, "(") {
+                    if (self.is_kw("deadline") || self.is_kw("timeout") || self.is_kw("shield"))
+                        && self.is_op_at(1, "(")
+                    {
                         let deadline = self.is_kw("deadline");
+                        let shield = self.is_kw("shield");
                         self.bump();
                         self.bump();
                         let e = self.expr()?;
                         self.expect_op(")")?;
                         if deadline {
                             WithKind::Deadline(e)
+                        } else if shield {
+                            WithKind::Shield(e)
                         } else {
                             WithKind::Timeout(e)
                         }

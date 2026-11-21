@@ -17,6 +17,10 @@
 //! an ordinary owned local, so scope exits, drop lists, joins and flags
 //! treat it like any other; native lowering drops every field of it but the moved ones and frees
 //! the block of a boxed value. A second move out of `r` makes a remainder of the remainder.
+//! The remainder drops where the whole value would have (Antonio, 2026-11-18, #1628): when `r` is
+//! declared in the block holding the move, `_pN` takes `r`'s place in that block's drop order
+//! (`Local::rank`). A move under a branch or loop still drops the remainder at the end of that
+//! branch or loop body.
 //!
 //! Not covered yet: overwriting a field, and a field moved out of a name bound under an `or`
 //! pattern or a slice (it still moves the whole source).
@@ -35,7 +39,7 @@ use yan_flow::Binding;
 type Pos = (usize, usize);
 
 pub fn elaborate(m: &Module) -> Result<Module, Error> {
-    let obs = Observable::new(m);
+    let obs = own::Observable::new(m);
     let copy = own::ctors(&m.items);
     let mut out = m.clone();
     for it in &mut out.items {
@@ -61,7 +65,7 @@ pub fn elaborate(m: &Module) -> Result<Module, Error> {
 
 /// Run the pass over one body until the set of flagged locals stops growing.
 fn settle(
-    obs: &Observable,
+    obs: &own::Observable,
     copy: &own::Ctors,
     params: &[Param],
     body: &Block,
@@ -113,97 +117,24 @@ fn inout_params(params: &[Param]) -> HashMap<Name, Type> {
         .collect()
 }
 
-/// Types whose drop can be seen: custom `Drop`, `@linear`, extern handles, and anything holding one.
-struct Observable(HashSet<String>, HashSet<String>);
-
-impl Observable {
-    fn new(m: &Module) -> Self {
-        let last = |p: &Path| p.last().cloned().unwrap_or_default();
-        let mut set = HashSet::new();
-        for it in &m.items {
-            if it.attrs.iter().any(|a| a.name == "linear") {
-                match &it.kind {
-                    ItemKind::Record(r) => drop(set.insert(last(&r.path))),
-                    ItemKind::Sum(s) => drop(set.insert(last(&s.path))),
-                    _ => {}
-                }
-            }
-            match &it.kind {
-                ItemKind::Impl(i) if i.trait_.path.last().is_some_and(|n| n == "Drop") => {
-                    if let Type::Named(n) = &i.for_ty {
-                        set.insert(last(&n.path));
-                    }
-                }
-                ItemKind::Extern(x) => {
-                    for xi in &x.items {
-                        if let XItem::Type { name, .. } = xi {
-                            set.insert(name.clone());
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
-        // Fields may not be moved out of these themselves (4.2), though they may out of a holder.
-        let own_drop = set.clone();
-        loop {
-            let before = set.len();
-            for it in &m.items {
-                let (name, tys): (String, Vec<&Type>) = match &it.kind {
-                    ItemKind::Record(r) => {
-                        (last(&r.path), r.fields.iter().map(|f| &f.ty).collect())
-                    }
-                    ItemKind::Sum(s) => (
-                        last(&s.path),
-                        s.variants
-                            .iter()
-                            .flat_map(|v| v.fields.iter().flatten().map(|f| &f.ty))
-                            .collect(),
-                    ),
-                    ItemKind::Newtype(n) => (last(&n.path), vec![&n.ty]),
-                    _ => continue,
-                };
-                if tys.iter().any(|t| mentions(t, &set)) {
-                    set.insert(name);
-                }
-            }
-            if set.len() == before {
-                return Observable(set, own_drop);
-            }
-        }
-    }
-
-    fn of(&self, t: &Type) -> bool {
-        mentions(t, &self.0)
-    }
-
-    /// A type with a custom `Drop` or `@linear`, or an extern handle.
-    fn has_drop(&self, t: &Type) -> bool {
-        mentions(t, &self.1)
-    }
-}
-
-fn mentions(t: &Type, set: &HashSet<String>) -> bool {
-    match t {
-        Type::Named(n) => {
-            n.path.last().is_some_and(|b| set.contains(b))
-                || n.args
-                    .iter()
-                    .any(|a| matches!(a, TArg::Type(t) if mentions(t, set)))
-        }
-        Type::Tuple(ts) | Type::Union(ts) => ts.iter().any(|t| mentions(t, set)),
-        Type::Refined { ty, .. } => mentions(ty, set),
-        Type::Dyn(_) => true,
-        Type::Fn(_) => false,
-    }
-}
-
 struct Local {
     name: Name,
     ty: Type,
     id: Binding,
     /// For the remainder `rest` made of a local: that local, whose fields moved out of it.
     of: Option<Name>,
+    /// Where it drops among the locals of its scope: its declaration order, except that the
+    /// remainder of a local declared in the same block takes that local's place, so the rest of a
+    /// partly moved value drops where the whole value would have (4.2, #1628).
+    rank: usize,
+}
+
+/// A scope's locals in the order they drop: latest rank first, later declaration first among
+/// equals.
+fn drop_order(scope: &[Local]) -> Vec<&Local> {
+    let mut ls: Vec<(usize, &Local)> = scope.iter().enumerate().collect();
+    ls.sort_by_key(|&(i, l)| std::cmp::Reverse((l.rank, i)));
+    ls.into_iter().map(|(_, l)| l).collect()
 }
 
 struct Loop {
@@ -258,7 +189,7 @@ struct Branch {
 }
 
 struct Elab<'a> {
-    obs: &'a Observable,
+    obs: &'a own::Observable,
     copy: &'a own::Ctors,
     facts: &'a Facts,
     /// Local to the name of its drop flag.
@@ -495,11 +426,22 @@ impl Elab<'_> {
         at: Span,
         out: &mut Vec<Stmt>,
     ) {
-        self.cx.scopes.last_mut().expect("in a scope").push(Local {
+        let scope = self.cx.scopes.last_mut().expect("in a scope");
+        let rank = of
+            .as_ref()
+            .and_then(|r| {
+                scope
+                    .iter()
+                    .rev()
+                    .find(|l| &l.name == r || l.of.as_ref() == Some(r))
+            })
+            .map_or(scope.len(), |l| l.rank);
+        scope.push(Local {
             name: n.clone(),
             ty: ty.clone(),
             id,
             of,
+            rank,
         });
         if let Some(f) = self.flags.get(n) {
             out.push(stmt(
@@ -552,7 +494,7 @@ impl Elab<'_> {
                 break;
             }
             let from = if si == pos.0 { pos.1 } else { 0 };
-            for l in scope[from..].iter().rev() {
+            for l in drop_order(&scope[from..]) {
                 if !skip.contains(&l.name) {
                     self.drop_stmt(&l.name, at, k, out);
                 }
@@ -565,7 +507,7 @@ impl Elab<'_> {
     fn exit_names(&self, skip: &[Name], k: Key) -> Vec<Name> {
         let mut out = Vec::new();
         for scope in self.cx.scopes.iter().rev() {
-            for l in scope.iter().rev() {
+            for l in drop_order(scope) {
                 let owned = self.flags.contains_key(&l.name) || self.facts.must(k, l.id);
                 if owned && !skip.contains(&l.name) {
                     out.push(l.name.clone());
@@ -586,7 +528,7 @@ impl Elab<'_> {
                 continue;
             }
             let upto = if si == pos.0 { pos.1 } else { scope.len() };
-            for l in scope[..upto.min(scope.len())].iter().rev() {
+            for l in drop_order(&scope[..upto.min(scope.len())]) {
                 if seen.insert(l.name.clone()) {
                     visible.push((l.name.clone(), l.id, self.obs.of(&l.ty)));
                 }
@@ -615,10 +557,9 @@ impl Elab<'_> {
     /// What `s` consumes, with a name bound by a `match` pattern standing for the scrutinee it
     /// views: moving the payload out moves the scrutinee.
     fn consumed(&self, s: &StmtKind) -> Vec<Name> {
-        own::consumption(s, &self.cx.views)
-            .whole
-            .into_iter()
-            .map(|r| self.owner(&r).unwrap_or(r))
+        let c = own::consumption(s, &self.cx.views);
+        c.owners()
+            .map(|r| self.owner(r).unwrap_or_else(|| r.clone()))
             .collect()
     }
 
@@ -636,7 +577,7 @@ impl Elab<'_> {
                 continue;
             };
             let ty = self.local(&owner).expect("an owner is a local").ty.clone();
-            if self.obs.has_drop(&ty) {
+            if self.obs.has_custom_drop(&ty) {
                 self.unsupported = Some("a field moved out of a type with a custom `Drop`");
             }
             let moved = c
@@ -874,7 +815,7 @@ impl Elab<'_> {
                     let base = own::scrutinee_view(&self.cx.views, x);
                     if self.owner(&base.root).is_some() {
                         for ((p, _), b) in arms.iter().zip(&mut bound) {
-                            *b = own::pat_views(p, self.copy, &base);
+                            *b = own::pat_views(p, self.copy, self.local(x).map(|l| &l.ty), &base);
                         }
                     }
                 }
@@ -1057,13 +998,18 @@ impl Elab<'_> {
                 self.clear_flags(flagged, at, out);
                 flow
             }
-            StmtKind::Deadline { at: when, body } => {
+            StmtKind::Deadline {
+                at: when,
+                body,
+                shield,
+            } => {
                 let nb = self.block(body, Vec::new());
                 let flow = self.flow_of(&nb);
                 out.push(stmt(
                     StmtKind::Deadline {
                         at: when.clone(),
                         body: nb,
+                        shield: *shield,
                     },
                     at,
                 ));
@@ -1190,6 +1136,15 @@ mod tests {
             };
             at += i + 1;
         }
+    }
+
+    #[test]
+    fn the_rest_of_a_partly_moved_value_drops_where_the_whole_value_would() {
+        let t = elab(
+            "module t\nfn f(sink p: Tuple(Str, Str)) -> Unit {\n let a: Str = p._0\n let k: Str = \"k\"\n\
+             var x: Str = move a\n ret ()\n}\n",
+        );
+        has(&t, &["drop x", "drop k", "drop _p1"]);
     }
 
     #[test]

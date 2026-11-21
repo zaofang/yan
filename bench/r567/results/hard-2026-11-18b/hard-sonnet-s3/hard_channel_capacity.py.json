@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1041,
+   "reasoning": 243,
+   "out_bytes": 1801
+  },
+  "body": {
+   "in": 1940,
+   "out": 1121,
+   "reasoning": 199,
+   "out_bytes": 2106
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Count how many elements of xs a bounded queue of capacity cap accepts.\n\n    Creates a bounded queue holding at most cap integers and tries to put\n    each element of xs in order without blocking. Stops at the first put\n    that fails because the queue is full, and returns the number of puts\n    accepted before that point. A capacity of zero or less accepts nothing.\n    \"\"\"\n    if cap <= 0:\n        # queue.Queue treats maxsize <= 0 as unbounded, so handle it here.\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_cap_smaller_than_input() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_cap_equal_to_input() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_cap_larger_than_input() -> None:\n    assert accepted(10, [1, 2, 3]) == 3\n\n\ndef test_empty_input() -> None:\n    assert accepted(5, []) == 0\n\n\ndef test_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_negative_capacity() -> None:\n    assert accepted(-3, [1, 2]) == 0\n\n\ndef test_capacity_one() -> None:\n    assert accepted(1, [7, 8, 9]) == 1\n\n\ndef test_duplicates_are_all_counted() -> None:\n    assert accepted(4, [5, 5, 5, 5, 5]) == 4\n\n\ndef test_does_not_block_when_full() -> None:\n    # Would hang forever if the implementation used a blocking put.\n    assert accepted(1, [1, 2, 3, 4, 5]) == 1\n\n\n@pytest.mark.parametrize(\n    (\"cap\", \"n\", \"expected\"),\n    [(0, 5, 0), (1, 5, 1), (4, 5, 4), (5, 5, 5), (6, 5, 5)],\n)\ndef test_accepted_is_min_of_cap_and_len(cap: int, n: int, expected: int) -> None:\n    assert accepted(cap, list(range(n))) == expected\n\n\ndef test_queue_module_full_exception_exists() -> None:\n    # Sanity check on the exception the implementation is expected to handle.\n    q: queue.Queue[int] = queue.Queue(maxsize=1)\n    q.put_nowait(1)\n    with pytest.raises(queue.Full):\n        q.put_nowait(2)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1041,
+    "reasoning": 243
+   },
+   "out_bytes": 1801,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1940,
+    "out": 1121,
+    "reasoning": 199
+   },
+   "out_bytes": 2106,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

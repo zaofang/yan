@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 687,
+   "reasoning": 619,
+   "out_bytes": 133
+  },
+  "body": {
+   "in": 3793,
+   "out": 1210,
+   "reasoning": 888,
+   "out_bytes": 649
+  }
+ },
+ "final": "plugin(path: str) -> str uses fs =\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  ex run_plugin(\"no_such_file.txt\") == \"|\"\n  var out = \"\"\n  with fs = fs.sub(\"notes\")\n    out = plugin(path)\n  out\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 687,
+    "reasoning": 619
+   },
+   "out_bytes": 133,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1783,
+    "out": 619,
+    "reasoning": 464
+   },
+   "out_bytes": 311,
+   "ok": false,
+   "report": "E312 task.yn:10:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2010,
+    "out": 591,
+    "reasoning": 424
+   },
+   "out_bytes": 338,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:10:5 run_plugin: `plugin(path)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

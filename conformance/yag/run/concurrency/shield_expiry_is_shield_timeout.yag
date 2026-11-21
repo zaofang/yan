@@ -1,0 +1,14 @@
+# spec: 9.4
+# rows: R812
+# note: a shield's own expiry leaves the block as ShieldTimeout, not Timeout
+# stdout:
+# ShieldTimeout()
+
+def hold() -> str fail Cancelled | Timeout | ShieldTimeout uses io, time, shield:
+    with shield(10 * ms):
+        time.sleep(1 * s)?
+    return "ok"
+
+pub def main() uses io, time, shield:
+    with time = virtual(time.now()):
+        io.print(hold() else err -> f"{err}")

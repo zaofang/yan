@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1718,
+   "out": 741,
+   "reasoning": 520,
+   "out_bytes": 513
+  },
+  "body": {
+   "in": 2012,
+   "out": 1054,
+   "reasoning": 783,
+   "out_bytes": 624
+  }
+ },
+ "final": "-- Reads `name` from inside `notes` only. A missing or unreadable file, or a\n-- name that would reach outside `notes`, gives \"\".\nread_note(name: str) -> str uses fs =\n  ex read_note(\"../secret\") == \"\"\n  ex read_note(\"/etc/passwd\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n\n-- Counts the names that can be read as files inside `notes`.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  ex count_readable([\"../secret\", \"/etc/passwd\"]) == 0\n  var n = 0\n  for name in names\n    if read_note(name) != \"\"\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1718,
+    "out": 741,
+    "reasoning": 520
+   },
+   "out_bytes": 513,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2012,
+    "out": 1054,
+    "reasoning": 783
+   },
+   "out_bytes": 624,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

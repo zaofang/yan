@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1476,
+   "out": 544,
+   "reasoning": 389,
+   "out_bytes": 254
+  },
+  "body": {
+   "in": 1704,
+   "out": 205,
+   "reasoning": 0,
+   "out_bytes": 341
+  }
+ },
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\narea(s: Shape) -> int =\n  ex area(Rect(w: 2, h: 3)) == 6\n  ex area(Square(side: 4)) == 16\n  ex area(Tri(b: 3, h: 3)) == 4\n  ex area(Tri(b: 5, h: 3)) == 7\n  match s\n    Rect(w:, h:) -> w * h\n    Square(side:) -> side * side\n    Tri(b:, h:) -> (b * h) // 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1476,
+    "out": 544,
+    "reasoning": 389
+   },
+   "out_bytes": 254,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1704,
+    "out": 205,
+    "reasoning": 0
+   },
+   "out_bytes": 341,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

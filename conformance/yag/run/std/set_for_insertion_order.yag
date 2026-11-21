@@ -1,0 +1,18 @@
+# spec: 17.3
+# stdout:
+# b c d
+# 3
+
+def main() uses io:
+    s: set[str] = set()
+    for w in ["b", "a", "b", "c", "d"]:
+        s.add(w.copy())
+    s.discard("a")
+    parts: list[str] = []
+    for x in s:
+        parts.append(x.copy())
+    io.print(" ".join(parts))
+    n = 0
+    for _ in s:
+        n += 1
+    io.print(f"{n}")

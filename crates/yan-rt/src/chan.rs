@@ -36,14 +36,15 @@ pub(crate) fn deadlock() -> ! {
 /// `std.chan.Channel`: a channel of `words`-slot elements holding up to `cap` of them.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_chan_new(cap: u64, words: u64) -> *mut Chan {
-    crate::heap::block_taken();
-    Box::into_raw(Box::new(Chan {
+    let ch = Box::into_raw(Box::new(Chan {
         cap: cap as usize,
         words: words as usize,
         q: VecDeque::new(),
         ends: 2,
         senders: 1,
-    }))
+    }));
+    crate::heap::block_taken(ch as usize, crate::heap::release_box::<Chan>);
+    ch
 }
 
 /// The status of an operation that parked its task: run it again when the task resumes.
@@ -59,11 +60,19 @@ pub const CLOSED: u64 = 3;
 /// with no room (`Empty`, `Full`).
 pub const NOT_READY: u64 = 4;
 
+/// The status of a wait that nothing can end inside a deadline scope: it fails `Timeout` once
+/// the deadline passes (9.4).
+pub const TIMEOUT: u64 = 5;
+
 /// A wait that cannot park leaves nothing else to run, so an idle actor runs a queued message
 /// first, as it would at `par concurrent` quiescence (RFC 0056 D4): [`crate::actor::WORK`].
-fn idle_or_deadlock() -> u64 {
+pub(crate) fn idle_or_deadlock() -> u64 {
     if crate::actor::yan_rt_actor_idle() == 0 {
-        deadlock();
+        let Some(d) = crate::deadline::current() else {
+            deadlock();
+        };
+        crate::civil::wait_until(d);
+        return crate::deadline::cut_status(TIMEOUT, CANCELLED);
     }
     crate::actor::WORK
 }
@@ -284,9 +293,13 @@ pub fn select_wait(keys: &[u64], at: &[u64], in_task: bool) -> (u64, u64) {
         if crate::actor::yan_rt_actor_idle() != 0 {
             return (crate::actor::WORK, 0);
         }
-        match wake {
-            Some(w) => crate::civil::wait_until(w),
-            None => deadlock(),
+        match (wake, crate::deadline::current()) {
+            (Some(w), Some(d)) if d < w => {
+                crate::civil::wait_until(d);
+                return (crate::deadline::cut_status(TIMEOUT, CANCELLED), 0);
+            }
+            (Some(w), _) => crate::civil::wait_until(w),
+            (None, _) => return (idle_or_deadlock(), 0),
         }
     }
 }
@@ -301,7 +314,40 @@ pub(crate) unsafe fn push(ch: usize, v: &[u64]) {
     c.q.extend(v);
 }
 
-/// Drop one end; the channel goes with its last. Queued elements are not dropped (RFC 0043).
+/// `(ch, out) -> i64`: with `ch` on its last end, move its oldest queued element into `out` and
+/// return 1; otherwise, or with nothing queued, 0. The end being dropped runs its drop glue
+/// (5.4) on each element before the channel is freed.
+///
+/// # Safety
+/// `ch` is a live channel or null (a `Sender` that `close` ended), `out` has room for its
+/// element's slots.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_chan_drain(ch: *mut Chan, out: *mut u64) -> u64 {
+    let Some(v) = drain(ch as usize) else {
+        return 0;
+    };
+    for (i, w) in v.into_iter().enumerate() {
+        // SAFETY: the caller's contract.
+        unsafe { *out.add(i) = w };
+    }
+    1
+}
+
+/// `drain`: the oldest element's slots when `ch` is on its last end.
+pub fn drain(ch: usize) -> Option<Vec<u64>> {
+    if ch == 0 {
+        return None;
+    }
+    // SAFETY: a live channel, the contract of every operation on it.
+    let c = unsafe { &mut *(ch as *mut Chan) };
+    if c.ends != 1 || c.len() == 0 {
+        return None;
+    }
+    Some(c.q.drain(..c.stride()).take(c.words).collect())
+}
+
+/// Drop one end; the channel goes with its last. Elements still queued were drained by the
+/// caller's drop glue (`yan_rt_chan_drain`).
 ///
 /// # Safety
 /// `ch` is a live channel and this end is not used afterwards.
@@ -311,7 +357,7 @@ pub unsafe extern "C" fn yan_rt_chan_drop(ch: *mut Chan) {
     let c = unsafe { &mut *ch };
     c.ends -= 1;
     if c.ends == 0 {
-        crate::heap::block_freed();
+        crate::heap::block_freed(ch as usize);
         // SAFETY: from `yan_rt_chan_new`, and both ends are gone.
         drop(unsafe { Box::from_raw(ch) });
     }

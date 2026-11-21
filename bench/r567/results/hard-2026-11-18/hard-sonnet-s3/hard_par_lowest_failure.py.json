@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1971,
+   "reasoning": 849,
+   "out_bytes": 2543
+  },
+  "body": {
+   "in": 2347,
+   "out": 2016,
+   "reasoning": 759,
+   "out_bytes": 2924
+  }
+ },
+ "final": "import threading\nimport time\nfrom concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in input order. If any element is bad,\n    raises the Bad of the lowest-index bad element, regardless of which\n    check finishes first. Returns [] for an empty list.\n    \"\"\"\n    if not xs:\n        return []\n    with ThreadPoolExecutor(max_workers=min(len(xs), 32)) as pool:\n        futures = [pool.submit(check, x) for x in xs]\n        # Futures are read in input order, so the first one that raises is\n        # the lowest-index bad element. Leaving the with-block waits for all\n        # submitted checks to finish.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_ok_preserves_order() -> None:\n    assert all_even([8, 2, 6, 4, 0]) == [8, 2, 6, 4, 0]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([2, 4, 3, 6])\n    assert exc.value.n == 3\n\n\ndef test_all_even_raises_lowest_index_bad() -> None:\n    with pytest.raises(Bad) as exc:\n        all_even([2, 4, 7, 6, 5, 9])\n    assert exc.value.n == 7\n\n\ndef test_all_even_lowest_index_not_first_to_finish(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    def slow_check(x: int) -> int:\n        if x == 1:\n            time.sleep(0.2)\n            raise Bad(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", slow_check)\n    with pytest.raises(Bad) as exc:\n        all_even([2, 1, 3, 5])\n    assert exc.value.n == 1\n\n\ndef test_all_even_runs_checks_concurrently(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    barrier = threading.Barrier(3, timeout=5)\n\n    def barrier_check(x: int) -> int:\n        barrier.wait()\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", barrier_check)\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_all_even_checks_every_element(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    seen: list[int] = []\n    lock = threading.Lock()\n\n    def recording_check(x: int) -> int:\n        with lock:\n            seen.append(x)\n        if x % 2 == 1:\n            raise Bad(x)\n        return x\n\n    monkeypatch.setattr(f\"{__name__}.check\", recording_check)\n    with pytest.raises(Bad) as exc:\n        all_even([1, 2, 4, 6])\n    assert exc.value.n == 1\n    assert sorted(seen) == [1, 2, 4, 6]\n\n\ndef test_all_even_uses_thread_pool_type_available() -> None:\n    # Sanity check that the executor the task relies on is importable.\n    with ThreadPoolExecutor(max_workers=1) as pool:\n        assert pool.submit(check, 2).result() == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1971,
+    "reasoning": 849
+   },
+   "out_bytes": 2543,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2347,
+    "out": 2016,
+    "reasoning": 759
+   },
+   "out_bytes": 2924,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

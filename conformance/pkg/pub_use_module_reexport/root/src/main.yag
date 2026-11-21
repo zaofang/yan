@@ -1,0 +1,4 @@
+pub def main() -> None uses io:
+    io.print(str(web.c.open(2)))
+    r = web.c.Req(n=3)
+    io.print(str(r.n))

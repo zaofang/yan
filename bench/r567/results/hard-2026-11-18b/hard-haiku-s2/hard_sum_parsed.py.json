@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1108,
+   "out": 983,
+   "reasoning": 579,
+   "out_bytes": 911
+  },
+  "body": {
+   "in": 1569,
+   "out": 545,
+   "reasoning": 94,
+   "out_bytes": 1068
+  }
+ },
+ "final": "import pytest\n\n\nclass BadInput(Exception):\n    def __init__(self, text: str) -> None:\n        self.text = text\n\n\ndef sum_parsed(xs: list[str]) -> int:\n    \"\"\"Parse each string as an int and return the sum.\n\n    Raises BadInput carrying the first string that is not a valid integer.\n    \"\"\"\n    total = 0\n    for text in xs:\n        try:\n            total += int(text)\n        except ValueError:\n            raise BadInput(text) from None\n    return total\n\n\ndef test_sum_parsed_basic() -> None:\n    assert sum_parsed([\"1\", \"2\", \"3\"]) == 6\n\n\ndef test_sum_parsed_empty() -> None:\n    assert sum_parsed([]) == 0\n\n\ndef test_sum_parsed_signs() -> None:\n    assert sum_parsed([\"-3\", \"+4\", \"10\"]) == 11\n\n\ndef test_sum_parsed_bad_input_carries_text() -> None:\n    with pytest.raises(BadInput) as excinfo:\n        sum_parsed([\"1\", \"x\", \"2\"])\n    assert excinfo.value.text == \"x\"\n\n\ndef test_sum_parsed_reports_first_bad_input() -> None:\n    with pytest.raises(BadInput) as excinfo:\n        sum_parsed([\"1\", \"abc\", \"def\", \"2\"])\n    assert excinfo.value.text == \"abc\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1108,
+    "out": 983,
+    "reasoning": 579
+   },
+   "out_bytes": 911,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1569,
+    "out": 545,
+    "reasoning": 94
+   },
+   "out_bytes": 1068,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,124 @@
+{
+ "final": "def join_parts(head: str, tail: str) -> str:\n    \"\"\"Join head and tail with a \"|\" separator.\"\"\"\n    ex join_parts(\"a\", \"b\") == \"a|b\"\n    return head + \"|\" + tail\n\ndef plugin(path: str) -> str uses fs:\n    \"\"\"Return the file at path followed by notes/../secret.txt, joined by \"|\". Any read that fails contributes an empty string.\"\"\"\n    mine = fs.read(path) else \"\"\n    theirs = fs.read(\"notes/../secret.txt\") else \"\"\n    return join_parts(mine, theirs)\n\ndef run_plugin(path: str) -> str uses fs:\n    \"\"\"Return plugin(path) run with fs narrowed to the notes directory, so every read outside notes yields an empty string.\"\"\"\n    pre not path.startswith(\"/\")\n    with fs = fs.sub(\"notes\"):\n        result = plugin(path)\n    return result\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp94ng_zmh/work/task.yag:3:8 plugin: `assert plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp94ng_zmh/work/task.yag:9:8 run_plugin: `assert run_plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 1531,
+    "reasoning": 1343
+   },
+   "out_bytes": 474
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2598,
+    "out": 678,
+    "reasoning": 466
+   },
+   "out_bytes": 540
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2908,
+    "out": 1112,
+    "reasoning": 817
+   },
+   "out_bytes": 745
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_plugin_confine",
+ "tokens": {
+  "body": {
+   "in": 2908,
+   "out": 1112,
+   "reasoning": 817,
+   "out_bytes": 745
+  },
+  "spec": {
+   "in": 4821,
+   "out": 2209,
+   "reasoning": 1809,
+   "out_bytes": 1014
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp94ng_zmh/work/task.yag:3:8 plugin: `assert plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `plugin`\n#2 E301 /tmp/tmp94ng_zmh/work/task.yag:9:8 run_plugin: `assert run_plugin(\"missing.txt\")` capability `fs` is not in scope | in `ex` of `run_plugin`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

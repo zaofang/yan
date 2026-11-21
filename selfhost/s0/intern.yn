@@ -1,0 +1,24 @@
+--- S0 readiness 3: Map with str and newtype keys, insertion-ordered iteration, interning.
+
+type Sym = newtype[int]
+
+type Interner = { ids: Map[str, Sym], names: List[str] }
+
+intern(var t: Interner, s: str) -> Sym uses none =
+  let found = t.ids.get(s)
+  if found is not None
+    return found.copy()
+  let id = Sym(len(t.names))
+  t.ids[s.copy()] = id.copy()
+  t.names.append(s.copy())
+  id
+
+main() uses io =
+  var t = Interner(ids: {}, names: [])
+  var count: Map[Sym, int] = {}
+  for w in ["b", "a", "b", "c", "a", "b"]
+    let s = intern(&t, w.copy())
+    count[s] += 1
+  for (k, v) in count.items()
+    io.print("\(t.names[k.value])=\(v)")
+  io.print("\(len(count)) \(len(t.names))")

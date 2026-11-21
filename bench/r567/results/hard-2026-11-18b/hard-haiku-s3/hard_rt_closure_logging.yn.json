@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3146,
+   "out": 1846,
+   "reasoning": 1615,
+   "out_bytes": 506
+  },
+  "body": {
+   "in": 1853,
+   "out": 644,
+   "reasoning": 526,
+   "out_bytes": 255
+  }
+ },
+ "final": "-- Helper: wraps a job's result. Declares no capabilities; the job may capture the caller's.\nok_job() -> str = \"done\"\n\nwrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(ok_job) == \"start:done:end\"\n  \"start:\\(job()):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1484,
+    "out": 1072,
+    "reasoning": 959
+   },
+   "out_bytes": 251,
+   "ok": false,
+   "report": "E100 task.yn:2:19 `= unreachable` unexpected token; expected an expression",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1662,
+    "out": 774,
+    "reasoning": 656
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1853,
+    "out": 644,
+    "reasoning": 526
+   },
+   "out_bytes": 255,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

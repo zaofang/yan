@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2566,
+   "reasoning": 1024,
+   "out_bytes": 3468
+  },
+  "body": {
+   "in": 2854,
+   "out": 2412,
+   "reasoning": 701,
+   "out_bytes": 3927
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef make_confined_reader(base: str) -> Callable[[str], str]:\n    \"\"\"Return a reader that returns the text of a file only when it resolves\n    to a location inside directory `base`.\n\n    The reader takes a path relative to `base`. If the resolved path lies\n    outside `base` (through `..` segments, absolute paths, or symlinks), or the\n    file cannot be read, it returns an empty string.\n    \"\"\"\n    base_dir = Path(base).resolve()\n\n    def reader(p: str) -> str:\n        target = (base_dir / p).resolve()\n        if not target.is_relative_to(base_dir):\n            return \"\"\n        try:\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, UnicodeDecodeError):\n            return \"\"\n\n    return reader\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    \"\"\"Untrusted plugin: reads `path` via `read`, then reads 'notes/../secret.txt'\n    via `read`, and returns the two texts joined by '|'.\n    \"\"\"\n    mine = read(path)\n    theirs = read(\"notes/../secret.txt\")\n    return mine + \"|\" + theirs\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Return what `plugin(path, read)` returns, where `read` is a reader confined\n    to the `notes` directory (see make_confined_reader). Paths that cannot be\n    read inside `notes` yield an empty string.\n    \"\"\"\n    return plugin(path, make_confined_reader(\"notes\"))\n\n\ndef test_make_confined_reader_reads_inside(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    reader = make_confined_reader(str(notes))\n    assert reader(\"a.txt\") == \"hello\"\n\n\ndef test_make_confined_reader_blocks_parent_traversal(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    reader = make_confined_reader(str(notes))\n    assert reader(\"../secret.txt\") == \"\"\n    assert reader(\"sub/../../secret.txt\") == \"\"\n\n\ndef test_make_confined_reader_blocks_absolute_path(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    outside = tmp_path / \"outside.txt\"\n    outside.write_text(\"nope\", encoding=\"utf-8\")\n    reader = make_confined_reader(str(notes))\n    assert reader(str(outside)) == \"\"\n\n\ndef test_make_confined_reader_missing_file_is_empty(tmp_path: Path) -> None:\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    reader = make_confined_reader(str(notes))\n    assert reader(\"missing.txt\") == \"\"\n\n\ndef test_plugin_uses_given_reader() -> None:\n    calls: list[str] = []\n\n    def fake_read(p: str) -> str:\n        calls.append(p)\n        return \"X\"\n\n    assert plugin(\"a.txt\", fake_read) == \"X|X\"\n    assert calls == [\"a.txt\", \"notes/../secret.txt\"]\n\n\ndef test_run_plugin_reads_inside_notes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    assert run_plugin(\"a.txt\") == \"hello|\"\n\n\ndef test_run_plugin_never_leaks_outside_secret(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    result = run_plugin(\"a.txt\")\n    assert \"TOP SECRET\" not in result\n    assert result == \"|\"\n\n\ndef test_run_plugin_outside_absolute_path_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    outside = tmp_path / \"outside.txt\"\n    outside.write_text(\"nope\", encoding=\"utf-8\")\n    assert run_plugin(str(outside)) == \"|\"\n\n\ndef test_run_plugin_missing_file_is_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    assert run_plugin(\"nope.txt\") == \"|\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2566,
+    "reasoning": 1024
+   },
+   "out_bytes": 3468,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2854,
+    "out": 2412,
+    "reasoning": 701
+   },
+   "out_bytes": 3927,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

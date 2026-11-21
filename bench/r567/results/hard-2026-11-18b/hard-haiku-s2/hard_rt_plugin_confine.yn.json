@@ -1,0 +1,115 @@
+{
+ "status": "green",
+ "rounds_to_green": 4,
+ "tokens": {
+  "spec": {
+   "in": 1642,
+   "out": 2150,
+   "reasoning": 1843,
+   "out_bytes": 706
+  },
+  "body": {
+   "in": 10769,
+   "out": 3993,
+   "reasoning": 2477,
+   "out_bytes": 3436
+  }
+ },
+ "final": "-- Phase 2: bodies filled in. Signatures and contracts are unchanged from phase 1.\n\n-- The untrusted plugin. It receives a confined `fs` and reads what it asks for.\nplugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.char_count() >= 1\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin with `fs` narrowed to `notes`, so `path` is relative to `notes`.\n-- Anything the plugin reads outside `notes` yields \"\".\n-- The result always contains the \"|\" separator, so it is never empty.\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() > 0\n  post out.char_count() >= 1\n  -- Assumes notes/nofile.txt and notes/secret.txt do not exist, so both reads give \"\".\n  ex run_plugin(\"nofile.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    return plugin(path)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1642,
+    "out": 2150,
+    "reasoning": 1843
+   },
+   "out_bytes": 706,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2022,
+    "out": 1230,
+    "reasoning": 851
+   },
+   "out_bytes": 856,
+   "ok": false,
+   "report": "E100 task.yn:19:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2467,
+    "out": 999,
+    "reasoning": 621
+   },
+   "out_bytes": 855,
+   "ok": false,
+   "report": "E312 task.yn:20:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2917,
+    "out": 839,
+    "reasoning": 459
+   },
+   "out_bytes": 863,
+   "ok": false,
+   "report": "E100 task.yn:19:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 3363,
+    "out": 925,
+    "reasoning": 546
+   },
+   "out_bytes": 862,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E100 task.yn:19:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

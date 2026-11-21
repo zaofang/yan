@@ -1,0 +1,183 @@
+{
+ "final": "class DivZero:\n    a: int\n\ndef safe_div(a: int, b: int) -> int fail DivZero:\n    \"\"\"Integer quotient of a divided by b. Fails with DivZero carrying a when b is zero.\"\"\"\n    ex safe_div(7, 2) == 3\n    ex safe_div(9, 3) == 3\n    ex safe_div(5, 0) == Err(DivZero(a=5))\n    if not b:\n        fail DivZero(a=a)\n    return a // b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E200 /tmp/tmpht9qs5_g/work/task.yag:8:8 safe_div: `(DivZero)` cannot find `DivZero` | in `ex` of `safe_div`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E200"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2046,
+    "out": 994,
+    "reasoning": 856
+   },
+   "out_bytes": 279
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2285,
+    "out": 768,
+    "reasoning": 625
+   },
+   "out_bytes": 284
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpht9qs5_g/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpht9qs5_g/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2526,
+    "out": 970,
+    "reasoning": 804
+   },
+   "out_bytes": 335
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpht9qs5_g/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpht9qs5_g/work/task.yag:9:16 safe_div: `a /` `else` needs an optional or a fallible call, found `int`",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2827,
+    "out": 1295,
+    "reasoning": 1129
+   },
+   "out_bytes": 341
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3134,
+    "out": 909,
+    "reasoning": 745
+   },
+   "out_bytes": 334
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_div",
+ "tokens": {
+  "body": {
+   "in": 8487,
+   "out": 3174,
+   "reasoning": 2678,
+   "out_bytes": 1010
+  },
+  "spec": {
+   "in": 4331,
+   "out": 1762,
+   "reasoning": 1481,
+   "out_bytes": 563
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:682c52e1c95f67c44780c9c545c70fc92aec86323106a532a1c07a3d168c585e",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E200"
+   ],
+   "report": "#1 E200 /tmp/tmpht9qs5_g/work/task.yag:8:8 safe_div: `(DivZero)` cannot find `DivZero` | in `ex` of `safe_div`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmpht9qs5_g/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmpht9qs5_g/work/task.yag:9:8 safe_div: `b =` this branch special-cases an `ex` input"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpht9qs5_g/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E201 /tmp/tmpht9qs5_g/work/task.yag:9:16 safe_div: `a /` `else` needs an optional or a fallible call, found `int`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -335,6 +335,7 @@ pub fn item_text(it: &Item) -> String {
         attrs: Vec::new(),
         doc: None,
         items: vec![it.clone()],
+        reexports: Vec::new(),
     })
 }
 

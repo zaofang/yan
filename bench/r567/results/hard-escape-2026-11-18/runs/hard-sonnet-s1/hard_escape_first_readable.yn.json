@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 813,
+   "reasoning": 516,
+   "out_bytes": 700
+  },
+  "body": {
+   "in": 4386,
+   "out": 2088,
+   "reasoning": 1161,
+   "out_bytes": 2251
+  }
+ },
+ "final": "-- A name is safe when it is a plain relative path that stays inside the\n-- directory: not empty, no NUL, not absolute, no backslash, no \"..\" segment.\nsafe_name(name: str) -> bool =\n  ex safe_name(\"a.txt\") == True\n  ex safe_name(\"\") == False\n  ex safe_name(\"../secret\") == False\n  ex safe_name(\"/etc/passwd\") == False\n  ex safe_name(\"a/../../b\") == False\n  if name.char_count() == 0\n    return False\n  for c in name.chars()\n    if c == \"\\\\\" or c == \"\\0\" or c == \":\"\n      return False\n  let parts = name.split(\"/\")\n  -- a leading \"/\" yields an empty first segment: absolute path\n  if parts[0] == \"\"\n    return False\n  for p in parts\n    if p == \"..\"\n      return False\n  True\n\n-- Text of the first name in `names` that can be read from `notes`,\n-- or \"\" when none can. Reads go through `fs` confined to `notes`.\nfirst_readable(names: List[str]) -> str uses fs =\n  post names.len() > 0 or out == \"\"\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\", \"/etc/passwd\"]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for n in names\n      if safe_name(n)\n        let t = fs.read(n) else continue\n        return t\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 813,
+    "reasoning": 516
+   },
+   "out_bytes": 700,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1928,
+    "out": 1396,
+    "reasoning": 932
+   },
+   "out_bytes": 1126,
+   "ok": false,
+   "report": "E100 task.yn:29:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2458,
+    "out": 692,
+    "reasoning": 229
+   },
+   "out_bytes": 1125,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:29:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

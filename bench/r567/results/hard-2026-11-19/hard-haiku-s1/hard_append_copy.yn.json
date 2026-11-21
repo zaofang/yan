@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1610,
+   "out": 1490,
+   "reasoning": 1271,
+   "out_bytes": 503
+  },
+  "body": {
+   "in": 1902,
+   "out": 812,
+   "reasoning": 553,
+   "out_bytes": 586
+  }
+ },
+ "final": "-- Spec for appending a copy of s to the borrowed list dst.\n-- add_name has no ex line: its effect is on dst, and an ex line needs a value to compare.\n-- The pure helper added() carries the examples that pin down the intended result.\n\nadded(xs: List[str], s: str) -> List[str] =\n  post out.len() == xs.len() + 1\n  ex added([], \"a\") == [\"a\"]\n  ex added([\"x\"], \"y\") == [\"x\", \"y\"]\n  var out: List[str] = []\n  for x in xs\n    out.append(copy x)\n  out.append(copy s)\n  out\n\nadd_name(var dst: List[str], s: str) =\n  pre s.char_count() >= 0\n  post dst.len() >= 1\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1610,
+    "out": 1490,
+    "reasoning": 1271
+   },
+   "out_bytes": 503,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1902,
+    "out": 812,
+    "reasoning": 553
+   },
+   "out_bytes": 586,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1583,
+   "out": 853,
+   "reasoning": 705,
+   "out_bytes": 293
+  },
+  "body": {
+   "in": 1804,
+   "out": 857,
+   "reasoning": 592,
+   "out_bytes": 550
+  }
+ },
+ "final": "-- Spec phase: helper declaration and the parity contract.\n\nones(x: u8) -> int =\n  post out >= 0\n  post out <= 8\n  ex ones(0) == 0\n  ex ones(255) == 8\n  var v = x\n  var count = 0\n  for i in range(0, 8)\n    if v % 2 == 1\n      count += 1\n    v = v // 2\n  count\n\nparity(x: u8) -> bool =\n  post out == (ones(x) % 2 == 1)\n  ex parity(1) == True\n  ex parity(3) == False\n  ones(x) % 2 == 1\n\ntest_parity() =\n  assert parity(0) == False\n  assert parity(1) == True\n  assert parity(3) == False\n  assert parity(255) == False\n  assert parity(7) == True\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1583,
+    "out": 853,
+    "reasoning": 705
+   },
+   "out_bytes": 293,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1804,
+    "out": 857,
+    "reasoning": 592
+   },
+   "out_bytes": 550,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

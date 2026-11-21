@@ -1,0 +1,123 @@
+{
+ "final": "def add_name(var dst: list[str], s: str):\n    \"\"\"Append a copy of s to the borrowed list dst. Returns nothing; dst is edited in place.\"\"\"\n    dst.append(s.copy())\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E100 /tmp/tmp_v3i1uql/work/task.yag:1:23 `list[str]` unexpected `list`; expected `)`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E100"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2035,
+    "out": 710,
+    "reasoning": 641
+   },
+   "out_bytes": 164
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2188,
+    "out": 458,
+    "reasoning": 389
+   },
+   "out_bytes": 164
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2355,
+    "out": 577,
+    "reasoning": 500
+   },
+   "out_bytes": 181
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/append_copy",
+ "tokens": {
+  "body": {
+   "in": 2355,
+   "out": 577,
+   "reasoning": 500,
+   "out_bytes": 181
+  },
+  "spec": {
+   "in": 4223,
+   "out": 1168,
+   "reasoning": 1030,
+   "out_bytes": 328
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E100"
+   ],
+   "report": "#1 E100 /tmp/tmp_v3i1uql/work/task.yag:1:23 `list[str]` unexpected `list`; expected `)`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

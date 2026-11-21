@@ -1,0 +1,153 @@
+{
+ "final": "def safe_note_path(name: str) -> str | None:\n    \"\"\"Relative path inside notes for `name`, or None when `name` is empty, absolute, or would resolve outside notes.\"\"\"\n    pre name.byte_len() <= 4096\n    ex safe_note_path(\"a.txt\") == \"notes/a.txt\"\n    ex safe_note_path(\"../secret.txt\") is None\n    ex safe_note_path(\"/etc/passwd\") is None\n    if name == \"\" or name.startswith(\"/\") or \"\\\\\" in name:\n        return None\n    for part in name.split(\"/\"):\n        if part == \"..\":\n            return None\n    return \"notes/\" + name\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory notes. Returns \"\" when the file is missing or unreadable, or when `name` would resolve outside notes.\"\"\"\n    pre name.byte_len() <= 4096\n    post name.byte_len() > 0 or out == \"\"\n    path = safe_note_path(name)\n    if path is None:\n        return \"\"\n    text = fs.read_text(path) else \"\"\n    return text\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmpj906w1tr/work/task.yag:5:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpj906w1tr/work/task.yag:6:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpj906w1tr/work/task.yag:7:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 1006,
+    "reasoning": 834
+   },
+   "out_bytes": 411
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2551,
+    "out": 851,
+    "reasoning": 589
+   },
+   "out_bytes": 637
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: read_note. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 0,
+   "tools": [],
+   "usage": {
+    "in": 2911,
+    "out": 1763,
+    "reasoning": 1325
+   },
+   "out_bytes": 1103
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: read_note. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 1,
+   "tools": [],
+   "usage": {
+    "in": 3435,
+    "out": 1558,
+    "reasoning": 1120
+   },
+   "out_bytes": 1103
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3959,
+    "out": 1168,
+    "reasoning": 807
+   },
+   "out_bytes": 934
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 10305,
+   "out": 4489,
+   "reasoning": 3252,
+   "out_bytes": 3140
+  },
+  "spec": {
+   "in": 4671,
+   "out": 1857,
+   "reasoning": 1423,
+   "out_bytes": 1048
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:d2ed416d88d8c75773f808b2682b29fbb6dd0473cdd7a2d0e928388a8130f4ac",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmpj906w1tr/work/task.yag:5:8 read_note: `assert read_note(\"no-such-file.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmpj906w1tr/work/task.yag:6:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmpj906w1tr/work/task.yag:7:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 4,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<beta>\n<>\n<>\n<TOPSECRET>\n<TOPSECRET>"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<beta>\n<>\n<>\n<TOPSECRET>\n<TOPSECRET>"
+ }
+}

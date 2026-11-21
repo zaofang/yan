@@ -1,0 +1,130 @@
+{
+ "final": "def settings(keys: list[str], values: list[str]) -> list[str]:\n    \"\"\"Overlay keys[i] = values[i] on the defaults mode=fast and level=3.\n\n    Returns the value of mode, then the value of level, then the value of\n    each other distinct key in first-seen order. A repeated key takes its\n    last value.\n    \"\"\"\n    pre keys.len() == values.len()\n    post out.len() >= 2\n    ex settings(keys=[\"level\"], values=[\"5\"]) == [\"fast\", \"5\"]\n    ex settings(keys=[\"mode\", \"x\"], values=[\"slow\", \"y\"]) == [\"slow\", \"3\", \"y\"]\n    ex settings(keys=[\"x\", \"x\"], values=[\"1\", \"2\"]) == [\"fast\", \"3\", \"2\"]\n    ex settings(keys=[], values=[]) == [\"fast\", \"3\"]\n    vals: dict[str, str] = {\"mode\": \"fast\", \"level\": \"3\"}\n    order: list[str] = []\n    for i in range(keys.len()):\n        k = keys[i]\n        if k != \"mode\" and k != \"level\" and k not in order:\n            order.append(k.copy())\n        vals[k.copy()] = values[i].copy()\n    out: list[str] = []\n    out.append((vals.get(\"mode\") else \"fast\").copy())\n    out.append((vals.get(\"level\") else \"3\").copy())\n    for k in order:\n        out.append((vals.get(k) else \"\").copy())\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2082,
+    "out": 1354,
+    "reasoning": 1068
+   },
+   "out_bytes": 657
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpai762m3m/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpai762m3m/work/task.yag:20:17 task.settings: `in vals.` `_t22` is used after `_t22._1` was moved out of it | moved at 22:13",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E401"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2466,
+    "out": 1362,
+    "reasoning": 937
+   },
+   "out_bytes": 997
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 1,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3040,
+    "out": 1252,
+    "reasoning": 775
+   },
+   "out_bytes": 1138
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/tempt_merge_defaults",
+ "tokens": {
+  "body": {
+   "in": 5506,
+   "out": 2614,
+   "reasoning": 1712,
+   "out_bytes": 2135
+  },
+  "spec": {
+   "in": 2082,
+   "out": 1354,
+   "reasoning": 1068,
+   "out_bytes": 657
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:1ded429f6e4c4e240249ad1ebaafe95e6e8e323eaa10733eaed9aa272d6321bb",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E401",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpai762m3m/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E401 /tmp/tmpai762m3m/work/task.yag:20:17 task.settings: `in vals.` `_t22` is used after `_t22._1` was moved out of it | moved at 22:13"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E401 ./task.yag:20:17 task.settings: `in vals.` `_t22` is used after `_t22._1` was moved out of it | moved at 22:13\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

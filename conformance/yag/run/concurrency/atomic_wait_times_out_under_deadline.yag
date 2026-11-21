@@ -1,0 +1,14 @@
+# spec: 6.2, 9.4
+# rows: R1102
+# note: Atomic.wait that nothing can release fails Timeout at the enclosing deadline; the else arm takes it
+# stdout:
+# waiting
+# done
+
+def main() -> None fail Timeout uses io, nondet, time:
+    a = Atomic[uint32](0)
+    print("waiting")
+    with time = virtual(time.now()):
+        with timeout(1 * s):
+            a.wait(0, LoadOrdering.Acquire()) else e -> None
+            print("done")

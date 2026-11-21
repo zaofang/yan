@@ -1,0 +1,158 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain, non-empty file name: no separators, no \".\" or \"..\", no NUL, no drive or absolute form.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"\") == False\n    ex is_safe_name(\"..\") == False\n    ex is_safe_name(\"../secret.txt\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"a/b\") == False\n    ex is_safe_name(\"a\\\\b\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \":\" or c == \"\\0\":\n            return False\n    return True\n\ndef read_note(name: str) -> str uses fs:\n    \"\"\"Text of the file `name` inside the directory `notes`, or \"\" if it is missing or unreadable.\n    The name is untrusted. Any name that is not a safe plain file name gives \"\".\"\"\"\n    post is_safe_name(name) or out == \"\"\n    if not is_safe_name(name):\n        return \"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(name) else \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E301 /tmp/tmp1kbr01yc/work/task.yag:4:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp1kbr01yc/work/task.yag:5:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmp1kbr01yc/work/task.yag:6:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs` is not in scope | in `ex` of `read_note`\n#4 E301 /tmp/tmp1kbr01yc/work/task.yag:7:8 read_note: `assert read_note(\"\")` capability `fs` is not in scope | in `ex` of `read_note`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E301",
+      "E301",
+      "E301",
+      "E301"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2120,
+    "out": 519,
+    "reasoning": 334
+   },
+   "out_bytes": 459
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2636,
+    "out": 612,
+    "reasoning": 313
+   },
+   "out_bytes": 721
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp1kbr01yc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp1kbr01yc/work/task.yag:24:16 read_note: `return fs.` capability operation `fs.read_text`: not supported by this toolchain yet",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E017"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3033,
+    "out": 732,
+    "reasoning": 323
+   },
+   "out_bytes": 1027
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3589,
+    "out": 584,
+    "reasoning": 177
+   },
+   "out_bytes": 1022
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 6622,
+   "out": 1316,
+   "reasoning": 500,
+   "out_bytes": 2049
+  },
+  "spec": {
+   "in": 4756,
+   "out": 1131,
+   "reasoning": 647,
+   "out_bytes": 1180
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:f5aa349bce4d03ef3d17bc2b044dc8f0a4a54df6e31811b77b6ccdd555bc89a9",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E301"
+   ],
+   "report": "#1 E301 /tmp/tmp1kbr01yc/work/task.yag:4:8 read_note: `assert read_note(\"missing-note.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#2 E301 /tmp/tmp1kbr01yc/work/task.yag:5:8 read_note: `assert read_note(\"../secret.txt\")` capability `fs` is not in scope | in `ex` of `read_note`\n#3 E301 /tmp/tmp1kbr01yc/work/task.yag:6:8 read_note: `assert read_note(\"/etc/passwd\")` capability `fs`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E017",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp1kbr01yc/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E017 /tmp/tmp1kbr01yc/work/task.yag:24:16 read_note: `return fs.` capability operation `fs.read_text`: not supported by this toolchain yet"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E017 task.yag:24:16 read_note: `fs` capability operation `fs.read_text`: not supported by this toolchain yet"
+ },
+ "hidden_final": {
+  "passed": 5,
+  "total": 6,
+  "ok": false,
+  "error": "<alpha>\n<>\n<>\n<>\n<>\n<>"
+ }
+}

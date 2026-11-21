@@ -1,0 +1,2 @@
+# Programs whose MIR fails the validator today (#1513 S3). Each entry needs the issue that owns the fix;
+# an entry that no longer fails is stale and fails tools/mirsweep.py, so the list only shrinks.

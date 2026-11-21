@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 1655,
+   "reasoning": 930,
+   "out_bytes": 1786
+  },
+  "body": {
+   "in": 1867,
+   "out": 1228,
+   "reasoning": 369,
+   "out_bytes": 2187
+  }
+ },
+ "final": "from collections import deque  # noqa: F401  (reserved for phase 2 implementation)\n\nimport pytest\n\n\nclass BoundedQueue:\n    \"\"\"A FIFO queue of integers with a fixed maximum size.\"\"\"\n\n    def __init__(self, capacity: int) -> None:\n        \"\"\"Create an empty queue holding at most `capacity` items.\n\n        Raises ValueError if capacity is negative.\n        \"\"\"\n        if capacity < 0:\n            raise ValueError(\"capacity must be non-negative\")\n        self._capacity: int = capacity\n        self._items: deque[int] = deque()\n\n    def try_put(self, item: int) -> bool:\n        \"\"\"Append item without blocking.\n\n        Returns True if the item was accepted, False if the queue was full.\n        \"\"\"\n        if len(self._items) >= self._capacity:\n            return False\n        self._items.append(item)\n        return True\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Put each element of xs into a queue of capacity cap without blocking.\n\n    Stops at the first put that finds the queue full and returns how many\n    puts were accepted before that point. Raises ValueError if cap is negative.\n    \"\"\"\n    q = BoundedQueue(cap)\n    count = 0\n    for x in xs:\n        if not q.try_put(x):\n            break\n        count += 1\n    return count\n\n\ndef test_try_put_accepts_until_full() -> None:\n    q = BoundedQueue(2)\n    assert q.try_put(1) is True\n    assert q.try_put(2) is True\n    assert q.try_put(3) is False\n\n\ndef test_try_put_zero_capacity_rejects() -> None:\n    q = BoundedQueue(0)\n    assert q.try_put(1) is False\n\n\ndef test_try_put_negative_capacity_raises() -> None:\n    with pytest.raises(ValueError):\n        BoundedQueue(-1)\n\n\ndef test_accepted_stops_when_full() -> None:\n    assert accepted(3, [1, 2, 3, 4, 5]) == 3\n\n\ndef test_accepted_all_fit() -> None:\n    assert accepted(5, [1, 2]) == 2\n\n\ndef test_accepted_empty_input() -> None:\n    assert accepted(2, []) == 0\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_accepted_exact_fit() -> None:\n    assert accepted(3, [7, 8, 9]) == 3\n\n\ndef test_accepted_negative_capacity_raises() -> None:\n    with pytest.raises(ValueError):\n        accepted(-1, [1])\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 1655,
+    "reasoning": 930
+   },
+   "out_bytes": 1786,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1867,
+    "out": 1228,
+    "reasoning": 369
+   },
+   "out_bytes": 2187,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

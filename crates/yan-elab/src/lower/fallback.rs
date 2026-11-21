@@ -223,8 +223,15 @@ impl Lower<'_, '_, '_> {
             };
             let ok_block = l.block_with(|l| {
                 l.declare(&ok, ok_ty.clone());
-                l.expect(&ok_ty, &want, x.span);
-                l.jump(k, Atom::Name(ok.clone(), at), at);
+                let (r, t) = l.inject(
+                    Rhs::Atom(Atom::Name(ok.clone(), at)),
+                    ok_ty.clone(),
+                    Some(&want),
+                    at,
+                );
+                l.expect(&t, &want, x.span);
+                let a = l.tmp(&t, r, at);
+                l.jump(k, a, at);
                 Ok(())
             })?;
             let (err_name, err_pat) = match (&fb, &err_ty) {

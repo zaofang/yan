@@ -1,0 +1,6 @@
+spec = "19.1"
+rows = "R1135"
+note = "a re-export does not widen visibility: the alias of a pkg item is not reachable from a dependent"
+command = ["check"]
+code = "E287"
+at = "src/main.yag:2:18"

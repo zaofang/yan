@@ -1,0 +1,13 @@
+--- Prints each file named on the command line in the canonical form, in the format of
+--- crates/yan-core/examples/print_dump.rs. Needs core_lex.yn, core_parse.yn and core_print.yn after it in the same program.
+
+main() uses io, fs, env =
+  for path in env.args()
+    io.print("file \(path)")
+    let src = fs.read(path) else ""
+    let r = parse(src)
+    for d in r.diags
+      io.print("diag \(d.code) \(d.span.line):\(d.span.col)")
+    match r.module
+      Some(m) -> io.print(print_module(m))
+      None -> ()

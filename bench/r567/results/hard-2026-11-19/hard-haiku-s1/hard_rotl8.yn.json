@@ -1,0 +1,117 @@
+{
+ "status": "body_failed",
+ "rounds_to_green": null,
+ "tokens": {
+  "spec": {
+   "in": 1610,
+   "out": 926,
+   "reasoning": 679,
+   "out_bytes": 395
+  },
+  "body": {
+   "in": 10542,
+   "out": 6134,
+   "reasoning": 4523,
+   "out_bytes": 2753
+  }
+ },
+ "final": "-- Phase 1 spec: 8-bit rotation. Phase 2 bodies.\n-- Uses only u8 arithmetic and comparisons, so no conversion functions are needed.\n-- rotr8 no longer calls rotl8 in its body, so the only cycle is through contracts,\n-- and each function has a decreases clause on k.\n\nrotl8(x: u8, k: int) -> u8 =\n  pre k >= 0\n  pre k <= 7\n  post rotr8(out, k) == x\n  ex rotl8(129, 1) == 3\n  ex rotl8(1, 7) == 128\n  ex rotl8(200, 0) == 200\n  decreases k\n  var v: u8 = x\n  for i in range(0, k)\n    if v >= 128\n      v = (v - 128) * 2 + 1\n    else\n      v = v * 2\n  v\n\nrotr8(x: u8, k: int) -> u8 =\n  pre k >= 0\n  pre k <= 7\n  post rotl8(out, k) == x\n  ex rotr8(3, 1) == 129\n  ex rotr8(128, 7) == 1\n  decreases k\n  var v: u8 = x\n  for i in range(0, k)\n    if v % 2 == 1\n      v = v // 2 + 128\n    else\n      v = v // 2\n  v\n\ntest_rotl8() =\n  assert rotl8(129, 1) == 3\n  assert rotl8(1, 7) == 128\n  assert rotl8(200, 0) == 200\n\ntest_rotr8() =\n  assert rotr8(3, 1) == 129\n  assert rotr8(128, 7) == 1\n  assert rotr8(200, 0) == 200\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1610,
+    "out": 926,
+    "reasoning": 679
+   },
+   "out_bytes": 395,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1930,
+    "out": 1304,
+    "reasoning": 966
+   },
+   "out_bytes": 549,
+   "ok": false,
+   "report": "E201 task.yn:11:15 rotl8: `(x)` `int` does not take a `u8`\nE200 task.yn:16:3 rotl8: `u8(v)` cannot find function `u8`",
+   "codes": [
+    "E200",
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2370,
+    "out": 1552,
+    "reasoning": 1180
+   },
+   "out_bytes": 626,
+   "ok": false,
+   "report": "E201 task.yn:8:14 rotl8: `out` expected `u8`, found `int`\nE203 task.yn:12:18 rotl8: `to_int` `u8` has no method `to_int`\nE203 task.yn:17:5 rotl8: `to_u8` `int` has no method `to_u8`",
+   "codes": [
+    "E201",
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2879,
+    "out": 1437,
+    "reasoning": 1097
+   },
+   "out_bytes": 563,
+   "ok": false,
+   "report": "E602 task.yn:4:1 task.rotl8: `rotl8(x: u8, k: int)` recursive function `rotl8` has no `decreases` clause\nE602 task.yn:19:1 task.rotr8: `rotr8(x: u8, k: int)` recursive function `rotr8` has no `decreases` clause",
+   "codes": [
+    "E602"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 3,
+   "usage": {
+    "in": 3363,
+    "out": 1841,
+    "reasoning": 1280
+   },
+   "out_bytes": 1015,
+   "ok": false,
+   "report": "FAIL task.test_rotl8 (proposed) ran out of its step budget | repro: yan test --only task.test_rotl8\nFAIL task.test_rotr8 (proposed) ran out of its step budget | repro: yan test --only task.test_rotr8\n0 of 2 tests passed",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yn:11:15 rotl8: `x` `int` does not take a `u8`\nE200 ./task.yn:16:3 rotl8: `u8(v)` cannot find function `u8` | maybe: u8(v) -> sum\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false
+ }
+}

@@ -150,6 +150,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.dict_call(id, c, dst);
         }
+        if sets::IDS.contains(&id) {
+            return self.set_call(id, c, dst);
+        }
         if self.actor_call(id, c, dst.as_ref())? {
             return Ok(());
         }
@@ -304,6 +307,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::scope::SCOPE_IDS.contains(&id) {
+            return self.scope_call(id, c, dst);
+        }
         if super::mutex::MUTEX_IDS.contains(&id) {
             return self.mutex_call(id, c, dst);
         }
@@ -350,15 +356,27 @@ impl<'a, 'm> Fn<'a, 'm> {
                     args: vec![s],
                 });
             }
-            (id::STD_FS_READ, [(_, path)]) => {
+            (id::STD_IO_EPRINT, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::Eprint,
+                    args: vec![s],
+                });
+            }
+            (id::STD_FS_READ | id::STD_FS_LIST_DIR, [(_, path)]) => {
+                let (name, f) = match id {
+                    id::STD_FS_READ => ("fs.read", RtFn::FsRead),
+                    _ => ("fs.list_dir", RtFn::FsListDir),
+                };
                 let Some(dst) = dst else {
-                    return unsupported("`fs.read` without a result");
+                    return unsupported(format!("`{name}` without a result"));
                 };
                 let Some((_, _, efs)) = dst.shape.variant("Err") else {
-                    return unsupported("`fs.read` without its failure");
+                    return unsupported(format!("`{name}` without its failure"));
                 };
                 if !matches!(&efs[0].1, Shape::Rec(n, fs) if n == "FsError" && fs.len() == 2) {
-                    return unsupported("`fs.read` with another failure type");
+                    return unsupported(format!("`{name}` with another failure type"));
                 }
                 let path = self.scalar1(path)?;
                 // An unbound handler is the ambient real file system.
@@ -369,7 +387,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     Some(v) => Self::ops(v)[0].clone(),
                     None => Operand::Int(0),
                 };
-                let p = self.rt(RtFn::FsRead, Ty::Ptr, vec![h, path.clone()]);
+                let p = self.rt(f, Ty::Ptr, vec![h, path.clone()]);
                 let failed = self.scalar_op(ScalarOp::Eq, I64, vec![p.clone(), Operand::Int(0)]);
                 let (e, o) = self.branch(failed);
                 let join = self.block_new();
@@ -556,7 +574,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     vec![Operand::Int(v_ops.len() as i128)],
                 );
                 self.write(&At::Mem(buf.clone(), 0), v_ops.clone());
-                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let in_task = Operand::Int(i128::from(self.in_task()));
                 let st = self.rt(RtFn::ChanTrySend, I64, vec![tx, buf.clone(), in_task]);
                 self.free(RtFn::EnvFree, buf);
                 self.try_send_result(&dst, st, v_ops)?;
@@ -567,7 +585,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 };
                 let rx = self.scalar1(rx)?;
                 let out = self.rt(RtFn::Alloc, Ty::Ptr, vec![Operand::Int(e.width() as i128)]);
-                let in_task = Operand::Int(i128::from(!self.task_starts.is_empty()));
+                let in_task = Operand::Int(i128::from(self.in_task()));
                 let st = self.rt(RtFn::ChanTryRecv, I64, vec![rx, out.clone(), in_task]);
                 self.try_recv_result(&dst, st, |me| me.read(&At::Mem(out.clone(), 0), &e))?;
                 self.free(RtFn::EnvFree, out);
@@ -1085,6 +1103,33 @@ impl<'a, 'm> Fn<'a, 'm> {
                     })?;
                 }
                 set(self, l);
+            }
+            (id::STD_LIST_CONCAT, [(_, a), (_, b)]) => {
+                let (av, s) = self.atom_any(a)?;
+                let (bv, _) = self.atom_any(b)?;
+                let Shape::List(e) = &s else {
+                    return unsupported(format!("call of `{name}`"));
+                };
+                let out = self.rt(
+                    RtFn::ListNew,
+                    Ty::Ptr,
+                    vec![Operand::Int(e.width() as i128)],
+                );
+                for src in [av[0].clone(), bv[0].clone()] {
+                    let n = self.rt(RtFn::ListLen, I64, vec![src.clone()]);
+                    self.each(n, |me, i| {
+                        let x = me.element(&src, i, e)?;
+                        let slot = me.rt(RtFn::ListPush, Ty::Ptr, vec![out.clone()]);
+                        me.write(&At::Mem(slot, 0), x);
+                        Ok(())
+                    })?;
+                }
+                set(self, out);
+            }
+            (id::STD_PRELUDE_SUM_FLOAT, [(_, a)]) => {
+                let l = self.scalar1(a)?;
+                let r = self.rt(RtFn::SumF64, Ty::F64, vec![l, Operand::Int(0)]);
+                set(self, r);
             }
             // An `iter` is its list, its cursor in the `limit` slot.
             (id::STD_LIST_ITER, [(conv, a)]) => {

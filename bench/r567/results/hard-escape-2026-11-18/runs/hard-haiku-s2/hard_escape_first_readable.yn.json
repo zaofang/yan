@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1558,
+   "out": 1744,
+   "reasoning": 1499,
+   "out_bytes": 622
+  },
+  "body": {
+   "in": 4201,
+   "out": 6255,
+   "reasoning": 5490,
+   "out_bytes": 1975
+  }
+ },
+ "final": "-- Phase 2: bodies implemented. Declarations and contracts are unchanged.\n\n-- True when `name` is a single plain file name: no path separators,\n-- no \".\" or \"..\" components, so it cannot leave the `notes` directory.\nsafe_name(name: str) -> bool =\n  pre name.char_count() > 0\n  ex safe_name(\"notes.txt\") == True\n  ex safe_name(\"../secret\") == False\n  name != \".\" and name != \"..\" and name.split(\"/\").len() == 1 and name.split(\"\\\\\").len() == 1\n\n-- Reads one file through the capability in scope; None when it cannot be read.\ntry_read(name: str) -> str? uses fs =\n  fs.read(name) else None\n\n-- Returns the text of the first readable file among `names` inside `notes`,\n-- or \"\" when none can be read. Names that are not safe_name are skipped.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if safe_name(name)\n        let t = try_read(name)\n        if t != None\n          return t else \"\"\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1558,
+    "out": 1744,
+    "reasoning": 1499
+   },
+   "out_bytes": 622,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1876,
+    "out": 4079,
+    "reasoning": 3696
+   },
+   "out_bytes": 988,
+   "ok": false,
+   "report": "E100 task.yn:19:28 `(\"notes\"):` unexpected token; expected an indented block",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2325,
+    "out": 2176,
+    "reasoning": 1794
+   },
+   "out_bytes": 987,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:19:28 `:` unexpected token; expected an indented block"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yn:24:18\n  at main task.yn:28:16"
+ }
+}

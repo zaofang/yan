@@ -1,0 +1,7 @@
+-- spec: 15.3
+-- rows: R1132
+-- note: two diverging branches leave the conditional without a value
+-- expect: E100 at 7:27
+
+f(b: bool) -> int =
+  if b then return 1 else return 2

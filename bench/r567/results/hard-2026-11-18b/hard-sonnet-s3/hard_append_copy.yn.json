@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 3025,
+   "out": 1064,
+   "reasoning": 943,
+   "out_bytes": 236
+  },
+  "body": {
+   "in": 3548,
+   "out": 241,
+   "reasoning": 109,
+   "out_bytes": 250
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() >= 1\n  ex add_name(&[\"a\"], \"b\") == None\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 750,
+    "reasoning": 690
+   },
+   "out_bytes": 117,
+   "ok": false,
+   "report": "E100 task.yn:1:37 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1574,
+    "out": 314,
+    "reasoning": 253
+   },
+   "out_bytes": 119,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1708,
+    "out": 66,
+    "reasoning": 0
+   },
+   "out_bytes": 124,
+   "ok": false,
+   "report": "E203 task.yn:4:7 add_name: `push` `List[str]` has no method `push`",
+   "codes": [
+    "E203"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 1840,
+    "out": 175,
+    "reasoning": 109
+   },
+   "out_bytes": 126,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E203 ./task.yn:4:7 add_name: `push` `List[str]` has no method `push`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

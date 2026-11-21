@@ -1,0 +1,14 @@
+-- spec: 6.9
+-- rows: R1099
+-- note: --ub=deny-leaks exits with the UB status when W862 is printed
+-- flags: --ub=deny-leaks
+-- ub: none
+-- warn: W862
+-- exit: 101
+
+type Link = { rx: Receiver[Link], s: str }
+
+main() fail Cancelled uses nondet =
+  let (tx, rx) = Channel[Link](1)
+  var t = tx
+  t.send(Link(rx, "abc".upper()))?

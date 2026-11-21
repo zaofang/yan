@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1116,
+   "out": 2257,
+   "reasoning": 468,
+   "out_bytes": 4106
+  },
+  "body": {
+   "in": 2962,
+   "out": 2694,
+   "reasoning": 750,
+   "out_bytes": 4578
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\n\nimport pytest\n\n\ndef read_note(name: str) -> str:\n    \"\"\"Return the text of the file `name` inside the directory `notes`.\n\n    `notes` is relative to the current working directory. `name` is untrusted\n    and may be any string. Files in subdirectories of `notes` may be read, but\n    the resolved path (after following `..` components and symlinks) must stay\n    inside `notes`. Absolute paths, traversal out of `notes`, and symlinks that\n    point outside `notes` all yield \"\".\n\n    The file is decoded as UTF-8. A missing, unreadable or undecodable file, a\n    directory, an empty name, or an invalid name (e.g. containing a NUL byte)\n    yields \"\". This function never raises for any input.\n    \"\"\"\n    try:\n        if not name or \"\\x00\" in name:\n            return \"\"\n        if Path(name).anchor or os.path.isabs(name):\n            return \"\"\n        base = Path(\"notes\").resolve()\n        target = (base / name).resolve()\n        if target == base or not target.is_relative_to(base):\n            return \"\"\n        if not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, ValueError, RuntimeError):\n        return \"\"\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\", encoding=\"utf-8\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_existing_file(workdir: Path) -> None:\n    assert read_note(\"a.txt\") == \"hello\"\n\n\ndef test_reads_unicode(workdir: Path) -> None:\n    (workdir / \"notes\" / \"u.txt\").write_text(\"h\u00e9llo \u2713\", encoding=\"utf-8\")\n    assert read_note(\"u.txt\") == \"h\u00e9llo \u2713\"\n\n\ndef test_reads_file_in_subdirectory(workdir: Path) -> None:\n    sub = workdir / \"notes\" / \"sub\"\n    sub.mkdir()\n    (sub / \"b.txt\").write_text(\"nested\", encoding=\"utf-8\")\n    assert read_note(\"sub/b.txt\") == \"nested\"\n\n\ndef test_missing_file_is_empty(workdir: Path) -> None:\n    assert read_note(\"nope.txt\") == \"\"\n\n\ndef test_empty_name_is_empty(workdir: Path) -> None:\n    assert read_note(\"\") == \"\"\n\n\ndef test_directory_is_empty(workdir: Path) -> None:\n    (workdir / \"notes\" / \"sub\").mkdir()\n    assert read_note(\"sub\") == \"\"\n    assert read_note(\".\") == \"\"\n\n\ndef test_parent_traversal_is_blocked(workdir: Path) -> None:\n    assert read_note(\"../secret.txt\") == \"\"\n    assert read_note(\"..\") == \"\"\n    assert read_note(\"sub/../../secret.txt\") == \"\"\n    assert read_note(\"../notes/../secret.txt\") == \"\"\n\n\ndef test_deep_traversal_is_blocked(workdir: Path) -> None:\n    assert read_note(\"../\" * 20 + \"etc/passwd\") == \"\"\n\n\ndef test_absolute_path_is_blocked(workdir: Path) -> None:\n    assert read_note(str(workdir / \"secret.txt\")) == \"\"\n    assert read_note(str((workdir / \"notes\" / \"a.txt\").resolve())) == \"\"\n\n\ndef test_sibling_directory_with_same_prefix_is_blocked(workdir: Path) -> None:\n    other = workdir / \"notes_evil\"\n    other.mkdir()\n    (other / \"x.txt\").write_text(\"evil\", encoding=\"utf-8\")\n    assert read_note(\"../notes_evil/x.txt\") == \"\"\n\n\ndef test_nul_byte_is_empty(workdir: Path) -> None:\n    assert read_note(\"a.txt\\x00.png\") == \"\"\n    assert read_note(\"\\x00\") == \"\"\n\n\ndef test_undecodable_file_is_empty(workdir: Path) -> None:\n    (workdir / \"notes\" / \"bin.dat\").write_bytes(b\"\\xff\\xfe\\x00\\xff\")\n    assert read_note(\"bin.dat\") == \"\"\n\n\ndef test_symlink_escaping_notes_is_blocked(workdir: Path) -> None:\n    link = workdir / \"notes\" / \"link.txt\"\n    try:\n        os.symlink(workdir / \"secret.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"link.txt\") == \"\"\n\n\ndef test_symlinked_directory_escaping_notes_is_blocked(workdir: Path) -> None:\n    link = workdir / \"notes\" / \"linkdir\"\n    try:\n        os.symlink(workdir, link, target_is_directory=True)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"linkdir/secret.txt\") == \"\"\n\n\ndef test_symlink_inside_notes_is_allowed(workdir: Path) -> None:\n    link = workdir / \"notes\" / \"alias.txt\"\n    try:\n        os.symlink(workdir / \"notes\" / \"a.txt\", link)\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert read_note(\"alias.txt\") == \"hello\"\n\n\ndef test_missing_notes_directory_is_empty(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert read_note(\"a.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1116,
+    "out": 2257,
+    "reasoning": 468
+   },
+   "out_bytes": 4106,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2962,
+    "out": 2694,
+    "reasoning": 750
+   },
+   "out_bytes": 4578,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

@@ -2,7 +2,7 @@
 //! bytes. Locals are scalars; memory is allocations of `Uninit | Init` bytes; a pointer is its
 //! address. Layouts and drops come from MIR, as for native code. With `ub` set, an access to a
 //! dead allocation is `ub(2)`, one outside every allocation is `ub(3)`, a word access at an address that is not a multiple of 8 is `ub(4)` and a `bool` read from a
-//! word other than 0 or 1 is `ub(6)`, a block freed twice is `ub(8)` (6.7 items; D3 of the design). Without it an access outside
+//! word other than 0 or 1 is `ub(6)`, a capability read from memory is `ub(9)`, a block freed twice is `ub(8)`, a write to a `Str` literal is `ub(7)` (6.7 items; D3 of the design). Without it an access outside
 //! any allocation is a fault, everything else behaves as native code does. Bounds are judged by
 //! the accessed address, not by a poison bit on the pointer value (D4), so a pointer that left
 //! its allocation and came back is not caught.
@@ -15,13 +15,15 @@ mod mem;
 mod ops;
 mod race;
 mod rt;
+mod tb;
 
 use mem::{Byte, Memory};
 use race::{Kind, Race};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use yan_mir::{
-    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Local, MemOrder, Operand, Program, Term, Ty,
+    ArmEvent, AtomicOp, BlockId, Func, FuncId, Inst, Loc, Local, MemOrder, Operand, Program, Term,
+    Ty,
 };
 
 /// Why a run stopped before `main` returned.
@@ -79,6 +81,12 @@ struct Frame {
     pinned: HashMap<Local, (u64, u64)>,
     /// `par` regions open when the frame began; any still open when it leaves are joined.
     regions: usize,
+    /// Locals whose value moved out, with the move's block and instruction (under `--ub`).
+    moved: HashMap<Local, (BlockId, usize)>,
+    /// The block and instruction being run.
+    at: (BlockId, usize),
+    /// Protected tags this frame retagged, released when it leaves (6.6).
+    protected: Vec<(usize, tb::Tag)>,
 }
 
 pub struct Machine<'p> {
@@ -99,11 +107,34 @@ pub struct Machine<'p> {
     fs_fakes: Vec<HashMap<String, String>>,
     fs_reason: String,
     race: RefCell<Race>,
+    /// Where each moved-from word of memory was moved, by address (under `--ub`).
+    move_sites: HashMap<u64, String>,
+    /// Tree Borrows trees by allocation, made at the first retag or tagged access (item 5).
+    trees: RefCell<HashMap<usize, tb::Tree>>,
+    /// Words the next loads or stores perform through an `Inst::Access` tag, not the root.
+    via: Cell<u32>,
+    /// Per calling frame, the tags in its locals and arguments; roots of the tag GC.
+    held: Vec<Vec<u64>>,
+    gc_at: usize,
+    /// The words an atomic instruction accessed (under `--ub`), for `ub(15)`.
+    atomic_words: std::collections::HashSet<u64>,
 }
 
-/// Runs `main`; on return, the allocations still live as `(base, size)`, string literals aside
-/// (the leak report of 6.9; leaks are not UB).
-pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
+/// An allocation still live when `main` returned (the leak report of 6.9; leaks are not UB).
+pub struct Leak {
+    pub size: usize,
+    /// The function that was running when it was allocated.
+    pub site: String,
+}
+
+/// Runs `main`; on return, the allocations still live, string literals and runtime-owned blocks
+/// aside.
+pub fn run(prog: &Program, ub: bool) -> Result<Vec<Leak>, Stop> {
+    run_seeded(prog, ub, 0)
+}
+
+/// [`run`] with the seed of the run's nondeterministic choices (R1104).
+pub fn run_seeded(prog: &Program, ub: bool, seed: u64) -> Result<Vec<Leak>, Stop> {
     let mut m = Machine {
         prog,
         ub,
@@ -118,7 +149,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
         civil_out: Vec::new(),
         fs_fakes: Vec::new(),
         fs_reason: String::new(),
-        race: RefCell::new(Race::new()),
+        race: RefCell::new(Race::seeded(seed)),
+        move_sites: HashMap::new(),
+        trees: RefCell::new(HashMap::new()),
+        via: Cell::new(0),
+        held: Vec::new(),
+        gc_at: 256,
+        atomic_words: std::collections::HashSet::new(),
     };
     yan_rt::actor::defer_disposal();
     yan_rt::actor::defer_stopped_text();
@@ -127,7 +164,13 @@ pub fn run(prog: &Program, ub: bool) -> Result<Vec<(u64, usize)>, Stop> {
     m.deliver_stopped();
     m.dispose()?;
     Ok(m.mem
-        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a)))
+        .live(|a| m.strs.contains(&Some(a)) || m.scratch == Some(a))
+        .into_iter()
+        .map(|(size, site)| Leak {
+            size,
+            site: prog.funcs[site as usize].name.clone(),
+        })
+        .collect())
 }
 
 fn encode(v: Val) -> u64 {
@@ -200,6 +243,36 @@ impl Machine<'_> {
         Ok(())
     }
 
+    /// `Atomic.wait` on `addr` is `ub(15)` unless it is 4-aligned, inside a live allocation and a
+    /// word an atomic instruction accessed. Returns whether the word equals `expected`.
+    /// UB item 15 on the address of `wait` or `notify` (`what`), when checking.
+    fn check_futex_word(&self, addr: u64, what: &str) -> Result<(), Stop> {
+        if self.ub {
+            let why = if !addr.is_multiple_of(4) {
+                Some("is not 4-aligned")
+            } else if self.mem.read(addr, 4).is_none() {
+                Some("is not inside a live allocation")
+            } else if !self.atomic_words.contains(&addr) {
+                Some("is not a word accessed atomically")
+            } else {
+                None
+            };
+            if let Some(why) = why {
+                return Err(Stop::Ub(
+                    15,
+                    format!("`Atomic.{what}` on {addr:#x}, which {why}"),
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn wait_word(&self, addr: u64, expected: u64) -> Result<bool, Stop> {
+        self.check_futex_word(addr, "wait")?;
+        let w = self.read_word_with(addr, false)?;
+        Ok(w as u32 == expected as u32)
+    }
+
     fn typed(&self, t: Ty, w: u64) -> Result<Val, Stop> {
         if self.ub && t == Ty::Bool && w > 1 {
             return Err(Stop::Ub(6, format!("{w} is not a valid bool")));
@@ -217,14 +290,21 @@ impl Machine<'_> {
         }
     }
 
-    fn atomic_raced(&self, addr: u64, kind: Kind, order: MemOrder) -> Result<(), Stop> {
+    /// The word an atomic access reads, as the checked machine's weak memory lets it (R1101).
+    fn atomic_raced(
+        &self,
+        addr: u64,
+        (kind, order, stale_ok): (Kind, MemOrder, bool),
+        old: u64,
+        new: Option<u64>,
+    ) -> Result<u64, Stop> {
         if !self.ub {
-            return Ok(());
+            return Ok(old);
         }
-        match self.race.borrow_mut().atomic(addr, kind, order) {
-            Some(msg) => Err(Stop::Ub(1, msg)),
-            None => Ok(()),
-        }
+        self.race
+            .borrow_mut()
+            .atomic_value(addr, kind, order, stale_ok, old, new)
+            .map_err(|msg| Stop::Ub(1, msg))
     }
 
     pub(crate) fn read_word(&self, addr: u64) -> Result<u64, Stop> {
@@ -239,11 +319,19 @@ impl Machine<'_> {
         if race {
             self.raced(addr, false)?;
         }
+        self.tb_root(addr, false)?;
+        if self.ub && bytes.contains(&Byte::Moved) {
+            let site = self.move_sites.get(&addr).map_or("", String::as_str);
+            return Err(Stop::Ub(
+                8,
+                format!("read of the moved-from word at {addr:#x}{site}"),
+            ));
+        }
         let mut w = [0u8; 8];
         for (d, b) in w.iter_mut().zip(bytes) {
             *d = match b {
                 Byte::Init(x) => x,
-                Byte::Uninit => 0,
+                Byte::Uninit | Byte::Moved => 0,
             };
         }
         Ok(u64::from_le_bytes(w))
@@ -255,9 +343,16 @@ impl Machine<'_> {
 
     fn write_word_with(&mut self, addr: u64, w: u64, race: bool) -> Result<(), Stop> {
         self.aligned("write", addr)?;
+        if self.ub && self.mem.is_immutable(addr) {
+            return Err(Stop::Ub(
+                7,
+                format!("write at {addr:#x} to immutable memory"),
+            ));
+        }
         if race && self.mem.find(addr).is_some() {
             self.raced(addr, true)?;
         }
+        self.tb_root(addr, true)?;
         let bytes: Vec<Byte> = w.to_le_bytes().into_iter().map(Byte::Init).collect();
         self.mem
             .write(addr, &bytes)
@@ -270,6 +365,7 @@ impl Machine<'_> {
         }
         let prog = self.prog;
         let a = self.new_str(&prog.strings[i as usize]);
+        self.mem.freeze(a);
         self.strs[i as usize] = Some(a);
         a
     }
@@ -291,6 +387,15 @@ impl Machine<'_> {
     }
 
     fn get(&self, fr: &Frame, f: &Func, l: Local) -> Result<Val, Stop> {
+        if let Some((b, i)) = fr.moved.get(&l) {
+            return Err(Stop::Ub(
+                8,
+                format!(
+                    "use of a moved-from local in `{}`, moved at block {b}, instruction {i}",
+                    f.name
+                ),
+            ));
+        }
         match fr.pinned.get(&l) {
             Some((base, word)) => {
                 self.typed(f.locals[l as usize], self.read_word(base + 8 * word)?)
@@ -305,6 +410,7 @@ impl Machine<'_> {
             (Ty::Bool, Val::I(i)) => Val::B(i != 0),
             (_, v) => v,
         };
+        fr.moved.remove(&l);
         match fr.pinned.get(&l) {
             Some((base, word)) => self.write_word(base + 8 * word, encode(v)),
             None => {
@@ -319,6 +425,9 @@ impl Machine<'_> {
             locals: f.locals.iter().map(|t| decode(*t, 0)).collect(),
             pinned: HashMap::new(),
             regions: self.race.borrow().depth(),
+            moved: HashMap::new(),
+            at: (0, 0),
+            protected: Vec::new(),
         };
         for group in &f.pinned {
             let base = self.mem.alloc(8 * group.len());
@@ -332,11 +441,104 @@ impl Machine<'_> {
         Ok(fr)
     }
 
+    /// A word access through no tag is an access through the allocation's root: foreign to every
+    /// retagged tag. The accesses of an `Inst::Access` were judged through its tag instead.
+    fn tb_root(&self, addr: u64, write: bool) -> Result<(), Stop> {
+        if !self.ub {
+            return Ok(());
+        }
+        let left = self.via.get();
+        if left > 0 {
+            self.via.set(left - 1);
+            return Ok(());
+        }
+        let mut trees = self.trees.borrow_mut();
+        let Some(id) = self.mem.find(addr) else {
+            return Ok(());
+        };
+        match trees.get_mut(&id) {
+            Some(t) => {
+                let w = ((addr - self.mem.base(id)) / 8) as usize;
+                t.access(tb::ROOT, w, w + 1, write)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))
+            }
+            None => Ok(()),
+        }
+    }
+
+    /// The allocation and tag a pointer at `addr` with provenance word `prov` derives from.
+    fn tb_of(&self, addr: u64, prov: u64) -> Result<(usize, tb::Tag), Stop> {
+        if let Some(t) = tb::unpack(prov) {
+            return Ok(t);
+        }
+        match self.mem.find(addr) {
+            Some(id) => Ok((id, tb::ROOT)),
+            None => Err(self.bad_access("retag", addr)),
+        }
+    }
+
+    fn tb_tree(&self, id: usize) -> std::cell::RefMut<'_, tb::Tree> {
+        std::cell::RefMut::map(self.trees.borrow_mut(), |m| {
+            m.entry(id)
+                .or_insert_with(|| tb::Tree::new(self.mem.size(id).div_ceil(8)))
+        })
+    }
+
+    fn tb_words(&self, id: usize, addr: u64, bytes: u32) -> (usize, usize) {
+        let lo = ((addr - self.mem.base(id)) / 8) as usize;
+        (lo, lo + (bytes as usize).div_ceil(8))
+    }
+
+    /// Words of `vals` that name a live tag.
+    fn tags_in(&self, vals: &[Val]) -> Vec<u64> {
+        let trees = self.trees.borrow();
+        vals.iter()
+            .map(|v| v.int() as u64)
+            .filter(|w| {
+                tb::unpack(*w).is_some_and(|(a, t)| trees.get(&a).is_some_and(|tr| tr.has(t)))
+            })
+            .collect()
+    }
+
+    fn tb_collect(&mut self, out: &[u64]) {
+        let size: usize = self.trees.borrow().values().map(tb::Tree::len).sum();
+        if size < self.gc_at {
+            return;
+        }
+        let mut live: std::collections::HashSet<u64> =
+            self.held.iter().flatten().copied().collect();
+        live.extend(out);
+        live.extend(self.mem.words());
+        for (id, t) in self.trees.borrow_mut().iter_mut() {
+            t.collect(|tag| live.contains(&tb::pack(*id, tag)));
+        }
+        let left: usize = self.trees.borrow().values().map(tb::Tree::len).sum();
+        self.gc_at = self.gc_at.max(2 * left);
+    }
+
     fn release(&mut self, fr: &Frame) {
+        for (id, tag) in &fr.protected {
+            if let Some(t) = self.trees.borrow_mut().get_mut(id) {
+                t.unprotect(*tag);
+            }
+        }
         self.race.borrow_mut().unwind(fr.regions);
         for (base, _) in fr.pinned.values() {
             self.mem.free(*base);
         }
+    }
+
+    /// A call from `fr`, whose tags stay live for the tag GC while the callee runs.
+    fn call_holding(&mut self, fr: &Frame, func: FuncId, args: Vec<Val>) -> Result<Vec<Val>, Stop> {
+        if !self.ub || self.trees.borrow().is_empty() {
+            return self.call(func, args);
+        }
+        let mut h = self.tags_in(&fr.locals);
+        h.extend(self.tags_in(&args));
+        self.held.push(h);
+        let out = self.call(func, args);
+        self.held.pop();
+        out
     }
 
     pub fn call(&mut self, func: FuncId, args: Vec<Val>) -> Result<Vec<Val>, Stop> {
@@ -348,7 +550,9 @@ impl Machine<'_> {
             let mut block: BlockId = 0;
             loop {
                 let b = &f.blocks[block as usize];
-                for inst in &b.insts {
+                for (i, inst) in b.insts.iter().enumerate() {
+                    fr.at = (block, i);
+                    self.mem.site = func;
                     self.inst(&mut fr, f, inst)?;
                 }
                 match &b.term {
@@ -370,6 +574,10 @@ impl Machine<'_> {
                     Term::Return(os) => {
                         let out = self.evals(&fr, os, f)?;
                         self.release(&fr);
+                        if self.ub {
+                            let o = self.tags_in(&out);
+                            self.tb_collect(&o);
+                        }
                         return Ok(out);
                     }
                     Term::TailCall { func: g, args: a } => {
@@ -377,6 +585,12 @@ impl Machine<'_> {
                         self.release(&fr);
                         func = *g;
                         continue 'call;
+                    }
+                    Term::Panic("forged") if self.ub => {
+                        return Err(Stop::Ub(
+                            9,
+                            "a capability read from memory is forged".into(),
+                        ));
                     }
                     Term::Panic(kind) => return Err(Stop::Panic(kind)),
                     Term::PanicFields { kind, fields } => {
@@ -412,7 +626,7 @@ impl Machine<'_> {
             }
             Inst::Call { dst, func, args } => {
                 let a = self.evals(fr, args, f)?;
-                let out = self.call(*func, a)?;
+                let out = self.call_holding(fr, *func, a)?;
                 self.bind(fr, f, dst, out)
             }
             Inst::CallIndirect {
@@ -425,7 +639,7 @@ impl Machine<'_> {
                         "call of {c:#x}, which is not a function"
                     )));
                 };
-                let out = self.call(id, a)?;
+                let out = self.call_holding(fr, id, a)?;
                 self.bind(fr, f, dst, out)
             }
             Inst::Rt { dst, f: rt, args } => {
@@ -464,6 +678,9 @@ impl Machine<'_> {
                     .map(|o| self.eval(fr, o, f).map(encode))
                     .collect::<Result<Vec<u64>, Stop>>()?;
                 let old = self.read_word_with(p, false)?;
+                if self.ub {
+                    self.atomic_words.insert(p);
+                }
                 let new = ops::atomic_new(*op, *ty, old, &a);
                 if let Some(w) = new {
                     self.write_word_with(p, w, false)?;
@@ -474,10 +691,10 @@ impl Machine<'_> {
                     (AtomicOp::Cas, None) => (Kind::Read, failure),
                     _ => (Kind::Rmw, order),
                 };
-                self.atomic_raced(p, kind, *order)?;
+                let read = self.atomic_raced(p, (kind, *order, *op == AtomicOp::Load), old, new)?;
                 match dst {
                     Some(d) => {
-                        let v = self.typed(f.locals[*d as usize], old)?;
+                        let v = self.typed(f.locals[*d as usize], read)?;
                         self.set(fr, f, *d, v)
                     }
                     None => Ok(()),
@@ -489,6 +706,73 @@ impl Machine<'_> {
                 }
                 Ok(())
             }
+            Inst::Move { places } if self.ub => {
+                for place in places {
+                    match place {
+                        Loc::Local(l) => {
+                            fr.moved.insert(*l, fr.at);
+                        }
+                        Loc::Word { ptr, word } => {
+                            let addr = self.eval(fr, ptr, f)?.addr() + 8 * u64::from(*word);
+                            if self.mem.mark_moved(addr, 8).is_some() {
+                                let (b, i) = fr.at;
+                                self.move_sites.insert(
+                                    addr,
+                                    format!(
+                                        ", moved in `{}` at block {b}, instruction {i}",
+                                        f.name
+                                    ),
+                                );
+                            }
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Inst::Move { .. } => Ok(()),
+            Inst::Retag {
+                ptr,
+                prov,
+                bytes,
+                kind,
+                protected,
+            } if self.ub => {
+                let addr = self.eval(fr, ptr, f)?.addr();
+                let word = fr.locals[*prov as usize].int() as u64;
+                let here = self.tags_in(&fr.locals);
+                self.tb_collect(&here);
+                let (id, parent) = self.tb_of(addr, word)?;
+                let (lo, hi) = self.tb_words(id, addr, *bytes);
+                let (b, i) = fr.at;
+                let site = format!("`{}` block {b}, instruction {i}", f.name);
+                let tag = self
+                    .tb_tree(id)
+                    .retag(parent, lo, hi, *kind, *protected, site)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))?;
+                if *protected {
+                    fr.protected.push((id, tag));
+                }
+                let w = tb::pack(id, tag);
+                fr.locals[*prov as usize] = Val::I(i128::from(w));
+                Ok(())
+            }
+            Inst::Access {
+                ptr,
+                prov,
+                bytes,
+                write,
+            } if self.ub => {
+                let addr = self.eval(fr, ptr, f)?.addr();
+                let word = self.eval(fr, prov, f)?.int() as u64;
+                let (id, tag) = self.tb_of(addr, word)?;
+                let (lo, hi) = self.tb_words(id, addr, *bytes);
+                self.tb_tree(id)
+                    .access(tag, lo, hi, *write)
+                    .map_err(|m| Stop::Ub(5, format!("{m}, at {addr:#x}")))?;
+                self.via.set((hi - lo) as u32);
+                Ok(())
+            }
+            Inst::Retag { .. } | Inst::Access { .. } => Ok(()),
             Inst::Arm(e) => {
                 let mut r = self.race.borrow_mut();
                 match e {
@@ -496,6 +780,7 @@ impl Machine<'_> {
                     ArmEvent::Enter(k) => r.enter(*k),
                     ArmEvent::Exit => r.exit(),
                     ArmEvent::Join => r.join(),
+                    ArmEvent::Leave => {}
                 }
                 Ok(())
             }
