@@ -135,13 +135,8 @@ impl V {
         self.copy = saved.copy.clone();
         self.file = saved.file.clone();
         self.item = saved.item.clone();
-        self.tys = params
-            .iter()
-            .filter_map(|p| match p {
-                Param::Value { name, ty, .. } => Some((name.clone(), ty.clone())),
-                Param::Cap { .. } => None,
-            })
-            .collect();
+        self.tys.clear();
+        self.note_params(params);
         self.st = Some(St::new());
         self.block(b, owned);
         let mut diags = saved.diags;
@@ -188,6 +183,14 @@ impl V {
             st.insert(n.clone(), S::Live);
         }
         self.last_decl = Some(n.clone());
+    }
+
+    fn note_params(&mut self, params: &[Param]) {
+        for p in params {
+            if let Param::Value { name, ty, .. } = p {
+                self.tys.insert(name.clone(), ty.clone());
+            }
+        }
     }
 
     fn declare_pat(&mut self, p: &Pat, ty: &Type) {
@@ -286,6 +289,7 @@ impl V {
         let jp = self.jps[name].clone();
         self.st = Some(jp.entry.unwrap_or(jp.decl));
         let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
+        self.note_params(params);
         // The body sees only what was declared before the join point.
         let after = self.scopes[jp.pos.0].split_off(jp.pos.1);
         self.block(body, &owned);
@@ -330,6 +334,7 @@ impl V {
             let jp = self.jps[name].clone();
             self.st = Some(jp.entry.unwrap_or(jp.decl));
             let owned: Vec<Name> = owned_params(params).into_iter().cloned().collect();
+            self.note_params(params);
             // The body sees only what was declared before the join point.
             let _after = self.scopes[jp.pos.0].split_off(jp.pos.1);
             owned.iter().for_each(|n| self.declare(n));
