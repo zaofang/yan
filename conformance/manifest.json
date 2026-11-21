@@ -7656,6 +7656,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/dist/sim_remote_shield_budget.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4",
+    "9.6.1"
+   ],
+   "rows": [
+    "R811"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "1 after PT7S\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/dist/sim_remote_start_arg_wire_panic.yag",
    "kind": "run",
    "milestone": "M1",
