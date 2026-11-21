@@ -25,7 +25,8 @@ One binary, `yan`, provides every tool. All subcommands share the query database
 | `yan add`, `remove`, `update`, `lock`, `tree`, `why`, `vendor` | dependency management (section 19); `yan lock` writes `yan.lock` from the manifest without changing a locked version (R896); `yan tree` lists the modules of the package in the current directory, one per line as path and file, and reports layout errors (R1065); `yan why <item> <fact>` explains an item's capability, `fail` member or panic kind (R612) | M1 |
 | `yan x <pkg> <tool> [--format json] [-- ARGS]` | run `tool`, a key of the `bins` of `pkg`, a locked `tools` package, under that package's own ceiling; `--format json` only checks it and prints the records (19.1, 19.2, R1140) | M1 |
 | `yan schema gen <file>` | write table row types from data files (11.9) | M1 |
-| `yan toolchain`, `yan self update` | fetch and verify toolchains (20.3, 19.6) | M1 |
+| `yan toolchain [--format json]` | report the installed toolchain and the maximum `yan` requirement over the package and its locked dependencies; E025 when the installed one is older; fetches nothing (20.3, R1141) | M1 |
+| `yan self update` | fetch and verify toolchains from the release index (20.3, 19.6) | M2b |
 | `yan skill` | print the agent skill file | M1 |
 | `yan view --as mir F` | print the canonical MIR text of F, as the native backends receive it: the optimized module lowered to MIR, first line `mir 1` (22.4, R1113) | M1b |
 | `yan view --as mir --check F` | validate the MIR of F, or F itself when it is a `.mir` text, against the rules of 22.4 (R1114 to R1121); one line per violation on stderr, exit 1 | M1b |

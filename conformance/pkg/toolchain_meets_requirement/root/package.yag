@@ -1,0 +1,1 @@
+package: Package = Package(name="@t/a", version="0.1.0", edition="next", yan="0.0.x")

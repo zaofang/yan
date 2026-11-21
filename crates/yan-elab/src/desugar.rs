@@ -179,6 +179,8 @@ pub struct Manifest {
     pub requirements: Vec<String>,
     /// The package's own `name`.
     pub name: Option<String>,
+    /// The required toolchain, `yan = "0.1.x"` (20.3).
+    pub yan: Option<String>,
     /// The package's own `version`.
     pub version: Option<String>,
     /// The workspace members' directories, relative to the manifest (root only, 19.1).
@@ -409,6 +411,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
     };
     Some(Manifest {
         name: string("name"),
+        yan: string("yan"),
         version: string("version"),
         members: strs("members").unwrap_or_default(),
         dependencies: reqs("dependencies"),

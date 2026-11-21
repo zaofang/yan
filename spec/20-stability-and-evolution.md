@@ -20,7 +20,7 @@ A package that builds and passes its tests on toolchain 1.a MUST build, pass and
 
 ### 20.3 Toolchain and std API version
 
-`package.yag` requires `yan = "0.1.x"`. The build needs the maximum over the package and its dependencies and fetches it through `yan toolchain` if the installed one is older. std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
+`package.yag` requires `yan = "0.1.x"`. The build needs the maximum over the package and its dependencies and reports it through `yan toolchain` if the installed one is older (E025); fetching and verifying a newer toolchain waits for the release index (`yan self update`, 19.6, R1141). std and prelude items carry `@since`, and items newer than the package's version are invisible to it (E200). std CI rejects a `pub` item without a current `@since` (E012).
 
 ### 20.4 Editions
 
