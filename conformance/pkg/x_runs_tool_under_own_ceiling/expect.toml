@@ -1,0 +1,4 @@
+spec = "19.1"
+rows = "R1140"
+note = "yan x runs a bins entry of a locked tools package that holds io in its own ceiling; the root declares no capability"
+command = ["x", "@t/hello", "hi"]

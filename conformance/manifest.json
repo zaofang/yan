@@ -18404,6 +18404,31 @@
    }
   },
   {
+   "path": "pkg/e314_x_tool_outside_own_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.2"
+   ],
+   "rows": [
+    "R1140"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.2",
+    "rows": "R1140",
+    "note": "the tool runs under its own ceiling, which omits io, so using io in its main is E314 on the tool's file",
+    "command": [
+     "x",
+     "@t/hello",
+     "hi"
+    ],
+    "code": "E314",
+    "at": "hello/src/main.yag:1:21"
+   }
+  },
+  {
    "path": "pkg/e332_edition_before_2026",
    "kind": "pkg",
    "milestone": "M1",
@@ -19264,6 +19289,29 @@
      "why",
      "m.mid",
      "fs"
+    ]
+   }
+  },
+  {
+   "path": "pkg/x_runs_tool_under_own_ceiling",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "19.1"
+   ],
+   "rows": [
+    "R1140"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "19.1",
+    "rows": "R1140",
+    "note": "yan x runs a bins entry of a locked tools package that holds io in its own ceiling; the root declares no capability",
+    "command": [
+     "x",
+     "@t/hello",
+     "hi"
     ]
    }
   },

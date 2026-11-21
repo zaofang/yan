@@ -1,0 +1,1 @@
+package: Package = Package(name="@t/hello", version="1.0.0", bins={"hi": "main"}, capabilities=[])
