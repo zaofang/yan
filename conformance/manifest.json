@@ -14161,6 +14161,23 @@
    ]
   },
   {
+   "path": "yn/fail/stage0/e265_reified_name_taken.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E265",
+     "line": 20,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/stage0/e267_embed_outside_root.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -14174,6 +14191,23 @@
      "code": "E267",
      "line": 5,
      "col": 24
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/stage0/e268_io_at_stage0.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "10.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E268",
+     "line": 11,
+     "col": 1
     }
    ]
   },

@@ -1,0 +1,14 @@
+-- spec: 10.4
+-- note: a type function may not use a capability; the stage-0 body calls io.print
+-- expect: E268 at 11:1
+
+type Point = { x: int, y: float }
+
+noisy(t: Type) -> Type uses io =
+  io.print("hi")
+  t
+
+type Bad = noisy(Point)
+
+main() uses io =
+  io.print("")

@@ -1,0 +1,23 @@
+-- spec: 10.4
+-- note: the reified record is named Mirror, which a declared type already uses
+-- expect: E265 at 20:1
+
+type Point = { x: int, y: float }
+
+mirror(t: Type) -> Type =
+  match meta.info(t)
+    Record(info:) ->
+      let fields = info.fields.map(
+          f -> FieldInfo(name: f.name + "2", ty: f.ty, public: True, annotations: []),
+      )
+      meta.record_type(
+          RecordInfo(name: "Mirror", params: [], fields: fields, annotations: [], layout: None),
+      )
+    _ -> t
+
+type Mirror = Point
+
+type Twin = mirror(Point)
+
+main() uses io =
+  io.print("")
