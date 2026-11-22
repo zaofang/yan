@@ -1,0 +1,14 @@
+# spec: 14.4
+# rows: R217
+# note: N08 removes @dataclass from a class
+# stdout:
+# 1 2
+
+@dataclass
+class P:
+    x: int
+    y: int
+
+pub def main() uses io:
+    p = P(1, 2)
+    io.print(f"{p.x} {p.y}")

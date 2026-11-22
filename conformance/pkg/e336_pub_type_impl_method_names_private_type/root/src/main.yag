@@ -1,0 +1,15 @@
+class Fee:
+    bps: int
+
+trait Priced:
+    def fee(self: Self) -> Fee: ...
+
+pub class Item:
+    n: int
+
+impl Priced for Item:
+    def fee(self: Self) -> Fee:
+        return Fee(bps=self.n)
+
+pub def main() -> None uses io:
+    io.print("ok")

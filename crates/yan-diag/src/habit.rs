@@ -226,10 +226,14 @@ const TABLE: &[Habit] = &[
         ext: "yag",
         lang: "python",
         codes: &["E200", "E201"],
-        on: |l| sized_call(l, "uint"),
-        text: "there is no `uint8(x)` constructor: to narrow an `int`, write `wrap_as[uint8](x)` \
-               (modulo 2**8) or `sat_as[uint8](x)` (clamped); to widen, `int(x)`. A literal that \
-               fits needs no conversion, and `bits.rotate_left(x, k)` rotates without overflow",
+        on: |l| {
+            let l = l.replace("ctypes.c_", "");
+            sized_call(&l, "uint") || sized_call(&l, "u")
+        },
+        text: "there is no `uint8(x)` constructor: to narrow an `int`, write `checked_as[uint8](x)` \
+               (fails with `overflow` if it does not fit), `wrap_as[uint8](x)` (modulo 2**8) or \
+               `sat_as[uint8](x)` (clamped); to widen, `int(x)`. A literal that fits needs no \
+               conversion, and `bits.rotate_left(x, k)` rotates without overflow",
     },
     Habit {
         ext: "yn",
@@ -256,7 +260,8 @@ const TABLE: &[Habit] = &[
         on: |l| sized_name(l, "uint") || BIT_OPS.iter().any(|o| l.contains(o)),
         text: "a sized integer (`uint8`, `int32`, ...) never mixes with `int` or another width \
                in arithmetic, bit operators or comparison: widen it with `int(x)` first, and \
-               narrow the result with `wrap_as[uint8](r)` or `sat_as[uint8](r)`",
+               narrow the result with `checked_as[uint8](r)`, `wrap_as[uint8](r)` or \
+               `sat_as[uint8](r)`",
     },
     Habit {
         ext: "yn",
@@ -395,11 +400,17 @@ mod selftest {
         ];
         annotate(src, &mut ds);
         let t = |i: usize| ds[i].children[0].text.as_str();
+        assert!(t(0).contains("checked_as[uint8]"));
         assert!(t(0).contains("wrap_as[uint8]"));
         assert!(t(1).contains("x as u8"));
         assert!(t(2).contains("int(b)"));
         assert!(t(3).contains("widen it with `int(x)`"));
         assert!(t(4).contains("wrap_as[u8]"));
+        for l in ["r = u8(x)", "r = np.uint8(x)", "r = ctypes.c_uint8(x)"] {
+            let mut ds = vec![diag("E200", "a.yag", 1)];
+            annotate(l, &mut ds);
+            assert!(ds[0].children[0].text.contains("checked_as[uint8]"), "{l}");
+        }
         assert!(!sized_call("print_u8(x)", "u"));
         assert!(!sized_name("let uint = 8", "uint"));
     }

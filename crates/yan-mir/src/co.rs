@@ -577,6 +577,11 @@ pub(crate) fn map_inst(i: &mut Inst, m: &mut impl FnMut(Local) -> Local) {
             Vec::new()
         }
         Inst::Arm(_) | Inst::Fence { .. } => Vec::new(),
+        Inst::Retag { ptr, prov, .. } => {
+            *prov = m(*prov);
+            vec![ptr]
+        }
+        Inst::Access { ptr, prov, .. } => vec![ptr, prov],
         Inst::Move { places } => places
             .iter_mut()
             .filter_map(|p| match p {
@@ -638,14 +643,18 @@ pub(crate) fn uses_defs(i: &Inst) -> (Vec<Local>, Vec<Local>) {
             dst.iter().copied().collect(),
         ),
         Inst::AddrOf { dst, local } => (vec![*local], vec![*dst]),
-        // A marker reads its pointer where it stands, so the pointer is live up to it; a
-        // `Loc::Local` is a name, not a read, and does not keep its local live.
+        Inst::Retag { ptr, prov, .. } => (l(ptr).into_iter().chain([*prov]).collect(), vec![*prov]),
+        Inst::Access { ptr, prov, .. } => {
+            ([ptr, prov].into_iter().filter_map(l).collect(), Vec::new())
+        }
+        // A marker reads its pointers and names its locals where it stands, as the validator
+        // (I103) counts a moved local as read, so a resume restores it.
         Inst::Move { places } => (
             places
                 .iter()
                 .filter_map(|p| match p {
                     Loc::Word { ptr, .. } => l(ptr),
-                    Loc::Local(_) => None,
+                    Loc::Local(x) => Some(*x),
                 })
                 .collect(),
             Vec::new(),
@@ -732,7 +741,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn move_marker_uses_only_its_word_pointers() {
+    fn move_marker_uses_its_locals_and_word_pointers() {
         let i = Inst::Move {
             places: vec![
                 Loc::Local(3),
@@ -746,6 +755,6 @@ mod tests {
                 },
             ],
         };
-        assert_eq!(uses_defs(&i), (vec![5], Vec::new()));
+        assert_eq!(uses_defs(&i), (vec![3, 5], Vec::new()));
     }
 }

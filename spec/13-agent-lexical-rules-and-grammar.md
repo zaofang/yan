@@ -85,7 +85,7 @@ forstmt   = "for" target "in" expr ":" lbody
 lbody     = NEWLINE INDENT {("invariant" | "decreases") expr NEWLINE} stmt {stmt} DEDENT
 matchstmt = "match" expr ":" NEWLINE INDENT case {case} DEDENT
 case      = "case" pattern ["if" expr] ":" block
-withstmt  = "with" (expr "as" NAME | NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "supervisor" "(" expr ")") ":" block   # supervisor: R978; `expr as NAME` binds a lock guard, a scope ending at the block (R1036)
+withstmt  = "with" (expr "as" NAME | NAME "=" expr | "deadline" "(" expr ")" | "timeout" "(" expr ")" | "shield" "(" expr ")" | "supervisor" "(" expr ")") ":" block   # supervisor: R978; `expr as NAME` binds a lock guard, a scope ending at the block (R1036)
 parstmt   = "par" ["concurrent"] ["(" "limit" "=" expr ")"] (":" NEWLINE INDENT stmt {stmt} DEDENT | "for" target "in" expr ":" lbody)   # par for statement (R427)
 block     = simple NEWLINE | NEWLINE INDENT stmt {stmt} DEDENT
 

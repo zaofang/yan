@@ -1,0 +1,14 @@
+# spec: 14.4
+# rows: R766
+# note: N32 moves an ex line at the left margin into the function above
+# stdout:
+# 4
+
+def double(n: int) -> int:
+    return n * 2
+
+ex double(2) == 4
+ex double(0) == 0
+
+pub def main() uses io:
+    io.print(f"{double(2)}")

@@ -1,0 +1,19 @@
+# spec: 12.7
+# rows: R920
+# note: exports over profile types are legal, with a name override and with capabilities
+
+@export
+pub def add(a: int, b: int) -> int:
+    """Adds."""
+    return a + b
+
+@export(name="c_mul")
+pub def mul(a: int, b: int) -> int:
+    """Multiplies under a C name."""
+    return a * b
+
+@export
+pub def log(n: int) -> int uses io:
+    """Logs through the host world."""
+    io.print(f"{n}")
+    return n

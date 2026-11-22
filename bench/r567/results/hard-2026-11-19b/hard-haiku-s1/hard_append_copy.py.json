@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2680,
+   "out": 1517,
+   "reasoning": 599,
+   "out_bytes": 2087
+  },
+  "body": {
+   "in": 2137,
+   "out": 474,
+   "reasoning": 0,
+   "out_bytes": 1072
+  }
+ },
+ "final": "import pytest\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of `s` to the list `dst` in place; return nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty_list() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\"]\n\n\ndef test_add_name_appends_to_end_preserving_order() -> None:\n    dst: list[str] = [\"alice\", \"bob\"]\n    add_name(dst, \"carol\")\n    assert dst == [\"alice\", \"bob\", \"carol\"]\n\n\ndef test_add_name_mutates_same_list_object() -> None:\n    dst: list[str] = []\n    original_id = id(dst)\n    add_name(dst, \"dave\")\n    assert id(dst) == original_id\n    assert dst == [\"dave\"]\n\n\ndef test_add_name_mutates_caller_list_without_rebinding() -> None:\n    dst: list[str] = []\n    add_name(dst, \"erin\")\n    assert dst == [\"erin\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"frank\"]\n    add_name(dst, \"frank\")\n    assert dst == [\"frank\", \"frank\"]\n\n\ndef test_add_name_accepts_empty_string() -> None:\n    dst: list[str] = []\n    add_name(dst, \"\")\n    assert dst == [\"\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 629,
+    "reasoning": 180
+   },
+   "out_bytes": 1025,
+   "ok": false,
+   "report": "test_task.py:31: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1611,
+    "out": 888,
+    "reasoning": 419
+   },
+   "out_bytes": 1062,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2137,
+    "out": 474,
+    "reasoning": 0
+   },
+   "out_bytes": 1072,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -385,6 +385,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                     let ds = d.shape.clone();
                     let best = self.var(e.clone());
                     let (best_key, have) = (self.local(I64), self.local(I64));
+                    self.zero_locals(&best.locals);
+                    self.zero_locals(&[best_key]);
                     self.emit(Inst::Copy {
                         dst: have,
                         src: Operand::Int(0),
@@ -455,6 +457,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                 let ds = d.shape.clone();
                 let best = self.local(I64);
                 let have = self.local(I64);
+                self.zero_locals(&[best]);
                 self.emit(Inst::Copy {
                     dst: have,
                     src: Operand::Int(0),
@@ -655,6 +658,7 @@ impl<'a, 'm> Fn<'a, 'm> {
                     src: Operand::Int(0),
                 });
                 let hit = self.var(e.clone());
+                self.zero_locals(&hit.locals);
                 self.each(rem, |me, i| {
                     let x = item(me, i)?;
                     let join = me.block_new();

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1085,
+   "out": 949,
+   "reasoning": 596,
+   "out_bytes": 853
+  },
+  "body": {
+   "in": 1495,
+   "out": 900,
+   "reasoning": 451,
+   "out_bytes": 1097
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Return how many items of xs were accepted by a bounded queue.\n\n    A queue with capacity `cap` is created empty. Each element of xs is\n    offered with a non-blocking put. Every accepted put increments the\n    count. The first rejected put (queue full) stops the loop, and the\n    count is returned. Nothing is removed from the queue during this.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n        except queue.Full:\n            break\n        count += 1\n    return count\n\n\ndef test_accepted_stops_when_full() -> None:\n    assert accepted(3, [1, 2, 3, 4, 5]) == 3\n\n\ndef test_accepted_all_fit() -> None:\n    assert accepted(3, [1, 2]) == 2\n\n\ndef test_accepted_empty_input() -> None:\n    assert accepted(2, []) == 0\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_accepted_exact_capacity() -> None:\n    assert accepted(2, [7, 8]) == 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 949,
+    "reasoning": 596
+   },
+   "out_bytes": 853,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1495,
+    "out": 900,
+    "reasoning": 451
+   },
+   "out_bytes": 1097,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

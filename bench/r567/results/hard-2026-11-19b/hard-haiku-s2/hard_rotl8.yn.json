@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1833,
+   "out": 873,
+   "reasoning": 763,
+   "out_bytes": 174
+  },
+  "body": {
+   "in": 2016,
+   "out": 551,
+   "reasoning": 432,
+   "out_bytes": 185
+  }
+ },
+ "final": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0\n  pre k <= 7\n  post bits.count_ones(out) == bits.count_ones(x)\n  ex rotl8(129, 1) == 3\n  ex rotl8(1, 0) == 1\n  bits.rotate_left(x, k)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1833,
+    "out": 873,
+    "reasoning": 763
+   },
+   "out_bytes": 174,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2016,
+    "out": 551,
+    "reasoning": 432
+   },
+   "out_bytes": 185,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

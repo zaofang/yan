@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2600,
+   "out": 1017,
+   "reasoning": 324,
+   "out_bytes": 1536
+  },
+  "body": {
+   "in": 1912,
+   "out": 329,
+   "reasoning": 0,
+   "out_bytes": 724
+  }
+ },
+ "final": "import pytest\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place. Returns nothing.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"ada\")\n    assert dst == [\"ada\"]\n\n\ndef test_add_name_preserves_existing_items() -> None:\n    dst: list[str] = [\"bob\"]\n    add_name(dst, \"cy\")\n    assert dst == [\"bob\", \"cy\"]\n\n\ndef test_add_name_mutates_caller_list() -> None:\n    dst: list[str] = []\n    alias = dst\n    add_name(dst, \"dee\")\n    assert alias is dst\n    assert alias == [\"dee\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"fay\"]\n    add_name(dst, \"fay\")\n    assert dst == [\"fay\", \"fay\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 528,
+    "reasoning": 159
+   },
+   "out_bytes": 822,
+   "ok": false,
+   "report": "test_task.py:31: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1531,
+    "out": 489,
+    "reasoning": 165
+   },
+   "out_bytes": 714,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1912,
+    "out": 329,
+    "reasoning": 0
+   },
+   "out_bytes": 724,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

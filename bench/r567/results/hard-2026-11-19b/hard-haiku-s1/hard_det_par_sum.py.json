@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1093,
+   "out": 1502,
+   "reasoning": 924,
+   "out_bytes": 1404
+  },
+  "body": {
+   "in": 1728,
+   "out": 978,
+   "reasoning": 308,
+   "out_bytes": 1649
+  }
+ },
+ "final": "import pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\ndef square(x: int) -> int:\n    \"\"\"Return x squared.\"\"\"\n    return x * x\n\n\ndef sum_squares(xs: list[int], workers: int | None = None) -> int:\n    \"\"\"Return the sum of square(x) for every x in xs.\n\n    The squares are computed in parallel on a ThreadPoolExecutor with\n    `workers` threads (None uses the executor's default). The result must\n    be identical for every valid worker count. Raises ValueError if\n    workers is given and is less than 1.\n    \"\"\"\n    if workers is not None and workers < 1:\n        raise ValueError(f\"workers must be >= 1, got {workers}\")\n    with ThreadPoolExecutor(max_workers=workers) as executor:\n        squares = list(executor.map(square, xs))\n    return sum(squares)\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(-4) == 16\n    assert square(7) == 49\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_known_values() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n    assert sum_squares([-3, 4]) == 25\n\n\ndef test_sum_squares_default_workers() -> None:\n    xs = list(range(-50, 51))\n    assert sum_squares(xs) == sum(x * x for x in xs)\n\n\ndef test_sum_squares_same_at_every_worker_count() -> None:\n    xs = list(range(-500, 500))\n    expected = sum(x * x for x in xs)\n    for workers in (1, 2, 4, 8, 16):\n        assert sum_squares(xs, workers=workers) == expected\n\n\ndef test_sum_squares_invalid_workers() -> None:\n    with pytest.raises(ValueError):\n        sum_squares([1, 2], workers=0)\n    with pytest.raises(ValueError):\n        sum_squares([1, 2], workers=-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1093,
+    "out": 1502,
+    "reasoning": 924
+   },
+   "out_bytes": 1404,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1728,
+    "out": 978,
+    "reasoning": 308
+   },
+   "out_bytes": 1649,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

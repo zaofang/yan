@@ -1,0 +1,6 @@
+spec = "19.2"
+rows = "R1140"
+note = "the tool runs under its own ceiling, which omits io, so using io in its main is E314 on the tool's file"
+command = ["x", "@t/hello", "hi"]
+code = "E314"
+at = "hello/src/main.yag:1:21"

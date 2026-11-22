@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2035,
+   "out": 1176,
+   "reasoning": 1040,
+   "out_bytes": 287
+  },
+  "body": {
+   "in": 2244,
+   "out": 959,
+   "reasoning": 753,
+   "out_bytes": 429
+  }
+ },
+ "final": "-- Phase 1: spec only. The plugin sees fs; run_plugin confines it to notes.\n\nplugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\nrun_plugin(path: str) -> str uses fs =\n  post out.char_count() >= 1\n  ex run_plugin(\"../secret.txt\") == \"|\"\n  with fs = fs.sub(\"notes\")\n    let r = plugin(path)\n    r\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2035,
+    "out": 1176,
+    "reasoning": 1040
+   },
+   "out_bytes": 287,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2244,
+    "out": 959,
+    "reasoning": 753
+   },
+   "out_bytes": 429,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

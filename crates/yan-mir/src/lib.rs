@@ -11,11 +11,18 @@ mod co;
 pub mod ffi;
 mod layout;
 mod lower;
+mod mnemonic;
+mod parse;
 mod pool;
 mod tasks;
+mod text;
+mod validate;
 
 pub use layout::{Layout, SumLayout, layout};
 pub use lower::{Shape, layout_of, lower};
+pub use parse::ParseError;
+pub use text::VERSION as TEXT_VERSION;
+pub use validate::{Form, Rule, Violation};
 
 pub type Local = u32;
 pub type BlockId = u32;
@@ -191,6 +198,31 @@ pub enum Inst {
     Move {
         places: Vec<Loc>,
     },
+    /// Retags the pointer at `ptr` whose provenance word is local `prov`: a new Tree Borrows tag
+    /// over `bytes` bytes, stored back into `prov` (6.6, RFC 0088). No code; native code keeps `prov`.
+    Retag {
+        ptr: Operand,
+        prov: Local,
+        bytes: u32,
+        kind: RetagKind,
+        protected: bool,
+    },
+    /// An access of `bytes` bytes at `ptr` through the tag in `prov`, which the loads or stores that
+    /// follow perform (RFC 0088); no code.
+    Access {
+        ptr: Operand,
+        prov: Operand,
+        bytes: u32,
+        write: bool,
+    },
+}
+
+/// The initial permission of a retag (6.6).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RetagKind {
+    Unique,
+    Frozen,
+    Cell,
 }
 
 /// A place a value can be moved out of.
@@ -263,6 +295,8 @@ pub enum ArmEvent {
 pub enum RtFn {
     /// `(Str)`
     Print,
+    /// `(Str)`: the text and a newline on stderr
+    Eprint,
     /// `(Str, i64)`: the shown failure of `main` on stderr, then that exit status; does not return.
     FailMain,
     /// `() -> Str`, a null pointer at end of input
@@ -734,10 +768,21 @@ pub enum RtFn {
     SupEndTo,
     /// `(low, hi, lo) -> low`: open a deadline scope ending at the instant `(hi, lo)`.
     DeadlineBegin,
+    /// `(low, hi, lo) -> low`: as `DeadlineBegin`, for a `shield`: the instant replaces the
+    /// deadline in force and cancellation of the enclosing `par` blocks is held (R811).
+    ShieldBegin,
+    /// `() -> i64`: 1 once, when the deadline an operation last read was a shield's own (R812).
+    ShieldHit,
     /// `()`: end the innermost deadline scope.
     DeadlineEnd,
     /// `(depth)`: end the deadline scopes past `depth`.
     DeadlineEndTo,
+    /// `() -> id`: the innermost cancel scope open in the running task (`std.scope`, 9.4).
+    ScopeCurrent,
+    /// `(id, hi, lo)`: drain the scope, if it is open, to be cancelled after the grace `(hi, lo)`.
+    ScopeDrain,
+    /// `(id) -> bool`: the scope, or one around it, is draining.
+    ScopeDraining,
     /// `(lib Str, symbol Str, result kind, 6 ints, 8 f64s) -> i64`: a foreign function.
     FfiCall,
     /// As `FfiCall`, `-> f64`.

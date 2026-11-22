@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1848,
+   "out": 602,
+   "reasoning": 500,
+   "out_bytes": 216
+  },
+  "body": {
+   "in": 6969,
+   "out": 2707,
+   "reasoning": 2110,
+   "out_bytes": 1401
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  pre key.char_count() > 0\n  post out.char_count() <= text.char_count()\n  ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n  ex config_value(\"a=1\", \"z\") == \"\"\n  for line in text.split(\"\\n\")\n    var k = \"\"\n    var v = \"\"\n    var n = 0\n    for p in line.split(\"=\")\n      if n == 0\n        k = p.copy()\n      else\n        if n > 1\n          v += \"=\"\n        v += p\n      n += 1\n    if n > 1 and k == key\n      return v\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1848,
+    "out": 602,
+    "reasoning": 500
+   },
+   "out_bytes": 216,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2023,
+    "out": 1074,
+    "reasoning": 879
+   },
+   "out_bytes": 480,
+   "ok": false,
+   "report": "E201 task.yn:15:16 config_value: `v += c` `+` between `str` and `char`\nE201 task.yn:17:16 config_value: `k += c` `+` between `str` and `char`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2318,
+    "out": 1078,
+    "reasoning": 879
+   },
+   "out_bytes": 457,
+   "ok": false,
+   "report": "E413 task.yn:12:13 config_value: `k = p` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 10:5 | fix: p -> p.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2628,
+    "out": 555,
+    "reasoning": 352
+   },
+   "out_bytes": 464,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E201 ./task.yn:15:16 config_value: `c` `+` between `str` and `char`\nE201 ./task.yn:17:16 config_value: `c` `+` between `str` and `char`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

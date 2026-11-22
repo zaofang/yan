@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1255,
+   "out": 2570,
+   "reasoning": 947,
+   "out_bytes": 3706
+  },
+  "body": {
+   "in": 2935,
+   "out": 2067,
+   "reasoning": 333,
+   "out_bytes": 4056
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Callable\n\nimport pytest\n\n\ndef plugin(path: str, read: Callable[[str], str]) -> str:\n    mine = read(path)\n    theirs = read('notes/../secret.txt')\n    return mine + '|' + theirs\n\n\ndef make_reader(root: Path) -> Callable[[str], str]:\n    \"\"\"Return a reader that gives the text of `p` resolved relative to `root`.\n\n    The reader returns \"\" when the resolved path (after following symlinks and\n    `..` segments) is not inside `root`, when `p` is absolute and points\n    outside `root`, or when it cannot be read as a text file (missing,\n    a directory, undecodable, permission denied, ...). It never raises.\n    \"\"\"\n    base = root.resolve()\n\n    def read(p: str) -> str:\n        try:\n            target = (base / p).resolve()\n            if not target.is_relative_to(base):\n                return \"\"\n            return target.read_text()\n        except (OSError, UnicodeError, ValueError):\n            return \"\"\n\n    return read\n\n\ndef run_plugin(path: str) -> str:\n    \"\"\"Return `plugin(path, read)`, where `read(p)` gives the text of `p`\n    relative to the directory `notes` (in the current working directory), or\n    an empty string when `p` cannot be read inside `notes`.\n    \"\"\"\n    return plugin(path, make_reader(Path(\"notes\")))\n\n\n@pytest.fixture\ndef tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    (tmp_path / \"notes\").mkdir()\n    (tmp_path / \"notes\" / \"a.txt\").write_text(\"hello\")\n    (tmp_path / \"notes\" / \"sub\").mkdir()\n    (tmp_path / \"notes\" / \"sub\" / \"b.txt\").write_text(\"deep\")\n    (tmp_path / \"secret.txt\").write_text(\"TOP SECRET\")\n    monkeypatch.chdir(tmp_path)\n    return tmp_path\n\n\ndef test_reads_file_inside_notes(tree: Path) -> None:\n    assert run_plugin(\"a.txt\") == \"hello|\"\n\n\ndef test_reads_nested_file(tree: Path) -> None:\n    assert run_plugin(\"sub/b.txt\") == \"deep|\"\n\n\ndef test_secret_outside_notes_not_leaked(tree: Path) -> None:\n    assert \"TOP SECRET\" not in run_plugin(\"a.txt\")\n    assert run_plugin(\"a.txt\") == \"hello|\"\n\n\ndef test_parent_escape_gives_empty(tree: Path) -> None:\n    assert run_plugin(\"../secret.txt\") == \"|\"\n\n\ndef test_sneaky_escape_gives_empty(tree: Path) -> None:\n    assert run_plugin(\"sub/../../secret.txt\") == \"|\"\n\n\ndef test_absolute_path_outside_gives_empty(tree: Path) -> None:\n    assert run_plugin(str(tree / \"secret.txt\")) == \"|\"\n\n\ndef test_missing_file_gives_empty(tree: Path) -> None:\n    assert run_plugin(\"nope.txt\") == \"|\"\n\n\ndef test_directory_gives_empty(tree: Path) -> None:\n    assert run_plugin(\"sub\") == \"|\"\n\n\ndef test_symlink_escape_gives_empty(tree: Path) -> None:\n    link = tree / \"notes\" / \"link.txt\"\n    try:\n        link.symlink_to(tree / \"secret.txt\")\n    except (OSError, NotImplementedError):\n        pytest.skip(\"symlinks not supported\")\n    assert run_plugin(\"link.txt\") == \"|\"\n\n\ndef test_plugin_second_read_is_relative_to_notes(tree: Path) -> None:\n    # 'notes/../secret.txt' resolves to notes/secret.txt, inside notes,\n    # never to the top-level secret.txt.\n    (tree / \"notes\" / \"secret.txt\").write_text(\"inner\")\n    assert run_plugin(\"a.txt\") == \"hello|inner\"\n\n\ndef test_make_reader_basic(tree: Path) -> None:\n    read = make_reader(tree / \"notes\")\n    assert read(\"a.txt\") == \"hello\"\n    assert read(\"sub/b.txt\") == \"deep\"\n    assert read(\"../secret.txt\") == \"\"\n    assert read(\"missing.txt\") == \"\"\n    assert read(\"sub\") == \"\"\n    assert read(str(tree / \"secret.txt\")) == \"\"\n\n\ndef test_make_reader_allows_inner_dotdot(tree: Path) -> None:\n    read = make_reader(tree / \"notes\")\n    assert read(\"sub/../a.txt\") == \"hello\"\n\n\ndef test_make_reader_sibling_prefix_not_allowed(tree: Path) -> None:\n    (tree / \"notes2\").mkdir()\n    (tree / \"notes2\" / \"x.txt\").write_text(\"sibling\")\n    read = make_reader(tree / \"notes\")\n    assert read(\"../notes2/x.txt\") == \"\"\n\n\ndef test_plugin_with_fake_reader() -> None:\n    calls: list[str] = []\n\n    def fake(p: str) -> str:\n        calls.append(p)\n        return \"x\"\n\n    assert plugin(\"f\", fake) == \"x|x\"\n    assert calls == [\"f\", \"notes/../secret.txt\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1255,
+    "out": 2570,
+    "reasoning": 947
+   },
+   "out_bytes": 3706,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2935,
+    "out": 2067,
+    "reasoning": 333
+   },
+   "out_bytes": 4056,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

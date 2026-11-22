@@ -1,0 +1,94 @@
+{
+ "final": "def age_at(born: int, now: int) -> int:\n    \"\"\"Whole years from birth year `born` to current year `now`. The year is passed in, so the function reads no clock.\"\"\"\n    pre now >= born\n    post out >= 0\n    ex age_at(1990, 2024) == 34\n    ex age_at(2000, 2000) == 0\n    return now - born\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2288,
+    "out": 376,
+    "reasoning": 257
+   },
+   "out_bytes": 282
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2505,
+    "out": 121,
+    "reasoning": 0
+   },
+   "out_bytes": 296
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_age_at",
+ "tokens": {
+  "body": {
+   "in": 2505,
+   "out": 121,
+   "reasoning": 0,
+   "out_bytes": 296
+  },
+  "spec": {
+   "in": 2288,
+   "out": 376,
+   "reasoning": 257,
+   "out_bytes": 282
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 2707,
+   "reasoning": 1171,
+   "out_bytes": 3448
+  },
+  "body": {
+   "in": 2728,
+   "out": 2610,
+   "reasoning": 895,
+   "out_bytes": 3999
+  }
+ },
+ "final": "import os\nfrom pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = \"notes\"\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first name in names that is a readable file inside NOTES_DIR.\n\n    NOTES_DIR is resolved against the current working directory. Names are\n    untrusted. A name is used only if it resolves (following symlinks) to a\n    regular file located inside NOTES_DIR. Names that are empty, contain NUL\n    bytes, are absolute, escape NOTES_DIR (for example via '..'), point outside\n    it through a symlink, name a directory, are missing, or cannot be read are\n    skipped. Returns \"\" when no name yields readable text.\n    \"\"\"\n    base = Path(NOTES_DIR).resolve()\n    for name in names:\n        if not name or \"\\x00\" in name:\n            continue\n        try:\n            candidate = (base / name).resolve()\n        except (OSError, RuntimeError, ValueError):\n            continue\n        if candidate == base or not candidate.is_relative_to(base):\n            continue\n        try:\n            if not candidate.is_file():\n                continue\n            return candidate.read_text(encoding=\"utf-8\")\n        except (OSError, UnicodeDecodeError):\n            continue\n    return \"\"\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    \"\"\"Change into a fresh temp dir containing notes/ and a secret outside it.\"\"\"\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / NOTES_DIR\n    notes.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"SECRET\", encoding=\"utf-8\")\n    return notes\n\n\ndef test_returns_first_readable_in_order(workdir: Path) -> None:\n    (workdir / \"b.txt\").write_text(\"B\", encoding=\"utf-8\")\n    (workdir / \"c.txt\").write_text(\"C\", encoding=\"utf-8\")\n    assert first_readable([\"missing.txt\", \"b.txt\", \"c.txt\"]) == \"B\"\n\n\ndef test_empty_names_returns_empty(workdir: Path) -> None:\n    assert first_readable([]) == \"\"\n\n\ndef test_none_readable_returns_empty(workdir: Path) -> None:\n    assert first_readable([\"x.txt\", \"y.txt\"]) == \"\"\n\n\ndef test_empty_name_is_skipped(workdir: Path) -> None:\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"\", \"a.txt\"]) == \"A\"\n\n\ndef test_nul_byte_name_is_skipped(workdir: Path) -> None:\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"a.txt\\x00.md\", \"a.txt\"]) == \"A\"\n\n\ndef test_parent_traversal_cannot_read_outside(workdir: Path) -> None:\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"../secret.txt\"]) == \"\"\n    assert first_readable([\"../secret.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_traversal_back_into_notes_is_allowed_only_if_inside(workdir: Path) -> None:\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"../notes/a.txt\"]) == \"A\"\n\n\ndef test_absolute_path_outside_is_rejected(workdir: Path, tmp_path: Path) -> None:\n    secret = tmp_path / \"secret.txt\"\n    assert first_readable([str(secret)]) == \"\"\n\n\ndef test_symlink_pointing_outside_is_rejected(workdir: Path, tmp_path: Path) -> None:\n    link = workdir / \"link.txt\"\n    link.symlink_to(tmp_path / \"secret.txt\")\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"link.txt\"]) == \"\"\n    assert first_readable([\"link.txt\", \"a.txt\"]) == \"A\"\n\n\ndef test_directory_name_is_skipped(workdir: Path) -> None:\n    (workdir / \"sub\").mkdir()\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    assert first_readable([\"sub\", \"a.txt\"]) == \"A\"\n\n\n@pytest.mark.skipif(\n    hasattr(os, \"geteuid\") and os.geteuid() == 0,\n    reason=\"root can read mode-000 files\",\n)\ndef test_unreadable_file_is_skipped(workdir: Path) -> None:\n    locked = workdir / \"locked.txt\"\n    locked.write_text(\"L\", encoding=\"utf-8\")\n    locked.chmod(0o000)\n    (workdir / \"a.txt\").write_text(\"A\", encoding=\"utf-8\")\n    try:\n        assert first_readable([\"locked.txt\", \"a.txt\"]) == \"A\"\n    finally:\n        locked.chmod(0o644)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 2707,
+    "reasoning": 1171
+   },
+   "out_bytes": 3448,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2728,
+    "out": 2610,
+    "reasoning": 895
+   },
+   "out_bytes": 3999,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

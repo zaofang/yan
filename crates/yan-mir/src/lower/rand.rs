@@ -149,7 +149,9 @@ impl<'m> Fn<'_, 'm> {
     /// `with rand = handler: body`: `name` is the handler in `body`.
     pub(super) fn with_rand(&mut self, name: &str, handler: &y::Atom, body: &'m y::Block) -> R<()> {
         let h = self.scalar1(handler)?;
-        let var = self.var(Shape::Scalar(I64));
+        // The `Proc` handler is the dict of fake outputs.
+        let ty = if name == "proc" { Ty::Ptr } else { I64 };
+        let var = self.var(Shape::Scalar(ty));
         self.copy_to(&var.locals.clone(), vec![h]);
         let outer = self.names.insert(name.to_owned(), var);
         if name == "rand" && !self.rands.iter().any(|n| n == name) {

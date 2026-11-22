@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1071,
+   "out": 1527,
+   "reasoning": 1057,
+   "out_bytes": 1028
+  },
+  "body": {
+   "in": 1598,
+   "out": 702,
+   "reasoning": 221,
+   "out_bytes": 1050
+  }
+ },
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Return an element of the non-empty list xs, chosen deterministically from seed.\n\n    The same (xs, seed) pair always yields the same element. No randomness is used.\n    \"\"\"\n    return xs[seed % len(xs)]\n\n\ndef test_pick_returns_member() -> None:\n    xs = [10, 20, 30, 40]\n    for seed in range(50):\n        assert pick(xs, seed) in xs\n\n\ndef test_pick_same_seed_same_element() -> None:\n    xs = [5, 6, 7, 8, 9]\n    for seed in range(20):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_single_element() -> None:\n    for seed in (-3, 0, 1, 99999):\n        assert pick([42], seed) == 42\n\n\ndef test_pick_varies_with_seed() -> None:\n    xs = [1, 2, 3, 4]\n    seen = {pick(xs, seed) for seed in range(100)}\n    assert len(seen) > 1\n\n\ndef test_pick_negative_seed() -> None:\n    xs = [1, 2, 3]\n    first = pick(xs, -7)\n    assert first in xs\n    assert pick(xs, -7) == first\n\n\ndef test_pick_does_not_mutate() -> None:\n    xs = [3, 1, 2]\n    pick(xs, 4)\n    assert xs == [3, 1, 2]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1071,
+    "out": 1527,
+    "reasoning": 1057
+   },
+   "out_bytes": 1028,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1598,
+    "out": 702,
+    "reasoning": 221
+   },
+   "out_bytes": 1050,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

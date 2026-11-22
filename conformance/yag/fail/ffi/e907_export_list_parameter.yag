@@ -1,0 +1,9 @@
+# spec: 12.7
+# rows: R920
+# note: an export whose parameter is a list is outside the C profile
+# expect: E907 at 7:19
+
+@export
+pub def total(xs: list[int]) -> int:
+    """Sums a list."""
+    return len(xs)

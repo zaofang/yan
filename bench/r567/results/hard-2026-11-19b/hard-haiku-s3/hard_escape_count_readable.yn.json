@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1941,
+   "out": 1534,
+   "reasoning": 1167,
+   "out_bytes": 918
+  },
+  "body": {
+   "in": 5306,
+   "out": 3216,
+   "reasoning": 2252,
+   "out_bytes": 2419
+  }
+ },
+ "final": "-- Names come from untrusted requests. Only plain file names are accepted:\n-- no separators, no \".\" or \"..\", and not empty.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"a.txt\") == True\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"\") == False\n  if name == \"\" or name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\"\n      return False\n  True\n\n-- Whether the named file under notes can be read. A missing or unreadable\n-- file is False. Confinement to notes is done by the caller with fs.sub.\ncan_read(name: str) -> bool uses fs =\n  pre is_plain_name(name)\n  let text = fs.read(name) else return False\n  text.char_count() >= 0\n\n-- Counts the names that are readable files inside the directory notes.\n-- Implementation will narrow fs with `with fs = fs.sub(\"notes\")` before\n-- reading, and reject any name that is not plain.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  var n = 0\n  with fs = fs.sub(\"notes\")\n    for name in names\n      if is_plain_name(name) and can_read(name)\n        n += 1\n  n\n\ntest_is_plain_name() =\n  assert is_plain_name(\"a.txt\")\n  assert not is_plain_name(\"../secret\")\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1941,
+    "out": 1534,
+    "reasoning": 1167
+   },
+   "out_bytes": 918,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2381,
+    "out": 2192,
+    "reasoning": 1714
+   },
+   "out_bytes": 1201,
+   "ok": false,
+   "report": "E110 task.yn:18:7 `_text` value names are lowercase words joined by single underscores",
+   "codes": [
+    "E110"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2925,
+    "out": 1024,
+    "reasoning": 538
+   },
+   "out_bytes": 1218,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E110 task.yn:18:7 `_text` value names are lowercase words joined by single underscores"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

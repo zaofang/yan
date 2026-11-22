@@ -1,0 +1,46 @@
+--- Slice 4 (#1505): the driver of the Yan Core reader. Each argument is a `.yir` file or a directory, walked in
+--- `fs.list_dir` order. Each `.yir` file is read, lexed, parsed and printed in the format of
+--- crates/yan-core/examples/print_dump.rs, then the printed text is parsed and printed again; a file whose second
+--- print differs from the first, or whose printed text has diagnostics, fails the run with the list of files.
+--- Needs core_lex.yn, core_parse.yn and core_print.yn after it in the same program.
+
+walk(path: str) -> List[str] uses fs =
+  if path.endswith(".yir")
+    return [path]
+  var out: List[str] = []
+  for e in fs.list_dir(path) else []
+    for f in walk(e.text())
+      out.append(f.copy())
+  out
+
+roundtrip_ok(printed: str) -> bool uses none =
+  let r = parse(printed)
+  if len(r.diags) > 0
+    return False
+  match r.module
+    Some(m) -> print_module(m) == printed
+    None -> False
+
+type Mismatch = { files: List[str] }
+
+main() fail Mismatch uses io, fs, env =
+  var files: List[str] = []
+  for a in env.args()
+    for f in walk(a)
+      files.append(f.copy())
+  var bad: List[str] = []
+  for path in files
+    io.print("file \(path)")
+    let src = fs.read(path) else ""
+    let r = parse(src)
+    for d in r.diags
+      io.print("diag \(d.code) \(d.span.line):\(d.span.col)")
+    match r.module
+      Some(m) ->
+        let printed = print_module(m)
+        io.print(printed)
+        if not roundtrip_ok(printed)
+          bad.append(path.copy())
+      None -> ()
+  if len(bad) > 0
+    fail Mismatch(files: bad)

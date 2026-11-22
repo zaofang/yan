@@ -1,0 +1,5 @@
+spec = "20.3"
+rows = "R1141"
+note = "a package requiring a newer toolchain than the installed one is E025, and nothing is fetched"
+command = ["toolchain"]
+code = "E025"

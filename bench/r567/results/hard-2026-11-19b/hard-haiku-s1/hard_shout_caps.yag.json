@@ -1,0 +1,94 @@
+{
+ "final": "def shout_line(s: str) -> str:\n    \"\"\"Return s with every letter upper-cased.\"\"\"\n    ex shout_line(\"hi\") == \"HI\"\n    ex shout_line(\"\") == \"\"\n    return s.upper()\n\ndef shout(xs: list[str]) uses io:\n    \"\"\"Print each string in xs upper-cased, one per line, in order.\"\"\"\n    for s in xs:\n        io.print(shout_line(s))\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2275,
+    "out": 823,
+    "reasoning": 702
+   },
+   "out_bytes": 281
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2494,
+    "out": 495,
+    "reasoning": 353
+   },
+   "out_bytes": 335
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shout_caps",
+ "tokens": {
+  "body": {
+   "in": 2494,
+   "out": 495,
+   "reasoning": 353,
+   "out_bytes": 335
+  },
+  "spec": {
+   "in": 2275,
+   "out": 823,
+   "reasoning": 702,
+   "out_bytes": 281
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -375,6 +375,9 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
     let lit = module
         .declare_function("yan_rt_static_str", Linkage::Import, &lit_sig)
         .map_err(err)?;
+    let signals = module
+        .declare_function("yan_rt_signals", Linkage::Import, &module.make_signature())
+        .map_err(err)?;
     let mut entry_sig = module.make_signature();
     entry_sig.returns.push(AbiParam::new(types::I32));
     let entry = module
@@ -397,6 +400,8 @@ fn object(p: &Program, source: Option<&std::path::Path>) -> R<Vec<u8>> {
             let slot = b.ins().symbol_value(ptr, slot);
             b.ins().store(MemFlagsData::trusted(), block, slot, 0);
         }
+        let signals = module.declare_func_in_func(signals, b.func);
+        b.ins().call(signals, &[]);
         let main = module.declare_func_in_func(ids[p.main as usize], b.func);
         b.ins().call(main, &[]);
         let code = b.ins().iconst(types::I64, 0);
@@ -660,6 +665,7 @@ fn signature(f: &Func, m: &impl Module) -> Signature {
 
 const RT: &[RtFn] = &[
     RtFn::Print,
+    RtFn::Eprint,
     RtFn::FailMain,
     RtFn::ReadLine,
     RtFn::ReadAll,
@@ -923,8 +929,13 @@ const RT: &[RtFn] = &[
     RtFn::ClusterArrive,
     RtFn::SupEndTo,
     RtFn::DeadlineBegin,
+    RtFn::ShieldBegin,
+    RtFn::ShieldHit,
     RtFn::DeadlineEnd,
     RtFn::DeadlineEndTo,
+    RtFn::ScopeCurrent,
+    RtFn::ScopeDrain,
+    RtFn::ScopeDraining,
     RtFn::FfiCall,
     RtFn::FfiCallF64,
 ];
@@ -943,6 +954,12 @@ fn rt_fn(
         RtFn::Print => (
             "yan_rt_print_str",
             abi::yan_rt_print_str as *const u8,
+            &[I64],
+            None,
+        ),
+        RtFn::Eprint => (
+            "yan_rt_eprint_str",
+            abi::yan_rt_eprint_str as *const u8,
             &[I64],
             None,
         ),
@@ -2522,11 +2539,41 @@ fn rt_fn(
             &[I64, I64, I64],
             Some(I64),
         ),
+        RtFn::ShieldBegin => (
+            "yan_rt_shield_begin",
+            deadline::yan_rt_shield_begin as *const u8,
+            &[I64, I64, I64],
+            Some(I64),
+        ),
+        RtFn::ShieldHit => (
+            "yan_rt_shield_hit",
+            deadline::yan_rt_shield_hit as *const u8,
+            &[],
+            Some(I64),
+        ),
         RtFn::DeadlineEnd => (
             "yan_rt_deadline_end",
             deadline::yan_rt_deadline_end as *const u8,
             &[],
             None,
+        ),
+        RtFn::ScopeCurrent => (
+            "yan_rt_scope_current",
+            yan_rt::scope::yan_rt_scope_current as *const u8,
+            &[],
+            Some(I64),
+        ),
+        RtFn::ScopeDrain => (
+            "yan_rt_scope_drain",
+            yan_rt::scope::yan_rt_scope_drain as *const u8,
+            &[I64, I64, I64],
+            None,
+        ),
+        RtFn::ScopeDraining => (
+            "yan_rt_scope_draining",
+            yan_rt::scope::yan_rt_scope_draining as *const u8,
+            &[I64],
+            Some(I64),
         ),
         RtFn::DeadlineEndTo => (
             "yan_rt_deadline_end_to",
@@ -2885,7 +2932,7 @@ impl Gen<'_, '_> {
             Inst::Fence { .. } => {
                 self.b.ins().fence();
             }
-            Inst::Arm(_) | Inst::Move { .. } => {}
+            Inst::Arm(_) | Inst::Move { .. } | Inst::Retag { .. } | Inst::Access { .. } => {}
             Inst::Scalar {
                 dst, op, ty, args, ..
             } => {

@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1103,
+   "out": 610,
+   "reasoning": 335,
+   "out_bytes": 617
+  },
+  "body": {
+   "in": 1435,
+   "out": 436,
+   "reasoning": 140,
+   "out_bytes": 667
+  }
+ },
+ "final": "import pytest\n\n\nclass DivZero(Exception):\n    a: int\n\n    def __init__(self, a: int) -> None:\n        self.a = a\n\n\ndef safe_div(a: int, b: int) -> int:\n    \"\"\"Return a // b (integer division).\n\n    Raises DivZero carrying the numerator a when b == 0.\n    \"\"\"\n    if b == 0:\n        raise DivZero(a)\n    return a // b\n\n\ndef test_safe_div_basic() -> None:\n    assert safe_div(7, 2) == 3\n    assert safe_div(10, 5) == 2\n\n\ndef test_safe_div_zero_numerator() -> None:\n    assert safe_div(0, 4) == 0\n\n\ndef test_safe_div_by_zero_raises_with_numerator() -> None:\n    with pytest.raises(DivZero) as excinfo:\n        safe_div(9, 0)\n    assert excinfo.value.a == 9\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1103,
+    "out": 610,
+    "reasoning": 335
+   },
+   "out_bytes": 617,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1435,
+    "out": 436,
+    "reasoning": 140
+   },
+   "out_bytes": 667,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_div",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

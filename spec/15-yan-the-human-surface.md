@@ -23,7 +23,7 @@ item      = {attr} [vis] (["unsafe"] fundef | gendef | subdef | lemmadef | typed
           | usedecl
 attr      = "@" NAME ["(" [args] ")"] NEWLINE
 vis       = "pub" | "pkg"                                      -- pkg is soft: the modifier only before a name or keyword (R1069)
-usedecl   = "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE          -- aliases only
+usedecl   = ["pub"] "use" ["."] NAME {"." NAME} ["as" NAME] NEWLINE   -- private: aliases only; pub: one re-export (R1135)
 
 fundef    = sig "=" body
 gendef    = "gen" sig "=" body                                         -- yields the declared type
@@ -83,7 +83,7 @@ parstmt   = "par" ["concurrent"] NEWLINE INDENT stmt {stmt} DEDENT | parfor
 parfor    = "par" ["concurrent"] ["(" "limit" ":" expr ")"] "for" pattern "in" expr block   -- also a let value
 selectstmt = "select" NEWLINE INDENT selarm {selarm} DEDENT
 selarm    = postfix ["is" pattern] "->" (expr NEWLINE | block)            -- recv(), send(v), after(d), deadline(t)
-withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout") "(" expr ")") block   -- R444
+withstmt  = "with" (NAME "=" ["dyn"] expr | ("deadline" | "timeout" | "shield") "(" expr ")") block   -- R444
 unsafestmt   = "unsafe" block
 stagestmt = "#" "for" pattern "in" expr block | "#" "if" expr block ["else" block]
 block     = NEWLINE INDENT stmt {stmt} DEDENT
@@ -93,7 +93,7 @@ lambda    = (NAME | "(" [NAME {"," NAME}] ")") "->" expr
 fallback  = cond ["else" (NAME "->" expr | diverge | cond)]
 dblock    = NEWLINE INDENT stmt {stmt} DEDENT                          -- R433; the last statement diverges, checked after parsing
 diverge   = "return" [cond] | "fail" cond | "break" [NAME] | "continue" [NAME] | "unreachable"
-cond      = "if" disj "then" disj "else" cond | disj                 -- branches as in Yan Agent (R464)
+cond      = "if" disj "then" (diverge | disj) "else" (diverge | cond) | disj   -- branches as in Yan Agent (R464); a diverge in one branch only (R1132)
 disj      = conj {"or" conj}
 conj      = neg {"and" neg}
 neg       = "not" neg | comp
@@ -159,7 +159,7 @@ scalar    = "i8" | "i16" | "i32" | "i64" | "i128" | "u8" | "u16" | "u32" | "u64"
 
 **Bindings.** `let x = e` binds an immutable name and `var x = e` a mutable one. Only `var` bindings and `var` parameters may be assigned (E403). There is no shadowing (E230). An unused binding is lint W812.
 
-**Functions.** Parameters are always annotated (E240), lambda parameters need not be. A single-expression body `= e` may omit `-> T`; a block body declares `-> T` unless it returns unit, and its last expression is the result. A non-unit last expression in a unit body is E312. `pub` functions write `fail` and `uses` in full; others may omit them, and the elaborator infers both per strongly connected component and shows them as inlay hints. `var p: T` is inout, `take p: T` is sink and a plain parameter is let. A `self` parameter has type `Self`.
+**Functions.** Parameters are always annotated (E240), lambda parameters need not be. A single-expression body `= e` may omit `-> T`; a block body declares `-> T` unless it returns unit, and its last expression is the result. The last expression is found through the body's last statement: an `if` with an `else`, a `match`, a `select`, a `with` block and an `unsafe` block each pass the last expression of their blocks on, to any depth; a loop never does, so a value that ends a `for`, `while` or `loop` body is a discarded result (8.1). Yan Agent writes the same function with `return` inside the block (R1131). A non-unit last expression in a unit body is E312. `pub` functions write `fail` and `uses` in full; others may omit them, and the elaborator infers both per strongly connected component and shows them as inlay hints. `var p: T` is inout, `take p: T` is sink and a plain parameter is let. A `self` parameter has type `Self`.
 
 **Signature layout.** A signature that fits in 100 columns stays on one line. Otherwise each of the `fail` and `uses` clauses goes on its own line indented 4, with the `=` at the end of the last clause line. If the parameter list still does not fit, each parameter goes on its own line indented 4, with a trailing comma, and `) -> T` opens the next line, followed by any clauses that fit on it.
 
@@ -179,7 +179,7 @@ sync_prices(src: Url, dst: Path, since: PlainDate) -> Report
 
 **Optional values.** `T?` is `Option[T]`. `x is None` and `x is not None` narrow as in Yan Agent. `x?` propagates None in a function returning an optional type, and `x else y` falls back.
 
-**Failure.** `-> T fail E` is Yan's `-> T fail E`. `fail e` returns a failure. `x?` propagates, injecting into a union or converting through `From`. `x else y` handles None and failure; `x else err -> h` binds the failure; `x else return` and `x else fail e` exit. `try x` gives `Result[T, E]` for `match`. `.context(msg)` wraps a failure. Closures passed to non-escaping parameters may use `?`. In let P = e else and x else err ->, the fallback may also be an indented block whose last statement diverges (return, fail, break, continue, unreachable), as in Swift's guard (R433).
+**Failure.** `-> T fail E` is Yan's `-> T fail E`. `fail e` returns a failure. `x?` propagates, injecting into a union or converting through `From`. `x else y` handles None and failure; `x else err -> h` binds the failure; `x else return` and `x else fail e` exit. `try x` gives `Result[T, E]` for `match`. `.context(msg)` wraps a failure. Closures passed to non-escaping parameters may use `?`. In let P = e else and x else err ->, the fallback may also be an indented block whose last statement diverges (return, fail, break, continue, unreachable), as in Swift's guard (R433). A diverging form may also be either branch of `if c then a else b`, `if b == 0 then fail Zero() else a // b`: the conditional has the type of the other branch, and two diverging branches are E100 (R1132). The conditional's value is the whole of a `let` initializer, an assignment, a `return` or an expression statement; a diverging branch deeper inside an operand is E017.
 
 **Lambdas and the implicit subject.** `x -> e` and `(a, b) -> e` are closures. `.a.b(...)` in argument position elaborates against the parameter's expected type: a function type `R -> T` gives a closure; a type implementing `Subject[R]` (`ColExpr`, the one column-expression type of 5.6, for `Soa`, tables and frames; R448) gives a column expression rooted at the receiver's current row type R, and several `.field` uses in one argument are one subject. Implicit-subject closures may not nest (E135).
 

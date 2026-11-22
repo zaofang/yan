@@ -1,0 +1,30 @@
+# spec: 8.1
+# note: `fail` of a record into a union fail type, directly and through `?`, drops its payload once on every backend (#1732)
+# stdout:
+# 2 -1
+# 1
+# -1
+# -1
+
+class A:
+    msg: str
+
+class B:
+    msg: str
+
+def f(n: int) -> int fail A | B:
+    if n > 0:
+        return n
+    if n == 0:
+        fail B(msg="zero")
+    fail A(msg="neg")
+
+def g(n: int) -> int fail A | B:
+    return f(n)?
+
+def main() uses io:
+    a = f(2) else -1
+    b = f(-2) else -1
+    io.print(f"{a} {b}")
+    for n in [1, 0, -1]:
+        io.print(f"{g(n) else -1}")

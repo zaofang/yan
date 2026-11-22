@@ -22,7 +22,7 @@ struct Task {
     /// The PCT priority (R999); unused without a `pct` scheduler.
     prio: i64,
     /// The deadline scopes the task has open while it is not running.
-    deadlines: Vec<i128>,
+    deadlines: crate::deadline::Stack,
 }
 
 struct Block {
@@ -32,9 +32,13 @@ struct Block {
     can_yield: bool,
     /// The block whose task was running when this one began.
     parent: Option<usize>,
+    /// The task of `parent` that was running when this block began.
+    parent_task: Option<usize>,
     cancelled: bool,
+    /// The block's `std.scope` id.
+    scope: u64,
     /// The deadline scopes of the enclosing task, restored when the block returns to it.
-    outer: Vec<i128>,
+    outer: crate::deadline::Stack,
     /// The kept exit: its task and kind (0 returned, 1 failed, 2 failed `Cancelled`).
     kept: Option<(usize, u64)>,
 }
@@ -85,6 +89,21 @@ fn block(st: &mut State, h: u64) -> &mut Block {
     st.blocks[h as usize].as_mut().expect("a live par block")
 }
 
+/// A task of a block nested in task `i` of block `h`, at any depth, holds `level` in a shield.
+fn nested_held(st: &State, h: usize, i: usize, level: usize) -> bool {
+    st.blocks.iter().enumerate().any(|(c, b)| {
+        b.as_ref().is_some_and(|b| {
+            b.parent == Some(h)
+                && b.parent_task == Some(i)
+                && (b
+                    .tasks
+                    .iter()
+                    .any(|t| !t.done && t.deadlines.iter().any(|e| e.1 >= level))
+                    || (0..b.tasks.len()).any(|j| nested_held(st, c, j, level)))
+        })
+    })
+}
+
 /// A `pct` scheduler is bound: plain `par` stays inline so its order is the handler's.
 pub(crate) fn pct_bound() -> bool {
     with(|st| st.pct.is_some())
@@ -96,16 +115,41 @@ pub(crate) fn progressed() {
 
 /// The running task is cancelled: its block or one around it is.
 pub(crate) fn cancelled() -> bool {
+    if crate::scope::cancelled_or_abort() {
+        return true;
+    }
+    let held = crate::deadline::floor();
     with(|st| {
+        let mut chain = Vec::new();
         let mut at = st.cur;
         while let Some(h) = at {
             let b = st.blocks[h].as_ref().expect("a live par block");
-            if b.cancelled {
-                return true;
-            }
+            chain.push(b.cancelled);
             at = b.parent;
         }
-        false
+        // The blocks a shield held when it opened are the outermost `held` of the chain.
+        chain.iter().rev().skip(held).any(|c| *c)
+    })
+}
+
+/// The `std.scope` id of the block whose task is running; the root's outside every block.
+pub(crate) fn scope() -> u64 {
+    with(|st| {
+        st.cur
+            .map_or(crate::scope::ROOT, |h| block(st, h as u64).scope)
+    })
+}
+
+/// The count of `par` blocks the running task is inside.
+pub(crate) fn depth() -> usize {
+    with(|st| {
+        let mut n = 0;
+        let mut at = st.cur;
+        while let Some(h) = at {
+            n += 1;
+            at = st.blocks[h].as_ref().expect("a live par block").parent;
+        }
+        n
     })
 }
 
@@ -160,13 +204,19 @@ pub(crate) fn park_until(p: Park, timer: Option<i128>, in_task: bool) -> bool {
 /// task that can suspend.
 #[unsafe(no_mangle)]
 pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
+    let scope = crate::scope::open(false);
     with(|st| {
         let prios = match st.pct.as_mut() {
             Some(p) => p.priorities(n as usize),
             None => vec![0; n as usize],
         };
         let outer = crate::deadline::snapshot();
-        let inherited: Vec<i128> = outer.last().copied().into_iter().collect();
+        // A task's inherited deadline stands for the block, so the block is its innermost scope.
+        let inherited: crate::deadline::Stack = outer
+            .last()
+            .map(|e| (e.0, e.1, e.2, scope))
+            .into_iter()
+            .collect();
         let b = Block {
             tasks: prios
                 .into_iter()
@@ -180,7 +230,9 @@ pub extern "C" fn yan_rt_par_begin(n: u64, can_yield: u64) -> u64 {
             running: None,
             can_yield: can_yield != 0,
             parent: st.cur,
+            parent_task: st.cur.and_then(|c| block(st, c as u64).running),
             cancelled: false,
+            scope,
             kept: None,
         };
         match st.blocks.iter().position(Option::is_none) {
@@ -279,11 +331,26 @@ pub extern "C" fn yan_rt_par_next(h: u64) -> u64 {
             return n;
         };
         // A cancelled task runs on to fail its next wait.
+        // A task holding this block's cancellation in a shield is not run for it (R811).
+        let mut level = 1;
+        let mut up = parent;
+        while let Some(p) = up {
+            level += 1;
+            up = st.blocks[p].as_ref().expect("a live par block").parent;
+        }
+        let nested: Vec<bool> = (0..block(st, h).tasks.len())
+            .map(|i| nested_held(st, h as usize, i, level))
+            .collect();
+        let b = st.blocks[h as usize].as_mut().expect("a live par block");
         let cancelled = b.cancelled;
         let runnable: Vec<bool> = b
             .tasks
             .iter()
-            .map(|t| !t.done && (cancelled || t.seen.is_none_or(|s| s != progress)))
+            .enumerate()
+            .map(|(i, t)| {
+                let held = nested[i] || t.deadlines.iter().any(|e| e.1 >= level);
+                !t.done && ((cancelled && !held) || t.seen.is_none_or(|s| s != progress))
+            })
             .collect();
         let pick = match st.pct.as_mut() {
             Some(p) => {
@@ -343,6 +410,12 @@ pub extern "C" fn yan_rt_par_end(h: u64) {
         if st.force == Some(h as usize) {
             st.force = None;
         }
+        // A task that left the function may have left scopes open.
+        let left = crate::deadline::take();
+        for e in b.tasks.iter().flat_map(|t| &t.deadlines).chain(&left) {
+            crate::scope::close(e.3);
+        }
+        crate::scope::close(b.scope);
         crate::deadline::install(b.outer);
         st.park = None;
         st.cur = b.parent;

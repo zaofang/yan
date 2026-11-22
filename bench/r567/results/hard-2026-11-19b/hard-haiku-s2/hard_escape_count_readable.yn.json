@@ -1,0 +1,86 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1941,
+   "out": 1886,
+   "reasoning": 1533,
+   "out_bytes": 866
+  },
+  "body": {
+   "in": 5349,
+   "out": 4220,
+   "reasoning": 3174,
+   "out_bytes": 2586
+  }
+ },
+ "final": "-- Names come from untrusted requests. Only plain file names\n-- inside the notes directory are allowed.\nis_safe_name(name: str) -> bool =\n  post out == False or name.char_count() > 0\n  ex is_safe_name(\"notes.txt\") == True\n  ex is_safe_name(\"../secret.txt\") == False\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  for c in name.chars()\n    if c == \"/\" or c == \"\\\\\" or c == \":\"\n      return False\n  True\n\n-- The contents of the named note, or \"\" when it is missing or unreadable.\nread_note(name: str) -> str uses fs =\n  pre is_safe_name(name)\n  ex read_note(\"no-such-file.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else \"\"\n    text\n\n-- True when the named file can be opened for reading inside notes.\n-- A missing or unreadable file reads as \"\", so it counts as not readable.\ncan_read(name: str) -> bool uses fs =\n  pre is_safe_name(name)\n  ex can_read(\"no-such-file.txt\") == False\n  read_note(name).char_count() > 0\n\n-- How many of the names are readable files inside notes.\ncount_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  post out <= names.len()\n  ex count_readable([]) == 0\n  var n = 0\n  for name in names\n    if is_safe_name(name) == False\n      continue\n    if can_read(name)\n      n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1941,
+    "out": 1886,
+    "reasoning": 1533
+   },
+   "out_bytes": 866,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2367,
+    "out": 2202,
+    "reasoning": 1679
+   },
+   "out_bytes": 1285,
+   "ok": false,
+   "report": "E100 task.yn:21:37 `-> return` unexpected token; expected end of line\nE100 task.yn:29:37 `-> \"` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2982,
+    "out": 2018,
+    "reasoning": 1495
+   },
+   "out_bytes": 1301,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:21:37 `->` unexpected token; expected end of line\nE100 task.yn:29:37 `->` unexpected token; expected end of line"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

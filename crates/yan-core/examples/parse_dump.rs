@@ -565,7 +565,10 @@ fn stmt(s: &Stmt) -> String {
             "with",
             &[name.clone(), b(*dyn_).into(), atom(handler), block(body)],
         ),
-        StmtKind::Deadline { at, body } => node("deadline", &[atom(at), block(body)]),
+        StmtKind::Deadline { at, body, shield } => node(
+            if *shield { "shield" } else { "deadline" },
+            &[atom(at), block(body)],
+        ),
         StmtKind::Par { concurrent, blocks } => {
             node("par", &[b(*concurrent).into(), list(blocks, block)])
         }

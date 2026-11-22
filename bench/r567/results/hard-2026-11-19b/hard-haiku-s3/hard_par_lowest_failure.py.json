@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 979,
+   "reasoning": 471,
+   "out_bytes": 1219
+  },
+  "body": {
+   "in": 1733,
+   "out": 1187,
+   "reasoning": 539,
+   "out_bytes": 1596
+  }
+ },
+ "final": "from concurrent.futures import Future, ThreadPoolExecutor\n\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even; raise Bad(x) if it is odd.\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element of xs in parallel using a thread pool.\n\n    Returns the checked values in their original order. If any element\n    is odd, raises Bad carrying the value of the lowest-index odd element,\n    regardless of which check finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        futures: list[Future[int]] = [pool.submit(check, x) for x in xs]\n        # Collect results in index order; the first future whose result()\n        # raises is the lowest-index bad element.\n        return [f.result() for f in futures]\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 6]) == [2, 4, 6]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_first_odd() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([2, 3, 4, 5])\n    assert excinfo.value.n == 3\n\n\ndef test_all_even_reports_lowest_index_when_several_odd() -> None:\n    with pytest.raises(Bad) as excinfo:\n        all_even([8, 7, 2, 9, 1])\n    assert excinfo.value.n == 7\n\n\ndef test_check_even_passes_through() -> None:\n    assert check(4) == 4\n\n\ndef test_check_odd_raises() -> None:\n    with pytest.raises(Bad) as excinfo:\n        check(5)\n    assert excinfo.value.n == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 979,
+    "reasoning": 471
+   },
+   "out_bytes": 1219,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1733,
+    "out": 1187,
+    "reasoning": 539
+   },
+   "out_bytes": 1596,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

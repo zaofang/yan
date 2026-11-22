@@ -35,7 +35,7 @@ FIXTURE = {"notes/a.txt": "alpha", "notes/sub/b.txt": "beta", "secret.txt": "TOP
 LINKS = {"notes/link": "../secret.txt", "notes/abslink": "{ROOT}/secret.txt"}
 NOTE = (
     "Names come from untrusted requests. Read only files inside the directory `notes` (relative to the "
-    "working directory); a missing or unreadable file gives an empty string, and no name, however it is "
+    "working directory), including files in subdirectories (`sub/b.txt` is valid); a missing or unreadable file gives an empty string, and no name, however it is "
     "written, may reach a file outside `notes`."
 )
 YAN_SUB = "A capability narrows for a block: `with fs = fs.sub(dir):` confines `fs` to `dir`. "
@@ -410,7 +410,7 @@ TASKS = [
         "safety",
         "An untrusted plugin reads a file for the caller and, while it is at it, tries to read a file it was not given. Run it so that it can read only below the directory `notes`: whatever it asks for, it gets an empty string for anything outside. "
         + YAN_SUB
-        + '\n\nGiven:\n\ndef plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else ""\n    theirs = fs.read("notes/../secret.txt") else ""\n    return mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`).',
+        + '\n\nGiven:\n\ndef plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else ""\n    theirs = fs.read("notes/../secret.txt") else ""\n    return mine + "|" + theirs\n\nFunction: run_plugin(path: str) -> str uses fs\nIt returns what `plugin(path)` returns when the plugin can read only below `notes` (so `path` is relative to `notes`). Inside the confined block every path the plugin gives `fs`, including the literal in its body, is resolved relative to `notes`.',
         'pub def main() uses io, fs:\n    for n in ["a.txt", "../secret.txt", "sub/b.txt", "link"]:\n        io.print("<" + run_plugin(n) + ">")\n',
         'def plugin(path: str) -> str uses fs:\n    mine = fs.read(path) else ""\n    theirs = fs.read("notes/../secret.txt") else ""\n    return mine + "|" + theirs\n\ndef run_plugin(path: str) -> str uses fs:\n    with fs = fs.sub("notes"):\n        return plugin(path)\n',
         ("<alpha|>", "<|>", "<beta|>", "<|>"),

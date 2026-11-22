@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1135,
+   "out": 3228,
+   "reasoning": 2139,
+   "out_bytes": 2465
+  },
+  "body": {
+   "in": 2281,
+   "out": 2042,
+   "reasoning": 853,
+   "out_bytes": 2787
+  }
+ },
+ "final": "from pathlib import Path\nfrom typing import Final\n\nimport pytest\n\nNOTES_DIR: Final = Path(\"notes\")\n\n\ndef first_readable(names: list[str]) -> str:\n    \"\"\"Return the text of the first name in ``names`` readable inside NOTES_DIR.\n\n    Each name is resolved relative to NOTES_DIR. Names that are missing,\n    unreadable, directories, or that resolve to a location outside NOTES_DIR\n    (via ``..``, absolute paths, or symlinks) are skipped. Returns \"\" when\n    no name yields a readable file.\n    \"\"\"\n    base = NOTES_DIR.resolve()\n    for name in names:\n        try:\n            target = (base / name).resolve()\n            if target == base or not target.is_relative_to(base):\n                continue\n            return target.read_text(encoding=\"utf-8\")\n        except (OSError, ValueError):\n            continue\n    return \"\"\n\n\ndef _write(base: Path, rel: str, text: str) -> None:\n    path = base / rel\n    path.parent.mkdir(parents=True, exist_ok=True)\n    path.write_text(text, encoding=\"utf-8\")\n\n\n@pytest.fixture\ndef workdir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:\n    monkeypatch.chdir(tmp_path)\n    (tmp_path / \"notes\").mkdir()\n    _write(tmp_path, \"secret.txt\", \"SECRET\")\n    return tmp_path\n\n\ndef test_returns_first_readable_in_order(workdir: Path) -> None:\n    _write(workdir, \"notes/b.txt\", \"B\")\n    _write(workdir, \"notes/c.txt\", \"C\")\n    assert first_readable([\"missing.txt\", \"b.txt\", \"c.txt\"]) == \"B\"\n\n\ndef test_empty_when_none_readable(workdir: Path) -> None:\n    assert first_readable([]) == \"\"\n    assert first_readable([\"nope.txt\"]) == \"\"\n\n\ndef test_directory_is_skipped(workdir: Path) -> None:\n    (workdir / \"notes\" / \"sub\").mkdir()\n    _write(workdir, \"notes/a.txt\", \"A\")\n    assert first_readable([\"sub\", \"a.txt\"]) == \"A\"\n\n\ndef test_traversal_is_blocked(workdir: Path) -> None:\n    names = [\n        \"../secret.txt\",\n        \"../../secret.txt\",\n        \"sub/../../secret.txt\",\n        \"./../secret.txt\",\n        \"..\\\\secret.txt\",\n    ]\n    for name in names:\n        assert first_readable([name]) == \"\", name\n\n\ndef test_absolute_path_is_blocked(workdir: Path) -> None:\n    absolute = str((workdir / \"secret.txt\").resolve())\n    assert first_readable([absolute]) == \"\"\n\n\ndef test_absolute_path_skipped_for_later_valid_name(workdir: Path) -> None:\n    absolute = str((workdir / \"secret.txt\").resolve())\n    _write(workdir, \"notes/ok.txt\", \"OK\")\n    assert first_readable([absolute, \"ok.txt\"]) == \"OK\"\n\n\ndef test_symlink_escape_is_blocked(workdir: Path) -> None:\n    (workdir / \"notes\" / \"link.txt\").symlink_to(workdir / \"secret.txt\")\n    assert first_readable([\"link.txt\"]) == \"\"\n\n\ndef test_odd_names_do_not_crash(workdir: Path) -> None:\n    for name in [\"\", \".\", \"..\", \"a\\x00b\"]:\n        assert first_readable([name]) == \"\", repr(name)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1135,
+    "out": 3228,
+    "reasoning": 2139
+   },
+   "out_bytes": 2465,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2281,
+    "out": 2042,
+    "reasoning": 853
+   },
+   "out_bytes": 2787,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

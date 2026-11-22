@@ -462,7 +462,7 @@ impl Lower<'_, '_, '_> {
             };
             let_arg(a)
         };
-        // Trailing parameters that default to `None` may be left out (`s.split()`).
+        // Trailing parameters with a default may be left out (`s.split()`, `sc.drain()`).
         let defaults: Vec<_> = d
             .def
             .params
@@ -473,20 +473,8 @@ impl Lower<'_, '_, '_> {
             })
             .skip(1)
             .collect();
-        let none_defaults = defaults
-            .iter()
-            .rev()
-            .take_while(|d| {
-                matches!(
-                    d,
-                    Some(j::Expr {
-                        kind: j::ExprKind::Lit(j::Lit::None),
-                        ..
-                    })
-                )
-            })
-            .count();
-        let n = args.len().clamp(params.len() - none_defaults, params.len());
+        let defaulted = defaults.iter().rev().take_while(|d| d.is_some()).count();
+        let n = args.len().clamp(params.len() - defaulted, params.len());
         let Some(xs) = self.positional(args, n, m, at)? else {
             return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), e(), None));
         };
@@ -500,8 +488,10 @@ impl Lower<'_, '_, '_> {
             }
             out.push(Arg::Value(conv, a, x.span));
         }
-        for _ in n..params.len() {
-            out.push(let_arg(Atom::Name("None".into(), at)));
+        for (d, (_, pt)) in defaults.iter().zip(&params).skip(n) {
+            let d = d.as_ref().expect("a trailing default");
+            let (a, _) = self.atom(d, Some(pt))?;
+            out.push(let_arg(a));
         }
         let rhs = Rhs::Call(call(&path, targs, out, at));
         if writeback.is_none() && (!inout || stores.is_empty()) {

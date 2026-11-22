@@ -26,12 +26,16 @@ mod review;
 mod schema;
 mod semver;
 mod serve;
+mod sig;
 mod store;
 mod term;
 mod test;
+mod toolchain;
 mod trust;
 mod vendor;
 mod w806;
+mod why;
+mod x;
 use yan_db::{Database, Loaded};
 use yan_diag::{DEFAULT_MAX_ERRORS, Diagnostic, Severity, finish};
 use yan_ide::ViewError;
@@ -257,7 +261,7 @@ enum Command {
         /// With none, the package in the current directory: `package.yag` and its modules.
         files: Vec<PathBuf>,
     },
-    /// Print a module in another surface: Yan Agent or Yan as Yan Core, Yan as Yan Agent.
+    /// Print a module in another surface: Yan Agent or Yan as Yan Core, Yan as Yan Agent, or as MIR text.
     View {
         #[arg(long = "as")]
         as_: String,
@@ -267,7 +271,45 @@ enum Command {
         /// Raise without spelling marks (the bare check of RFC 0034 D7).
         #[arg(long)]
         bare: bool,
+        /// With `--as mir`, validate the program (RFC 0097 D7, R1114) and fail on any violation; F may be a `.mir` text.
+        #[arg(long)]
+        check: bool,
         file: PathBuf,
+    },
+    /// Print a module's signatures, contracts and examples only (18.1).
+    Sig {
+        /// The module's dotted path under `src/`.
+        module: String,
+        /// Keep the most relevant items within this many tokens.
+        #[arg(long)]
+        budget: Option<usize>,
+    },
+    /// Print the shortest chain that makes an item need a capability, `fail` member or panic kind (18.4, R612).
+    Why {
+        /// The item as `module.name`, the module's dotted path under `src/`.
+        item: String,
+        fact: String,
+        /// `json` prints the chain as an array of `{file, line, col, text}` steps.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
+    /// Report whether the installed toolchain meets the `yan` requirement of the package and its dependencies (20.3, RFC 0100 D2).
+    Toolchain {
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+    },
+    /// Run a `tools` package's `bins` entry point under that package's own ceiling (RFC 0100 D1).
+    X {
+        /// The tool package, as `@org/name`.
+        pkg: String,
+        /// The entry point, a key of the package's `bins`.
+        tool: String,
+        /// `json` checks the tool under its ceiling and prints the diagnostic records without running it.
+        #[arg(long, value_enum)]
+        format: Option<Format>,
+        /// The tool's arguments, after `--`.
+        #[arg(last = true)]
+        args: Vec<String>,
     },
     /// Rewrite files in canonical form (18.4): print(parse(F)) (R559).
     Fmt {
@@ -419,7 +461,7 @@ enum Command {
         format: ReviewFormat,
     },
     /// List the claims taken on trust: `unsafe` items and preconditions, extern `safe`,
-    /// `uses none` and `@access` claims (6, 11.2, 12).
+    /// `uses none` and `@access` claims, and shields (6, 9.4, 11.2, 12).
     Audit {
         #[arg(long, value_enum, default_value_t = ReviewFormat::Line)]
         format: ReviewFormat,
@@ -663,7 +705,8 @@ fn main() -> ExitCode {
             file,
             strict,
             bare,
-        } => view(&as_, &file, yan_ide::Marks { strict, bare }),
+            check,
+        } => view(&as_, &file, yan_ide::Marks { strict, bare }, check),
         Command::Export { file, .. } => export::run(&file),
         Command::Import { file, .. } => pyimport::run(&file),
         Command::Grammar { surface, format } => {
@@ -690,6 +733,46 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Command::Sig { module, budget } => sig::command(&module, budget),
+        Command::Toolchain { format } => match toolchain::check(Path::new(".")) {
+            Ok(line) => {
+                if !matches!(format, Some(Format::Json)) {
+                    println!("{line}");
+                    ExitCode::SUCCESS
+                } else {
+                    emit_records(&[], format)
+                }
+            }
+            Err(Ok(d)) => emit_records(&[*d], format),
+            Err(Err(msg)) => tool_failure(&msg),
+        },
+        Command::X {
+            pkg,
+            tool,
+            format,
+            args,
+        } => match x::resolve(Path::new("."), &pkg, &tool) {
+            Ok(file) if matches!(format, Some(Format::Json)) => check(
+                &[file],
+                (false, false),
+                format,
+                DEFAULT_MAX_ERRORS,
+                Database::new(false, false),
+            ),
+            Ok(file) => run_program(
+                &file,
+                Database::new(false, false),
+                cli.backend,
+                cli.jit,
+                args,
+                false,
+                None,
+            ),
+            Err(msg) => tool_failure(&msg),
+        },
+        Command::Why { item, fact, format } => {
+            why::command(&item, &fact, matches!(format, Some(Format::Json)))
+        }
         Command::Fmt { check, files } => fmt(&files, check),
         Command::Fix {
             dry_run,
@@ -956,7 +1039,13 @@ fn print_diags(diags: &[Diagnostic]) {
         .for_each(|d| eprintln!("{}", d.render_line(None)));
 }
 
-fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
+fn view(as_: &str, file: &Path, marks: yan_ide::Marks, check: bool) -> ExitCode {
+    if as_ == "mir" {
+        return view_mir(file, check);
+    }
+    if check {
+        return tool_failure("--check applies to --as mir");
+    }
     let as_ = match as_ {
         "yir" => yan_names::Surface::Yir,
         "yag" => yan_names::Surface::Yag,
@@ -986,6 +1075,61 @@ fn view(as_: &str, file: &Path, marks: yan_ide::Marks) -> ExitCode {
         }
         Err(ViewError::Tool(msg)) => tool_failure(&msg),
     }
+}
+
+/// Canonical MIR text (RFC 0097) of the optimized module, as native code sees it.
+fn view_mir(file: &Path, check: bool) -> ExitCode {
+    if file.extension().is_some_and(|e| e == "mir") {
+        return check_mir_text(file, check);
+    }
+    let mut db = Database::new(false, false);
+    let module = match checked(&mut db, file) {
+        Ok(m) => m,
+        Err(code) => return code,
+    };
+    match lower_native(&file.display().to_string(), module) {
+        Ok(p) => {
+            print!("{p}");
+            let violations = if check {
+                p.validate(yan_mir::Form::Backend)
+            } else {
+                Vec::new()
+            };
+            violations.iter().for_each(|v| eprintln!("{v}"));
+            if violations.is_empty() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            }
+        }
+        Err(code) => code,
+    }
+}
+
+/// A `.mir` file: read the text, print its canonical form, and with `--check` validate it.
+fn check_mir_text(file: &Path, check: bool) -> ExitCode {
+    let text = match std::fs::read_to_string(file) {
+        Ok(t) => t,
+        Err(e) => return tool_failure(&format!("{}: {e}", file.display())),
+    };
+    let p = match text.parse::<yan_mir::Program>() {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let violations = if check {
+        p.validate(yan_mir::Form::Backend)
+    } else {
+        Vec::new()
+    };
+    violations.iter().for_each(|v| eprintln!("{v}"));
+    if !violations.is_empty() {
+        return ExitCode::FAILURE;
+    }
+    print!("{p}");
+    ExitCode::SUCCESS
 }
 
 fn fmt(files: &[PathBuf], check: bool) -> ExitCode {
@@ -1072,6 +1216,14 @@ fn checked<'a>(db: &'a mut Database, file: &Path) -> Result<&'a yan_core::ast::M
         Ok(Loaded::Ready(m, _, _)) => {
             let mut diags = yan_ide::diagnostics(db, f).expect("a ready module checks");
             diags.extend(db.graph_diagnostics());
+            for dep in yan_db::dependency_modules(db, f) {
+                diags.extend(
+                    yan_ide::diagnostics(db, dep)
+                        .into_iter()
+                        .flatten()
+                        .filter(|d| d.severity == Severity::Error),
+                );
+            }
             let diags = finish(diags, DEFAULT_MAX_ERRORS);
             if diags.iter().any(|d| d.severity == Severity::Error) {
                 print_diags(&diags);
@@ -1104,6 +1256,7 @@ fn run_program(
         Ok(m) => m,
         Err(code) => return code,
     };
+    yan_rt::signal::yan_rt_signals();
     if backend == Backend::Cranelift {
         return native(&file.display().to_string(), module, jit);
     }
@@ -1161,7 +1314,7 @@ fn run_program(
         }
         Err(Stop::Panic(p)) => {
             eprintln!("{}", p.render(&file.display().to_string()));
-            ExitCode::from(EXIT_PANIC as u8)
+            ExitCode::from(yan_rt::abi::panic_exit(&p.kind) as u8)
         }
         Err(Stop::Unsupported(what)) => tool_failure(&format!("not supported yet: {what}")),
         Err(Stop::Limit(what)) => tool_failure(&format!("stage-0 {what} limit at run time")),
@@ -1230,6 +1383,24 @@ fn check(
         });
         match d {
             Ok(mut d) => diags.append(&mut d),
+            Err(msg) => return tool_failure(&msg),
+        }
+    }
+    // A module of another package that a checked file names is judged by its own package's
+    // manifest and ceiling; only its errors are reported here.
+    let opened: Vec<_> = files.iter().filter_map(|f| db.open(f).ok()).collect();
+    let named: Vec<_> = opened
+        .iter()
+        .flat_map(|f| yan_db::dependency_modules(&db, *f))
+        .collect();
+    for dep in named {
+        let key = dep.path(&db).display().to_string();
+        if texts.contains_key(&key) {
+            continue;
+        }
+        texts.insert(key, dep.text(&db).clone());
+        match yan_ide::diagnostics(&db, dep) {
+            Ok(d) => diags.extend(d.into_iter().filter(|d| d.severity == Severity::Error)),
             Err(msg) => return tool_failure(&msg),
         }
     }

@@ -184,7 +184,7 @@ fn host_run(it: &Interp, cmd: &Value, left: Option<std::time::Duration>) -> Resu
                 if std::time::Instant::now() >= end {
                     let _ = child.kill();
                     let _ = child.wait();
-                    return Err(timeout());
+                    return Err(timeout(it));
                 }
                 std::thread::sleep(std::time::Duration::from_millis(1));
             };

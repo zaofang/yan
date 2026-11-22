@@ -96,6 +96,30 @@ impl Memory {
         self.find(addr).is_some_and(|i| self.allocs[i].immutable)
     }
 
+    pub fn base(&self, id: AllocId) -> u64 {
+        self.allocs[id].base
+    }
+
+    pub fn size(&self, id: AllocId) -> usize {
+        self.allocs[id].size
+    }
+
+    /// Every initialised aligned word of every live allocation.
+    pub fn words(&self) -> impl Iterator<Item = u64> + '_ {
+        self.allocs.iter().flat_map(|a| {
+            a.bytes.chunks_exact(8).filter_map(|c| {
+                let mut w = [0u8; 8];
+                for (d, b) in w.iter_mut().zip(c) {
+                    match b {
+                        Byte::Init(x) => *d = *x,
+                        _ => return None,
+                    }
+                }
+                Some(u64::from_le_bytes(w))
+            })
+        })
+    }
+
     pub fn is_live(&self, id: AllocId) -> bool {
         self.allocs[id].live
     }

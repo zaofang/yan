@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1823,
+   "out": 687,
+   "reasoning": 580,
+   "out_bytes": 206
+  },
+  "body": {
+   "in": 2003,
+   "out": 463,
+   "reasoning": 341,
+   "out_bytes": 232
+  }
+ },
+ "final": "square(x: int) -> int =\n  post out == x * x\n  ex square(3) == 9\n  x * x\n\nsquares(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex squares([1, 2, 3]) == [1, 4, 9]\n  let ys = par for x in xs\n    square(x)\n  ys\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1823,
+    "out": 687,
+    "reasoning": 580
+   },
+   "out_bytes": 206,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2003,
+    "out": 463,
+    "reasoning": 341
+   },
+   "out_bytes": 232,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

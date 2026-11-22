@@ -1,0 +1,28 @@
+# spec: 17.4
+# rows: R879
+# note: None is an unquoted empty cell and Some("") a quoted one; a missing optional column is None
+# stdout:
+# a,b
+# ,1
+# "",2
+# x,3
+# None  x
+# None
+
+@derive(Wire, Show, Eq)
+class Row:
+    a: str | None
+    b: int
+
+@derive(Wire, Show, Eq)
+class Only:
+    b: int
+    c: str | None
+
+pub def main() uses io:
+    out = csv.dump([Row(a=None, b=1), Row(a="", b=2), Row(a="x", b=3)])
+    io.print(out.strip())
+    rows = csv.parse[Row](out) else err -> []
+    io.print(f"{rows[0].a} {rows[1].a} {rows[2].a}")
+    o = csv.parse[Only]("b\n1\n") else err -> []
+    io.print(f"{o[0].c}")

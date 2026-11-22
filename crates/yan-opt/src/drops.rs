@@ -815,7 +815,7 @@ impl Elab<'_> {
                     let base = own::scrutinee_view(&self.cx.views, x);
                     if self.owner(&base.root).is_some() {
                         for ((p, _), b) in arms.iter().zip(&mut bound) {
-                            *b = own::pat_views(p, self.copy, &base);
+                            *b = own::pat_views(p, self.copy, self.local(x).map(|l| &l.ty), &base);
                         }
                     }
                 }
@@ -998,13 +998,18 @@ impl Elab<'_> {
                 self.clear_flags(flagged, at, out);
                 flow
             }
-            StmtKind::Deadline { at: when, body } => {
+            StmtKind::Deadline {
+                at: when,
+                body,
+                shield,
+            } => {
                 let nb = self.block(body, Vec::new());
                 let flow = self.flow_of(&nb);
                 out.push(stmt(
                     StmtKind::Deadline {
                         at: when.clone(),
                         body: nb,
+                        shield: *shield,
                     },
                     at,
                 ));

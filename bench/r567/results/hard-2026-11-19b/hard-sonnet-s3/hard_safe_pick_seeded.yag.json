@@ -1,0 +1,94 @@
+{
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Pick an element of the non-empty list xs from seed: the element at index seed modulo the length of xs. The same xs and seed always give the same element.\"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([10, 20, 30], 4) == 20\n    ex pick([10, 20, 30], 0) == 10\n    ex pick([7], 99) == 7\n    n = xs.len()\n    i = (seed % n + n) % n\n    return xs[i]\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2297,
+    "out": 374,
+    "reasoning": 216
+   },
+   "out_bytes": 361
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2553,
+    "out": 347,
+    "reasoning": 160
+   },
+   "out_bytes": 416
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_pick_seeded",
+ "tokens": {
+  "body": {
+   "in": 2553,
+   "out": 347,
+   "reasoning": 160,
+   "out_bytes": 416
+  },
+  "spec": {
+   "in": 2297,
+   "out": 374,
+   "reasoning": 216,
+   "out_bytes": 361
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

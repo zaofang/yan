@@ -1,0 +1,127 @@
+{
+ "final": "def is_safe_name(name: str) -> bool:\n    \"\"\"True when name is a plain relative path that stays inside its directory: non-empty, not absolute, no `..` segment, no backslash, no NUL.\"\"\"\n    ex is_safe_name(\"a.txt\") == True\n    ex is_safe_name(\"sub/a.txt\") == True\n    ex is_safe_name(\"../secret\") == False\n    ex is_safe_name(\"a/../../b\") == False\n    ex is_safe_name(\"/etc/passwd\") == False\n    ex is_safe_name(\"\") == False\n    if \"\\\\\" in name:\n        return False\n    if \"\\0\" in name:\n        return False\n    for seg in name.split(\"/\"):\n        if seg == \"\" or seg == \".\" or seg == \"..\":\n            return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count the names that are readable files inside the directory `notes`.\n\n    Runs with `fs` confined by `with fs = fs.sub(\"notes\"):`. Unsafe names\n    (see is_safe_name) are never opened and are not counted. A missing or\n    unreadable file reads as an empty string and is not counted.\n    \"\"\"\n    post out >= 0\n    post out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_safe_name(name):\n                continue\n            text = fs.read_text(name) else \"\"\n            if text != \"\":\n                n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2387,
+    "out": 809,
+    "reasoning": 405
+   },
+   "out_bytes": 1020
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp6udjsjvo/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp6udjsjvo/work/task.yag:9:8 is_safe_name: `name =` this branch special-cases an `ex` input",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "W806"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2889,
+    "out": 1087,
+    "reasoning": 591
+   },
+   "out_bytes": 1346
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3522,
+    "out": 994,
+    "reasoning": 513
+   },
+   "out_bytes": 1283
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 6411,
+   "out": 2081,
+   "reasoning": 1104,
+   "out_bytes": 2629
+  },
+  "spec": {
+   "in": 2387,
+   "out": 809,
+   "reasoning": 405,
+   "out_bytes": 1020
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "P003",
+    "W806"
+   ],
+   "report": "#1 P003 /tmp/tmp6udjsjvo/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 W806 /tmp/tmp6udjsjvo/work/task.yag:9:8 is_safe_name: `name =` this branch special-cases an `ex` input"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 3,
+  "ok": false,
+  "error": "2\n0\n0"
+ }
+}

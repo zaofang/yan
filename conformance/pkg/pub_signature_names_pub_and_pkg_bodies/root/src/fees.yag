@@ -1,0 +1,5 @@
+pub class Fee:
+    bps: int
+
+pkg class Table:
+    rows: int

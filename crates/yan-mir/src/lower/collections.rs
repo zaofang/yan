@@ -313,6 +313,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             _ => None,
         };
         let acc = self.var(e.clone());
+        self.zero_locals(&acc.locals);
         let started = self.local(I64);
         let out = self.rt(
             RtFn::ListNew,

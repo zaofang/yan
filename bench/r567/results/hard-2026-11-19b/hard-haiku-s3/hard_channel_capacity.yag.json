@@ -1,0 +1,123 @@
+{
+ "final": "class Channel:\n    items: list[int]\n    cap: int\n\ndef new_channel(cap: int) -> Channel:\n    \"\"\"Empty channel that holds at most cap items.\"\"\"\n    pre cap >= 0\n    ex new_channel(2) == Channel(items=[], cap=2)\n    return Channel(items=[], cap=cap)\n\ndef is_full(ch: Channel) -> bool:\n    \"\"\"True when ch holds cap items.\"\"\"\n    ex is_full(Channel(items=[1], cap=1)) == True\n    ex is_full(Channel(items=[], cap=1)) == False\n    return ch.items.len() >= ch.cap\n\ndef try_send(var ch: Channel, v: int) -> bool:\n    \"\"\"Append v if there is room and return True; otherwise leave ch unchanged and return False. Never blocks.\"\"\"\n    post ch.items.len() <= ch.cap\n    if is_full(ch):\n        return False\n    ch.items.append(v)\n    return True\n\ndef accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Create a channel of capacity cap, try to send each element of xs without blocking, and return how many sends were accepted before the channel became full. Sending stops at the first rejected send.\"\"\"\n    pre cap >= 0\n    post out <= cap\n    post out <= xs.len()\n    ch = new_channel(cap)\n    count = 0\n    for x in xs:\n        if try_send(&ch, x):\n            count += 1\n        else:\n            break\n    return count\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E100 /tmp/tmp2horr1uy/work/task.yag:17:22 `Channel,` unexpected `Channel`; expected `)`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E100"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2307,
+    "out": 1976,
+    "reasoning": 1547
+   },
+   "out_bytes": 1060
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2821,
+    "out": 1094,
+    "reasoning": 665
+   },
+   "out_bytes": 1060
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3348,
+    "out": 1425,
+    "reasoning": 892
+   },
+   "out_bytes": 1340
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 3348,
+   "out": 1425,
+   "reasoning": 892,
+   "out_bytes": 1340
+  },
+  "spec": {
+   "in": 5128,
+   "out": 3070,
+   "reasoning": 2212,
+   "out_bytes": 2120
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E100"
+   ],
+   "report": "#1 E100 /tmp/tmp2horr1uy/work/task.yag:17:22 `Channel,` unexpected `Channel`; expected `)`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

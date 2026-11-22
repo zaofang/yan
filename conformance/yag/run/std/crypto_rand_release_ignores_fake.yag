@@ -1,0 +1,14 @@
+# spec: 7.1, 17.3
+# rows: R897
+# note: fake_crypto_rand takes effect only under yan test; a plain run keeps the OS generator, so 32 bytes are not all zero
+# stdout:
+# 32 True
+
+pub def main() uses io:
+    with crypto_rand = fake_crypto_rand(bytes.from_list([0])):
+        data = crypto_rand.random_bytes(32)
+        nonzero = 0
+        for b in data:
+            if b != 0:
+                nonzero += 1
+        io.print(f"{len(data)} {nonzero > 0}")

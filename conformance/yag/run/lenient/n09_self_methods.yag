@@ -1,0 +1,14 @@
+# spec: 14.4
+# rows: R217
+# note: N09 lifts a method with self to a top-level function taking self: C
+# stdout:
+# 7
+
+class C:
+    n: int
+
+    def plus(self, k: int) -> int:
+        return self.n + k
+
+pub def main() uses io:
+    io.print(f"{plus(C(3), 4)}")

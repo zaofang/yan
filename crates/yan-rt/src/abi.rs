@@ -28,7 +28,23 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
     }
 }
 
-/// A panic of kind `ptr[..len]` (8.3): reported on stderr, exit status 101.
+/// `std.io.eprint`: the text and a newline on stderr.
+///
+/// # Safety
+/// `s` is a `Str` block.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn yan_rt_eprint_str(s: *const String) {
+    // SAFETY: the caller's contract.
+    let s = unsafe { &*s };
+    let _ = writeln!(std::io::stderr(), "{s}");
+}
+
+/// The exit status of a panic of `kind`: 134 for the abort that ends a drain (9.4), else 101.
+pub fn panic_exit(kind: &str) -> i32 {
+    if kind == "shutdown" { 134 } else { 101 }
+}
+
+/// A panic of kind `ptr[..len]` (8.3): reported on stderr, exit status [`panic_exit`].
 ///
 /// # Safety
 /// `ptr` points to `len` bytes of UTF-8.
@@ -36,10 +52,11 @@ pub unsafe extern "C" fn yan_rt_print(ptr: *const u8, len: usize) {
 pub unsafe extern "C" fn yan_rt_panic(ptr: *const u8, len: usize) -> ! {
     // SAFETY: forwarded.
     let kind = unsafe { text(ptr, len) };
-    crate::pool::arm_failed(format!("panic({kind}): {}", panic_message(kind)), 101);
+    let code = panic_exit(kind);
+    crate::pool::arm_failed(format!("panic({kind}): {}", panic_message(kind)), code);
     let _ = std::io::stdout().flush();
     eprintln!("panic({kind}): {}", panic_message(kind));
-    std::process::exit(101)
+    std::process::exit(code)
 }
 
 /// A panic operand, as in the interpreter's `Operand`: an integer or a type name.
@@ -219,6 +236,7 @@ pub fn panic_message(kind: &str) -> &'static str {
         "exclusivity" => "two mutable accesses to the same place",
         "conversion" => "the value does not fit the target type",
         "deadlock" => "every task is blocked",
+        "shutdown" => "a task outlived the cancel grace of a drained scope",
         "wire" => "a value the Wire codec rejects",
         "forged" => "a capability made from bytes",
         _ => "invalid value",

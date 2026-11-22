@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 734,
+   "reasoning": 407,
+   "out_bytes": 883
+  },
+  "body": {
+   "in": 1460,
+   "out": 1017,
+   "reasoning": 618,
+   "out_bytes": 1043
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first <title> and </title> in html.\n\n    The html argument is an already-fetched page; this function must not\n    perform any network access. Returns an empty string when there is no\n    title element or it is not closed.\n    \"\"\"\n    match = re.search(r\"<title\\b[^>]*>(.*?)</title\\s*>\", html, re.IGNORECASE | re.DOTALL)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_simple_title() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_missing_title_returns_empty() -> None:\n    assert title_of(\"<html><body>no head here</body></html>\") == \"\"\n\n\ndef test_tag_matching_is_case_insensitive() -> None:\n    assert title_of(\"<HTML><TITLE>Shout</TITLE></HTML>\") == \"Shout\"\n\n\ndef test_unclosed_title_returns_empty() -> None:\n    assert title_of(\"<title>never closes\") == \"\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 734,
+    "reasoning": 407
+   },
+   "out_bytes": 883,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1460,
+    "out": 1017,
+    "reasoning": 618
+   },
+   "out_bytes": 1043,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

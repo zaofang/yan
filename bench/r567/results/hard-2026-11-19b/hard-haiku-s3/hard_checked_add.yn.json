@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3837,
+   "out": 1663,
+   "reasoning": 1463,
+   "out_bytes": 412
+  },
+  "body": {
+   "in": 2170,
+   "out": 1066,
+   "reasoning": 917,
+   "out_bytes": 306
+  }
+ },
+ "final": "checked_add(a: int, b: int) -> int? =\n  ex checked_add(2, 3) == 5\n  ex checked_add(9223372036854775807, 1) == None\n  ex checked_add(-9223372036854775807, -2) == None\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < -9223372036854775807 - 1 - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1834,
+    "out": 1162,
+    "reasoning": 1056
+   },
+   "out_bytes": 223,
+   "ok": false,
+   "report": "E100 task.yn:1:36 `end of line` unexpected token; expected `=`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2003,
+    "out": 501,
+    "reasoning": 407
+   },
+   "out_bytes": 189,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2170,
+    "out": 1066,
+    "reasoning": 917
+   },
+   "out_bytes": 306,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

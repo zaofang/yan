@@ -138,6 +138,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             f: RtFn::ProcAmbient,
             args: Vec::new(),
         });
+        self.zero_locals(&d.locals);
         self.goto(join);
         self.cur = fake;
         let buf = self.key_buf(vec![program.clone()]);

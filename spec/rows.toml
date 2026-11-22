@@ -2230,3 +2230,153 @@ sections = "17.3"
 rows = "R1111"
 topic = "Every blocking std operation (`recv`, `send`, `sleep`, `sleep_until`, `Atomic.wait`, `select_wait`) declares `fail Cancelled | Timeout`, so a backend that lacks deadline scopes is still typed the same; `?` on such a call in a function whose fail type lacks a member is W863 (RFC 0093 D2, S2a of #1703)"
 sections = "9.4, 17.3"
+
+[[entry]]
+rows = "R1112"
+topic = "`checked_as[T](x)` is `x as T` as a call: the value unchanged when it fits `T`, else a panic with kind `overflow`; source and target any integer of at most 64 bits, widening never fails (RFC 0096 D1, D2, #1768)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1113"
+topic = "`yan view --as mir F` prints the canonical MIR text of F, the optimized module lowered as native code sees it, beginning with the version line `mir 1`; a module MIR cannot lower fails with the reason (RFC 0097 D1, D2, S3 of #1513)"
+sections = "18.1, 22.4"
+
+[[entry]]
+rows = "R1114"
+topic = "`yan view --as mir --check F` validates the program (R1115 to R1121) and exits 1 with one line per violation on stderr, headed by its I-code; F may be a `.mir` text, which is read, validated and printed in canonical form (RFC 0097 D7, S3 of #1513)"
+sections = "18.1, 22.4"
+
+[[entry]]
+rows = "R1115"
+topic = "I101: every local, function, string and pinned-group member a MIR program names exists, `main` takes no parameters and returns `unit`, and `lines` and `insts` of a block have one length"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1116"
+topic = "I102: every MIR function has an entry block and every terminator names a block that exists"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1117"
+topic = "I103: a MIR local is read only where it is written on every path from the entry; parameters, pinned locals and `unit` locals count as written"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1118"
+topic = "I104: a MIR call or tail call passes as many arguments as the callee has parameters and binds as many results as it returns; a return carries as many values as the function has results"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1119"
+topic = "I105: a MIR argument, bound result or returned value has the type of the slot it fills; an integer literal fits any integer or pointer slot"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1120"
+topic = "I106: `Par`, `Suspend`, `TaskEnd` and `Unwind` do not appear in the MIR form backends read, which follows the task transform"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1121"
+topic = "I107: `AddrOf` names a local that a pinned group holds, and no local is in two pinned groups"
+sections = "22.4, 25.12"
+
+[[entry]]
+rows = "R1122"
+topic = "`try_as[T](x)` is the failable integer conversion: `Some` of the value when it fits `T`, else `None`; source and target any integer of at most 64 bits, built on the `checked_as` range rule (RFC 0098 D1, #1770)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1123"
+topic = "`trunc_as[T](f)` converts a `float` to the integer type `T`, truncating toward zero as `int(f)` does, and panics with kind `overflow` when the result is NaN or outside `T`; an integer operand is E201, and `u64`, `u128` and `i128` targets are not yet supported (RFC 0098 D2, #1770)"
+sections = "3.4, 14.1"
+
+[[entry]]
+rows = "R1124"
+topic = "`std.scope`: `scope.root()` returns the `Scope` handle of the root scope; `Scope.drain(grace)` puts it in its drain phase and needs `uses nondet` (E709), draining again does nothing; `Scope.is_draining()` reads the phase; identical on every backend (D1, D2 of #1820; cancel after the grace, abort and signals follow)"
+sections = "9.4"
+
+[[entry]]
+rows = "R1125"
+topic = "`Draining` is a fieldless std failure type declared like `Cancelled`, so a function may declare and raise `fail Draining` (#1820)"
+sections = "9.4"
+
+[[entry]]
+rows = "R1126"
+topic = "`scope.current()` returns the `Scope` of the innermost cancel scope open in the calling task: a `with deadline`, `with timeout` or `with shield` scope, a `par concurrent` block, else the root; a scope is draining when it or a scope around it was drained; a `Scope` is `Send` and may outlive its scope, an ended scope is not draining and draining it does nothing; `grace` defaults to 30 s (D1 of #1820)"
+sections = "9.4"
+
+[[entry]]
+rows = "R1127"
+topic = "a drained scope is cancelled when its grace ends, measured from the drain on the bound `time` handler's monotonic clock: a blocking operation in it that would wait past that instant fails `Cancelled` there, and later ones fail at once; an earlier deadline still fails `Timeout`; the first drain's grace stands; a shield holds the cancel of the scopes around it (D4 of #1820)"
+sections = "9.4"
+
+[[entry]]
+rows = "R1128"
+topic = "the cancel grace is 10 s: a task that reaches a cancellation point after the cancel grace that follows its scope's drain cancel aborts the program with a panic of kind `shutdown`, exit status 134 on every backend (D3 of #1820)"
+sections = "8.3, 9.4"
+
+[[entry]]
+rows = "R1129"
+topic = "under drain a shield's instant is clamped to the end of the cancel grace of the scopes it holds back: the earliest of their drain grace ends plus 10 s, whether the drain came before or after the shield opened; expiry at the clamp is `ShieldTimeout` (#1803 item 4, #1820)"
+sections = "9.4"
+
+[[entry]]
+rows = "R1130"
+topic = "signals on hosted platforms: the first SIGINT or SIGTERM is `scope.root().drain(30 * s)`, observed at the next cancellation point or scope query on the bound `time` handler's clock, and it wakes host sleeps; a second exits at once with status 128 plus its number; a process alive 40 s of host time after the first aborts as a `shutdown` panic; conformance `signal: INT|TERM after LINE` header (#1820)"
+sections = "9.4, 24.1"
+
+[[entry]]
+rows = "R1131"
+topic = "in Yan a `with` block and an `unsafe` block in tail position pass their last expression on as the function's result, as `if`/`else`, `match` and `select` do; loops never yield (RFC 0099 D1)"
+sections = "15.3"
+
+[[entry]]
+rows = "R1132"
+topic = "in Yan either branch of `if c then a else b` may be a diverging form (`return`, `fail`, `break`, `continue`, `unreachable`); the expression has the type of the other branch, two diverging branches are a syntax error (RFC 0099 D2)"
+sections = "15.2, 15.3"
+
+[[entry]]
+rows = "R1133"
+topic = "a check or build of a file that names a module of another package also reports that module's own errors, such as E314 against its own capability ceiling, judged by its own manifest and not the dependent's (RFC 0084 D12 step 3, #1452)"
+sections = "19.1"
+
+[[entry]]
+rows = "R1134"
+topic = "an item named in the signature of a `pub` function, record or constant must be `pub`: a `pkg` or private item there is E336, which proposes `pub` (RFC 0084 D3, slice 3)"
+sections = "3.5, 25"
+
+[[entry]]
+rows = "R1135"
+topic = "`pub use path.item as name` re-exports one module or item of the package as an alias in its name table: no globs, one name per line, same hash and capability set, a dependent reaches it as `lib.name`, the target must be `pub` (E287 otherwise) (RFC 0084 D5)"
+sections = "15.2, 19.1"
+
+[[entry]]
+rows = "R1136"
+topic = "R1134 also holds for a `pub` type declaration (sum type, alias, newtype): a `pkg` or private item in a variant field or its right-hand side is E336 (RFC 0084 D3)"
+sections = "3.5, 25"
+
+[[entry]]
+rows = "R1137"
+topic = "a `pub use` whose target names no item of the package is E337, reported where a dependent or the module uses the alias (RFC 0084 D5)"
+sections = "19.1, 25"
+
+[[entry]]
+rows = "R1138"
+topic = "`pub use path as name` where `path` names a module of the package makes `name` an alias of that module in the facade: a dependent reaches its items as `lib.name.item`, a chain of module aliases is followed, same hash and capability set (RFC 0084 D5)"
+sections = "19.1"
+
+[[entry]]
+rows = "R1139"
+topic = "a method signature of a trait or impl inherits the visibility of its trait or type: it is public when the trait or the implementing type is `pub`, and R1134 applies to it, so a `pkg` or private item there is E336 (RFC 0084 D3)"
+sections = "3.5, 25"
+
+[[entry]]
+rows = "R1140"
+topic = "`bins` maps a tool name to a module path under `src/`; `yan x PKG TOOL [-- ARGS]` runs that module's `main` for a locked `tools` package under that package's own ceiling, and fails listing the valid names when PKG or TOOL is not declared; `--format json` checks the tool under its ceiling and prints the diagnostic records without running it (RFC 0100 D1)"
+sections = "18, 19.1, 19.2"
+
+[[entry]]
+rows = "R1141"
+topic = "`yan toolchain` reports the installed toolchain and the maximum `yan` requirement over the package and its locked dependencies, E025 when the installed one is older, and fetches nothing; `yan self update` and fetching move to M2b (RFC 0100 D2)"
+sections = "18, 20.3, 25"

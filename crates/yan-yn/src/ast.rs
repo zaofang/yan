@@ -434,6 +434,7 @@ pub enum WithKind {
     },
     Deadline(Expr),
     Timeout(Expr),
+    Shield(Expr),
     Supervisor(Expr),
 }
 
@@ -607,6 +608,8 @@ pub enum ExprKind {
         then: Box<Expr>,
         otherwise: Box<Expr>,
     },
+    /// A diverging form as a branch of `If` (R1132).
+    Diverge(Box<Stmt>),
     Fallback(Box<Expr>, Box<Fallback>),
     Lambda {
         params: Vec<Name>,

@@ -499,6 +499,11 @@ impl Machine<'_> {
                     .map_err(|e| Stop::Fault(e.to_string()))?;
                 Val::U
             }
+            RtFn::Eprint => {
+                let s = self.str_of(a[0].addr())?;
+                writeln!(std::io::stderr(), "{s}").map_err(|e| Stop::Fault(e.to_string()))?;
+                Val::U
+            }
             RtFn::FailMain => return Err(Stop::Fail(self.str_of(a[0].addr())?, a[1].int() as i64)),
             RtFn::ShowI64 => Val::I(i128::from(self.new_str(&(a[0].int() as i64).to_string()))),
             RtFn::ShowU64 => Val::I(i128::from(self.new_str(&(a[0].int() as u64).to_string()))),
@@ -1800,6 +1805,12 @@ impl Machine<'_> {
                 a[1].int() as i64,
                 a[2].int() as i64,
             ))),
+            RtFn::ShieldBegin => Val::I(i128::from(yan_rt::deadline::yan_rt_shield_begin(
+                a[0].addr(),
+                a[1].int() as i64,
+                a[2].int() as i64,
+            ))),
+            RtFn::ShieldHit => Val::I(i128::from(yan_rt::deadline::yan_rt_shield_hit())),
             RtFn::DeadlineEnd => {
                 yan_rt::deadline::yan_rt_deadline_end();
                 Val::U
@@ -1808,6 +1819,18 @@ impl Machine<'_> {
                 yan_rt::deadline::yan_rt_deadline_end_to(a[0].addr());
                 Val::U
             }
+            RtFn::ScopeCurrent => Val::I(i128::from(yan_rt::scope::yan_rt_scope_current())),
+            RtFn::ScopeDrain => {
+                yan_rt::scope::yan_rt_scope_drain(
+                    a[0].addr(),
+                    a[1].int() as i64,
+                    a[2].int() as i64,
+                );
+                Val::U
+            }
+            RtFn::ScopeDraining => Val::I(i128::from(yan_rt::scope::yan_rt_scope_draining(
+                a[0].addr(),
+            ))),
             RtFn::ParBegin => {
                 let n = a[0].addr();
                 let h = sched::yan_rt_par_begin(n, a[1].addr());

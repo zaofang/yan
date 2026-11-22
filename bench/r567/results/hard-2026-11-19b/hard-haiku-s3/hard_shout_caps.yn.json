@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1814,
+   "out": 829,
+   "reasoning": 683,
+   "out_bytes": 344
+  },
+  "body": {
+   "in": 2033,
+   "out": 501,
+   "reasoning": 340,
+   "out_bytes": 370
+  }
+ },
+ "final": "-- shout_line upper-cases one string. The ex line gives a checked example.\nshout_line(s: str) -> str =\n  post out.char_count() == s.char_count()\n  ex shout_line(\"ab\") == \"AB\"\n  s.upper()\n\n-- shout prints each string upper-cased, one per line, using the io capability.\nshout(xs: List[str]) uses io =\n  pre xs.len() >= 0\n  for s in xs\n    io.print(shout_line(s))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1814,
+    "out": 829,
+    "reasoning": 683
+   },
+   "out_bytes": 344,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2033,
+    "out": 501,
+    "reasoning": 340
+   },
+   "out_bytes": 370,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

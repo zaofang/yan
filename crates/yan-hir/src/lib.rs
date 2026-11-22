@@ -18,6 +18,17 @@ pub struct Module {
     pub attrs: Vec<Decorator>,
     pub doc: Option<String>,
     pub items: Vec<Item>,
+    /// `pub use path.item as name` (RFC 0084 D5): aliases in the module's name table.
+    pub reexports: Vec<Reexport>,
+}
+
+/// An alias a module exports for a name it can reach; it is the target, not a new item.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reexport {
+    pub name: Name,
+    /// The target as written, rooted at the module's own package.
+    pub path: Path,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -491,6 +502,9 @@ pub enum WithKind {
     Bind(Name, Expr),
     Deadline(Expr),
     Timeout(Expr),
+    /// `with shield(d):` holds enclosing cancellation for the block, which runs under its own
+    /// deadline `d` from entry (9.4, R811). Core form: `shield at { ... }`.
+    Shield(Expr),
     /// `with supervisor(spec):` binds the supervisor of the actors started in the body (9.6).
     Supervisor(Expr),
 }

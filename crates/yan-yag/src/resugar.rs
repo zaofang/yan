@@ -225,9 +225,10 @@ impl Walk<'_> {
                         (self.0)(x);
                         self.expr(e)?
                     }
-                    WithKind::Deadline(e) | WithKind::Timeout(e) | WithKind::Supervisor(e) => {
-                        self.expr(e)?
-                    }
+                    WithKind::Deadline(e)
+                    | WithKind::Timeout(e)
+                    | WithKind::Shield(e)
+                    | WithKind::Supervisor(e) => self.expr(e)?,
                 }
                 self.block(body)
             }

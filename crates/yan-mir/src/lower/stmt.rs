@@ -22,6 +22,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             return b.stmts.iter().try_for_each(|s| self.stmt(s));
         }
         let cont = self.local(I64);
+        let first = self.blocks.len();
         let mut jps = Vec::new();
         let mut jp_vars = Vec::new();
         for (name, params, _) in &decls {
@@ -65,6 +66,31 @@ impl<'a, 'm> Fn<'a, 'm> {
         if let Some(Scope::Jps { at, .. }) = self.scopes.last_mut() {
             *at = None;
         }
+        // Only a statement that jumps resumes through the switch; the others' targets would let the
+        // validator see paths no jump takes.
+        let dead = self.block_new();
+        let used: Vec<i128> = self.blocks[first..]
+            .iter()
+            .flat_map(|b| &b.insts)
+            .filter_map(|i| match i {
+                Inst::Copy {
+                    dst,
+                    src: Operand::Int(at),
+                } if *dst == cont => Some(*at),
+                _ => None,
+            })
+            .collect();
+        let resume: Vec<BlockId> = resume
+            .iter()
+            .enumerate()
+            .map(|(i, r)| {
+                if used.contains(&(i as i128)) {
+                    *r
+                } else {
+                    dead
+                }
+            })
+            .collect();
         let single = decls.len() == 1;
         let jps_in = decls.iter().zip(&jps).zip(jp_vars).zip(seen);
         for ((((_, _, body), (_, start, ..)), vs), names) in jps_in {
@@ -363,7 +389,16 @@ impl<'a, 'm> Fn<'a, 'm> {
                     return unsupported("`fail` outside a failing function");
                 };
                 let e = fs[0].1.clone();
-                let v = self.atom(a, &e)?;
+                let mut v = match a {
+                    y::Atom::Name(n, _) if !self.names.contains_key(n) => self.atom(a, &e)?,
+                    _ => {
+                        let (v, s) = self.atom_any(a)?;
+                        self.widen_err(v, &s, &e)?
+                    }
+                };
+                if self.shields > 0 {
+                    v = self.shield_failure(&e, v);
+                }
                 self.unwind(&[], Some((&e, &v)));
                 self.ret(Self::variant_value(&ret, "Err", v));
                 Ok(())
@@ -554,7 +589,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             // The scheduler `pct` built is already installed.
             K::With { name, body, .. } if name == "sched" => self.block(body),
             K::With { .. } => unsupported("`with`"),
-            K::Deadline { at, body } => self.with_deadline(at, body),
+            K::Deadline { at, body, shield } => self.with_deadline(at, body, *shield),
             K::ComptimeFor { .. } | K::ComptimeIf { .. } => unsupported("a comptime statement"),
             K::Asm { .. } => unsupported("`asm`"),
             K::Reuse { .. } => unsupported("`reuse`"),

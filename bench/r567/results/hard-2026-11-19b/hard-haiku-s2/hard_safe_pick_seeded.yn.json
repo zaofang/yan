@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1840,
+   "out": 1178,
+   "reasoning": 896,
+   "out_bytes": 607
+  },
+  "body": {
+   "in": 2195,
+   "out": 800,
+   "reasoning": 505,
+   "out_bytes": 621
+  }
+ },
+ "final": "-- Phase 2: bodies for picking a list element from an integer seed.\n-- Same seed and same list always give the same element. No nondet, no random.\n\n-- Index of the chosen element. Floor modulo keeps it in range for any seed.\nindex(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post out >= 0\n  post out < xs.len()\n  ex index([5, 6, 7], 5) == 2\n  ex index([5, 6, 7], -1) == 2\n  seed % xs.len()\n\n-- The element at the chosen index.\npick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post out == xs[index(xs, seed)]\n  ex pick([10, 20, 30], 4) == 20\n  ex pick([42], 7) == 42\n  xs[index(xs, seed)]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1840,
+    "out": 1178,
+    "reasoning": 896
+   },
+   "out_bytes": 607,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2195,
+    "out": 800,
+    "reasoning": 505
+   },
+   "out_bytes": 621,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

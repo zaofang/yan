@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2863,
+   "out": 1612,
+   "reasoning": 323,
+   "out_bytes": 2869
+  },
+  "body": {
+   "in": 2508,
+   "out": 662,
+   "reasoning": 0,
+   "out_bytes": 1480
+  }
+ },
+ "final": "from collections.abc import Callable\n\n\ndef add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to the end of dst, modifying dst in place.\n\n    The caller's list is edited directly and nothing is returned.\n    \"\"\"\n    dst.append(s)\n\n\ndef test_add_name_appends_to_empty() -> None:\n    dst: list[str] = []\n    add_name(dst, \"alice\")\n    assert dst == [\"alice\"]\n\n\ndef test_add_name_appends_at_end_and_keeps_existing() -> None:\n    dst: list[str] = [\"a\", \"b\"]\n    add_name(dst, \"c\")\n    assert dst == [\"a\", \"b\", \"c\"]\n\n\ndef test_add_name_returns_none() -> None:\n    dst: list[str] = []\n    func: Callable[[list[str], str], object] = add_name\n    assert func(dst, \"x\") is None\n\n\ndef test_add_name_mutates_in_place() -> None:\n    dst: list[str] = [\"a\"]\n    alias = dst\n    add_name(dst, \"b\")\n    assert alias is dst\n    assert alias == [\"a\", \"b\"]\n\n\ndef test_add_name_allows_duplicates() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"a\")\n    add_name(dst, \"a\")\n    assert dst == [\"a\", \"a\", \"a\"]\n\n\ndef test_add_name_empty_string() -> None:\n    dst: list[str] = [\"a\"]\n    add_name(dst, \"\")\n    assert dst == [\"a\", \"\"]\n\n\ndef test_add_name_adds_exactly_one_element() -> None:\n    dst: list[str] = [\"a\", \"b\", \"c\"]\n    add_name(dst, \"d\")\n    assert len(dst) == 4\n    assert dst[-1] == \"d\"\n\n\ndef test_add_name_does_not_alter_source_string() -> None:\n    s = \"bob\"\n    dst: list[str] = []\n    add_name(dst, s)\n    assert s == \"bob\"\n    assert dst[0] == \"bob\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1069,
+    "out": 745,
+    "reasoning": 113
+   },
+   "out_bytes": 1399,
+   "ok": false,
+   "report": "test_task.py:23: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1794,
+    "out": 867,
+    "reasoning": 210
+   },
+   "out_bytes": 1470,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2508,
+    "out": 662,
+    "reasoning": 0
+   },
+   "out_bytes": 1480,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

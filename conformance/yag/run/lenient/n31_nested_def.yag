@@ -1,0 +1,18 @@
+# spec: 14.4
+# rows: R661, R662
+# note: N31 lifts a capture-free nested def; a name taken at module level becomes outer_inner
+# stdout:
+# 9 4
+
+def helper(x: int) -> int:
+    return x
+
+def outer(n: int) -> int:
+    def sq(k: int) -> int:
+        return k * k
+    def helper(k: int) -> int:
+        return k + 1
+    return sq(n) + helper(0) - 1
+
+pub def main() uses io:
+    io.print(f"{outer(3)} {helper(4)}")

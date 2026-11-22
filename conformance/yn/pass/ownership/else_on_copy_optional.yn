@@ -1,0 +1,12 @@
+-- spec: 15.3
+-- rows: R434
+
+f(a: int) -> int? =
+  let o: int? = if a > 0 then Some(a) else None
+  let v = (o else 0) + 1
+  if v > 5
+    return None
+  o
+
+main() uses io =
+  io.print("\(f(3) else 0)")

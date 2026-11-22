@@ -1,0 +1,158 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x when it is even, otherwise fail with Bad carrying x.\"\"\"\n    post out == x\n    ex check(4) == 4\n    ex check(3) == Err(Bad(n=3))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Check every element in parallel and return the checked values in order.\n\n    If any element is odd, fail with the Bad of the lowest-index odd element.\n    \"\"\"\n    post out.len() == xs.len()\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    ex all_even([]) == []\n    out = par [check(x)? for x in xs]\n    return out\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2371,
+    "out": 888,
+    "reasoning": 626
+   },
+   "out_bytes": 587
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp5iz_75eu/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E201 /tmp/tmp5iz_75eu/work/task.yag:22:32 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp5iz_75eu/work/task.yag:24:12 all_even: `flags[i]` a `int` is never `None`\n#4 E201 /tmp/tmp5iz_75eu/work/task.yag:28:20 all_even: `v else` `else` needs an optional or a fallible call, found `int`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2731,
+    "out": 1448,
+    "reasoning": 1080
+   },
+   "out_bytes": 847
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp5iz_75eu/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /tmp/tmp5iz_75eu/work/task.yag:25:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded",
+   "round": 1,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E312"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3345,
+    "out": 1024,
+    "reasoning": 654
+   },
+   "out_bytes": 825
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 2,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3855,
+    "out": 629,
+    "reasoning": 326
+   },
+   "out_bytes": 678
+  }
+ ],
+ "rounds_to_green": 3,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_lowest_failure",
+ "tokens": {
+  "body": {
+   "in": 9931,
+   "out": 3101,
+   "reasoning": 2060,
+   "out_bytes": 2350
+  },
+  "spec": {
+   "in": 2371,
+   "out": 888,
+   "reasoning": 626,
+   "out_bytes": 587
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp5iz_75eu/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E201 /tmp/tmp5iz_75eu/work/task.yag:22:32 all_even: `None for` expected `int`, found `None`\n#3 E201 /tmp/tmp5iz_75eu/work/task.yag:24:12 all_even: `flags[i]` a `int` is never `None`\n#4 E201 /tmp/tmp5iz_75eu/work/task.yag:28:20 all_even: `v else` `else` needs an optional or a fallible call, found `int`"
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "codes": [
+    "E312",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp5iz_75eu/work/task.yag:1:1 the patch introduces 1 error(s)\n#2 E312 /tmp/tmp5iz_75eu/work/task.yag:25:13 task.all_even: `check(xs[i])` a result of type `i64` is discarded"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E201 ./task.yag:22:32 all_even: `None` expected `int`, found `None`\nE201 ./task.yag:24:12 all_even: `flags` a `int` is never `None`\nE201 ./task.yag:28:20 all_even: `v` `else` needs an optional or a fallible call, found `int`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -27,6 +27,7 @@ E021 = { section = "19.3", status = "active", meaning = "a namespace has no inde
 E022 = { section = "19.3", status = "active", meaning = "an archive holds a symbolic link, an absolute path, a .. component or a duplicate path" }
 E023 = { section = "12", status = "active", meaning = "package with an ffi module or extern block not named in the root's allow_ffi, at compile or at dependency resolution (R1018, R1019)" }
 E024 = { section = "19.1", status = "active", meaning = "layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, or a reserved top-level module name (R1064)" }
+E025 = { section = "20.3", status = "active", meaning = "the installed toolchain is older than the `yan` requirement of the package or one of its locked dependencies (R1141)" }
 E100 = { section = "13.2, 15.2", status = "active", meaning = "unexpected token; the expected set is listed" }
 E101 = { section = "13.2, 15.2", status = "active", meaning = "operator mix that requires parentheses" }
 E102 = { section = "13.1, 15.1", status = "active", meaning = "unclosed bracket, string or block" }
@@ -122,6 +123,8 @@ E332 = { section = "20.4", status = "active", meaning = "a manifest edition that
 E333 = { section = "10.2", status = "active", meaning = "dyn Trait of a trait that is not object-safe (R1005)" }
 E334 = { section = "19.1", status = "active", meaning = "dev_dependencies of a package reach the package itself, directly or through a dev dependency's normal requirements (R1076)" }
 E335 = { section = "19.1", status = "active", meaning = "a requirement names a package and major a workspace member has, but the member's version is below its minimum (R1077)" }
+E336 = { section = "3.5", status = "active", meaning = "a pub function, record, constant or type declaration names a pkg or private item in its signature; a public signature may only name pub items (R1134)" }
+E337 = { section = "19.1", status = "active", meaning = "a pub use names a target that is no item of the package (R1137)" }
 E401 = { section = "4.1", status = "active", meaning = "use after move" }
 E402 = { section = "4.3", status = "active", meaning = "exclusivity violation" }
 E403 = { section = "4.1", status = "active", meaning = "assignment to an immutable binding" }
@@ -263,6 +266,13 @@ W860 = { section = "18.9", status = "active", meaning = "an Args:, Attributes: o
 W861 = { section = "18.9", status = "active", meaning = "off by default, on in yan.toml: a public parameter, field or variant without a doc (R848)" }
 W862 = { section = "6.9", status = "active", meaning = "`yan run --ub`: an allocation still live when `main` returns (R1095)" }
 W863 = { section = "9.4", status = "active", meaning = "`?` on a std blocking call whose failure `Cancelled | Timeout` is not covered by the function's fail type (R1111)" }
+I101 = { section = "25.12", status = "active", meaning = "a MIR local, function, string, pinned member or `main` signature that does not exist or does not fit (R1115)" }
+I102 = { section = "25.12", status = "active", meaning = "a MIR function with no entry block, or a terminator naming a block that does not exist (R1116)" }
+I103 = { section = "25.12", status = "active", meaning = "a MIR local read where it is not written on every path from the entry (R1117)" }
+I104 = { section = "25.12", status = "active", meaning = "a MIR call, tail call or return with the wrong number of arguments, results or values (R1118)" }
+I105 = { section = "25.12", status = "active", meaning = "a MIR argument, result or returned value of a type the callee or function does not have (R1119)" }
+I106 = { section = "25.12", status = "active", meaning = "a MIR `Par`, `Suspend`, `TaskEnd` or `Unwind` terminator in the backend form (R1120)" }
+I107 = { section = "25.12", status = "active", meaning = "a MIR `AddrOf` of a local no pinned group holds, or a local in two pinned groups (R1121)" }
 
 [sections]
 "3.1" = "Kinds"

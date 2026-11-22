@@ -307,6 +307,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         {
             return self.encoding_call(id, c, dst);
         }
+        if super::scope::SCOPE_IDS.contains(&id) {
+            return self.scope_call(id, c, dst);
+        }
         if super::mutex::MUTEX_IDS.contains(&id) {
             return self.mutex_call(id, c, dst);
         }
@@ -350,6 +353,14 @@ impl<'a, 'm> Fn<'a, 'm> {
                 self.emit(Inst::Rt {
                     dst: None,
                     f: RtFn::Print,
+                    args: vec![s],
+                });
+            }
+            (id::STD_IO_EPRINT, [(_, a)]) => {
+                let s = self.scalar1(a)?;
+                self.emit(Inst::Rt {
+                    dst: None,
+                    f: RtFn::Eprint,
                     args: vec![s],
                 });
             }

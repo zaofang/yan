@@ -1,0 +1,94 @@
+{
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value bound to key in name=value config text, or \"\" when key is absent.\n\n    Each line is read as name=value. Surrounding whitespace on names and values is\n    trimmed, blank lines and lines starting with # are skipped, and lines without =\n    are ignored. When a key appears more than once, the first occurrence wins.\n    \"\"\"\n    pre key != \"\"\n    post out.byte_len() <= text.byte_len()\n    ex config_value(\"a=1\\nb=2\", \"b\") == \"2\"\n    ex config_value(\"a = 1\\n# c\\nb=two\", \"a\") == \"1\"\n    ex config_value(\"a=1\\na=2\", \"a\") == \"1\"\n    ex config_value(\"a=1\", \"z\") == \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if line == \"\" or line.startswith(\"#\"):\n            continue\n        name, sep, val = line.partition(\"=\")\n        if sep == \"\":\n            continue\n        if name.strip() == key:\n            return val.strip()\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2305,
+    "out": 728,
+    "reasoning": 469
+   },
+   "out_bytes": 649
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2662,
+    "out": 876,
+    "reasoning": 525
+   },
+   "out_bytes": 935
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_parse_config",
+ "tokens": {
+  "body": {
+   "in": 2662,
+   "out": 876,
+   "reasoning": 525,
+   "out_bytes": 935
+  },
+  "spec": {
+   "in": 2305,
+   "out": 728,
+   "reasoning": 469,
+   "out_bytes": 649
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

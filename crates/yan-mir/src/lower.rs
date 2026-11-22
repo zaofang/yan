@@ -36,6 +36,7 @@ mod proc;
 mod ptr;
 mod rand;
 mod regex;
+mod scope;
 mod sets;
 mod shape;
 mod show;
@@ -99,7 +100,7 @@ const ITERTOOLS_IDS: &[registry::Id] = &[
 
 pub(crate) type Fields = Vec<(String, Shape)>;
 
-fn zero(t: Ty) -> Operand {
+pub(crate) fn zero(t: Ty) -> Operand {
     match t {
         Ty::Int(_) | Ty::Ptr => Operand::Int(0),
         Ty::F64 => Operand::F64(0.0),
@@ -662,6 +663,8 @@ struct Fn<'a, 'm> {
     sup_depth: Option<Local>,
     /// As `sup_depth`, for `with deadline` scopes (`deadline.rs`).
     deadline_depth: Option<Local>,
+    /// The `shield` blocks open at this point of the function (R812).
+    shields: u32,
     /// `main`'s `Rand` capabilities, bound to the OS generator.
     os_rand: Vec<String>,
     /// The names of `Rand` handlers, which a `par` splits per branch.
@@ -706,6 +709,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             pinned: Vec::new(),
             sup_depth: None,
             deadline_depth: None,
+            shields: 0,
             os_rand: Vec::new(),
             rands: Vec::new(),
             mismatch: None,

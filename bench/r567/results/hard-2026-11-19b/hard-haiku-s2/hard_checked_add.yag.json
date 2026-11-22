@@ -1,0 +1,234 @@
+{
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Return a + b, or None when the sum falls outside the signed 64-bit range.\"\"\"\n    pre a >= -9223372036854775808 and a <= 9223372036854775807\n    ex checked_add(1, 2) == 3\n    ex checked_add(-5, 5) == 0\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    if b > 0 and a > 9223372036854775807 - b:\n        return None\n    if b < 0 and a < -9223372036854775808 - b:\n        return None\n    return a + b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": false,
+   "phase": "spec",
+   "report": "#1 E221 /tmp/tmpo24bp354/work/task.yag:4:36 checked_add: `out >` `int | None` does not implement `Ord`\n#2 E221 /tmp/tmpo24bp354/work/task.yag:4:60 checked_add: `out <` `int | None` does not implement `Ord`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "E221",
+      "E221"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2292,
+    "out": 869,
+    "reasoning": 667
+   },
+   "out_bytes": 446
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2635,
+    "out": 785,
+    "reasoning": 591
+   },
+   "out_bytes": 431
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpo24bp354/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E401 /tmp/tmpo24bp354/work/task.yag:10:9 task.checked_add: `return None` `_out10` is used after `_out10.Some.value` was moved out of it | moved at 4:27\n#3 E401 /tmp/tmpo24bp354/work/task.yag:12:9 task.checked_add: `return None` `_out27` is used after `_out27.Some.value` was moved out of it | moved at 4:27\n#4 E401 /tmp/tmpo24bp354/work/task.yag:13:5 task.checked_add: `return a` `_t40` is used after `_t40.Some.value` was moved out of it | moved at 4:27",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E401",
+      "E401",
+      "E401"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2927,
+    "out": 1242,
+    "reasoning": 992
+   },
+   "out_bytes": 573
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "the spec is frozen (21.1); these items differ from the accepted spec or are missing: checked_add. Keep their def lines, docstrings and contracts as accepted.",
+   "round": 1,
+   "tools": [],
+   "usage": {
+    "in": 3479,
+    "out": 823,
+    "reasoning": 597
+   },
+   "out_bytes": 519
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmpo24bp354/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E401 /tmp/tmpo24bp354/work/task.yag:10:9 task.checked_add: `return None` `_out10` is used after `_out10.Some.value` was moved out of it | moved at 4:27\n#3 E401 /tmp/tmpo24bp354/work/task.yag:12:9 task.checked_add: `return None` `_out27` is used after `_out27.Some.value` was moved out of it | moved at 4:27\n#4 E401 /tmp/tmpo24bp354/work/task.yag:13:5 task.checked_add: `return a` `_t40` is used after `_t40.Some.value` was moved out of it | moved at 4:27",
+   "round": 2,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E401",
+      "E401",
+      "E401"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 3792,
+    "out": 716,
+    "reasoning": 466
+   },
+   "out_bytes": 573
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": null,
+   "round": 3,
+   "stop": "the frozen post line `post out is None or ((out else 0) > a) == (b > 0)` moves the value out of `out` (the `else` consumes it, reported at 4:27), so the later `return None` and `return a + b` are rejected as use-after-move, and no body change can avoid that without editing the accepted contract.",
+   "tools": [],
+   "usage": {
+    "in": 4344,
+    "out": 887,
+    "reasoning": 780
+   },
+   "out_bytes": 302
+  },
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 4713,
+    "out": 570,
+    "reasoning": 400
+   },
+   "out_bytes": 377
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 4981,
+    "out": 514,
+    "reasoning": 288
+   },
+   "out_bytes": 519
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/checked_add",
+ "tokens": {
+  "body": {
+   "in": 19523,
+   "out": 4182,
+   "reasoning": 3123,
+   "out_bytes": 2486
+  },
+  "spec": {
+   "in": 9640,
+   "out": 2224,
+   "reasoning": 1658,
+   "out_bytes": 1254
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "codes": [
+    "E221"
+   ],
+   "report": "#1 E221 /tmp/tmpo24bp354/work/task.yag:4:36 checked_add: `out >` `int | None` does not implement `Ord`\n#2 E221 /tmp/tmpo24bp354/work/task.yag:4:60 checked_add: `out <` `int | None` does not implement `Ord`"
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E401",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpo24bp354/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E401 /tmp/tmpo24bp354/work/task.yag:10:9 task.checked_add: `return None` `_out10` is used after `_out10.Some.value` was moved out of it | moved at 4:27\n#3 E401 /tmp/tmpo24bp354/work/task.yag:12:9 task.checked_add: `return None` `_out27` is used after `_out27.Some.value` was moved out of it | moved at 4:27\n#4 E401 /tmp/tm"
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "codes": [
+    "E401",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmpo24bp354/work/task.yag:1:1 the patch introduces 3 error(s)\n#2 E401 /tmp/tmpo24bp354/work/task.yag:10:9 task.checked_add: `return None` `_out10` is used after `_out10.Some.value` was moved out of it | moved at 4:27\n#3 E401 /tmp/tmpo24bp354/work/task.yag:12:9 task.checked_add: `return None` `_out27` is used after `_out27.Some.value` was moved out of it | moved at 4:27\n#4 E401 /tmp/tm"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E401 ./task.yag:10:9 task.checked_add: `return None` `_out10` is used after `_out10.Some.value` was moved out of it | moved at 4:27\nE401 ./task.yag:12:9 task.checked_add: `return None` `_out27` is used after `_out27.Some.value` was moved out of it | moved at 4:27\nE401 ./task.yag:13:5 task.checked_ad"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

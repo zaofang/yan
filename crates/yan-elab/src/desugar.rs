@@ -179,6 +179,8 @@ pub struct Manifest {
     pub requirements: Vec<String>,
     /// The package's own `name`.
     pub name: Option<String>,
+    /// The required toolchain, `yan = "0.1.x"` (20.3).
+    pub yan: Option<String>,
     /// The package's own `version`.
     pub version: Option<String>,
     /// The workspace members' directories, relative to the manifest (root only, 19.1).
@@ -193,6 +195,8 @@ pub struct Manifest {
     pub has_overrides: bool,
     /// The `overrides` entries as written: key (`@org/name major`) and value (a path, R950).
     pub overrides: Vec<(String, String)>,
+    /// The `bins` entries: tool name and the module path whose `main` it runs (RFC 0100 D1).
+    pub bins: Vec<(String, String)>,
     /// The local root name and requirement of every entry of `dependencies`, `dev_dependencies` and
     /// `tools`, in that order (R635). A list entry is named by the last segment of its package name.
     pub dep_names: Vec<DepName>,
@@ -213,6 +217,7 @@ const MANIFEST_FIELDS: &[&str] = &[
     "dependencies",
     "dev_dependencies",
     "tools",
+    "bins",
     "overrides",
     "python",
     "exclude",
@@ -406,6 +411,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
     };
     Some(Manifest {
         name: string("name"),
+        yan: string("yan"),
         version: string("version"),
         members: strs("members").unwrap_or_default(),
         dependencies: reqs("dependencies"),
@@ -413,6 +419,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
         tools: reqs("tools"),
         has_overrides: !reqs("overrides").is_empty(),
         overrides: pairs("overrides"),
+        bins: pairs("bins"),
         dep_names: [
             ("dependencies", DepKind::Normal),
             ("dev_dependencies", DepKind::Dev),

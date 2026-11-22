@@ -43,6 +43,7 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E016 | `yan publish` refuses the manifest: `overrides`, a dev dependency reached from non-test code, or a pre-release dependency at 1.0 or later *new* | 19.4 |
 | E023 | package with an `ffi` module or extern block not named in the root's `allow_ffi`, at compile or at dependency resolution (R1018, R1019) *new* | 12, 19.1, 19.2 |
 | E024 | layout error in a package: two files with one module path, a file or directory name that is not a value name or is a Windows device name, a reserved top-level module name, or a dependency local name that is reserved, equals an own top-level module or repeats another dependency's (R1064, R1074) *new* | 19.1 |
+| E025 | the installed toolchain is older than the `yan` requirement of the package or one of its locked dependencies (R1141) *new* | 18, 20.3 |
 | E018 | `package.yag` or `.yan/config.yag` has a field not in its table, or lacks `name`, `version`, `edition` or `yan` where required *new* | 19.1 |
 | E019 | `yan.lock` has a `format` newer than this toolchain reads *new* | 19.1 |
 | E020 | under `--locked`, `yan.lock` is missing or does not match the manifest, an offline archive is absent, or a recorded foreign set differs from the archive (R1034) *new* | 19.1, 19.2 |
@@ -159,6 +160,8 @@ This is the complete registry of diagnostic codes for 0.1.0. Codes keep their me
 | E333 | `dyn Trait` of a trait that is not object-safe (R1005) *new* | 10.2 |
 | E334 | `dev_dependencies` of a package reach the package itself, directly or through a dev dependency's normal requirements (RFC 0084 D6, R1076) *new* | 19.1 |
 | E335 | a requirement names a package and major a workspace member has, but the member's version is below its minimum (RFC 0084 D7, R1077) *new* | 19.1 |
+| E336 | a `pub` function, record, constant or type declaration names a `pkg` or private item in its signature; a public signature may only name `pub` items (RFC 0084 D3, R1134, R1136) *new* | 3.5 |
+| E337 | a `pub use` names a target that is no item of the package (RFC 0084 D5, R1137) *new* | 19.1 |
 
 ### 25.6 Ownership, views, memory and thread safety
 
@@ -340,5 +343,12 @@ All warn by default and deny under `--strict` and `--level release`, except wher
 | P006 | patch touches a protected target without a human confirmation token |
 | N01 to N57 | lenient-reader normalizations (14.4) |
 | I001 to I999 | internal errors, including Yan validator failures |
+| I101 | a MIR local, function, string, pinned member or `main` signature that does not exist or does not fit (R1115) |
+| I102 | a MIR function with no entry block, or a terminator naming a block that does not exist (R1116) |
+| I103 | a MIR local read where it is not written on every path from the entry (R1117) |
+| I104 | a MIR call, tail call or return with the wrong number of arguments, results or values (R1118) |
+| I105 | a MIR argument, result or returned value of a type the callee or function does not have (R1119) |
+| I106 | a MIR `Par`, `Suspend`, `TaskEnd` or `Unwind` terminator in the backend form (R1120) |
+| I107 | a MIR `AddrOf` of a local no pinned group holds, or a local in two pinned groups (R1121) |
 
 Panic kinds, reported as `panic(kind): message` with exit status 101: `overflow`, `div_zero`, `contract`, `exclusivity`, `bounds`, `shape`, `unreachable`, `assert`, `deadlock`. Undefined-behavior reports from `--ub` name the item number of 6.7.
