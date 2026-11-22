@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1091,
+   "out": 1408,
+   "reasoning": 467,
+   "out_bytes": 2018
+  },
+  "body": {
+   "in": 2089,
+   "out": 1127,
+   "reasoning": 163,
+   "out_bytes": 2056
+  }
+ },
+ "final": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate the 8-bit value x left by k bits (0 <= x <= 255, 0 <= k <= 7).\n\n    Bits shifted out of the high end wrap around to the low end.\n    The result is always in the range 0 to 255.\n    \"\"\"\n    return ((x << k) | (x >> (8 - k))) & 0xFF\n\n\ndef test_zero_rotation_is_identity() -> None:\n    for x in (0, 1, 127, 128, 255):\n        assert rotl8(x, 0) == x\n\n\ndef test_simple_rotations() -> None:\n    assert rotl8(1, 1) == 2\n    assert rotl8(1, 7) == 128\n    assert rotl8(0b01010101, 1) == 0b10101010\n\n\ndef test_wraparound() -> None:\n    assert rotl8(0b10000001, 1) == 0b00000011\n    assert rotl8(128, 1) == 1\n    assert rotl8(0b10110001, 4) == 0b00011011\n    assert rotl8(0b11000000, 2) == 0b00000011\n\n\ndef test_all_zeros_and_all_ones_fixed() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(255, k) == 255\n\n\ndef test_matches_reference_exhaustively() -> None:\n    for x in range(256):\n        for k in range(8):\n            expected = ((x << k) | (x >> (8 - k))) & 0xFF\n            assert rotl8(x, k) == expected\n\n\ndef test_result_in_range() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert 0 <= rotl8(x, k) <= 255\n\n\ndef test_inverse_rotation() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert rotl8(rotl8(x, k), (8 - k) % 8) == x\n\n\ndef test_composition() -> None:\n    for x in (0, 1, 0x5A, 0x81, 0xB1, 255):\n        for a in range(8):\n            for b in range(8):\n                assert rotl8(rotl8(x, a), b) == rotl8(x, (a + b) % 8)\n\n\ndef test_popcount_preserved() -> None:\n    for x in range(256):\n        for k in range(8):\n            assert bin(rotl8(x, k)).count(\"1\") == bin(x).count(\"1\")\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"k\", \"expected\"),\n    [\n        (0x01, 0, 0x01),\n        (0x80, 7, 0x40),\n        (0xF0, 4, 0x0F),\n        (0x0F, 4, 0xF0),\n        (0xA5, 3, 0x2D),\n    ],\n)\ndef test_parametrized(x: int, k: int, expected: int) -> None:\n    assert rotl8(x, k) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1091,
+    "out": 1408,
+    "reasoning": 467
+   },
+   "out_bytes": 2018,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2089,
+    "out": 1127,
+    "reasoning": 163
+   },
+   "out_bytes": 2056,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,101 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1951,
+   "out": 1693,
+   "reasoning": 1320,
+   "out_bytes": 925
+  },
+  "body": {
+   "in": 9432,
+   "out": 6760,
+   "reasoning": 4758,
+   "out_bytes": 5078
+  }
+ },
+ "final": "-- Phase 1: declarations and signatures. Bodies are placeholders until Phase 2.\n\n-- True when name is one plain path component: non-empty, no separators,\n-- and not \".\" or \"..\". Anything else could escape the notes directory.\nis_plain_name(name: str) -> bool =\n  ex is_plain_name(\"..\") == False\n  ex is_plain_name(\"../secret\") == False\n  ex is_plain_name(\"a/b\") == False\n  ex is_plain_name(\"note.txt\") == True\n  if name.char_count() == 0\n    return False\n  if name == \".\" or name == \"..\"\n    return False\n  if name.split(\"/\").len() != 1\n    return False\n  if name.split(\"\\\\\").len() != 1\n    return False\n  True\n\n-- Reads notes/name. None when the name is not plain, the file is missing,\n-- or it cannot be read. Only reads inside the notes directory.\nread_note(name: str) -> str? uses fs =\n  pre is_plain_name(name)\n  ex read_note(\"no-such-file-for-spec\") == None\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(name) else return None\n    text\n\n-- Text of the first readable note in names, or \"\" when none can be read.\nfirst_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  ex first_readable([\"../secret\", \"missing.txt\"]) == \"\"\n  var found = False\n  var result = \"\"\n  for name in names\n    if not found and is_plain_name(name) and read_note(name) != None\n      let text = read_note(name) else \"\"\n      result = text\n      found = True\n  result\n\ntest_is_plain_name() =\n  assert is_plain_name(\"..\") == False\n  assert is_plain_name(\"../secret\") == False\n  assert is_plain_name(\"a/b\") == False\n  assert is_plain_name(\"\") == False\n  assert is_plain_name(\"note.txt\") == True\n\ntest_first_readable() uses fs =\n  assert first_readable([]) == \"\"\n  assert first_readable([\"../secret\", \"missing.txt\"]) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1951,
+    "out": 1693,
+    "reasoning": 1320
+   },
+   "out_bytes": 925,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2397,
+    "out": 2450,
+    "reasoning": 1785
+   },
+   "out_bytes": 1677,
+   "ok": false,
+   "report": "E100 task.yn:26:37 `_ -> return` unexpected token; expected end of line\nE100 task.yn:37:15 `> continue` unexpected token; expected an expression",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3156,
+    "out": 2064,
+    "reasoning": 1403
+   },
+   "out_bytes": 1666,
+   "ok": false,
+   "report": "E100 task.yn:37:22 `return text` unexpected token; expected an expression",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3879,
+    "out": 2246,
+    "reasoning": 1570
+   },
+   "out_bytes": 1735,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yn:26:37 `->` unexpected token; expected end of line\nE100 task.yn:37:15 `continue` unexpected token; expected an expression"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

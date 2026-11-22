@@ -1,0 +1,128 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single plain file name: non-empty, not \".\" or \"..\",\n    and with no path separator, drive colon or NUL character.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"\") == False\n    ex is_plain_name(\"..\") == False\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"/etc/passwd\") == False\n    ex is_plain_name(\"sub\\\\x.txt\") == False\n    if name.char_count() == 0:\n        return False\n    if name == \".\" or name == \"..\":\n        return False\n    for c in name.chars():\n        if c == \"/\" or c == \"\\\\\" or c == \":\" or c == \"\\0\":\n            return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names that can be read as a file inside the\n    directory `notes` (relative to the working directory), or \"\" when none can.\n    Names are untrusted: fs is confined with `with fs = fs.sub(\"notes\")`, and\n    names that are not plain file names are skipped, so nothing outside `notes`\n    is ever read. Missing or unreadable files are skipped.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            text: str | None = fs.read_text(name) else None\n            if text is not None:\n                return text\n    return \"\"\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2397,
+    "out": 690,
+    "reasoning": 357
+   },
+   "out_bytes": 879
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp_ik9s92w/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp_ik9s92w/work/task.yag:29:44 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmp_ik9s92w/work/task.yag:30:16 first_readable: `text is` a `str` is never `None`",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E201",
+      "E201"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2828,
+    "out": 1051,
+    "reasoning": 573
+   },
+   "out_bytes": 1347
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 3490,
+    "out": 1100,
+    "reasoning": 618
+   },
+   "out_bytes": 1359
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 6318,
+   "out": 2151,
+   "reasoning": 1191,
+   "out_bytes": 2706
+  },
+  "spec": {
+   "in": 2397,
+   "out": 690,
+   "reasoning": 357,
+   "out_bytes": 879
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E201",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp_ik9s92w/work/task.yag:1:1 the patch introduces 2 error(s)\n#2 E201 /tmp/tmp_ik9s92w/work/task.yag:29:44 first_readable: `else None` expected `str`, found `None`\n#3 E201 /tmp/tmp_ik9s92w/work/task.yag:30:16 first_readable: `text is` a `str` is never `None`"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "N57 task.yag:29:20 first_readable: `fs` `fs.read_text(path)` normalized to `fs.read(path)`\nE201 task.yag:29:44 first_readable: `None` expected `str`, found `None`\nE201 task.yag:30:16 first_readable: `text` a `str` is never `None`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:30:16\n  at main task.yag:36:20"
+ }
+}

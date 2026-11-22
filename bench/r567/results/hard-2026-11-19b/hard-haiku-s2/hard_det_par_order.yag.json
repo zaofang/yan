@@ -1,0 +1,94 @@
+{
+ "final": "def parity(x: int) -> int:\n    \"\"\"Parity of x: 0 for even, 1 for odd.\"\"\"\n    ex parity(3) == 1\n    ex parity(-2) == 0\n    return x % 2\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Parity of each element of xs, computed in parallel, in input order.\"\"\"\n    post out.len() == xs.len()\n    ex parities([1, 2, 3]) == [1, 0, 1]\n    ex parities([]) == []\n    return par [parity(x) for x in xs]\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2315,
+    "out": 753,
+    "reasoning": 582
+   },
+   "out_bytes": 362
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2584,
+    "out": 475,
+    "reasoning": 289
+   },
+   "out_bytes": 402
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/det_par_order",
+ "tokens": {
+  "body": {
+   "in": 2584,
+   "out": 475,
+   "reasoning": 289,
+   "out_bytes": 402
+  },
+  "spec": {
+   "in": 2315,
+   "out": 753,
+   "reasoning": 582,
+   "out_bytes": 362
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

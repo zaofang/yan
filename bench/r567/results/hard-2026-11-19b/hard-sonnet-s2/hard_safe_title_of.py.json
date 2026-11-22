@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 915,
+   "reasoning": 341,
+   "out_bytes": 1426
+  },
+  "body": {
+   "in": 1707,
+   "out": 1197,
+   "reasoning": 526,
+   "out_bytes": 1617
+  }
+ },
+ "final": "import re\n\n_TITLE_RE = re.compile(\n    r\"<title>(.*?)</title>\",\n    re.IGNORECASE | re.DOTALL | re.ASCII,\n)\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between the first `<title>` and the next `</title>`.\n\n    The tag names are matched case-insensitively. The text is returned\n    verbatim: it is not stripped and HTML entities are not decoded.\n    Returns \"\" if there is no `<title>`, or if it is never closed.\n    \"\"\"\n    m = _TITLE_RE.search(html)\n    if m is None:\n        return \"\"\n    return m.group(1)\n\n\ndef test_basic() -> None:\n    assert title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n\n\ndef test_no_title() -> None:\n    assert title_of(\"<html><body>hi</body></html>\") == \"\"\n\n\ndef test_empty_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_unclosed_title() -> None:\n    assert title_of(\"<html><title>Oops\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HEAD><TITLE>Mixed</Title></HEAD>\") == \"Mixed\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_whitespace_preserved() -> None:\n    assert title_of(\"<title>  spaced \\n out </title>\") == \"  spaced \\n out \"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>a &amp; b</title>\") == \"a &amp; b\"\n\n\ndef test_closing_tag_before_opening_ignored() -> None:\n    assert title_of(\"</title><title>Real</title>\") == \"Real\"\n\n\ndef test_unicode() -> None:\n    assert title_of(\"<title>Caf\u00e9 \u2615</title>\") == \"Caf\u00e9 \u2615\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 915,
+    "reasoning": 341
+   },
+   "out_bytes": 1426,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1707,
+    "out": 1197,
+    "reasoning": 526
+   },
+   "out_bytes": 1617,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

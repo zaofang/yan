@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1168,
+   "out": 1134,
+   "reasoning": 589,
+   "out_bytes": 1337
+  },
+  "body": {
+   "in": 1770,
+   "out": 1115,
+   "reasoning": 427,
+   "out_bytes": 1752
+  }
+ },
+ "final": "import pytest\nfrom concurrent.futures import ThreadPoolExecutor\n\n\nclass Bad(Exception):\n    \"\"\"Raised by check() for an odd value; n is the offending value.\"\"\"\n\n    def __init__(self, n: int) -> None:\n        super().__init__(n)\n        self.n: int = n\n\n\ndef check(x: int) -> int:\n    \"\"\"Return x if it is even; raise Bad(x) if it is odd.\"\"\"\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Run check() on every element in a thread pool and return the results in input order.\n\n    If any element is odd, raise the Bad for the lowest-index odd element,\n    regardless of which check finishes first.\n    \"\"\"\n    with ThreadPoolExecutor() as pool:\n        # map() submits every element up front, so all checks run in parallel.\n        # Its iterator yields results in input order and re-raises the exception\n        # of the first failing index it reaches, which is the lowest-index bad element.\n        return list(pool.map(check, xs))\n\n\ndef test_all_even_returns_values_in_order() -> None:\n    assert all_even([2, 4, 0]) == [2, 4, 0]\n\n\ndef test_all_even_empty_list() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_raises_bad_for_single_odd() -> None:\n    with pytest.raises(Bad) as info:\n        all_even([2, 3, 4])\n    assert info.value.n == 3\n\n\ndef test_all_even_raises_lowest_index_odd() -> None:\n    # Two odd elements, 7 at index 1 and 5 at index 3: the lowest index wins.\n    with pytest.raises(Bad) as info:\n        all_even([2, 7, 4, 5])\n    assert info.value.n == 7\n\n\ndef test_check_even_returns_value() -> None:\n    assert check(8) == 8\n\n\ndef test_check_odd_raises_bad() -> None:\n    with pytest.raises(Bad) as info:\n        check(5)\n    assert info.value.n == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1168,
+    "out": 1134,
+    "reasoning": 589
+   },
+   "out_bytes": 1337,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1770,
+    "out": 1115,
+    "reasoning": 427
+   },
+   "out_bytes": 1752,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

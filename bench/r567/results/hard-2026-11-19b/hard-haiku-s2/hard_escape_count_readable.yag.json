@@ -1,0 +1,96 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is a single path component: no separators, not empty, not a dot segment.\"\"\"\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../secret\") == False\n    ex is_plain_name(\"sub/a.txt\") == False\n    if name == \"\" or name == \".\" or name == \"..\":\n        return False\n    for ch in name.chars():\n        if ch == \"/\" or ch == \"\\\\\":\n            return False\n    return True\n\ndef read_one(name: str) -> str uses fs:\n    \"\"\"Text of the file name inside the current fs scope, or \"\" when it is missing or unreadable.\"\"\"\n    pre is_plain_name(name)\n    return fs.read_text(name) else \"\"\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Number of names that are readable files inside the notes directory; names outside it never reach the filesystem.\"\"\"\n    post out >= 0 and out <= names.len()\n    n = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            text = read_one(name)\n            if text != \"\":\n                n += 1\n    return n\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2387,
+    "out": 1725,
+    "reasoning": 1467
+   },
+   "out_bytes": 684
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2743,
+    "out": 1420,
+    "reasoning": 1028
+   },
+   "out_bytes": 1104
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 2743,
+   "out": 1420,
+   "reasoning": 1028,
+   "out_bytes": 1104
+  },
+  "spec": {
+   "in": 2387,
+   "out": 1725,
+   "reasoning": 1467,
+   "out_bytes": 684
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 3,
+  "ok": false,
+  "error": "1\n0\n0"
+ }
+}

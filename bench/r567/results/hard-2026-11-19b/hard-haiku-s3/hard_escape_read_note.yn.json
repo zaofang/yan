@@ -1,0 +1,71 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1932,
+   "out": 951,
+   "reasoning": 784,
+   "out_bytes": 398
+  },
+  "body": {
+   "in": 2172,
+   "out": 1344,
+   "reasoning": 1096,
+   "out_bytes": 576
+  }
+ },
+ "final": "-- Returns the text of file `name` inside the directory `notes`.\n-- Names are untrusted: only files inside `notes` may be read.\n-- A missing or unreadable file, or a name that escapes `notes`, gives \"\".\nread_note(name: str) -> str uses fs =\n  pre name.char_count() <= 255\n  post out.char_count() >= 0\n  ex read_note(\"missing.txt\") == \"\"\n  ex read_note(\"../secret.txt\") == \"\"\n  if name.char_count() == 0 or name.split(\"/\").len() > 1 or name.split(\"\\\\\").len() > 1 or name.split(\"..\").len() > 1\n    return \"\"\n  with fs = fs.sub(\"notes\")\n    fs.read(name) else err -> \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1932,
+    "out": 951,
+    "reasoning": 784
+   },
+   "out_bytes": 398,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2172,
+    "out": 1344,
+    "reasoning": 1096
+   },
+   "out_bytes": 576,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "yan: not supported yet: function body ended without `ret`"
+ }
+}

@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2355,
+   "out": 436,
+   "reasoning": 63,
+   "out_bytes": 814
+  },
+  "body": {
+   "in": 1557,
+   "out": 202,
+   "reasoning": 0,
+   "out_bytes": 449
+  }
+ },
+ "final": "import pytest\n\n\ndef shout(xs: list[str]) -> None:\n    \"\"\"Print each string in xs upper-cased, one per line.\"\"\"\n    for s in xs:\n        print(s.upper())\n\n\ndef test_shout(capsys: pytest.CaptureFixture[str]) -> None:\n    shout([\"hello\", \"World\"])\n    assert capsys.readouterr().out == \"HELLO\\nWORLD\\n\"\n\n    shout([])\n    assert capsys.readouterr().out == \"\"\n\n    shout([\"a\", \"\", \"b c\"])\n    assert capsys.readouterr().out == \"A\\n\\nB C\\n\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1044,
+    "out": 184,
+    "reasoning": 0
+   },
+   "out_bytes": 399,
+   "ok": false,
+   "report": "test_task.py:6: error: Name \"pytest\" is not defined  [name-defined]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1311,
+    "out": 252,
+    "reasoning": 63
+   },
+   "out_bytes": 415,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1557,
+    "out": 202,
+    "reasoning": 0
+   },
+   "out_bytes": 449,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,84 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3841,
+   "out": 356,
+   "reasoning": 150,
+   "out_bytes": 402
+  },
+  "body": {
+   "in": 2204,
+   "out": 108,
+   "reasoning": 0,
+   "out_bytes": 212
+  }
+ },
+ "final": "first_or(xs: List[int], default: int) -> int =\n  post xs.len() == 0 or out == xs[0]\n  post xs.len() > 0 or out == default\n  ex first_or([], 7) == 7\n  ex first_or([3, 4], 7) == 3\n  xs.get(0) else default\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1813,
+    "out": 103,
+    "reasoning": 0
+   },
+   "out_bytes": 201,
+   "ok": false,
+   "report": "E100 task.yn:2:21 `> 0 => out` unexpected token; expected end of line | note: TypeScript arrow function `(x) => e`: a Yan lambda is `x -> e`, or `(x, y) -> e`",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2028,
+    "out": 253,
+    "reasoning": 150
+   },
+   "out_bytes": 201,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2204,
+    "out": 108,
+    "reasoning": 0
+   },
+   "out_bytes": 212,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

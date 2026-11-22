@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1834,
+   "out": 1583,
+   "reasoning": 1168,
+   "out_bytes": 842
+  },
+  "body": {
+   "in": 9051,
+   "out": 3479,
+   "reasoning": 1896,
+   "out_bytes": 3271
+  }
+ },
+ "final": "-- Phase 2: bodies for checked 64-bit signed addition.\n\n-- Exact sum in arbitrary precision. Used only by the spec; never overflows.\nsum_exact(a: int, b: int) -> bigint =\n  post out == bigint(a) + bigint(b)\n  ex sum_exact(a: 1, b: 2) == bigint(3)\n  ex sum_exact(a: 9223372036854775807, b: 1) == bigint(9223372036854775807) + bigint(1)\n  bigint(a) + bigint(b)\n\n-- Returns the sum when it fits in int, None when it does not.\nchecked_add(a: int, b: int) -> int? =\n  post out == None or out == a + b\n  post out != None or sum_exact(a: a, b: b) > bigint(9223372036854775807) or sum_exact(a: a, b: b) < bigint(-9223372036854775808)\n  ex checked_add(a: 1, b: 2) == 3\n  ex checked_add(a: -5, b: 5) == 0\n  ex checked_add(a: 9223372036854775807, b: 1) == None\n  ex checked_add(a: -9223372036854775808, b: -1) == None\n  -- Test each bound before adding, so the intermediate never overflows.\n  -- MAX - b (b > 0) and MIN - b (b < 0) stay in range.\n  if b > 0 and a > 9223372036854775807 - b\n    return None\n  if b < 0 and a < -9223372036854775808 - b\n    return None\n  a + b\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1834,
+    "out": 1583,
+    "reasoning": 1168
+   },
+   "out_bytes": 842,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2322,
+    "out": 1269,
+    "reasoning": 737
+   },
+   "out_bytes": 1096,
+   "ok": false,
+   "report": "E201 task.yn:12:30 checked_add: `(out)` `bigint` does not take a `int?`\nE201 task.yn:12:30 checked_add: `(out)` `bigint` does not take a `int?`\nE201 task.yn:12:30 checked_add: `(out)` `bigint` does not take a `int?`",
+   "codes": [
+    "E201"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2996,
+    "out": 1067,
+    "reasoning": 532
+   },
+   "out_bytes": 1103,
+   "ok": false,
+   "report": "E401 task.yn:13:8 task.checked_add: `out !` `_out6` is used after `_out6.Some.value` was moved out of it | moved at 12:55\nE401 task.yn:13:8 task.checked_add: `out !` `_out32` is used after `_out32.Some.value` was moved out of it | moved at 12:55\nE401 task.yn:13:8 task.checked_add: `out !` `_t54` is used after `_t54.Some.value` was moved out of it | moved at 12:55",
+   "codes": [
+    "E401"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 3733,
+    "out": 1143,
+    "reasoning": 627
+   },
+   "out_bytes": 1072,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E201 ./task.yn:12:30 checked_add: `out` `bigint` does not take a `int?`\nE201 ./task.yn:12:30 checked_add: `out` `bigint` does not take a `int?`\nE201 ./task.yn:12:30 checked_add: `out` `bigint` does not take a `int?`\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

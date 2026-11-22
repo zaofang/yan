@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1858,
+   "out": 802,
+   "reasoning": 606,
+   "out_bytes": 369
+  },
+  "body": {
+   "in": 2127,
+   "out": 518,
+   "reasoning": 202,
+   "out_bytes": 579
+  }
+ },
+ "final": "-- Area of shapes, rounded down. A triangle's area is b*h/2.\ntype Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\n-- Returns the area of the shape. Triangle area is floored: b*h // 2.\narea(s: Shape) -> int =\n  post out >= 0\n  ex area(Rect(w: 2, h: 3)) == 6\n  ex area(Square(side: 4)) == 16\n  ex area(Tri(b: 3, h: 3)) == 4\n  match s\n    Rect(w:, h:) -> w * h\n    Square(side:) -> side * side\n    Tri(b:, h:) -> b * h // 2\n\ntest_area() =\n  assert area(Rect(w: 2, h: 3)) == 6\n  assert area(Square(side: 4)) == 16\n  assert area(Tri(b: 3, h: 3)) == 4\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1858,
+    "out": 802,
+    "reasoning": 606
+   },
+   "out_bytes": 369,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2127,
+    "out": 518,
+    "reasoning": 202
+   },
+   "out_bytes": 579,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

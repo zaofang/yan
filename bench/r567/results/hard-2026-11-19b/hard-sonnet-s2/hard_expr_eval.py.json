@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1156,
+   "out": 965,
+   "reasoning": 287,
+   "out_bytes": 1325
+  },
+  "body": {
+   "in": 1891,
+   "out": 762,
+   "reasoning": 0,
+   "out_bytes": 1524
+  }
+ },
+ "final": "from dataclasses import dataclass\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: 'Expr'\n    r: 'Expr'\n\n\n@dataclass\nclass Mul:\n    l: 'Expr'\n    r: 'Expr'\n\n\nExpr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an expression tree.\n\n    Num evaluates to its value, Add to the sum of its operands'\n    values, and Mul to the product of its operands' values.\n    \"\"\"\n    match e:\n        case Num(v=v):\n            return v\n        case Add(l=l, r=r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l=l, r=r):\n            return eval_expr(l) * eval_expr(r)\n\n\ndef test_num() -> None:\n    assert eval_expr(Num(7)) == 7\n    assert eval_expr(Num(0)) == 0\n    assert eval_expr(Num(-3)) == -3\n\n\ndef test_add() -> None:\n    assert eval_expr(Add(Num(2), Num(3))) == 5\n    assert eval_expr(Add(Num(-2), Num(2))) == 0\n\n\ndef test_mul() -> None:\n    assert eval_expr(Mul(Num(4), Num(5))) == 20\n    assert eval_expr(Mul(Num(0), Num(99))) == 0\n    assert eval_expr(Mul(Num(-2), Num(3))) == -6\n\n\ndef test_nested() -> None:\n    # (1 + 2) * (3 + 4) == 21\n    e = Mul(Add(Num(1), Num(2)), Add(Num(3), Num(4)))\n    assert eval_expr(e) == 21\n    # 2 + (3 * 4) == 14\n    assert eval_expr(Add(Num(2), Mul(Num(3), Num(4)))) == 14\n\n\ndef test_deep_left_chain() -> None:\n    e: Expr = Num(0)\n    for i in range(1, 101):\n        e = Add(e, Num(i))\n    assert eval_expr(e) == 5050\n\n\ndef test_large_values() -> None:\n    big = 10**18\n    assert eval_expr(Mul(Num(big), Num(big))) == 10**36\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1156,
+    "out": 965,
+    "reasoning": 287
+   },
+   "out_bytes": 1325,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1891,
+    "out": 762,
+    "reasoning": 0
+   },
+   "out_bytes": 1524,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

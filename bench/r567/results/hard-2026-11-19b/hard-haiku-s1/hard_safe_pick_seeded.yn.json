@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1840,
+   "out": 1409,
+   "reasoning": 1193,
+   "out_bytes": 421
+  },
+  "body": {
+   "in": 2129,
+   "out": 663,
+   "reasoning": 434,
+   "out_bytes": 438
+  }
+ },
+ "final": "-- Phase 2: bodies for picking an element from a seed. No capabilities are used.\n\nindex_for(seed: int, n: int) -> int =\n  pre n > 0\n  post out >= 0\n  post out < n\n  ex index_for(7, 3) == 1\n  ex index_for(-1, 3) == 2\n  seed % n\n\npick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post out == xs[index_for(seed, xs.len())]\n  ex pick([10, 20, 30], 0) == 10\n  ex pick([10, 20, 30], 4) == 20\n  xs[index_for(seed, xs.len())]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1840,
+    "out": 1409,
+    "reasoning": 1193
+   },
+   "out_bytes": 421,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2129,
+    "out": 663,
+    "reasoning": 434
+   },
+   "out_bytes": 438,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

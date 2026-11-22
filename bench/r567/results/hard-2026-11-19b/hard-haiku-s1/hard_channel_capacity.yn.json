@@ -1,0 +1,100 @@
+{
+ "status": "green",
+ "rounds_to_green": 3,
+ "tokens": {
+  "spec": {
+   "in": 1850,
+   "out": 940,
+   "reasoning": 751,
+   "out_bytes": 439
+  },
+  "body": {
+   "in": 7336,
+   "out": 2856,
+   "reasoning": 2092,
+   "out_bytes": 1703
+  }
+ },
+ "final": "-- Phase 2: spec frozen, bodies filled in.\n-- The channel is created with the given capacity and every element of xs\n-- is offered with try_send. Each accepted send is counted until the\n-- channel reports Full, then the loop stops.\n\naccepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 1\n  post out >= 0\n  post out <= xs.len()\n  ex accepted(2, [1, 2, 3]) == 2\n  ex accepted(3, []) == 0\n  let (tx, rx) = Channel[int](cap)\n  var n = 0\n  for x in xs\n    tx.try_send(x) else return n\n    n += 1\n  n\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1850,
+    "out": 940,
+    "reasoning": 751
+   },
+   "out_bytes": 439,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2112,
+    "out": 1162,
+    "reasoning": 899
+   },
+   "out_bytes": 591,
+   "ok": false,
+   "report": "E100 task.yn:18:27 `-> full` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2438,
+    "out": 825,
+    "reasoning": 563
+   },
+   "out_bytes": 593,
+   "ok": false,
+   "report": "E017 task.yn:18:5 accepted: `tx.try_send(x) else err -> full = True` this assignment target: not supported by this toolchain yet",
+   "codes": [
+    "E017"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 2,
+   "usage": {
+    "in": 2786,
+    "out": 869,
+    "reasoning": 630
+   },
+   "out_bytes": 519,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 0,
+  "total": 2,
+  "ok": false,
+  "error": "E100 ./task.yn:18:27 `->` unexpected token; expected end of line\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

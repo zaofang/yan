@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1076,
+   "out": 1310,
+   "reasoning": 395,
+   "out_bytes": 2295
+  },
+  "body": {
+   "in": 2048,
+   "out": 1667,
+   "reasoning": 634,
+   "out_bytes": 2583
+  }
+ },
+ "final": "import re\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in html, or \"\".\n\n    Rules:\n    - Only the first <title> element is considered.\n    - Tag names are matched case-insensitively, and the opening tag may\n      carry attributes (e.g. ``<title lang=\"en\">``). A tag such as\n      ``<titlex>`` is not a title tag.\n    - The text is returned exactly as written, with no stripping and no\n      entity decoding, and may span multiple lines.\n    - If there is no title element, or the opening tag has no matching\n      closing tag, return \"\".\n    - The function works only on the given string and never uses the network.\n    \"\"\"\n    opening = re.search(r\"<title(?:\\s[^>]*)?>\", html, re.IGNORECASE)\n    if opening is None:\n        return \"\"\n    closing = re.compile(r\"</title\\s*>\", re.IGNORECASE).search(html, opening.end())\n    if closing is None:\n        return \"\"\n    return html[opening.end():closing.start()]\n\n\ndef test_basic_title() -> None:\n    html = \"<html><head><title>Hello</title></head><body></body></html>\"\n    assert title_of(html) == \"Hello\"\n\n\ndef test_no_title_returns_empty() -> None:\n    assert title_of(\"<html><head></head><body>hi</body></html>\") == \"\"\n\n\ndef test_empty_string_input() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_empty_title_element() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_case_insensitive_tags() -> None:\n    assert title_of(\"<HTML><TITLE>Upper</TITLE></HTML>\") == \"Upper\"\n    assert title_of(\"<Title>Mixed</tItLe>\") == \"Mixed\"\n\n\ndef test_opening_tag_with_attributes() -> None:\n    assert title_of('<title lang=\"en\">Attr</title>') == \"Attr\"\n\n\ndef test_similar_tag_name_is_not_title() -> None:\n    assert title_of(\"<titlex>Nope</titlex>\") == \"\"\n\n\ndef test_missing_closing_tag() -> None:\n    assert title_of(\"<html><title>Unclosed<body></body></html>\") == \"\"\n\n\ndef test_only_closing_tag() -> None:\n    assert title_of(\"</title>\") == \"\"\n\n\ndef test_first_title_wins() -> None:\n    assert title_of(\"<title>One</title><title>Two</title>\") == \"One\"\n\n\ndef test_multiline_title_preserved() -> None:\n    assert title_of(\"<title>\\n  Line one\\n  Line two\\n</title>\") == \"\\n  Line one\\n  Line two\\n\"\n\n\ndef test_whitespace_not_stripped() -> None:\n    assert title_of(\"<title>  padded  </title>\") == \"  padded  \"\n\n\ndef test_entities_not_decoded() -> None:\n    assert title_of(\"<title>Tom &amp; Jerry</title>\") == \"Tom &amp; Jerry\"\n\n\ndef test_title_in_body_text_after_content() -> None:\n    html = \"<p>intro</p><title>Late</title><p>outro</p>\"\n    assert title_of(html) == \"Late\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1076,
+    "out": 1310,
+    "reasoning": 395
+   },
+   "out_bytes": 2295,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2048,
+    "out": 1667,
+    "reasoning": 634
+   },
+   "out_bytes": 2583,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

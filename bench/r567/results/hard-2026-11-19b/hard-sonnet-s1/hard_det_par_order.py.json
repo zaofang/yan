@@ -1,0 +1,79 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3394,
+   "out": 2886,
+   "reasoning": 697,
+   "out_bytes": 5204
+  },
+  "body": {
+   "in": 3433,
+   "out": 1114,
+   "reasoning": 0,
+   "out_bytes": 2637
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\n\nimport pytest\n\n\ndef parity(x: int) -> int:\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity (0 or 1) of each element of xs, in input order.\n\n    The work is done in parallel on a thread pool. The result order matches\n    the input order and does not depend on the number of workers or on the\n    order in which tasks finish. Negative numbers follow Python's `%`\n    semantics, so the parity of -3 is 1. The input list is not modified.\n    \"\"\"\n    with ThreadPoolExecutor() as ex:\n        return list(ex.map(parity, xs))\n\n\ndef test_parities_basic() -> None:\n    assert parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([7]) == [1]\n    assert parities([0]) == [0]\n\n\ndef test_parities_negative() -> None:\n    assert parities([-1, -2, -3, -4]) == [1, 0, 1, 0]\n\n\n@pytest.mark.parametrize(\"n\", [1, 2, 3, 10, 100, 1000, 5000])\ndef test_parities_matches_serial_and_order(n: int) -> None:\n    xs = [(i * 7919) % 1009 - 500 for i in range(n)]\n    assert parities(xs) == [parity(x) for x in xs]\n\n\ndef test_parities_order_is_input_order() -> None:\n    xs = list(range(2000))\n    assert parities(xs) == [i % 2 for i in range(2000)]\n\n\ndef test_parities_large_values() -> None:\n    xs = [2**100, 2**100 + 1, -(2**100) - 1]\n    assert parities(xs) == [0, 1, 1]\n\n\ndef test_parities_does_not_mutate_input() -> None:\n    xs = [5, 4, 3]\n    copy = list(xs)\n    parities(xs)\n    assert xs == copy\n\n\ndef test_parities_returns_new_list_of_ints() -> None:\n    xs = [1, 2, 3]\n    out = parities(xs)\n    assert out is not xs\n    assert all(type(v) is int for v in out)\n\n\ndef test_parities_repeatable() -> None:\n    xs = list(range(-500, 500))\n    first = parities(xs)\n    for _ in range(5):\n        assert parities(xs) == first\n\n\ndef test_parities_independent_of_worker_count(\n    monkeypatch: pytest.MonkeyPatch,\n) -> None:\n    xs = [(i * 31) % 97 - 40 for i in range(500)]\n    expected = [parity(x) for x in xs]\n    original = ThreadPoolExecutor.__init__\n    results: list[list[int]] = []\n    for workers in (1, 2, 8, 32):\n\n        def patched(\n            self: ThreadPoolExecutor,\n            max_workers: int | None = None,\n            *args: object,\n            _w: int = workers,\n            **kwargs: object,\n        ) -> None:\n            original(self, _w)\n\n        monkeypatch.setattr(ThreadPoolExecutor, \"__init__\", patched)\n        results.append(parities(xs))\n        monkeypatch.undo()\n    assert all(r == expected for r in results)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1101,
+    "out": 1414,
+    "reasoning": 308
+   },
+   "out_bytes": 2636,
+   "ok": false,
+   "report": "test_task.py:92: error: Unused \"type: ignore\" comment  [unused-ignore]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 2293,
+    "out": 1472,
+    "reasoning": 389
+   },
+   "out_bytes": 2568,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 3433,
+    "out": 1114,
+    "reasoning": 0
+   },
+   "out_bytes": 2637,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

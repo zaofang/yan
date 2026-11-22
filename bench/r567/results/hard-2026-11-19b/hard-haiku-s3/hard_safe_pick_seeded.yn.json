@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1840,
+   "out": 965,
+   "reasoning": 740,
+   "out_bytes": 471
+  },
+  "body": {
+   "in": 2138,
+   "out": 1026,
+   "reasoning": 787,
+   "out_bytes": 487
+  }
+ },
+ "final": "-- Pick an element of a non-empty list from an integer seed.\n-- Deterministic: the same seed and list always give the same element.\n-- Uses no nondet or random.\n\npick_index(n: int, seed: int) -> int =\n  pre n > 0\n  post out >= 0 and out < n\n  ex pick_index(3, 7) == 1\n  ex pick_index(5, -1) == 4\n  seed % n\n\npick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  post out == xs[pick_index(xs.len(), seed)]\n  ex pick([10, 20, 30], 4) == 20\n  xs[pick_index(xs.len(), seed)]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1840,
+    "out": 965,
+    "reasoning": 740
+   },
+   "out_bytes": 471,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2138,
+    "out": 1026,
+    "reasoning": 787
+   },
+   "out_bytes": 487,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

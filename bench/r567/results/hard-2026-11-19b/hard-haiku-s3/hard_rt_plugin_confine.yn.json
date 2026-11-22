@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2035,
+   "out": 1009,
+   "reasoning": 704,
+   "out_bytes": 690
+  },
+  "body": {
+   "in": 5370,
+   "out": 3432,
+   "reasoning": 2420,
+   "out_bytes": 2410
+  }
+ },
+ "final": "-- Spec for confining the plugin's file access to `notes`.\n\n-- Pure helper: true when a relative path climbs out of its base directory.\nescapes_notes(path: str) -> bool =\n  pre path.char_count() >= 0\n  ex escapes_notes(\"../secret.txt\") == True\n  ex escapes_notes(\"a/b.txt\") == False\n  let parts = path.split(\"/\")\n  if path.char_count() > 0 and parts[0] == \"\"\n    return True\n  var depth = 0\n  for part in parts\n    if part == \"..\"\n      depth -= 1\n      if depth < 0\n        return True\n    if part != \"..\" and part != \"\" and part != \".\"\n      depth += 1\n  False\n\n-- The untrusted plugin, unchanged. It reads `path` and a fixed escape attempt.\nplugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 0\n  let mine = fs.read(path) else \"\"\n  let theirs = fs.read(\"notes/../secret.txt\") else \"\"\n  mine + \"|\" + theirs\n\n-- Runs the plugin with `fs` narrowed to `notes`, so `path` is relative to `notes`.\nrun_plugin(path: str) -> str uses fs =\n  pre path.char_count() >= 0\n  post out.char_count() >= 0\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    result = plugin(path)\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2035,
+    "out": 1009,
+    "reasoning": 704
+   },
+   "out_bytes": 690,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2413,
+    "out": 2237,
+    "reasoning": 1765
+   },
+   "out_bytes": 1084,
+   "ok": false,
+   "report": "E312 task.yn:34:5 run_plugin: `plugin(path)` a result of type `str` is discarded",
+   "codes": [
+    "E312"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2957,
+    "out": 1195,
+    "reasoning": 655
+   },
+   "out_bytes": 1326,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_plugin_confine",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 0,
+  "total": 4,
+  "ok": false,
+  "error": "E312 task.yn:34:5 run_plugin: `plugin(path)` a result of type `str` is discarded"
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

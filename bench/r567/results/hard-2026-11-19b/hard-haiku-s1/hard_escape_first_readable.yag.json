@@ -1,0 +1,96 @@
+{
+ "final": "def is_plain_name(name: str) -> bool:\n    \"\"\"True when name is one path component: no separators, no dot segments, not empty.\"\"\"\n    pre name.char_count() > 0\n    ex is_plain_name(\"a.txt\") == True\n    ex is_plain_name(\"../x\") == False\n    ex is_plain_name(\"a/b\") == False\n    if name == \".\" or name == \"..\":\n        return False\n    for ch in name.chars():\n        if ch == \"/\" or ch == \"\\\\\":\n            return False\n    return True\n\ndef first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Text of the first name in names readable inside notes/, or \"\" when none is.\n\n    Confines fs to notes/ with `with fs = fs.sub(\"notes\"):`. Names that are not\n    plain components are skipped. A missing or unreadable file yields no result\n    and the search continues. No name may reach a file outside notes/.\n    \"\"\"\n    pre names.len() >= 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if not is_plain_name(name):\n                continue\n            text = read_note(name)\n            if text is not None:\n                return text\n    return \"\"\n\ndef read_note(name: str) -> str | None uses fs:\n    \"\"\"Text of the file name inside the current fs scope, or None when it cannot be read.\"\"\"\n    return fs.read_text(name) else None\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2397,
+    "out": 1460,
+    "reasoning": 1134
+   },
+   "out_bytes": 867
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2821,
+    "out": 1916,
+    "reasoning": 1361
+   },
+   "out_bytes": 1577
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 2821,
+   "out": 1916,
+   "reasoning": 1361,
+   "out_bytes": 1577
+  },
+  "spec": {
+   "in": 2397,
+   "out": 1460,
+   "reasoning": 1134,
+   "out_bytes": 867
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:35:16\n  at main task.yag:41:20"
+ },
+ "hidden_final": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "panic(match): no arm matched the value\n  at first_readable task.yag:27:16\n  at main task.yag:37:20"
+ }
+}

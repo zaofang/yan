@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 2008,
+   "out": 1308,
+   "reasoning": 916,
+   "out_bytes": 932
+  },
+  "body": {
+   "in": 5568,
+   "out": 3515,
+   "reasoning": 2397,
+   "out_bytes": 2688
+  }
+ },
+ "final": "-- Phase 1: declarations and contracts only. Bodies are stubs.\n\n-- True when `path` stays inside the notes directory once its\n-- `..` segments are resolved. Absolute paths and any path that\n-- climbs above the root are rejected. Pure: no capabilities.\nis_inside(path: str) -> bool =\n  post out == False or path.char_count() > 0\n  ex is_inside(\"a.txt\") == True\n  ex is_inside(\"sub/../a.txt\") == True\n  ex is_inside(\"..\") == False\n  ex is_inside(\"/etc/passwd\") == False\n  ex is_inside(\"sub/../../x\") == False\n  let parts = path.split(\"/\")\n  if path.char_count() > 0 and parts[0] == \"\"\n    return False\n  var depth = 0\n  for seg in parts\n    if seg == \"\" or seg == \".\"\n      continue\n    if seg == \"..\"\n      depth -= 1\n      if depth < 0\n        return False\n    else\n      depth += 1\n  True\n\n-- Text of notes/<path>, or \"\" when the path leaves notes or the\n-- file is missing or unreadable. Reads go only through an fs\n-- narrowed to the notes directory.\nread_public(path: str) -> str uses fs =\n  post is_inside(path) or out == \"\"\n  ex read_public(\"\") == \"\"\n  ex read_public(\"../secret.txt\") == \"\"\n  ex read_public(\"/etc/passwd\") == \"\"\n  ex read_public(\"no-such-file.txt\") == \"\"\n  if is_inside(path) == False\n    return \"\"\n  var result = \"\"\n  with fs = fs.sub(\"notes\")\n    let text = fs.read(path) else err -> \"\"\n    result = text\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 2008,
+    "out": 1308,
+    "reasoning": 916
+   },
+   "out_bytes": 932,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2473,
+    "out": 2070,
+    "reasoning": 1511
+   },
+   "out_bytes": 1340,
+   "ok": false,
+   "report": "E100 task.yn:41:37 `-> \"` unexpected token; expected end of line",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 3095,
+    "out": 1445,
+    "reasoning": 886
+   },
+   "out_bytes": 1348,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 0,
+  "total": 6,
+  "ok": false,
+  "error": "E100 task.yn:41:37 `->` unexpected token; expected end of line"
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

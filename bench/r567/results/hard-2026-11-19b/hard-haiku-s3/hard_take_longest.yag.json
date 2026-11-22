@@ -1,0 +1,94 @@
+{
+ "final": "def longest(take a: list[int], take b: list[int]) -> list[int]:\n    \"\"\"Consume both lists and return the longer one; the first wins a tie.\"\"\"\n    post out.len() >= a.len() and out.len() >= b.len()\n    ex longest([1, 2], [3, 4]) == [1, 2]\n    ex longest([1], [2, 3]) == [2, 3]\n    ex longest([], []) == []\n    if a.len() >= b.len():\n        return a\n    return b\n",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2279,
+    "out": 549,
+    "reasoning": 401
+   },
+   "out_bytes": 323
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2525,
+    "out": 796,
+    "reasoning": 631
+   },
+   "out_bytes": 372
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/take_longest",
+ "tokens": {
+  "body": {
+   "in": 2525,
+   "out": 796,
+   "reasoning": 631,
+   "out_bytes": 372
+  },
+  "spec": {
+   "in": 2279,
+   "out": 549,
+   "reasoning": 401,
+   "out_bytes": 323
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

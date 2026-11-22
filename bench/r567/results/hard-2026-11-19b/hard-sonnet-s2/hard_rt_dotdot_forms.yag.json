@@ -1,0 +1,94 @@
+{
+ "final": "def stays_inside(path: str) -> bool:\n    \"\"\"True when the request path, resolved against `notes`, never leaves `notes`.\n    Absolute paths, drive or backslash tricks and NUL bytes are rejected.\n    A path may wander and come back (`sub/../a.txt`), but its depth must\n    never drop below zero at any step.\"\"\"\n    ex stays_inside(\"a.txt\") == True\n    ex stays_inside(\"sub/../a.txt\") == True\n    ex stays_inside(\"..\") == False\n    ex stays_inside(\"/etc/passwd\") == False\n    ex stays_inside(\"sub/../../x\") == False\n    if path.startswith(\"/\") or \"\\\\\" in path or \"\\0\" in path or \":\" in path:\n        return False\n    depth = 0\n    for part in path.split(\"/\"):\n        if part == \"\" or part == \".\":\n            continue\n        if part == \"..\":\n            depth -= 1\n            if depth < 0:\n                return False\n        else:\n            depth += 1\n    return True\n\ndef read_public(path: str) -> str uses fs:\n    \"\"\"Text of the file `path` inside the directory `notes`, or \"\" when the\n    path leaves `notes`, or the file is missing or unreadable. Reads only\n    through `with fs = fs.sub(\"notes\"):`, so no name can reach outside `notes`.\"\"\"\n    post out == \"\" or stays_inside(path)\n    if not stays_inside(path):\n        return \"\"\n    text = \"\"\n    with fs = fs.sub(\"notes\"):\n        text = fs.read_text(path) else \"\"\n    return text\n",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2454,
+    "out": 825,
+    "reasoning": 421
+   },
+   "out_bytes": 1018
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2956,
+    "out": 978,
+    "reasoning": 470
+   },
+   "out_bytes": 1352
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_dotdot_forms",
+ "tokens": {
+  "body": {
+   "in": 2956,
+   "out": 978,
+   "reasoning": 470,
+   "out_bytes": 1352
+  },
+  "spec": {
+   "in": 2454,
+   "out": 825,
+   "reasoning": 421,
+   "out_bytes": 1018
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:a8d871337b5630ca289521f25ce94eab224355a69c4e4a9ee474ec894677315d",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

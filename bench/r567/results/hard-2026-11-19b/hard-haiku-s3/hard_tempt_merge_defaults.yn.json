@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1883,
+   "out": 849,
+   "reasoning": 615,
+   "out_bytes": 512
+  },
+  "body": {
+   "in": 4868,
+   "out": 2815,
+   "reasoning": 2053,
+   "out_bytes": 1768
+  }
+ },
+ "final": "-- Overlay settings on the defaults mode=fast and level=3.\n-- Output order: mode, level, then any other keys in the order given.\n-- A repeated key takes its last value.\n\nsettings(keys: List[str], values: List[str]) -> List[str] =\n  pre keys.len() == values.len()\n  post out.len() >= 2\n  ex settings([], []) == [\"fast\", \"3\"]\n  ex settings([\"level\"], [\"5\"]) == [\"fast\", \"5\"]\n  ex settings([\"color\"], [\"red\"]) == [\"fast\", \"3\", \"red\"]\n  ex settings([\"mode\", \"mode\"], [\"a\", \"b\"]) == [\"b\", \"3\"]\n  var names: List[str] = [\"mode\", \"level\"]\n  for k in keys\n    var seen = False\n    for n in names\n      if n == k\n        seen = True\n    if not seen\n      names.append(k.copy())\n  var result: List[str] = []\n  for n in names\n    var v = \"3\"\n    if n == \"mode\"\n      v = \"fast\"\n    for i in range(0, keys.len())\n      if keys[i] == n\n        v = values[i].copy()\n    result.append(v)\n  result\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1883,
+    "out": 849,
+    "reasoning": 615
+   },
+   "out_bytes": 512,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2190,
+    "out": 1915,
+    "reasoning": 1537
+   },
+   "out_bytes": 877,
+   "ok": false,
+   "report": "E413 task.yn:19:20 settings: `(k)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:3 | fix: k -> k.copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2678,
+    "out": 900,
+    "reasoning": 516
+   },
+   "out_bytes": 891,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/tempt_merge_defaults",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E413 ./task.yn:19:20 settings: `k` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:3 | fix: k -> k.copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

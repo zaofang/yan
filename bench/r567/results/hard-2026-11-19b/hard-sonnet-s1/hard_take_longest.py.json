@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1057,
+   "out": 453,
+   "reasoning": 0,
+   "out_bytes": 1002
+  },
+  "body": {
+   "in": 1567,
+   "out": 469,
+   "reasoning": 0,
+   "out_bytes": 1048
+  }
+ },
+ "final": "def longest(a: list[int], b: list[int]) -> list[int]:\n    \"\"\"Return the longer of the two lists; the first wins a tie.\n\n    The returned object is one of the inputs (not a copy).\n    \"\"\"\n    if len(b) > len(a):\n        return b\n    return a\n\n\ndef test_first_longer() -> None:\n    a = [1, 2, 3]\n    b = [4, 5]\n    assert longest(a, b) == [1, 2, 3]\n    assert longest(a, b) is a\n\n\ndef test_second_longer() -> None:\n    a = [1]\n    b = [2, 3]\n    assert longest(a, b) == [2, 3]\n    assert longest(a, b) is b\n\n\ndef test_tie_returns_first() -> None:\n    a = [1, 2]\n    b = [3, 4]\n    assert longest(a, b) is a\n    assert longest(a, b) == [1, 2]\n\n\ndef test_both_empty() -> None:\n    a: list[int] = []\n    b: list[int] = []\n    assert longest(a, b) is a\n\n\ndef test_one_empty() -> None:\n    empty: list[int] = []\n    full = [7]\n    assert longest(empty, full) is full\n    assert longest(full, empty) is full\n\n\ndef test_inputs_not_mutated() -> None:\n    a = [1, 2, 3]\n    b = [4]\n    longest(a, b)\n    assert a == [1, 2, 3]\n    assert b == [4]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1057,
+    "out": 453,
+    "reasoning": 0
+   },
+   "out_bytes": 1002,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1567,
+    "out": 469,
+    "reasoning": 0
+   },
+   "out_bytes": 1048,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/take_longest",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-sonnet-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

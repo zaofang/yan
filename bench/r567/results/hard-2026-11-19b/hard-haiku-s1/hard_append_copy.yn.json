@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 2,
+ "tokens": {
+  "spec": {
+   "in": 1833,
+   "out": 1426,
+   "reasoning": 1262,
+   "out_bytes": 356
+  },
+  "body": {
+   "in": 4458,
+   "out": 808,
+   "reasoning": 451,
+   "out_bytes": 743
+  }
+ },
+ "final": "-- Declarations for add_name\n\n-- Returns the last element of a non-empty list.\nlast_of(xs: List[str]) -> str =\n  pre xs.len() > 0\n  ex last_of([\"a\", \"b\"]) == \"b\"\n  xs[xs.len() - 1].copy()\n\n-- Appends a copy of s to the caller's list dst, editing it in place.\nadd_name(var dst: List[str], s: str) =\n  post dst.len() >= 1\n  post last_of(dst) == s\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1833,
+    "out": 1426,
+    "reasoning": 1262
+   },
+   "out_bytes": 356,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2070,
+    "out": 495,
+    "reasoning": 318
+   },
+   "out_bytes": 368,
+   "ok": false,
+   "report": "E413 task.yn:7:3 last_of: `xs[xs.len() - 1]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 7:3 | fix: xs[xs.len() - 1] -> xs[xs.len() - 1].copy()",
+   "codes": [
+    "E413"
+   ]
+  },
+  {
+   "phase": "body",
+   "round": 1,
+   "usage": {
+    "in": 2388,
+    "out": 313,
+    "reasoning": 133
+   },
+   "out_bytes": 375,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 0,
+  "total": 1,
+  "ok": false,
+  "error": "E413 ./task.yn:7:3 last_of: `xs[xs.len() - 1]` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 7:3 | fix: xs[xs.len() - 1] -> xs[xs.len() - 1].copy()\n0 of 0 tests passed"
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

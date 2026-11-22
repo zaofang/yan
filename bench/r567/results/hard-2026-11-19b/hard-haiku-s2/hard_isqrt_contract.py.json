@@ -1,0 +1,67 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1080,
+   "out": 1815,
+   "reasoning": 1366,
+   "out_bytes": 951
+  },
+  "body": {
+   "in": 1586,
+   "out": 1030,
+   "reasoning": 482,
+   "out_bytes": 1180
+  }
+ },
+ "final": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest r with r * r <= n.\n\n    Contract (to be enforced with assert statements in the body):\n      precondition:  n >= 0\n      postcondition: r * r <= n < (r + 1) * (r + 1)\n    \"\"\"\n    assert n >= 0\n    if n < 2:\n        r = n\n    else:\n        x = n\n        y = (x + 1) // 2\n        while y < x:\n            x = y\n            y = (x + n // x) // 2\n        r = x\n    assert r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_isqrt_small_values() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n\n\ndef test_isqrt_perfect_squares_and_neighbors() -> None:\n    for r in range(0, 200):\n        assert isqrt(r * r) == r\n        if r > 0:\n            assert isqrt(r * r - 1) == r - 1\n\n\ndef test_isqrt_postcondition_large() -> None:\n    for n in (10**18, 10**18 - 1, 2**100 + 7, 999_999_999_999_999_999):\n        r = isqrt(n)\n        assert r * r <= n < (r + 1) * (r + 1)\n\n\ndef test_isqrt_rejects_negative() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1080,
+    "out": 1815,
+    "reasoning": 1366
+   },
+   "out_bytes": 951,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1586,
+    "out": 1030,
+    "reasoning": 482
+   },
+   "out_bytes": 1180,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

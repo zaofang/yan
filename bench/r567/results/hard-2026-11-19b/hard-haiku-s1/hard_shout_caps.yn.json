@@ -1,0 +1,69 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1814,
+   "out": 938,
+   "reasoning": 753,
+   "out_bytes": 415
+  },
+  "body": {
+   "in": 2072,
+   "out": 646,
+   "reasoning": 446,
+   "out_bytes": 441
+  }
+ },
+ "final": "-- Phase 1: spec only. Bodies are stubbed with `unreachable` until Phase 2.\n\n-- Pure helper: upper-cases one string. The ex line gives a checkable example.\nupper_line(s: str) -> str =\n  post out.char_count() == s.char_count()\n  ex upper_line(\"ab\") == \"AB\"\n  s.upper()\n\n-- Prints each string upper-cased on its own line. Needs io to print.\nshout(xs: List[str]) uses io =\n  pre xs.len() >= 0\n  for s in xs\n    io.print(upper_line(s))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1814,
+    "out": 938,
+    "reasoning": 753
+   },
+   "out_bytes": 415,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 2072,
+    "out": 646,
+    "reasoning": 446
+   },
+   "out_bytes": 441,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:anthropic/claude-haiku-5.5",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}
