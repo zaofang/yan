@@ -79,8 +79,22 @@ class Fake:
     mcp_result: tuple[str, str, int] = ("", "", 0)
     seen_session: list[str] = field(default_factory=list)
 
-    def mcp(self, root: Path, flags: list[str], session: str) -> tuple[str, str, int]:
+    cli_result: tuple[str, int] = ("", 0)
+    cli_writes: dict[str, str] = field(default_factory=dict)
+
+    def cli(self, workdir: Path, args: list[str]) -> tuple[str, int]:
+        self.seen_args.append(args)
+        for rel, text in self.cli_writes.items():
+            (workdir / rel).write_text(text)
+        return self.cli_result
+
+    seen_servers: list[str] = field(default_factory=list)
+
+    def mcp(
+        self, root: Path, flags: list[str], session: str, server: str = "package"
+    ) -> tuple[str, str, int]:
         assert (root / "package.yag").is_file()
+        self.seen_servers.append(server)
         self.seen_flags.append(flags)
         self.seen_session.append(session)
         return self.mcp_result
@@ -430,3 +444,36 @@ def test_ratchet_tolerates_listed_failures_and_flags_stale_entries() -> None:
     unexplained, stale = apply_ratchet(results, expected)
     assert [r.case for r in unexplained] == ["b"]
     assert stale == [("c", "interp")]
+
+
+def _cli(tmp_path: Path, expect: str, files: dict[str, str]) -> Case:
+    case = tmp_path / "cli" / "c1"
+    (case / "root").mkdir(parents=True)
+    (case / "root" / "m.yag").write_text("old")
+    (case / "expect.toml").write_text(expect)
+    for name, text in files.items():
+        (case / name).parent.mkdir(parents=True, exist_ok=True)
+        (case / name).write_text(text)
+    [c] = discover(tmp_path)
+    return c
+
+
+def test_cli_stdout_and_files(tmp_path: Path) -> None:
+    case = _cli(
+        tmp_path,
+        'spec = "18.3"\ncommands = [["patch", "p"], ["undo"]]\nfiles = ["m.yag"]\n',
+        {"expect.stdout": "ok\n", "expect/m.yag": "new"},
+    )
+    fake = Fake(cli_result=("ok\n", 0), cli_writes={"m.yag": "new"})
+    assert judge(case, fake).status == "pass"
+    assert fake.seen_args == [["patch", "p"], ["undo"]]
+    assert judge(case, Fake(cli_result=("ok\n", 0))).status == "fail"
+    assert judge(case, Fake(cli_result=("no\n", 0), cli_writes={"m.yag": "new"})).status == "fail"
+    assert judge(case, Fake(cli_result=("ok\n", 1), cli_writes={"m.yag": "new"})).status == "fail"
+
+
+def test_mcp_toolchain_server(tmp_path: Path) -> None:
+    case = _mcp(tmp_path, 'spec = "21.4"\nserver = "toolchain"\n', {"expect.jsonl": ""})
+    fake = Fake(mcp_result=("", "", 0))
+    assert judge(case, fake).status == "pass"
+    assert fake.seen_servers == ["toolchain"]
