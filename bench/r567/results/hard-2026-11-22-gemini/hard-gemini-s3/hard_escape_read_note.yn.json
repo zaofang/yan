@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1746,
+   "out": 680,
+   "reasoning": 645,
+   "out_bytes": 97
+  },
+  "body": {
+   "in": 1827,
+   "out": 699,
+   "reasoning": 646,
+   "out_bytes": 144
+  }
+ },
+ "final": "read_note(name: str) -> str uses fs =\n  ex read_note(\"missing.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1746,
+    "out": 680,
+    "reasoning": 645
+   },
+   "out_bytes": 97,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1827,
+    "out": 699,
+    "reasoning": 646
+   },
+   "out_bytes": 144,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_read_note",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "read_note(name: str) -> str uses fs =\n  ex read_note(\"missing.txt\") == \"\"\n  with fs = fs.sub(\"notes\")\n    return fs.read(name) else \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

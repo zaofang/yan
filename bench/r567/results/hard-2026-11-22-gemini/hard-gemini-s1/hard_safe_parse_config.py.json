@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 868,
+   "out": 1423,
+   "reasoning": 963,
+   "out_bytes": 1331
+  },
+  "body": {
+   "in": 1365,
+   "out": 1234,
+   "reasoning": 701,
+   "out_bytes": 1597
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for key in name=value per-line config text, or empty string if absent.\"\"\"\n    result: str = \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if sep and k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_present() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"port\") == \"8080\"\n\n\ndef test_config_value_absent() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n\n\ndef test_config_value_empty_text() -> None:\n    assert config_value(\"\", \"key\") == \"\"\n\n\ndef test_config_value_whitespace_handling() -> None:\n    text = \"  host  =  127.0.0.1  \\nport=80\"\n    assert config_value(text, \"host\") == \"127.0.0.1\"\n\n\ndef test_config_value_comments_and_blank_lines() -> None:\n    text = \"# A comment\\n\\nhost=localhost\\n  # Another comment\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"comment\") == \"\"\n\n\ndef test_config_value_multiple_equals() -> None:\n    text = \"query=page=1&limit=10\"\n    assert config_value(text, \"query\") == \"page=1&limit=10\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"flag=\"\n    assert config_value(text, \"flag\") == \"\"\n\n\ndef test_config_value_later_override() -> None:\n    text = \"timeout=10\\ntimeout=20\"\n    assert config_value(text, \"timeout\") == \"20\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 868,
+    "out": 1423,
+    "reasoning": 963
+   },
+   "out_bytes": 1331,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1365,
+    "out": 1234,
+    "reasoning": 701
+   },
+   "out_bytes": 1597,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for key in name=value per-line config text, or empty string if absent.\"\"\"\n    result: str = \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if sep and k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_present() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"port\") == \"8080\"\n\n\ndef test_config_value_absent() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n\n\ndef test_config_value_empty_text() -> None:\n    assert config_value(\"\", \"key\") == \"\"\n\n\ndef test_config_value_whitespace_handling() -> None:\n    text = \"  host  =  127.0.0.1  \\nport=80\"\n    assert config_value(text, \"host\") == \"127.0.0.1\"\n\n\ndef test_config_value_comments_and_blank_lines() -> None:\n    text = \"# A comment\\n\\nhost=localhost\\n  # Another comment\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"comment\") == \"\"\n\n\ndef test_config_value_multiple_equals() -> None:\n    text = \"query=page=1&limit=10\"\n    assert config_value(text, \"query\") == \"page=1&limit=10\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"flag=\"\n    assert config_value(text, \"flag\") == \"\"\n\n\ndef test_config_value_later_override() -> None:\n    text = \"timeout=10\\ntimeout=20\"\n    assert config_value(text, \"timeout\") == \"20\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

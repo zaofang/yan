@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1651,
+   "out": 14533,
+   "reasoning": 14476,
+   "out_bytes": 120
+  },
+  "body": {
+   "in": 1754,
+   "out": 1841,
+   "reasoning": 1609,
+   "out_bytes": 496
+  }
+ },
+ "final": "swap_ends(var xs: List[int]) =\n  ex swap_ends(&[1, 2, 3]) == [3, 2, 1]\n  ex swap_ends(&[]) == []\n  if xs.len() > 1\n    let last = xs.len() - 1\n    let tmp = xs[0]\n    xs[0] = xs[last]\n    xs[last] = tmp\n\ntest_swap_ends() =\n  var xs = [1, 2, 3]\n  swap_ends(&xs)\n  assert xs == [3, 2, 1]\n\n  var empty: List[int] = []\n  swap_ends(&empty)\n  assert empty == []\n\n  var single = [42]\n  swap_ends(&single)\n  assert single == [42]\n\n  var two = [10, 20]\n  swap_ends(&two)\n  assert two == [20, 10]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1651,
+    "out": 14533,
+    "reasoning": 14476
+   },
+   "out_bytes": 120,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1754,
+    "out": 1841,
+    "reasoning": 1609
+   },
+   "out_bytes": 496,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "swap_ends(var xs: List[int]) =\n  ex swap_ends(&[1, 2, 3]) == [3, 2, 1]\n  ex swap_ends(&[]) == []\n  if xs.len() > 1\n    let last = xs.len() - 1\n    let tmp = xs[0]\n    xs[0] = xs[last]\n    xs[last] = tmp\n\ntest_swap_ends() =\n  var xs = [1, 2, 3]\n  swap_ends(&xs)\n  assert xs == [3, 2, 1]\n\n  var empty: List[int] = []\n  swap_ends(&empty)\n  assert empty == []\n\n  var single = [42]\n  swap_ends(&single)\n  assert single == [42]\n\n  var two = [10, 20]\n  swap_ends(&two)\n  assert two == [20, 10]\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

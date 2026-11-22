@@ -1,0 +1,95 @@
+{
+ "final": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element from a non-empty list using an integer seed.\"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([10, 20, 30], 0) == 10\n    ex pick([10, 20, 30], 4) == 20\n    idx = seed % xs.len()\n    return xs[idx]\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2026,
+    "out": 941,
+    "reasoning": 835
+   },
+   "out_bytes": 260
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2197,
+    "out": 509,
+    "reasoning": 389
+   },
+   "out_bytes": 297
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_pick_seeded",
+ "tokens": {
+  "body": {
+   "in": 2197,
+   "out": 509,
+   "reasoning": 389,
+   "out_bytes": 297
+  },
+  "spec": {
+   "in": 2026,
+   "out": 941,
+   "reasoning": 835,
+   "out_bytes": 260
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element from a non-empty list using an integer seed.\"\"\"\n    pre xs.len() > 0\n    post out in xs\n    ex pick([10, 20, 30], 0) == 10\n    ex pick([10, 20, 30], 4) == 20\n    idx = seed % xs.len()\n    return xs[idx]\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

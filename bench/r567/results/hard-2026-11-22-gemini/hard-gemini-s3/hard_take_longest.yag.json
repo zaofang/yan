@@ -1,0 +1,95 @@
+{
+ "final": "def longest(take a: list[int], take b: list[int]) -> list[int]:\n    \"\"\"Consume both lists and return the longer one; the first wins a tie.\"\"\"\n    ex longest(a=[1, 2], b=[3]) == [1, 2]\n    ex longest(a=[1], b=[2, 3]) == [2, 3]\n    ex longest(a=[1, 2], b=[3, 4]) == [1, 2]\n    if b.len() > a.len():\n        return b\n    return a\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2010,
+    "out": 3493,
+    "reasoning": 3372
+   },
+   "out_bytes": 289
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2196,
+    "out": 526,
+    "reasoning": 388
+   },
+   "out_bytes": 337
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/take_longest",
+ "tokens": {
+  "body": {
+   "in": 2196,
+   "out": 526,
+   "reasoning": 388,
+   "out_bytes": 337
+  },
+  "spec": {
+   "in": 2010,
+   "out": 3493,
+   "reasoning": 3372,
+   "out_bytes": 289
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def longest(take a: list[int], take b: list[int]) -> list[int]:\n    \"\"\"Consume both lists and return the longer one; the first wins a tie.\"\"\"\n    ex longest(a=[1, 2], b=[3]) == [1, 2]\n    ex longest(a=[1], b=[2, 3]) == [2, 3]\n    ex longest(a=[1, 2], b=[3, 4]) == [1, 2]\n    if b.len() > a.len():\n        return b\n    return a\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

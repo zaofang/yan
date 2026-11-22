@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 861,
+   "out": 712,
+   "reasoning": 414,
+   "out_bytes": 727
+  },
+  "body": {
+   "in": 1194,
+   "out": 2012,
+   "reasoning": 1651,
+   "out_bytes": 893
+  }
+ },
+ "final": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Precondition: n >= 0\n    Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    \"\"\"\n    assert n >= 0, \"n must not be negative\"\n\n    import math\n\n    r = math.isqrt(n)\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1), \"postcondition failed\"\n    return r\n\n\ndef test_isqrt_basic() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n    assert isqrt(15) == 3\n    assert isqrt(16) == 4\n\n\ndef test_isqrt_large() -> None:\n    assert isqrt(10**12) == 10**6\n    assert isqrt(10**12 - 1) == 10**6 - 1\n    assert isqrt(10**12 + 1) == 10**6\n\n\ndef test_isqrt_negative_raises() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 861,
+    "out": 712,
+    "reasoning": 414
+   },
+   "out_bytes": 727,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1194,
+    "out": 2012,
+    "reasoning": 1651
+   },
+   "out_bytes": 893,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Precondition: n >= 0\n    Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    \"\"\"\n    assert n >= 0, \"n must not be negative\"\n\n    import math\n\n    r = math.isqrt(n)\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1), \"postcondition failed\"\n    return r\n\n\ndef test_isqrt_basic() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n    assert isqrt(15) == 3\n    assert isqrt(16) == 4\n\n\ndef test_isqrt_large() -> None:\n    assert isqrt(10**12) == 10**6\n    assert isqrt(10**12 - 1) == 10**6 - 1\n    assert isqrt(10**12 + 1) == 10**6\n\n\ndef test_isqrt_negative_raises() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,95 @@
+{
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of shapes, rounded down.\"\"\"\n    post out >= 0\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return b * h // 2\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2040,
+    "out": 1761,
+    "reasoning": 1649
+   },
+   "out_bytes": 267
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2215,
+    "out": 1032,
+    "reasoning": 860
+   },
+   "out_bytes": 449
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shape_area",
+ "tokens": {
+  "body": {
+   "in": 2215,
+   "out": 1032,
+   "reasoning": 860,
+   "out_bytes": 449
+  },
+  "spec": {
+   "in": 2040,
+   "out": 1761,
+   "reasoning": 1649,
+   "out_bytes": 267
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\ndef area(s: Shape) -> int:\n    \"\"\"Area of shapes, rounded down.\"\"\"\n    post out >= 0\n    ex area(Rect(3, 4)) == 12\n    ex area(Square(5)) == 25\n    ex area(Tri(3, 5)) == 7\n    match s:\n        case Rect(w=w, h=h):\n            return w * h\n        case Square(side=side):\n            return side * side\n        case Tri(b=b, h=h):\n            return (b * h) // 2\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

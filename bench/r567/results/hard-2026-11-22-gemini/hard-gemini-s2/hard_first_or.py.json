@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 841,
+   "out": 302,
+   "reasoning": 147,
+   "out_bytes": 397
+  },
+  "body": {
+   "in": 1033,
+   "out": 227,
+   "reasoning": 64,
+   "out_bytes": 425
+  }
+ },
+ "final": "def first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element, or `default` for an empty list.\"\"\"\n    return xs[0] if xs else default\n\n\ndef test_first_or_empty() -> None:\n    assert first_or([], 0) == 0\n    assert first_or([], -1) == -1\n\n\ndef test_first_or_non_empty() -> None:\n    assert first_or([42], 0) == 42\n    assert first_or([1, 2, 3], 99) == 1\n    assert first_or([-5, 10], 0) == -5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 841,
+    "out": 302,
+    "reasoning": 147
+   },
+   "out_bytes": 397,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1033,
+    "out": 227,
+    "reasoning": 64
+   },
+   "out_bytes": 425,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "def first_or(xs: list[int], default: int) -> int:\n    \"\"\"Return the first element, or `default` for an empty list.\"\"\"\n    return xs[0] if xs else default\n\n\ndef test_first_or_empty() -> None:\n    assert first_or([], 0) == 0\n    assert first_or([], -1) == -1\n\n\ndef test_first_or_non_empty() -> None:\n    assert first_or([42], 0) == 42\n    assert first_or([1, 2, 3], 99) == 1\n    assert first_or([-5, 10], 0) == -5\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

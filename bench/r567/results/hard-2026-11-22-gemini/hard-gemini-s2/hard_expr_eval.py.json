@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 902,
+   "out": 944,
+   "reasoning": 422,
+   "out_bytes": 1294
+  },
+  "body": {
+   "in": 1461,
+   "out": 1095,
+   "reasoning": 510,
+   "out_bytes": 1483
+  }
+ },
+ "final": "from dataclasses import dataclass\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\n@dataclass\nclass Mul:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\ntype Expr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an arithmetic expression tree consisting of numbers, addition, and multiplication.\"\"\"\n    match e:\n        case Num(v):\n            return v\n        case Add(l, r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l, r):\n            return eval_expr(l) * eval_expr(r)\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(42)) == 42\n    assert eval_expr(Num(-7)) == -7\n    assert eval_expr(Num(0)) == 0\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(1), Num(2))) == 3\n    assert eval_expr(Add(Num(-5), Num(5))) == 0\n\n\ndef test_eval_mul() -> None:\n    assert eval_expr(Mul(Num(3), Num(4))) == 12\n    assert eval_expr(Mul(Num(-2), Num(6))) == -12\n    assert eval_expr(Mul(Num(10), Num(0))) == 0\n\n\ndef test_eval_nested_expressions() -> None:\n    # (1 + 2) * 3 = 9\n    expr1 = Mul(Add(Num(1), Num(2)), Num(3))\n    assert eval_expr(expr1) == 9\n\n    # 1 + (2 * 3) = 7\n    expr2 = Add(Num(1), Mul(Num(2), Num(3)))\n    assert eval_expr(expr2) == 7\n\n    # ((2 * 3) + (4 * 5)) = 26\n    expr3 = Add(Mul(Num(2), Num(3)), Mul(Num(4), Num(5)))\n    assert eval_expr(expr3) == 26\n\n    # (2 + (3 + (4 + 5))) = 14\n    expr4 = Add(Num(2), Add(Num(3), Add(Num(4), Num(5))))\n    assert eval_expr(expr4) == 14\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 902,
+    "out": 944,
+    "reasoning": 422
+   },
+   "out_bytes": 1294,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1461,
+    "out": 1095,
+    "reasoning": 510
+   },
+   "out_bytes": 1483,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "from dataclasses import dataclass\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\n@dataclass\nclass Mul:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\ntype Expr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an arithmetic expression tree consisting of numbers, addition, and multiplication.\"\"\"\n    match e:\n        case Num(v):\n            return v\n        case Add(l, r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l, r):\n            return eval_expr(l) * eval_expr(r)\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(42)) == 42\n    assert eval_expr(Num(-7)) == -7\n    assert eval_expr(Num(0)) == 0\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(1), Num(2))) == 3\n    assert eval_expr(Add(Num(-5), Num(5))) == 0\n\n\ndef test_eval_mul() -> None:\n    assert eval_expr(Mul(Num(3), Num(4))) == 12\n    assert eval_expr(Mul(Num(-2), Num(6))) == -12\n    assert eval_expr(Mul(Num(10), Num(0))) == 0\n\n\ndef test_eval_nested_expressions() -> None:\n    # (1 + 2) * 3 = 9\n    expr1 = Mul(Add(Num(1), Num(2)), Num(3))\n    assert eval_expr(expr1) == 9\n\n    # 1 + (2 * 3) = 7\n    expr2 = Add(Num(1), Mul(Num(2), Num(3)))\n    assert eval_expr(expr2) == 7\n\n    # ((2 * 3) + (4 * 5)) = 26\n    expr3 = Add(Mul(Num(2), Num(3)), Mul(Num(4), Num(5)))\n    assert eval_expr(expr3) == 26\n\n    # (2 + (3 + (4 + 5))) = 14\n    expr4 = Add(Num(2), Add(Num(3), Add(Num(4), Num(5))))\n    assert eval_expr(expr4) == 14\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

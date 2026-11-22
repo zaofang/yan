@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1671,
+   "out": 5668,
+   "reasoning": 5593,
+   "out_bytes": 220
+  },
+  "body": {
+   "in": 1790,
+   "out": 672,
+   "reasoning": 581,
+   "out_bytes": 258
+  }
+ },
+ "final": "format_line(level: str, message: str) -> str =\n  post out == \"[\\(level)] \\(message)\"\n  ex format_line(\"INFO\", \"ready\") == \"[INFO] ready\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  io.print(format_line(level, message))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1671,
+    "out": 5668,
+    "reasoning": 5593
+   },
+   "out_bytes": 220,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1790,
+    "out": 672,
+    "reasoning": 581
+   },
+   "out_bytes": 258,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "format_line(level: str, message: str) -> str =\n  post out == \"[\\(level)] \\(message)\"\n  ex format_line(\"INFO\", \"ready\") == \"[INFO] ready\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  io.print(format_line(level, message))\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

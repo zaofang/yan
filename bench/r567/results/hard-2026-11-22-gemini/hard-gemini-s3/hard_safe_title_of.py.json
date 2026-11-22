@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 860,
+   "out": 732,
+   "reasoning": 250,
+   "out_bytes": 1470
+  },
+  "body": {
+   "in": 1379,
+   "out": 914,
+   "reasoning": 376,
+   "out_bytes": 1632
+  }
+ },
+ "final": "import re\n\nimport pytest\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or an empty string.\"\"\"\n    match = re.search(r\"<title(?:\\s+[^>]*)?>(.*?)</title>\", html, re.IGNORECASE | re.DOTALL)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_title_of_basic() -> None:\n    html = \"<html><head><title>My Web Page</title></head><body></body></html>\"\n    assert title_of(html) == \"My Web Page\"\n\n\ndef test_title_of_missing() -> None:\n    html = \"<html><head></head><body><h1>No Title</h1></body></html>\"\n    assert title_of(html) == \"\"\n\n\ndef test_title_of_empty() -> None:\n    assert title_of(\"\") == \"\"\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_title_of_case_insensitive() -> None:\n    html = \"<HTML><HEAD><TITLE>Uppercase Title</TITLE></HEAD></HTML>\"\n    assert title_of(html) == \"Uppercase Title\"\n\n\ndef test_title_of_mixed_case() -> None:\n    html = \"<Title>Mixed Case</tItLe>\"\n    assert title_of(html) == \"Mixed Case\"\n\n\ndef test_title_of_with_attributes() -> None:\n    html = '<head><title lang=\"en\" dir=\"ltr\">Attributed Title</title></head>'\n    assert title_of(html) == \"Attributed Title\"\n\n\ndef test_title_of_multiline() -> None:\n    html = \"<title>\\n  Line 1\\n  Line 2\\n</title>\"\n    assert title_of(html) == \"\\n  Line 1\\n  Line 2\\n\"\n\n\ndef test_title_of_first_when_multiple() -> None:\n    html = \"<title>First</title><p>content</p><title>Second</title>\"\n    assert title_of(html) == \"First\"\n\n\ndef test_title_of_unclosed_tag() -> None:\n    html = \"<html><head><title>Unclosed</head></html>\"\n    assert title_of(html) == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 860,
+    "out": 732,
+    "reasoning": 250
+   },
+   "out_bytes": 1470,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1379,
+    "out": 914,
+    "reasoning": 376
+   },
+   "out_bytes": 1632,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\n\nimport pytest\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or an empty string.\"\"\"\n    match = re.search(r\"<title(?:\\s+[^>]*)?>(.*?)</title>\", html, re.IGNORECASE | re.DOTALL)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_title_of_basic() -> None:\n    html = \"<html><head><title>My Web Page</title></head><body></body></html>\"\n    assert title_of(html) == \"My Web Page\"\n\n\ndef test_title_of_missing() -> None:\n    html = \"<html><head></head><body><h1>No Title</h1></body></html>\"\n    assert title_of(html) == \"\"\n\n\ndef test_title_of_empty() -> None:\n    assert title_of(\"\") == \"\"\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_title_of_case_insensitive() -> None:\n    html = \"<HTML><HEAD><TITLE>Uppercase Title</TITLE></HEAD></HTML>\"\n    assert title_of(html) == \"Uppercase Title\"\n\n\ndef test_title_of_mixed_case() -> None:\n    html = \"<Title>Mixed Case</tItLe>\"\n    assert title_of(html) == \"Mixed Case\"\n\n\ndef test_title_of_with_attributes() -> None:\n    html = '<head><title lang=\"en\" dir=\"ltr\">Attributed Title</title></head>'\n    assert title_of(html) == \"Attributed Title\"\n\n\ndef test_title_of_multiline() -> None:\n    html = \"<title>\\n  Line 1\\n  Line 2\\n</title>\"\n    assert title_of(html) == \"\\n  Line 1\\n  Line 2\\n\"\n\n\ndef test_title_of_first_when_multiple() -> None:\n    html = \"<title>First</title><p>content</p><title>Second</title>\"\n    assert title_of(html) == \"First\"\n\n\ndef test_title_of_unclosed_tag() -> None:\n    html = \"<html><head><title>Unclosed</head></html>\"\n    assert title_of(html) == \"\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

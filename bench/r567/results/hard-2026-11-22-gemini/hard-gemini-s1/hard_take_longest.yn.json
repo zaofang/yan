@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1653,
+   "out": 1453,
+   "reasoning": 1358,
+   "out_bytes": 208
+  },
+  "body": {
+   "in": 1794,
+   "out": 1198,
+   "reasoning": 1026,
+   "out_bytes": 369
+  }
+ },
+ "final": "longest(take a: List[int], take b: List[int]) -> List[int] =\n  post out.len() >= 0\n  ex longest([1, 2], [3]) == [1, 2]\n  ex longest([1], [2, 3]) == [2, 3]\n  ex longest([1], [2]) == [1]\n  if a.len() >= b.len()\n    a\n  else\n    b\n\ntest_longest() =\n  assert longest([1, 2], [3]) == [1, 2]\n  assert longest([1], [2, 3]) == [2, 3]\n  assert longest([1], [2]) == [1]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1653,
+    "out": 1453,
+    "reasoning": 1358
+   },
+   "out_bytes": 208,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1794,
+    "out": 1198,
+    "reasoning": 1026
+   },
+   "out_bytes": 369,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/take_longest",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "longest(take a: List[int], take b: List[int]) -> List[int] =\n  post out.len() >= 0\n  ex longest([1, 2], [3]) == [1, 2]\n  ex longest([1], [2, 3]) == [2, 3]\n  ex longest([1], [2]) == [1]\n  if a.len() >= b.len()\n    a\n  else\n    b\n\ntest_longest() =\n  assert longest([1, 2], [3]) == [1, 2]\n  assert longest([1], [2, 3]) == [2, 3]\n  assert longest([1], [2]) == [1]\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

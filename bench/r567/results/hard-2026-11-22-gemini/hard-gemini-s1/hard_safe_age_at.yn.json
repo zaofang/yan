@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1662,
+   "out": 498,
+   "reasoning": 439,
+   "out_bytes": 124
+  },
+  "body": {
+   "in": 1767,
+   "out": 428,
+   "reasoning": 317,
+   "out_bytes": 207
+  }
+ },
+ "final": "age_at(born: int, now: int) -> int =\n  pre born <= now\n  post out >= 0\n  ex age_at(2000, 2024) == 24\n  now - born\n\ntest_age_at() =\n  assert age_at(1990, 2025) == 35\n  assert age_at(2024, 2024) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1662,
+    "out": 498,
+    "reasoning": 439
+   },
+   "out_bytes": 124,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1767,
+    "out": 428,
+    "reasoning": 317
+   },
+   "out_bytes": 207,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "age_at(born: int, now: int) -> int =\n  pre born <= now\n  post out >= 0\n  ex age_at(2000, 2024) == 24\n  now - born\n\ntest_age_at() =\n  assert age_at(1990, 2025) == 35\n  assert age_at(2024, 2024) == 0\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

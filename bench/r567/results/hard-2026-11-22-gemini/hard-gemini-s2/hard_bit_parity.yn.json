@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1640,
+   "out": 526,
+   "reasoning": 450,
+   "out_bytes": 180
+  },
+  "body": {
+   "in": 1762,
+   "out": 1046,
+   "reasoning": 878,
+   "out_bytes": 416
+  }
+ },
+ "final": "parity(x: u8) -> bool =\n  post out == (bits.count_ones(x) % 2 == 1)\n  ex parity(0 as u8) == False\n  ex parity(1 as u8) == True\n  ex parity(3 as u8) == False\n  bits.count_ones(x) % 2 == 1\n\ntest_parity() =\n  assert parity(0 as u8) == False\n  assert parity(1 as u8) == True\n  assert parity(2 as u8) == True\n  assert parity(3 as u8) == False\n  assert parity(7 as u8) == True\n  assert parity(255 as u8) == False\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1640,
+    "out": 526,
+    "reasoning": 450
+   },
+   "out_bytes": 180,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1762,
+    "out": 1046,
+    "reasoning": 878
+   },
+   "out_bytes": 416,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "parity(x: u8) -> bool =\n  post out == (bits.count_ones(x) % 2 == 1)\n  ex parity(0 as u8) == False\n  ex parity(1 as u8) == True\n  ex parity(3 as u8) == False\n  bits.count_ones(x) % 2 == 1\n\ntest_parity() =\n  assert parity(0 as u8) == False\n  assert parity(1 as u8) == True\n  assert parity(2 as u8) == True\n  assert parity(3 as u8) == False\n  assert parity(7 as u8) == True\n  assert parity(255 as u8) == False\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

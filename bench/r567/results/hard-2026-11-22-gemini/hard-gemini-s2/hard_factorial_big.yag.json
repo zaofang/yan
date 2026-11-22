@@ -1,0 +1,95 @@
+{
+ "final": "def fact(n: int) -> bigint:\n    \"\"\"Factorial of n as an arbitrary-precision integer.\"\"\"\n    pre n >= 0\n    post out >= bigint(1)\n    ex fact(0) == bigint(1)\n    ex fact(5) == bigint(120)\n    res = bigint(1)\n    for i in range(2, n + 1):\n        res = res * bigint(i)\n    return res\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2012,
+    "out": 385,
+    "reasoning": 310
+   },
+   "out_bytes": 205
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2152,
+    "out": 665,
+    "reasoning": 557
+   },
+   "out_bytes": 292
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/factorial_big",
+ "tokens": {
+  "body": {
+   "in": 2152,
+   "out": 665,
+   "reasoning": 557,
+   "out_bytes": 292
+  },
+  "spec": {
+   "in": 2012,
+   "out": 385,
+   "reasoning": 310,
+   "out_bytes": 205
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "def fact(n: int) -> bigint:\n    \"\"\"Factorial of n as an arbitrary-precision integer.\"\"\"\n    pre n >= 0\n    post out >= bigint(1)\n    ex fact(0) == bigint(1)\n    ex fact(5) == bigint(120)\n    res = bigint(1)\n    for i in range(2, n + 1):\n        res = res * bigint(i)\n    return res\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

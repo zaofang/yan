@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1671,
+   "out": 1473,
+   "reasoning": 1412,
+   "out_bytes": 140
+  },
+  "body": {
+   "in": 1778,
+   "out": 643,
+   "reasoning": 547,
+   "out_bytes": 222
+  }
+ },
+ "final": "square(x: int) -> int = x * x\n\nsum_squares(xs: List[int]) -> int =\n  post out >= 0\n  ex sum_squares([1, 2, 3]) == 14\n  let sqs = par for x in xs\n    square(x)\n  var total = 0\n  for s in sqs\n    total += s\n  total\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1671,
+    "out": 1473,
+    "reasoning": 1412
+   },
+   "out_bytes": 140,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1778,
+    "out": 643,
+    "reasoning": 547
+   },
+   "out_bytes": 222,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "square(x: int) -> int = x * x\n\nsum_squares(xs: List[int]) -> int =\n  post out >= 0\n  ex sum_squares([1, 2, 3]) == 14\n  let sqs = par for x in xs\n    square(x)\n  var total = 0\n  for s in sqs\n    total += s\n  total\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

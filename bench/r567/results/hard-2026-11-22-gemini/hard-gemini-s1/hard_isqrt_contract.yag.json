@@ -1,0 +1,95 @@
+{
+ "final": "def isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\"\"\"\n    pre n >= 0\n    post out >= 0 and out * out <= n and (out + 1) * (out + 1) > n\n    ex isqrt(0) == 0\n    ex isqrt(1) == 1\n    ex isqrt(8) == 2\n    ex isqrt(9) == 3\n    if n < 2:\n        return n\n    low = 1\n    high = n\n    if high > 3037000499:\n        high = 3037000499\n    ans = 1\n    while low <= high:\n        mid = low + (high - low) // 2\n        if mid * mid <= n:\n            ans = mid\n            low = mid + 1\n        else:\n            high = mid - 1\n    return ans\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2019,
+    "out": 441,
+    "reasoning": 324
+   },
+   "out_bytes": 272
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2201,
+    "out": 2054,
+    "reasoning": 1820
+   },
+   "out_bytes": 576
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/isqrt_contract",
+ "tokens": {
+  "body": {
+   "in": 2201,
+   "out": 2054,
+   "reasoning": 1820,
+   "out_bytes": 576
+  },
+  "spec": {
+   "in": 2019,
+   "out": 441,
+   "reasoning": 324,
+   "out_bytes": 272
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "def isqrt(n: int) -> int:\n    \"\"\"Integer square root: the largest r with r * r <= n.\"\"\"\n    pre n >= 0\n    post out >= 0 and out * out <= n and (out + 1) * (out + 1) > n\n    ex isqrt(0) == 0\n    ex isqrt(1) == 1\n    ex isqrt(8) == 2\n    ex isqrt(9) == 3\n    if n < 2:\n        return n\n    low = 1\n    high = n\n    if high > 3037000499:\n        high = 3037000499\n    ans = 1\n    while low <= high:\n        mid = low + (high - low) // 2\n        if mid * mid <= n:\n            ans = mid\n            low = mid + 1\n        else:\n            high = mid - 1\n    return ans\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 854,
+   "out": 1197,
+   "reasoning": 863,
+   "out_bytes": 848
+  },
+  "body": {
+   "in": 1225,
+   "out": 729,
+   "reasoning": 369,
+   "out_bytes": 944
+  }
+ },
+ "final": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element of a non-empty list based on an integer seed.\n\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"Cannot pick from an empty list\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_single_element() -> None:\n    assert pick([42], 0) == 42\n    assert pick([42], 1) == 42\n    assert pick([42], -5) == 42\n\n\ndef test_pick_deterministic() -> None:\n    xs = [10, 20, 30, 40]\n    assert pick(xs, 0) == 10\n    assert pick(xs, 1) == 20\n    assert pick(xs, 2) == 30\n    assert pick(xs, 3) == 40\n    assert pick(xs, 4) == 10\n    assert pick(xs, -1) == 40\n\n\ndef test_pick_same_seed_same_result() -> None:\n    xs = [1, 2, 3, 4, 5]\n    for seed in (0, 7, 42, -99):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_empty_list_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 854,
+    "out": 1197,
+    "reasoning": 863
+   },
+   "out_bytes": 848,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1225,
+    "out": 729,
+    "reasoning": 369
+   },
+   "out_bytes": 944,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element of a non-empty list based on an integer seed.\n\n    Raises ValueError if xs is empty.\n    \"\"\"\n    if not xs:\n        raise ValueError(\"Cannot pick from an empty list\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_single_element() -> None:\n    assert pick([42], 0) == 42\n    assert pick([42], 1) == 42\n    assert pick([42], -5) == 42\n\n\ndef test_pick_deterministic() -> None:\n    xs = [10, 20, 30, 40]\n    assert pick(xs, 0) == 10\n    assert pick(xs, 1) == 20\n    assert pick(xs, 2) == 30\n    assert pick(xs, 3) == 40\n    assert pick(xs, 4) == 10\n    assert pick(xs, -1) == 40\n\n\ndef test_pick_same_seed_same_result() -> None:\n    xs = [1, 2, 3, 4, 5]\n    for seed in (0, 7, 42, -99):\n        assert pick(xs, seed) == pick(xs, seed)\n\n\ndef test_pick_empty_list_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

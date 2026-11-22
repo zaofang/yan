@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1669,
+   "out": 1327,
+   "reasoning": 1270,
+   "out_bytes": 115
+  },
+  "body": {
+   "in": 1772,
+   "out": 1048,
+   "reasoning": 967,
+   "out_bytes": 163
+  }
+ },
+ "final": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  ex pick([10, 20, 30], 0) == 10\n  let idx = (seed % xs.len() + xs.len()) % xs.len()\n  xs[idx]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1669,
+    "out": 1327,
+    "reasoning": 1270
+   },
+   "out_bytes": 115,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1772,
+    "out": 1048,
+    "reasoning": 967
+   },
+   "out_bytes": 163,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  ex pick([10, 20, 30], 0) == 10\n  let idx = (seed % xs.len() + xs.len()) % xs.len()\n  xs[idx]\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

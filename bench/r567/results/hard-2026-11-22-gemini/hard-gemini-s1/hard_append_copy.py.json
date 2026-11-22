@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2033,
+   "out": 760,
+   "reasoning": 272,
+   "out_bytes": 1435
+  },
+  "body": {
+   "in": 1454,
+   "out": 537,
+   "reasoning": 292,
+   "out_bytes": 710
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_empty_list() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\"]\n\n\ndef test_add_name_non_empty_list() -> None:\n    names = [\"Alice\", \"Bob\"]\n    add_name(names, \"Charlie\")\n    assert names == [\"Alice\", \"Bob\", \"Charlie\"]\n\n\ndef test_add_name_empty_string() -> None:\n    names: list[str] = [\"Alice\"]\n    add_name(names, \"\")\n    assert names == [\"Alice\", \"\"]\n\n\ndef test_add_name_multiple_appends() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\", \"Alice\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 856,
+    "out": 412,
+    "reasoning": 164
+   },
+   "out_bytes": 735,
+   "ok": false,
+   "report": "test_task.py:8: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1177,
+    "out": 348,
+    "reasoning": 108
+   },
+   "out_bytes": 700,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1454,
+    "out": 537,
+    "reasoning": 292
+   },
+   "out_bytes": 710,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_empty_list() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\"]\n\n\ndef test_add_name_non_empty_list() -> None:\n    names = [\"Alice\", \"Bob\"]\n    add_name(names, \"Charlie\")\n    assert names == [\"Alice\", \"Bob\", \"Charlie\"]\n\n\ndef test_add_name_empty_string() -> None:\n    names: list[str] = [\"Alice\"]\n    add_name(names, \"\")\n    assert names == [\"Alice\", \"\"]\n\n\ndef test_add_name_multiple_appends() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\", \"Alice\"]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 850,
+   "out": 554,
+   "reasoning": 252,
+   "out_bytes": 690
+  },
+  "body": {
+   "in": 1187,
+   "out": 461,
+   "reasoning": 143,
+   "out_bytes": 731
+  }
+ },
+ "final": "def bump_all(xs: list[int], by: int) -> None:\n    \"\"\"Add `by` to every element of `xs` in place.\"\"\"\n    for i in range(len(xs)):\n        xs[i] += by\n\n\ndef test_bump_all_empty() -> None:\n    xs: list[int] = []\n    bump_all(xs, 5)\n    assert xs == []\n\n\ndef test_bump_all_positive() -> None:\n    xs = [1, 2, 3]\n    bump_all(xs, 10)\n    assert xs == [11, 12, 13]\n\n\ndef test_bump_all_negative_by() -> None:\n    xs = [5, 0, -3]\n    bump_all(xs, -2)\n    assert xs == [3, -2, -5]\n\n\ndef test_bump_all_zero_by() -> None:\n    xs = [4, 7]\n    bump_all(xs, 0)\n    assert xs == [4, 7]\n\n\ndef test_bump_all_in_place_identity() -> None:\n    xs = [10, 20]\n    ref = xs\n    bump_all(xs, 1)\n    assert xs is ref\n    assert xs == [11, 21]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 850,
+    "out": 554,
+    "reasoning": 252
+   },
+   "out_bytes": 690,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1187,
+    "out": 461,
+    "reasoning": 143
+   },
+   "out_bytes": 731,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def bump_all(xs: list[int], by: int) -> None:\n    \"\"\"Add `by` to every element of `xs` in place.\"\"\"\n    for i in range(len(xs)):\n        xs[i] += by\n\n\ndef test_bump_all_empty() -> None:\n    xs: list[int] = []\n    bump_all(xs, 5)\n    assert xs == []\n\n\ndef test_bump_all_positive() -> None:\n    xs = [1, 2, 3]\n    bump_all(xs, 10)\n    assert xs == [11, 12, 13]\n\n\ndef test_bump_all_negative_by() -> None:\n    xs = [5, 0, -3]\n    bump_all(xs, -2)\n    assert xs == [3, -2, -5]\n\n\ndef test_bump_all_zero_by() -> None:\n    xs = [4, 7]\n    bump_all(xs, 0)\n    assert xs == [4, 7]\n\n\ndef test_bump_all_in_place_identity() -> None:\n    xs = [10, 20]\n    ref = xs\n    bump_all(xs, 1)\n    assert xs is ref\n    assert xs == [11, 21]\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

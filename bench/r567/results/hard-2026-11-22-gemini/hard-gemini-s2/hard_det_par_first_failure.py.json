@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 917,
+   "out": 1181,
+   "reasoning": 698,
+   "out_bytes": 1340
+  },
+  "body": {
+   "in": 1437,
+   "out": 4045,
+   "reasoning": 3413,
+   "out_bytes": 1941
+  }
+ },
+ "final": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        super().__init__(f\"Bad({n})\")\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel using a thread pool.\n\n    Returns the checked elements in original order if all pass.\n    If one or more elements fail, raises the Bad exception of the\n    lowest-index bad element, regardless of thread completion order.\n    \"\"\"\n    if not xs:\n        return []\n\n    from concurrent.futures import Future, ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        futures: list[Future[int]] = [executor.submit(check, x) for x in xs]\n        first_bad: Bad | None = None\n        results: list[int] = []\n\n        for f in futures:\n            if first_bad is not None:\n                f.cancel()\n                continue\n            try:\n                results.append(f.result())\n            except Bad as err:\n                first_bad = err\n\n        if first_bad is not None:\n            raise first_bad\n\n    return results\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 5, 8])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_multiple_bad_raises_lowest_index() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 3, 4, 5, 7, 8])\n    assert exc_info.value.n == 3\n\n\ndef test_all_even_first_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([1, 2, 4, 6])\n    assert exc_info.value.n == 1\n\n\ndef test_all_even_last_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 7])\n    assert exc_info.value.n == 7\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 917,
+    "out": 1181,
+    "reasoning": 698
+   },
+   "out_bytes": 1340,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1437,
+    "out": 4045,
+    "reasoning": 3413
+   },
+   "out_bytes": 1941,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        super().__init__(f\"Bad({n})\")\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel using a thread pool.\n\n    Returns the checked elements in original order if all pass.\n    If one or more elements fail, raises the Bad exception of the\n    lowest-index bad element, regardless of thread completion order.\n    \"\"\"\n    if not xs:\n        return []\n\n    from concurrent.futures import Future, ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        futures: list[Future[int]] = [executor.submit(check, x) for x in xs]\n        first_bad: Bad | None = None\n        results: list[int] = []\n\n        for f in futures:\n            if first_bad is not None:\n                f.cancel()\n                continue\n            try:\n                results.append(f.result())\n            except Bad as err:\n                first_bad = err\n\n        if first_bad is not None:\n            raise first_bad\n\n    return results\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 5, 8])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_multiple_bad_raises_lowest_index() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 3, 4, 5, 7, 8])\n    assert exc_info.value.n == 3\n\n\ndef test_all_even_first_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([1, 2, 4, 6])\n    assert exc_info.value.n == 1\n\n\ndef test_all_even_last_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 7])\n    assert exc_info.value.n == 7\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

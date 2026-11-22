@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1762,
+   "out": 766,
+   "reasoning": 733,
+   "out_bytes": 103
+  },
+  "body": {
+   "in": 1841,
+   "out": 794,
+   "reasoning": 727,
+   "out_bytes": 222
+  }
+ },
+ "final": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let content = fs.read(name) else continue\n      return content\n    return \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1762,
+    "out": 766,
+    "reasoning": 733
+   },
+   "out_bytes": 103,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1841,
+    "out": 794,
+    "reasoning": 727
+   },
+   "out_bytes": 222,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_first_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "first_readable(names: List[str]) -> str uses fs =\n  ex first_readable([]) == \"\"\n  with fs = fs.sub(\"notes\")\n    for name in names\n      let content = fs.read(name) else continue\n      return content\n    return \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

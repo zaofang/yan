@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3439,
+   "out": 6180,
+   "reasoning": 6080,
+   "out_bytes": 235
+  },
+  "body": {
+   "in": 1853,
+   "out": 988,
+   "reasoning": 897,
+   "out_bytes": 220
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() > 0\n  dst.append(copy s)\n\ntest_add_name() =\n  var names: List[str] = []\n  add_name(&names, \"alice\")\n  assert names.len() == 1\n  assert names[0] == \"alice\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1663,
+    "out": 1281,
+    "reasoning": 1216
+   },
+   "out_bytes": 152,
+   "ok": false,
+   "report": "E100 task.yn:3:9 `var xs` unexpected token; expected an expression",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1776,
+    "out": 4899,
+    "reasoning": 4864
+   },
+   "out_bytes": 83,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1853,
+    "out": 988,
+    "reasoning": 897
+   },
+   "out_bytes": 220,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "add_name(var dst: List[str], s: str) =\n  post dst.len() > 0\n  dst.append(copy s)\n\ntest_add_name() =\n  var names: List[str] = []\n  add_name(&names, \"alice\")\n  assert names.len() == 1\n  assert names[0] == \"alice\"\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

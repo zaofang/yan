@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 902,
+   "out": 1062,
+   "reasoning": 580,
+   "out_bytes": 1153
+  },
+  "body": {
+   "in": 1421,
+   "out": 2335,
+   "reasoning": 1791,
+   "out_bytes": 1342
+  }
+ },
+ "final": "from dataclasses import dataclass\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\n@dataclass\nclass Mul:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\nExpr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an arithmetic expression tree.\"\"\"\n    match e:\n        case Num(v):\n            return v\n        case Add(l, r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l, r):\n            return eval_expr(l) * eval_expr(r)\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(42)) == 42\n    assert eval_expr(Num(-7)) == -7\n    assert eval_expr(Num(0)) == 0\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(3), Num(4))) == 7\n    assert eval_expr(Add(Num(-3), Num(4))) == 1\n\n\ndef test_eval_mul() -> None:\n    assert eval_expr(Mul(Num(3), Num(4))) == 12\n    assert eval_expr(Mul(Num(-3), Num(4))) == -12\n    assert eval_expr(Mul(Num(5), Num(0))) == 0\n\n\ndef test_eval_nested() -> None:\n    # 1 + (2 * 3) = 7\n    tree1 = Add(Num(1), Mul(Num(2), Num(3)))\n    assert eval_expr(tree1) == 7\n\n    # (1 + 2) * (3 + 4) = 21\n    tree2 = Mul(Add(Num(1), Num(2)), Add(Num(3), Num(4)))\n    assert eval_expr(tree2) == 21\n\n    # ((2 * 3) + (4 * 5)) * 2 = (6 + 20) * 2 = 52\n    tree3 = Mul(Add(Mul(Num(2), Num(3)), Mul(Num(4), Num(5))), Num(2))\n    assert eval_expr(tree3) == 52\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 902,
+    "out": 1062,
+    "reasoning": 580
+   },
+   "out_bytes": 1153,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1421,
+    "out": 2335,
+    "reasoning": 1791
+   },
+   "out_bytes": 1342,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "from dataclasses import dataclass\n\n\n@dataclass\nclass Num:\n    v: int\n\n\n@dataclass\nclass Add:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\n@dataclass\nclass Mul:\n    l: \"Expr\"\n    r: \"Expr\"\n\n\nExpr = Num | Add | Mul\n\n\ndef eval_expr(e: Expr) -> int:\n    \"\"\"Evaluate an arithmetic expression tree.\"\"\"\n    match e:\n        case Num(v):\n            return v\n        case Add(l, r):\n            return eval_expr(l) + eval_expr(r)\n        case Mul(l, r):\n            return eval_expr(l) * eval_expr(r)\n\n\ndef test_eval_num() -> None:\n    assert eval_expr(Num(42)) == 42\n    assert eval_expr(Num(-7)) == -7\n    assert eval_expr(Num(0)) == 0\n\n\ndef test_eval_add() -> None:\n    assert eval_expr(Add(Num(3), Num(4))) == 7\n    assert eval_expr(Add(Num(-3), Num(4))) == 1\n\n\ndef test_eval_mul() -> None:\n    assert eval_expr(Mul(Num(3), Num(4))) == 12\n    assert eval_expr(Mul(Num(-3), Num(4))) == -12\n    assert eval_expr(Mul(Num(5), Num(0))) == 0\n\n\ndef test_eval_nested() -> None:\n    # 1 + (2 * 3) = 7\n    tree1 = Add(Num(1), Mul(Num(2), Num(3)))\n    assert eval_expr(tree1) == 7\n\n    # (1 + 2) * (3 + 4) = 21\n    tree2 = Mul(Add(Num(1), Num(2)), Add(Num(3), Num(4)))\n    assert eval_expr(tree2) == 21\n\n    # ((2 * 3) + (4 * 5)) * 2 = (6 + 20) * 2 = 52\n    tree3 = Mul(Add(Mul(Num(2), Num(3)), Mul(Num(4), Num(5))), Num(2))\n    assert eval_expr(tree3) == 52\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

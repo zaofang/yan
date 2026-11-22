@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1640,
+   "out": 763,
+   "reasoning": 699,
+   "out_bytes": 150
+  },
+  "body": {
+   "in": 1750,
+   "out": 794,
+   "reasoning": 718,
+   "out_bytes": 166
+  }
+ },
+ "final": "parity(x: u8) -> bool =\n  post out == (bits.count_ones(x) % 2 == 1)\n  ex parity(0 as u8) == False\n  ex parity(1 as u8) == True\n  bits.count_ones(x) % 2 == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1640,
+    "out": 763,
+    "reasoning": 699
+   },
+   "out_bytes": 150,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1750,
+    "out": 794,
+    "reasoning": 718
+   },
+   "out_bytes": 166,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "parity(x: u8) -> bool =\n  post out == (bits.count_ones(x) % 2 == 1)\n  ex parity(0 as u8) == False\n  ex parity(1 as u8) == True\n  bits.count_ones(x) % 2 == 1\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

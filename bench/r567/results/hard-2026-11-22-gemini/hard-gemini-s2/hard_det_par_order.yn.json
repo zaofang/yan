@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1680,
+   "out": 1177,
+   "reasoning": 1065,
+   "out_bytes": 242
+  },
+  "body": {
+   "in": 1842,
+   "out": 1007,
+   "reasoning": 878,
+   "out_bytes": 268
+  }
+ },
+ "final": "parity(x: int) -> int =\n  post out == 0 or out == 1\n  ex parity(2) == 0\n  ex parity(3) == 1\n  x % 2\n\nparities(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n  let ys = par for x in xs\n    parity(x)\n  ys\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1680,
+    "out": 1177,
+    "reasoning": 1065
+   },
+   "out_bytes": 242,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1842,
+    "out": 1007,
+    "reasoning": 878
+   },
+   "out_bytes": 268,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "parity(x: int) -> int =\n  post out == 0 or out == 1\n  ex parity(2) == 0\n  ex parity(3) == 1\n  x % 2\n\nparities(xs: List[int]) -> List[int] =\n  post out.len() == xs.len()\n  ex parities([1, 2, 3, 4]) == [1, 0, 1, 0]\n  let ys = par for x in xs\n    parity(x)\n  ys\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

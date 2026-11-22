@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 871,
+   "out": 1518,
+   "reasoning": 1200,
+   "out_bytes": 932
+  },
+  "body": {
+   "in": 1226,
+   "out": 360,
+   "reasoning": 0,
+   "out_bytes": 1076
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\ndef square(x: int) -> int:\n    \"\"\"Return the square of an integer.\"\"\"\n    return x * x\n\n\ndef sum_squares(xs: list[int], max_workers: int | None = None) -> int:\n    \"\"\"Sum the squares of every element using a thread pool.\"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=max_workers) as executor:\n        return sum(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(3) == 9\n    assert square(-4) == 16\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single() -> None:\n    assert sum_squares([5]) == 25\n    assert sum_squares([-3]) == 9\n\n\ndef test_sum_squares_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n    assert sum_squares([-1, 0, 1, 2]) == 6\n\n\ndef test_sum_squares_worker_counts() -> None:\n    xs = list(range(-20, 21))\n    expected = sum(x * x for x in xs)\n    for workers in (1, 2, 4, 8, 16):\n        assert sum_squares(xs, max_workers=workers) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 871,
+    "out": 1518,
+    "reasoning": 1200
+   },
+   "out_bytes": 932,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1226,
+    "out": 360,
+    "reasoning": 0
+   },
+   "out_bytes": 1076,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_sum",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\ndef square(x: int) -> int:\n    \"\"\"Return the square of an integer.\"\"\"\n    return x * x\n\n\ndef sum_squares(xs: list[int], max_workers: int | None = None) -> int:\n    \"\"\"Sum the squares of every element using a thread pool.\"\"\"\n    if not xs:\n        return 0\n    with ThreadPoolExecutor(max_workers=max_workers) as executor:\n        return sum(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(3) == 9\n    assert square(-4) == 16\n\n\ndef test_sum_squares_empty() -> None:\n    assert sum_squares([]) == 0\n\n\ndef test_sum_squares_single() -> None:\n    assert sum_squares([5]) == 25\n    assert sum_squares([-3]) == 9\n\n\ndef test_sum_squares_basic() -> None:\n    assert sum_squares([1, 2, 3]) == 14\n    assert sum_squares([-1, 0, 1, 2]) == 6\n\n\ndef test_sum_squares_worker_counts() -> None:\n    xs = list(range(-20, 21))\n    expected = sum(x * x for x in xs)\n    for workers in (1, 2, 4, 8, 16):\n        assert sum_squares(xs, max_workers=workers) == expected\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

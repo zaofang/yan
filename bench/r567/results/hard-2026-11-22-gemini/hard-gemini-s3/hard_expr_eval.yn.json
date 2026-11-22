@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1670,
+   "out": 690,
+   "reasoning": 577,
+   "out_bytes": 231
+  },
+  "body": {
+   "in": 1829,
+   "out": 683,
+   "reasoning": 518,
+   "out_bytes": 338
+  }
+ },
+ "final": "type Expr = Num(v: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr)\n\neval_expr(e: Expr) -> int =\n  ex eval_expr(Num(v: 5)) == 5\n  ex eval_expr(Add(l: Num(v: 2), r: Mul(l: Num(v: 3), r: Num(v: 4)))) == 14\n  match e\n    Num(v:) -> v\n    Add(l:, r:) -> eval_expr(l) + eval_expr(r)\n    Mul(l:, r:) -> eval_expr(l) * eval_expr(r)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1670,
+    "out": 690,
+    "reasoning": 577
+   },
+   "out_bytes": 231,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1829,
+    "out": 683,
+    "reasoning": 518
+   },
+   "out_bytes": 338,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/expr_eval",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "type Expr = Num(v: int) | Add(l: Expr, r: Expr) | Mul(l: Expr, r: Expr)\n\neval_expr(e: Expr) -> int =\n  ex eval_expr(Num(v: 5)) == 5\n  ex eval_expr(Add(l: Num(v: 2), r: Mul(l: Num(v: 3), r: Num(v: 4)))) == 14\n  match e\n    Num(v:) -> v\n    Add(l:, r:) -> eval_expr(l) + eval_expr(r)\n    Mul(l:, r:) -> eval_expr(l) * eval_expr(r)\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

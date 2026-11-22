@@ -1,0 +1,95 @@
+{
+ "final": "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n    \"\"\"Parse every string as an integer and sum them. Fail on the first invalid string.\"\"\"\n    ex sum_parsed([]) == 0\n    ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    ex sum_parsed([\"1\", \"bad\", \"3\"]) == Err(BadInput(\"bad\"))\n    total = 0\n    for s in xs:\n        val = s.parse_int() else fail BadInput(s.copy())\n        total += val\n    return total\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2030,
+    "out": 937,
+    "reasoning": 831
+   },
+   "out_bytes": 320
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2201,
+    "out": 737,
+    "reasoning": 593
+   },
+   "out_bytes": 438
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/sum_parsed",
+ "tokens": {
+  "body": {
+   "in": 2201,
+   "out": 737,
+   "reasoning": 593,
+   "out_bytes": 438
+  },
+  "spec": {
+   "in": 2030,
+   "out": 937,
+   "reasoning": 831,
+   "out_bytes": 320
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "class BadInput:\n    text: str\n\ndef sum_parsed(xs: list[str]) -> int fail BadInput:\n    \"\"\"Parse every string as an integer and sum them. Fail on the first invalid string.\"\"\"\n    ex sum_parsed([]) == 0\n    ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    ex sum_parsed([\"1\", \"bad\", \"3\"]) == fail BadInput(\"bad\")\n    total = 0\n    for s in xs:\n        val = s.parse_int() else fail BadInput(s.copy())\n        total += val\n    return total\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

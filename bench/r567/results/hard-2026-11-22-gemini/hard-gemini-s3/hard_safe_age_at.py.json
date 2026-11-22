@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 852,
+   "out": 606,
+   "reasoning": 413,
+   "out_bytes": 502
+  },
+  "body": {
+   "in": 1082,
+   "out": 499,
+   "reasoning": 274,
+   "out_bytes": 628
+  }
+ },
+ "final": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Calculate whole years between a birth year and a given year.\n\n    Raises ValueError if now is earlier than born.\n    \"\"\"\n    if now < born:\n        raise ValueError(f\"Current year ({now}) cannot be earlier than birth year ({born})\")\n    return now - born\n\n\ndef test_age_at_positive() -> None:\n    assert age_at(1990, 2024) == 34\n    assert age_at(2000, 2001) == 1\n\n\ndef test_age_at_same_year() -> None:\n    assert age_at(2024, 2024) == 0\n\n\ndef test_age_at_born_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2025, 2024)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 852,
+    "out": 606,
+    "reasoning": 413
+   },
+   "out_bytes": 502,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1082,
+    "out": 499,
+    "reasoning": 274
+   },
+   "out_bytes": 628,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_age_at",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef age_at(born: int, now: int) -> int:\n    \"\"\"Calculate whole years between a birth year and a given year.\n\n    Raises ValueError if now is earlier than born.\n    \"\"\"\n    if now < born:\n        raise ValueError(f\"Current year ({now}) cannot be earlier than birth year ({born})\")\n    return now - born\n\n\ndef test_age_at_positive() -> None:\n    assert age_at(1990, 2024) == 34\n    assert age_at(2000, 2001) == 1\n\n\ndef test_age_at_same_year() -> None:\n    assert age_at(2024, 2024) == 0\n\n\ndef test_age_at_born_in_future_raises() -> None:\n    with pytest.raises(ValueError):\n        age_at(2025, 2024)\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

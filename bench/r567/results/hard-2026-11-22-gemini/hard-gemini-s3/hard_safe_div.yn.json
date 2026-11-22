@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1667,
+   "out": 937,
+   "reasoning": 885,
+   "out_bytes": 122
+  },
+  "body": {
+   "in": 1765,
+   "out": 1253,
+   "reasoning": 1129,
+   "out_bytes": 267
+  }
+ },
+ "final": "type DivZero = { a: int }\n\nsafe_div(a: int, b: int) -> int fail DivZero =\n  ex safe_div(6, 2) == 3\n  if b == 0\n    fail DivZero(a: a)\n  else\n    a // b\n\ntest_safe_div() =\n  assert (safe_div(6, 2) else 0) == 3\n  assert (safe_div(5, 0) else err -> err.a) == 5\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1667,
+    "out": 937,
+    "reasoning": 885
+   },
+   "out_bytes": 122,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1765,
+    "out": 1253,
+    "reasoning": 1129
+   },
+   "out_bytes": 267,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_div",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "type DivZero = { a: int }\n\nsafe_div(a: int, b: int) -> int fail DivZero =\n  ex safe_div(6, 2) == 3\n  if b == 0\n    fail DivZero(a: a)\n  else\n    a // b\n\ntest_safe_div() =\n  assert (safe_div(6, 2) else 0) == 3\n  assert (safe_div(5, 0) else err -> err.a) == 5\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

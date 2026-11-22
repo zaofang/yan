@@ -1,0 +1,95 @@
+{
+ "final": "def parity(x: uint8) -> bool:\n    \"\"\"True when x has an odd number of set bits.\"\"\"\n    ex parity(wrap_as[uint8](0)) == False\n    ex parity(wrap_as[uint8](1)) == True\n    ex parity(wrap_as[uint8](3)) == False\n    return bits.count_ones(x) % 2 == 1\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 1997,
+    "out": 755,
+    "reasoning": 673
+   },
+   "out_bytes": 226
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2144,
+    "out": 554,
+    "reasoning": 458
+   },
+   "out_bytes": 257
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/bit_parity",
+ "tokens": {
+  "body": {
+   "in": 2144,
+   "out": 554,
+   "reasoning": 458,
+   "out_bytes": 257
+  },
+  "spec": {
+   "in": 1997,
+   "out": 755,
+   "reasoning": 673,
+   "out_bytes": 226
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "def parity(x: uint8) -> bool:\n    \"\"\"True when x has an odd number of set bits.\"\"\"\n    ex parity(wrap_as[uint8](0)) == False\n    ex parity(wrap_as[uint8](1)) == True\n    ex parity(wrap_as[uint8](3)) == False\n    return bits.count_ones(x) % 2 == 1\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 843,
+   "out": 1083,
+   "reasoning": 878,
+   "out_bytes": 618
+  },
+  "body": {
+   "in": 1085,
+   "out": 565,
+   "reasoning": 311,
+   "out_bytes": 737
+  }
+ },
+ "final": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"True when the byte (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    if not 0 <= x <= 255:\n        raise ValueError(f\"Value out of byte range [0, 255]: {x}\")\n    return x.bit_count() % 2 == 1\n\n\ndef test_parity() -> None:\n    assert parity(0) is False\n    assert parity(1) is True\n    assert parity(2) is True\n    assert parity(3) is False\n    assert parity(7) is True\n    assert parity(127) is True\n    assert parity(255) is False\n    assert parity(0b10101010) is False\n    assert parity(0b10101011) is True\n\n\ndef test_parity_invalid_range() -> None:\n    with pytest.raises(ValueError):\n        parity(-1)\n    with pytest.raises(ValueError):\n        parity(256)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 843,
+    "out": 1083,
+    "reasoning": 878
+   },
+   "out_bytes": 618,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1085,
+    "out": 565,
+    "reasoning": 311
+   },
+   "out_bytes": 737,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"True when the byte (an int from 0 to 255) has an odd number of set bits.\"\"\"\n    if not 0 <= x <= 255:\n        raise ValueError(f\"Value out of byte range [0, 255]: {x}\")\n    return x.bit_count() % 2 == 1\n\n\ndef test_parity() -> None:\n    assert parity(0) is False\n    assert parity(1) is True\n    assert parity(2) is True\n    assert parity(3) is False\n    assert parity(7) is True\n    assert parity(127) is True\n    assert parity(255) is False\n    assert parity(0b10101010) is False\n    assert parity(0b10101011) is True\n\n\ndef test_parity_invalid_range() -> None:\n    with pytest.raises(ValueError):\n        parity(-1)\n    with pytest.raises(ValueError):\n        parity(256)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

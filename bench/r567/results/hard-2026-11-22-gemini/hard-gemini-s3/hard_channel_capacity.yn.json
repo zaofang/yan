@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1669,
+   "out": 487,
+   "reasoning": 409,
+   "out_bytes": 186
+  },
+  "body": {
+   "in": 1793,
+   "out": 855,
+   "reasoning": 732,
+   "out_bytes": 290
+  }
+ },
+ "final": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= cap\n  post out <= xs.len()\n  ex accepted(2, [10, 20, 30]) == 2\n  let (tx, rx) = Channel[int](cap)\n  var count = 0\n  for x in xs\n    tx.try_send(x) else break\n    count += 1\n  count\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1669,
+    "out": 487,
+    "reasoning": 409
+   },
+   "out_bytes": 186,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1793,
+    "out": 855,
+    "reasoning": 732
+   },
+   "out_bytes": 290,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "accepted(cap: int, xs: List[int]) -> int uses nondet =\n  pre cap >= 0\n  post out >= 0\n  post out <= cap\n  post out <= xs.len()\n  ex accepted(2, [10, 20, 30]) == 2\n  let (tx, rx) = Channel[int](cap)\n  var count = 0\n  for x in xs\n    tx.try_send(x) else break\n    count += 1\n  count\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

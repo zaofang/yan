@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1668,
+   "out": 592,
+   "reasoning": 520,
+   "out_bytes": 199
+  },
+  "body": {
+   "in": 1786,
+   "out": 2548,
+   "reasoning": 2340,
+   "out_bytes": 606
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() >= 0\n  ex title_of(\"<html><head><title>My Title</title></head></html>\") == \"My Title\"\n  ex title_of(\"no title here\") == \"\"\n  let parts = html.split(\"<title>\")\n  let rest = parts.get(1) else return \"\"\n  let end_parts = rest.split(\"</title>\")\n  let after = end_parts.get(1) else return \"\"\n  copy end_parts[0]\n\ntest_title_of() =\n  assert title_of(\"<html><head><title>My Title</title></head></html>\") == \"My Title\"\n  assert title_of(\"no title here\") == \"\"\n  assert title_of(\"<title>no closing tag\") == \"\"\n  assert title_of(\"<title></title>\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1668,
+    "out": 592,
+    "reasoning": 520
+   },
+   "out_bytes": 199,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1786,
+    "out": 2548,
+    "reasoning": 2340
+   },
+   "out_bytes": 606,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "title_of(html: str) -> str =\n  post out.char_count() >= 0\n  ex title_of(\"<html><head><title>My Title</title></head></html>\") == \"My Title\"\n  ex title_of(\"no title here\") == \"\"\n  let parts = html.split(\"<title>\")\n  let rest = parts.get(1) else return \"\"\n  let end_parts = rest.split(\"</title>\")\n  let after = end_parts.get(1) else return \"\"\n  copy end_parts[0]\n\ntest_title_of() =\n  assert title_of(\"<html><head><title>My Title</title></head></html>\") == \"My Title\"\n  assert title_of(\"no title here\") == \"\"\n  assert title_of(\"<title>no closing tag\") == \"\"\n  assert title_of(\"<title></title>\") == \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

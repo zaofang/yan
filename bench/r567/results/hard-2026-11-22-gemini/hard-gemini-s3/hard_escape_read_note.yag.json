@@ -1,0 +1,95 @@
+{
+ "final": "def read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of the file `name` in `notes`, or empty string on failure.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(name) else \"\"\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2096,
+    "out": 1614,
+    "reasoning": 1569
+   },
+   "out_bytes": 144
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2206,
+    "out": 1169,
+    "reasoning": 1105
+   },
+   "out_bytes": 204
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_read_note",
+ "tokens": {
+  "body": {
+   "in": 2206,
+   "out": 1169,
+   "reasoning": 1105,
+   "out_bytes": 204
+  },
+  "spec": {
+   "in": 2096,
+   "out": 1614,
+   "reasoning": 1569,
+   "out_bytes": 144
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def read_note(name: str) -> str uses fs:\n    \"\"\"Return the text of the file `name` in `notes`, or empty string on failure.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(name) else \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

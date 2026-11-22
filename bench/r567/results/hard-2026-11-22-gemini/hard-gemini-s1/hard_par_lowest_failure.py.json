@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 931,
+   "out": 926,
+   "reasoning": 515,
+   "out_bytes": 1107
+  },
+  "body": {
+   "in": 1379,
+   "out": 1709,
+   "reasoning": 1212,
+   "out_bytes": 1438
+  }
+ },
+ "final": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        super().__init__(n)\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel; return results in order or raise Bad of lowest-index bad element.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        futures = [executor.submit(check, x) for x in xs]\n\n    results: list[int] = []\n    for f in futures:\n        exc = f.exception()\n        if exc is not None:\n            raise exc\n        results.append(f.result())\n    return results\n\n\ndef test_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_single_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 5, 4])\n    assert exc_info.value.n == 5\n\n\ndef test_multiple_bad_raises_first_index() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 3, 4, 5, 6, 7])\n    assert exc_info.value.n == 3\n\n\ndef test_first_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([9, 2, 4])\n    assert exc_info.value.n == 9\n\n\ndef test_last_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 11])\n    assert exc_info.value.n == 11\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 931,
+    "out": 926,
+    "reasoning": 515
+   },
+   "out_bytes": 1107,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1379,
+    "out": 1709,
+    "reasoning": 1212
+   },
+   "out_bytes": 1438,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        super().__init__(n)\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel; return results in order or raise Bad of lowest-index bad element.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        futures = [executor.submit(check, x) for x in xs]\n\n    results: list[int] = []\n    for f in futures:\n        exc = f.exception()\n        if exc is not None:\n            raise exc\n        results.append(f.result())\n    return results\n\n\ndef test_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even() -> None:\n    assert all_even([2, 4, 6, 8]) == [2, 4, 6, 8]\n\n\ndef test_single_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 5, 4])\n    assert exc_info.value.n == 5\n\n\ndef test_multiple_bad_raises_first_index() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 3, 4, 5, 6, 7])\n    assert exc_info.value.n == 3\n\n\ndef test_first_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([9, 2, 4])\n    assert exc_info.value.n == 9\n\n\ndef test_last_element_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 11])\n    assert exc_info.value.n == 11\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

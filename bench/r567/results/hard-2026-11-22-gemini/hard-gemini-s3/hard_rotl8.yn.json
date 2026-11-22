@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1661,
+   "out": 917,
+   "reasoning": 839,
+   "out_bytes": 160
+  },
+  "body": {
+   "in": 1785,
+   "out": 1721,
+   "reasoning": 1559,
+   "out_bytes": 307
+  }
+ },
+ "final": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0 and k <= 7\n  post bits.count_ones(out) == bits.count_ones(x)\n  ex rotl8(1 as u8, 1) == 2 as u8\n  bits.rotate_left(x, k)\n\ntest_rotl8() =\n  assert rotl8(1 as u8, 1) == 2 as u8\n  assert rotl8(128 as u8, 1) == 1 as u8\n  assert rotl8(205 as u8, 0) == 205 as u8\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1661,
+    "out": 917,
+    "reasoning": 839
+   },
+   "out_bytes": 160,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1785,
+    "out": 1721,
+    "reasoning": 1559
+   },
+   "out_bytes": 307,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "rotl8(x: u8, k: int) -> u8 =\n  pre k >= 0 and k <= 7\n  post bits.count_ones(out) == bits.count_ones(x)\n  ex rotl8(1 as u8, 1) == 2 as u8\n  bits.rotate_left(x, k)\n\ntest_rotl8() =\n  assert rotl8(1 as u8, 1) == 2 as u8\n  assert rotl8(128 as u8, 1) == 1 as u8\n  assert rotl8(205 as u8, 0) == 205 as u8\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

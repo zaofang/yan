@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 860,
+   "out": 752,
+   "reasoning": 350,
+   "out_bytes": 1243
+  },
+  "body": {
+   "in": 1299,
+   "out": 1004,
+   "reasoning": 547,
+   "out_bytes": 1400
+  }
+ },
+ "final": "import re\nimport pytest\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or empty string.\"\"\"\n    match = re.search(r\"<title(?:\\s+[^>]*)?>(.*?)</title>\", html, flags=re.IGNORECASE | re.DOTALL)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_title_of_simple() -> None:\n    assert title_of(\"<html><head><title>My Page</title></head></html>\") == \"My Page\"\n\n\ndef test_title_of_missing() -> None:\n    assert title_of(\"<html><head></head><body>No title here</body></html>\") == \"\"\n\n\ndef test_title_of_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_title_of_empty_tag() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_title_of_case_insensitive() -> None:\n    assert title_of(\"<TITLE>Uppercase</TITLE>\") == \"Uppercase\"\n    assert title_of(\"<Title>Mixed Case</title>\") == \"Mixed Case\"\n\n\ndef test_title_of_with_attributes() -> None:\n    assert title_of('<title lang=\"en\" dir=\"ltr\">With Attrs</title>') == \"With Attrs\"\n\n\ndef test_title_of_multiline() -> None:\n    html = \"<title>\\n  Line 1\\n  Line 2\\n</title>\"\n    assert title_of(html) == \"\\n  Line 1\\n  Line 2\\n\"\n\n\ndef test_title_of_unclosed_tag() -> None:\n    assert title_of(\"<title>Incomplete\") == \"\"\n\n\ndef test_title_of_first_title_wins() -> None:\n    assert title_of(\"<title>First</title><title>Second</title>\") == \"First\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 860,
+    "out": 752,
+    "reasoning": 350
+   },
+   "out_bytes": 1243,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1299,
+    "out": 1004,
+    "reasoning": 547
+   },
+   "out_bytes": 1400,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import re\nimport pytest\n\n\ndef title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or empty string.\"\"\"\n    match = re.search(r\"<title(?:\\s+[^>]*)?>(.*?)</title>\", html, flags=re.IGNORECASE | re.DOTALL)\n    if match is None:\n        return \"\"\n    return match.group(1)\n\n\ndef test_title_of_simple() -> None:\n    assert title_of(\"<html><head><title>My Page</title></head></html>\") == \"My Page\"\n\n\ndef test_title_of_missing() -> None:\n    assert title_of(\"<html><head></head><body>No title here</body></html>\") == \"\"\n\n\ndef test_title_of_empty_string() -> None:\n    assert title_of(\"\") == \"\"\n\n\ndef test_title_of_empty_tag() -> None:\n    assert title_of(\"<title></title>\") == \"\"\n\n\ndef test_title_of_case_insensitive() -> None:\n    assert title_of(\"<TITLE>Uppercase</TITLE>\") == \"Uppercase\"\n    assert title_of(\"<Title>Mixed Case</title>\") == \"Mixed Case\"\n\n\ndef test_title_of_with_attributes() -> None:\n    assert title_of('<title lang=\"en\" dir=\"ltr\">With Attrs</title>') == \"With Attrs\"\n\n\ndef test_title_of_multiline() -> None:\n    html = \"<title>\\n  Line 1\\n  Line 2\\n</title>\"\n    assert title_of(html) == \"\\n  Line 1\\n  Line 2\\n\"\n\n\ndef test_title_of_unclosed_tag() -> None:\n    assert title_of(\"<title>Incomplete\") == \"\"\n\n\ndef test_title_of_first_title_wins() -> None:\n    assert title_of(\"<title>First</title><title>Second</title>\") == \"First\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

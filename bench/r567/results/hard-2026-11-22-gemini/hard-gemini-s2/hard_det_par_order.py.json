@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 880,
+   "out": 1395,
+   "reasoning": 1017,
+   "out_bytes": 1034
+  },
+  "body": {
+   "in": 1295,
+   "out": 614,
+   "reasoning": 204,
+   "out_bytes": 1147
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\ndef parity(x: int) -> int:\n    \"\"\"Return the parity of x (0 for even, 1 for odd).\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int], max_workers: int | None = None) -> list[int]:\n    \"\"\"Return the parity of each element in xs, computed in parallel, in input order.\"\"\"\n    with ThreadPoolExecutor(max_workers=max_workers) as executor:\n        return list(executor.map(parity, xs))\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([0]) == [0]\n    assert parities([1]) == [1]\n    assert parities([2]) == [0]\n\n\ndef test_parities_negative_numbers() -> None:\n    assert parities([-3, -2, -1, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_preserves_order() -> None:\n    xs = [1, 2, 4, 7, 10, 13, 16, 17]\n    expected = [1, 0, 0, 1, 0, 1, 0, 1]\n    assert parities(xs) == expected\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 4, 16])\ndef test_parities_worker_counts(workers: int) -> None:\n    xs = list(range(100))\n    expected = [x % 2 for x in xs]\n    assert parities(xs, max_workers=workers) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 880,
+    "out": 1395,
+    "reasoning": 1017
+   },
+   "out_bytes": 1034,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1295,
+    "out": 614,
+    "reasoning": 204
+   },
+   "out_bytes": 1147,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\ndef parity(x: int) -> int:\n    \"\"\"Return the parity of x (0 for even, 1 for odd).\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int], max_workers: int | None = None) -> list[int]:\n    \"\"\"Return the parity of each element in xs, computed in parallel, in input order.\"\"\"\n    with ThreadPoolExecutor(max_workers=max_workers) as executor:\n        return list(executor.map(parity, xs))\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([0]) == [0]\n    assert parities([1]) == [1]\n    assert parities([2]) == [0]\n\n\ndef test_parities_negative_numbers() -> None:\n    assert parities([-3, -2, -1, 0]) == [1, 0, 1, 0]\n\n\ndef test_parities_preserves_order() -> None:\n    xs = [1, 2, 4, 7, 10, 13, 16, 17]\n    expected = [1, 0, 0, 1, 0, 1, 0, 1]\n    assert parities(xs) == expected\n\n\n@pytest.mark.parametrize(\"workers\", [1, 2, 4, 16])\ndef test_parities_worker_counts(workers: int) -> None:\n    xs = list(range(100))\n    expected = [x % 2 for x in xs]\n    assert parities(xs, max_workers=workers) == expected\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

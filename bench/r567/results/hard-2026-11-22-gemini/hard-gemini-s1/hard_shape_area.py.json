@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 907,
+   "out": 575,
+   "reasoning": 292,
+   "out_bytes": 760
+  },
+  "body": {
+   "in": 1225,
+   "out": 577,
+   "reasoning": 244,
+   "out_bytes": 929
+  }
+ },
+ "final": "from dataclasses import dataclass\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\ntype Shape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Calculate the area of a shape, rounded down to the nearest integer.\"\"\"\n    match s:\n        case Rect(w, h):\n            return w * h\n        case Square(side):\n            return side * side\n        case Tri(b, h):\n            return (b * h) // 2\n\n\ndef test_area_rect() -> None:\n    assert area(Rect(4, 5)) == 20\n    assert area(Rect(0, 10)) == 0\n    assert area(Rect(7, 3)) == 21\n\n\ndef test_area_square() -> None:\n    assert area(Square(5)) == 25\n    assert area(Square(0)) == 0\n    assert area(Square(12)) == 144\n\n\ndef test_area_tri() -> None:\n    assert area(Tri(4, 5)) == 10\n    assert area(Tri(3, 5)) == 7\n    assert area(Tri(1, 1)) == 0\n    assert area(Tri(0, 10)) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 907,
+    "out": 575,
+    "reasoning": 292
+   },
+   "out_bytes": 760,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1225,
+    "out": 577,
+    "reasoning": 244
+   },
+   "out_bytes": 929,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "from dataclasses import dataclass\n\n\n@dataclass\nclass Rect:\n    w: int\n    h: int\n\n\n@dataclass\nclass Square:\n    side: int\n\n\n@dataclass\nclass Tri:\n    b: int\n    h: int\n\n\ntype Shape = Rect | Square | Tri\n\n\ndef area(s: Shape) -> int:\n    \"\"\"Calculate the area of a shape, rounded down to the nearest integer.\"\"\"\n    match s:\n        case Rect(w, h):\n            return w * h\n        case Square(side):\n            return side * side\n        case Tri(b, h):\n            return (b * h) // 2\n\n\ndef test_area_rect() -> None:\n    assert area(Rect(4, 5)) == 20\n    assert area(Rect(0, 10)) == 0\n    assert area(Rect(7, 3)) == 21\n\n\ndef test_area_square() -> None:\n    assert area(Square(5)) == 25\n    assert area(Square(0)) == 0\n    assert area(Square(12)) == 144\n\n\ndef test_area_tri() -> None:\n    assert area(Tri(4, 5)) == 10\n    assert area(Tri(3, 5)) == 7\n    assert area(Tri(1, 1)) == 0\n    assert area(Tri(0, 10)) == 0\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

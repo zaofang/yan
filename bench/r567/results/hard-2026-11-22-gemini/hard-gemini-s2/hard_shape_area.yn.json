@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1681,
+   "out": 722,
+   "reasoning": 608,
+   "out_bytes": 239
+  },
+  "body": {
+   "in": 1841,
+   "out": 610,
+   "reasoning": 457,
+   "out_bytes": 326
+  }
+ },
+ "final": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\narea(s: Shape) -> int =\n  post out >= 0\n  ex area(Rect(w: 3, h: 4)) == 12\n  ex area(Square(side: 5)) == 25\n  ex area(Tri(b: 3, h: 5)) == 7\n  match s\n    Rect(w:, h:) -> w * h\n    Square(side:) -> side * side\n    Tri(b:, h:) -> (b * h) // 2\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1681,
+    "out": 722,
+    "reasoning": 608
+   },
+   "out_bytes": 239,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1841,
+    "out": 610,
+    "reasoning": 457
+   },
+   "out_bytes": 326,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shape_area",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "sums",
+ "first_draft": "type Shape = Rect(w: int, h: int) | Square(side: int) | Tri(b: int, h: int)\n\narea(s: Shape) -> int =\n  post out >= 0\n  ex area(Rect(w: 3, h: 4)) == 12\n  ex area(Square(side: 5)) == 25\n  ex area(Tri(b: 3, h: 5)) == 7\n  match s\n    Rect(w:, h:) -> w * h\n    Square(side:) -> side * side\n    Tri(b:, h:) -> (b * h) // 2\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1655,
+   "out": 523,
+   "reasoning": 463,
+   "out_bytes": 139
+  },
+  "body": {
+   "in": 1761,
+   "out": 1096,
+   "reasoning": 960,
+   "out_bytes": 313
+  }
+ },
+ "final": "fact(n: int) -> bigint =\n  pre n >= 0\n  post out >= bigint(1)\n  ex fact(0) == bigint(1)\n  ex fact(5) == bigint(120)\n  var acc = bigint(1)\n  for i in range(2, n + 1)\n    acc = acc * bigint(i)\n  acc\n\ntest_fact() =\n  assert fact(0) == bigint(1)\n  assert fact(1) == bigint(1)\n  assert fact(5) == bigint(120)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1655,
+    "out": 523,
+    "reasoning": 463
+   },
+   "out_bytes": 139,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1761,
+    "out": 1096,
+    "reasoning": 960
+   },
+   "out_bytes": 313,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/factorial_big",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "fact(n: int) -> bigint =\n  pre n >= 0\n  post out >= bigint(1)\n  ex fact(0) == bigint(1)\n  ex fact(5) == bigint(120)\n  var acc = bigint(1)\n  for i in range(2, n + 1)\n    acc = acc * bigint(i)\n  acc\n\ntest_fact() =\n  assert fact(0) == bigint(1)\n  assert fact(1) == bigint(1)\n  assert fact(5) == bigint(120)\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

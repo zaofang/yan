@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1651,
+   "out": 9000,
+   "reasoning": 8925,
+   "out_bytes": 157
+  },
+  "body": {
+   "in": 1772,
+   "out": 1421,
+   "reasoning": 1300,
+   "out_bytes": 235
+  }
+ },
+ "final": "swap_ends(var xs: List[int]) =\n  pre xs.len() >= 0\n  let n = xs.len()\n  if n > 1\n    let tmp = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = tmp\n\ntest_swap_ends() =\n  var xs = [1, 2, 3]\n  swap_ends(&xs)\n  assert xs == [3, 2, 1]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1651,
+    "out": 9000,
+    "reasoning": 8925
+   },
+   "out_bytes": 157,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1772,
+    "out": 1421,
+    "reasoning": 1300
+   },
+   "out_bytes": 235,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/swap_ends",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "swap_ends(var xs: List[int]) =\n  pre xs.len() >= 0\n  let n = xs.len()\n  if n > 1\n    let tmp = xs[0]\n    xs[0] = xs[n - 1]\n    xs[n - 1] = tmp\n\ntest_swap_ends() =\n  var xs = [1, 2, 3]\n  swap_ends(&xs)\n  assert xs == [3, 2, 1]\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

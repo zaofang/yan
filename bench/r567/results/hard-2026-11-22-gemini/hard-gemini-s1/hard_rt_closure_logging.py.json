@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 872,
+   "out": 491,
+   "reasoning": 250,
+   "out_bytes": 830
+  },
+  "body": {
+   "in": 1150,
+   "out": 361,
+   "reasoning": 111,
+   "out_bytes": 854
+  }
+ },
+ "final": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job and return 'start:' + result + ':end'.\"\"\"\n    return f\"start:{job()}:end\"\n\n\ndef test_wrapped_basic() -> None:\n    def job() -> str:\n        return \"payload\"\n\n    assert wrapped(job) == \"start:payload:end\"\n\n\ndef test_wrapped_empty_result() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_wrapped_calls_job_once() -> None:\n    calls = 0\n\n    def job() -> str:\n        nonlocal calls\n        calls += 1\n        return \"done\"\n\n    result = wrapped(job)\n    assert result == \"start:done:end\"\n    assert calls == 1\n\n\ndef test_wrapped_propagates_exception() -> None:\n    def failing_job() -> str:\n        raise ValueError(\"failure\")\n\n    with pytest.raises(ValueError, match=\"failure\"):\n        wrapped(failing_job)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 872,
+    "out": 491,
+    "reasoning": 250
+   },
+   "out_bytes": 830,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1150,
+    "out": 361,
+    "reasoning": 111
+   },
+   "out_bytes": 854,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Run job and return 'start:' + result + ':end'.\"\"\"\n    return f\"start:{job()}:end\"\n\n\ndef test_wrapped_basic() -> None:\n    def job() -> str:\n        return \"payload\"\n\n    assert wrapped(job) == \"start:payload:end\"\n\n\ndef test_wrapped_empty_result() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_wrapped_calls_job_once() -> None:\n    calls = 0\n\n    def job() -> str:\n        nonlocal calls\n        calls += 1\n        return \"done\"\n\n    result = wrapped(job)\n    assert result == \"start:done:end\"\n    assert calls == 1\n\n\ndef test_wrapped_propagates_exception() -> None:\n    def failing_job() -> str:\n        raise ValueError(\"failure\")\n\n    with pytest.raises(ValueError, match=\"failure\"):\n        wrapped(failing_job)\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

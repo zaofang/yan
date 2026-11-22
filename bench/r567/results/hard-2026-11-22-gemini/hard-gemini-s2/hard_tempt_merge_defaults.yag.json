@@ -1,0 +1,130 @@
+{
+ "final": "def settings(keys: list[str], values: list[str]) -> list[str]:\n    \"\"\"Overlay keys and values on defaults mode=fast and level=3, returning values for mode, level, and extra keys in order.\"\"\"\n    pre keys.len() == values.len()\n    ex settings(keys=[], values=[]) == [\"fast\", \"3\"]\n    ex settings(keys=[\"timeout\"], values=[\"10\"]) == [\"fast\", \"3\", \"10\"]\n    ex settings(keys=[\"level\", \"mode\"], values=[\"5\", \"slow\"]) == [\"slow\", \"5\"]\n    mode = \"fast\"\n    level = \"3\"\n    extra_keys: list[str] = []\n    extra_values: dict[str, str] = {}\n    for i in range(keys.len()):\n        k = keys[i]\n        v = values[i]\n        if k == \"mode\":\n            mode = v.copy()\n        elif k == \"level\":\n            level = v.copy()\n        else:\n            if k not in extra_values:\n                extra_keys.append(k.copy())\n            extra_values[k] = v.copy()\n    out = [mode, level]\n    for k in extra_keys:\n        out.append(extra_values.get(k) else \"\")\n    return out\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2055,
+    "out": 953,
+    "reasoning": 814
+   },
+   "out_bytes": 448
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "#1 P003 /tmp/tmp9iom5lb0/work/task.yag:1:1 the patch introduces 4 error(s)\n#2 E413 /tmp/tmp9iom5lb0/work/task.yag:15:20 settings: `mode = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:9 | fix: v -> v.copy()\n#3 E413 /tmp/tmp9iom5lb0/work/task.yag:17:21 settings: `level = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:9 | fix: v -> v.copy()\n#4 E413 /tmp/tmp9iom5lb0/work/task.yag:20:35 settings: `append(k)` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 12:9 | fix: k -> k.copy()\n#5 E413 /tmp/tmp9iom5lb0/work/task.yag:21:31 settings: `[k] = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:9 | fix: v -> v.copy()",
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "P003",
+      "E413",
+      "E413",
+      "E413",
+      "E413"
+     ],
+     "tool": "apply_patch"
+    }
+   ],
+   "usage": {
+    "in": 2259,
+    "out": 3541,
+    "reasoning": 3240
+   },
+   "out_bytes": 944
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2944,
+    "out": 2485,
+    "reasoning": 2173
+   },
+   "out_bytes": 972
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/tempt_merge_defaults",
+ "tokens": {
+  "body": {
+   "in": 5203,
+   "out": 6026,
+   "reasoning": 5413,
+   "out_bytes": 1916
+  },
+  "spec": {
+   "in": 2055,
+   "out": 953,
+   "reasoning": 814,
+   "out_bytes": 448
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [
+  {
+   "phase": "body",
+   "round": 0,
+   "codes": [
+    "E413",
+    "P003"
+   ],
+   "report": "#1 P003 /tmp/tmp9iom5lb0/work/task.yag:1:1 the patch introduces 4 error(s)\n#2 E413 /tmp/tmp9iom5lb0/work/task.yag:15:20 settings: `mode = v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:9 | fix: v -> v.copy()\n#3 E413 /tmp/tmp9iom5lb0/work/task.yag:17:21 settings: `level = v` an element of a list cannot be moved out; use `.copy"
+  }
+ ],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def settings(keys: list[str], values: list[str]) -> list[str]:\n    \"\"\"Overlay keys and values on defaults mode=fast and level=3, returning values for mode, level, and extra keys in order.\"\"\"\n    pre keys.len() == values.len()\n    ex settings(keys=[], values=[]) == [\"fast\", \"3\"]\n    ex settings(keys=[\"timeout\"], values=[\"10\"]) == [\"fast\", \"3\", \"10\"]\n    ex settings(keys=[\"level\", \"mode\"], values=[\"5\", \"slow\"]) == [\"slow\", \"5\"]\n    mode = \"fast\"\n    level = \"3\"\n    extra_keys: list[str] = []\n    extra_values: dict[str, str] = {}\n    for i in range(keys.len()):\n        k = keys[i]\n        v = values[i]\n        if k == \"mode\":\n            mode = v\n        elif k == \"level\":\n            level = v\n        else:\n            if k not in extra_values:\n                extra_keys.append(k)\n            extra_values[k] = v\n    out = [mode, level]\n    for k in extra_keys:\n        out.append(extra_values.get(k) else \"\")\n    return out\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E413 ./task.yag:15:20 settings: `v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bound to the element here at 13:9 | fix: v -> v.copy()\nE413 ./task.yag:17:21 settings: `v` an element of a list cannot be moved out; use `.copy()`, or take it out with `pop` | bou"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

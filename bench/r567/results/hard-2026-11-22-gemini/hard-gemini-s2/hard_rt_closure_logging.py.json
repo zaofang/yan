@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 872,
+   "out": 375,
+   "reasoning": 133,
+   "out_bytes": 838
+  },
+  "body": {
+   "in": 1155,
+   "out": 455,
+   "reasoning": 204,
+   "out_bytes": 862
+  }
+ },
+ "final": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Execute `job` and return its result enclosed as 'start:' + result + ':end'.\"\"\"\n    return f\"start:{job()}:end\"\n\n\ndef test_wrapped_simple() -> None:\n    assert wrapped(lambda: \"hello\") == \"start:hello:end\"\n\n\ndef test_wrapped_empty() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_wrapped_propagates_exception() -> None:\n    def failing_job() -> str:\n        raise ValueError(\"failure\")\n\n    with pytest.raises(ValueError, match=\"failure\"):\n        wrapped(failing_job)\n\n\ndef test_wrapped_calls_job_once() -> None:\n    calls: list[int] = []\n\n    def counting_job() -> str:\n        calls.append(1)\n        return \"counted\"\n\n    result = wrapped(counting_job)\n    assert result == \"start:counted:end\"\n    assert len(calls) == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 872,
+    "out": 375,
+    "reasoning": 133
+   },
+   "out_bytes": 838,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1155,
+    "out": 455,
+    "reasoning": 204
+   },
+   "out_bytes": 862,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from collections.abc import Callable\n\nimport pytest\n\n\ndef wrapped(job: Callable[[], str]) -> str:\n    \"\"\"Execute `job` and return its result enclosed as 'start:' + result + ':end'.\"\"\"\n    return f\"start:{job()}:end\"\n\n\ndef test_wrapped_simple() -> None:\n    assert wrapped(lambda: \"hello\") == \"start:hello:end\"\n\n\ndef test_wrapped_empty() -> None:\n    assert wrapped(lambda: \"\") == \"start::end\"\n\n\ndef test_wrapped_propagates_exception() -> None:\n    def failing_job() -> str:\n        raise ValueError(\"failure\")\n\n    with pytest.raises(ValueError, match=\"failure\"):\n        wrapped(failing_job)\n\n\ndef test_wrapped_calls_job_once() -> None:\n    calls: list[int] = []\n\n    def counting_job() -> str:\n        calls.append(1)\n        return \"counted\"\n\n    result = wrapped(counting_job)\n    assert result == \"start:counted:end\"\n    assert len(calls) == 1\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

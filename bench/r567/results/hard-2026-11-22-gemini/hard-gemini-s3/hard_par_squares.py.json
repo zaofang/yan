@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 854,
+   "out": 2390,
+   "reasoning": 2072,
+   "out_bytes": 823
+  },
+  "body": {
+   "in": 1209,
+   "out": 933,
+   "reasoning": 585,
+   "out_bytes": 959
+  }
+ },
+ "final": "def square(x: int) -> int:\n    \"\"\"Return the square of x.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element in parallel using a thread pool.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(-3) == 9\n    assert square(5) == 25\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_single() -> None:\n    assert squares([4]) == [16]\n    assert squares([-5]) == [25]\n\n\ndef test_squares_preserves_order() -> None:\n    assert squares([3, 1, 4, 1, 5, 9, 2, 6]) == [9, 1, 16, 1, 25, 81, 4, 36]\n\n\ndef test_squares_mixed_values() -> None:\n    assert squares([-3, -1, 0, 1, 2]) == [9, 1, 0, 1, 4]\n\n\ndef test_squares_large_input() -> None:\n    xs = list(range(-50, 50))\n    assert squares(xs) == [x * x for x in xs]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 854,
+    "out": 2390,
+    "reasoning": 2072
+   },
+   "out_bytes": 823,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1209,
+    "out": 933,
+    "reasoning": 585
+   },
+   "out_bytes": 959,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "def square(x: int) -> int:\n    \"\"\"Return the square of x.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element in parallel using a thread pool.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(-3) == 9\n    assert square(5) == 25\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_single() -> None:\n    assert squares([4]) == [16]\n    assert squares([-5]) == [25]\n\n\ndef test_squares_preserves_order() -> None:\n    assert squares([3, 1, 4, 1, 5, 9, 2, 6]) == [9, 1, 16, 1, 25, 81, 4, 36]\n\n\ndef test_squares_mixed_values() -> None:\n    assert squares([-3, -1, 0, 1, 2]) == [9, 1, 0, 1, 4]\n\n\ndef test_squares_large_input() -> None:\n    xs = list(range(-50, 50))\n    assert squares(xs) == [x * x for x in xs]\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

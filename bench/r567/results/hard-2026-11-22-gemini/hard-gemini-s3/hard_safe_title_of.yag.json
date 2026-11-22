@@ -1,0 +1,95 @@
+{
+ "final": "def title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or an empty string.\"\"\"\n    ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n    ex title_of(\"<html><body>No title</body></html>\") == \"\"\n    _, open_tag, rest = html.partition(\"<title>\")\n    if open_tag == \"\":\n        return \"\"\n    title, close_tag, _ = rest.partition(\"</title>\")\n    if close_tag == \"\":\n        return \"\"\n    return title\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2025,
+    "out": 587,
+    "reasoning": 501
+   },
+   "out_bytes": 281
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2176,
+    "out": 3405,
+    "reasoning": 3262
+   },
+   "out_bytes": 476
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_title_of",
+ "tokens": {
+  "body": {
+   "in": 2176,
+   "out": 3405,
+   "reasoning": 3262,
+   "out_bytes": 476
+  },
+  "spec": {
+   "in": 2025,
+   "out": 587,
+   "reasoning": 501,
+   "out_bytes": 281
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def title_of(html: str) -> str:\n    \"\"\"Return the text between <title> and </title> in an HTML string, or an empty string.\"\"\"\n    ex title_of(\"<html><head><title>Hello</title></head></html>\") == \"Hello\"\n    ex title_of(\"<html><body>No title</body></html>\") == \"\"\n    _, open_tag, rest = html.partition(\"<title>\")\n    if open_tag == \"\":\n        return \"\"\n    title, close_tag, _ = rest.partition(\"</title>\")\n    if close_tag == \"\":\n        return \"\"\n    return title\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

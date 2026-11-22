@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1965,
+   "out": 685,
+   "reasoning": 313,
+   "out_bytes": 1079
+  },
+  "body": {
+   "in": 1339,
+   "out": 573,
+   "reasoning": 375,
+   "out_bytes": 565
+  }
+ },
+ "final": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_to_empty() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\"]\n\n\ndef test_add_name_to_non_empty() -> None:\n    names = [\"Alice\", \"Bob\"]\n    add_name(names, \"Charlie\")\n    assert names == [\"Alice\", \"Bob\", \"Charlie\"]\n\n\ndef test_add_name_multiple_times() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    add_name(names, \"Bob\")\n    assert names == [\"Alice\", \"Bob\"]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 856,
+    "out": 298,
+    "reasoning": 119
+   },
+   "out_bytes": 524,
+   "ok": false,
+   "report": "test_task.py:20: error: \"add_name\" does not return a value (it only ever returns None)  [func-returns-value]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1109,
+    "out": 387,
+    "reasoning": 194
+   },
+   "out_bytes": 555,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1339,
+    "out": 573,
+    "reasoning": 375
+   },
+   "out_bytes": 565,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def add_name(dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s)\n\n\ndef test_add_name_to_empty() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    assert names == [\"Alice\"]\n\n\ndef test_add_name_to_non_empty() -> None:\n    names = [\"Alice\", \"Bob\"]\n    add_name(names, \"Charlie\")\n    assert names == [\"Alice\", \"Bob\", \"Charlie\"]\n\n\ndef test_add_name_multiple_times() -> None:\n    names: list[str] = []\n    add_name(names, \"Alice\")\n    add_name(names, \"Bob\")\n    assert names == [\"Alice\", \"Bob\"]\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

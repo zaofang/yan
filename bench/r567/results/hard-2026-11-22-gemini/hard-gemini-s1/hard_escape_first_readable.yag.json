@@ -1,0 +1,109 @@
+{
+ "final": "def first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Return the text of the first readable file in notes, or an empty string.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            text = fs.read(name) else \"\"\n            if text != \"\":\n                return text\n    return \"\"\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2112,
+    "out": 949,
+    "reasoning": 905
+   },
+   "out_bytes": 154
+  },
+  {
+   "ok": false,
+   "phase": "body",
+   "report": "/tmp/tmpjaezz_7z/work/task.yag does not parse",
+   "round": 0,
+   "tools": [],
+   "usage": {
+    "in": 2221,
+    "out": 4627,
+    "reasoning": 4511
+   },
+   "out_bytes": 398
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 1,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2379,
+    "out": 6031,
+    "reasoning": 5946
+   },
+   "out_bytes": 314
+  }
+ ],
+ "rounds_to_green": 2,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_first_readable",
+ "tokens": {
+  "body": {
+   "in": 4600,
+   "out": 10658,
+   "reasoning": 10457,
+   "out_bytes": 712
+  },
+  "spec": {
+   "in": 2112,
+   "out": 949,
+   "reasoning": 905,
+   "out_bytes": 154
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def first_readable(names: list[str]) -> str uses fs:\n    \"\"\"Return the text of the first readable file in notes, or an empty string.\"\"\"\n    def can_read(n: str) -> bool uses fs:\n        _ = fs.read(n) else return False\n        return True\n\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if can_read(name):\n                return fs.read(name) else \"\"\n    return \"\"\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 0,
+  "total": 3,
+  "ok": false,
+  "error": "E100 task.yag:3:5 `def` unexpected `def`; expected a name"
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

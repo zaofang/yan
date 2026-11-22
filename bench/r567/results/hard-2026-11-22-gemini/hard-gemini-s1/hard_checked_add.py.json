@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 852,
+   "out": 668,
+   "reasoning": 209,
+   "out_bytes": 1125
+  },
+  "body": {
+   "in": 1348,
+   "out": 785,
+   "reasoning": 290,
+   "out_bytes": 1211
+  }
+ },
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two 64-bit signed integers; return None on overflow or underflow.\"\"\"\n    res = a + b\n    if -(1 << 63) <= res <= (1 << 63) - 1:\n        return res\n    return None\n\n\ndef test_checked_add_in_range() -> None:\n    assert checked_add(0, 0) == 0\n    assert checked_add(10, 20) == 30\n    assert checked_add(-10, -20) == -30\n    assert checked_add(-10, 20) == 10\n\n\ndef test_checked_add_boundaries() -> None:\n    int64_min = -(2**63)\n    int64_max = 2**63 - 1\n\n    assert checked_add(int64_max, 0) == int64_max\n    assert checked_add(int64_min, 0) == int64_min\n    assert checked_add(int64_max - 1, 1) == int64_max\n    assert checked_add(int64_min + 1, -1) == int64_min\n    assert checked_add(int64_min, int64_max) == -1\n\n\ndef test_checked_add_overflow() -> None:\n    int64_max = 2**63 - 1\n\n    assert checked_add(int64_max, 1) is None\n    assert checked_add(int64_max, int64_max) is None\n    assert checked_add(1, int64_max) is None\n\n\ndef test_checked_add_underflow() -> None:\n    int64_min = -(2**63)\n\n    assert checked_add(int64_min, -1) is None\n    assert checked_add(int64_min, int64_min) is None\n    assert checked_add(-1, int64_min) is None\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 852,
+    "out": 668,
+    "reasoning": 209
+   },
+   "out_bytes": 1125,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1348,
+    "out": 785,
+    "reasoning": 290
+   },
+   "out_bytes": 1211,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/checked_add",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two 64-bit signed integers; return None on overflow or underflow.\"\"\"\n    res = a + b\n    if -(1 << 63) <= res <= (1 << 63) - 1:\n        return res\n    return None\n\n\ndef test_checked_add_in_range() -> None:\n    assert checked_add(0, 0) == 0\n    assert checked_add(10, 20) == 30\n    assert checked_add(-10, -20) == -30\n    assert checked_add(-10, 20) == 10\n\n\ndef test_checked_add_boundaries() -> None:\n    int64_min = -(2**63)\n    int64_max = 2**63 - 1\n\n    assert checked_add(int64_max, 0) == int64_max\n    assert checked_add(int64_min, 0) == int64_min\n    assert checked_add(int64_max - 1, 1) == int64_max\n    assert checked_add(int64_min + 1, -1) == int64_min\n    assert checked_add(int64_min, int64_max) == -1\n\n\ndef test_checked_add_overflow() -> None:\n    int64_max = 2**63 - 1\n\n    assert checked_add(int64_max, 1) is None\n    assert checked_add(int64_max, int64_max) is None\n    assert checked_add(1, int64_max) is None\n\n\ndef test_checked_add_underflow() -> None:\n    int64_min = -(2**63)\n\n    assert checked_add(int64_min, -1) is None\n    assert checked_add(int64_min, int64_min) is None\n    assert checked_add(-1, int64_min) is None\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

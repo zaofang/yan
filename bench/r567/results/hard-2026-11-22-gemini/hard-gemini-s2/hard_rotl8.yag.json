@@ -1,0 +1,95 @@
+{
+ "final": "def rotl8(x: uint8, k: int) -> uint8:\n    \"\"\"Rotate an 8-bit value left by k bits, wrapping high bits around.\"\"\"\n    pre k >= 0 and k <= 7\n    ex rotl8(wrap_as[uint8](1), 0) == wrap_as[uint8](1)\n    ex rotl8(wrap_as[uint8](128), 1) == wrap_as[uint8](1)\n    ex rotl8(wrap_as[uint8](129), 1) == wrap_as[uint8](3)\n    return bits.rotate_left(x, k)\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2018,
+    "out": 1262,
+    "reasoning": 1112
+   },
+   "out_bytes": 329
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2233,
+    "out": 1638,
+    "reasoning": 1478
+   },
+   "out_bytes": 355
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rotl8",
+ "tokens": {
+  "body": {
+   "in": 2233,
+   "out": 1638,
+   "reasoning": 1478,
+   "out_bytes": 355
+  },
+  "spec": {
+   "in": 2018,
+   "out": 1262,
+   "reasoning": 1112,
+   "out_bytes": 329
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "def rotl8(x: uint8, k: int) -> uint8:\n    \"\"\"Rotate an 8-bit value left by k bits, wrapping high bits around.\"\"\"\n    pre k >= 0 and k <= 7\n    ex rotl8(wrap_as[uint8](1), 0) == wrap_as[uint8](1)\n    ex rotl8(wrap_as[uint8](128), 1) == wrap_as[uint8](1)\n    ex rotl8(wrap_as[uint8](129), 1) == wrap_as[uint8](3)\n    return bits.rotate_left(x, k)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

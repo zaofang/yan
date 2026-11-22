@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1668,
+   "out": 779,
+   "reasoning": 714,
+   "out_bytes": 182
+  },
+  "body": {
+   "in": 1779,
+   "out": 4041,
+   "reasoning": 3828,
+   "out_bytes": 643
+  }
+ },
+ "final": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<title>Example</title>\") == \"Example\"\n  ex title_of(\"no title\") == \"\"\n  let parts = html.split(\"<title>\")\n  let after_open = parts.get(1) else return \"\"\n  let subparts = after_open.split(\"</title>\")\n  let after_close = subparts.get(1) else return \"\"\n  copy subparts[0]\n\ntest_title_of() =\n  assert title_of(\"<title>Example</title>\") == \"Example\"\n  assert title_of(\"no title\") == \"\"\n  assert title_of(\"<title>Hello World</title>\") == \"Hello World\"\n  assert title_of(\"<title>no closing tag\") == \"\"\n  assert title_of(\"no opening tag</title>\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1668,
+    "out": 779,
+    "reasoning": 714
+   },
+   "out_bytes": 182,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1779,
+    "out": 4041,
+    "reasoning": 3828
+   },
+   "out_bytes": 643,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_title_of",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "title_of(html: str) -> str =\n  post out.char_count() <= html.char_count()\n  ex title_of(\"<title>Example</title>\") == \"Example\"\n  ex title_of(\"no title\") == \"\"\n  let parts = html.split(\"<title>\")\n  let after_open = parts.get(1) else return \"\"\n  let subparts = after_open.split(\"</title>\")\n  let after_close = subparts.get(1) else return \"\"\n  copy subparts[0]\n\ntest_title_of() =\n  assert title_of(\"<title>Example</title>\") == \"Example\"\n  assert title_of(\"no title\") == \"\"\n  assert title_of(\"<title>Hello World</title>\") == \"Hello World\"\n  assert title_of(\"<title>no closing tag\") == \"\"\n  assert title_of(\"no opening tag</title>\") == \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

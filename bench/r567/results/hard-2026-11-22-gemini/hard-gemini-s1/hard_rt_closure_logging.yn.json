@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1682,
+   "out": 5633,
+   "reasoning": 5583,
+   "out_bytes": 133
+  },
+  "body": {
+   "in": 1778,
+   "out": 793,
+   "reasoning": 730,
+   "out_bytes": 158
+  }
+ },
+ "final": "wrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(() -> \"test\") == \"start:test:end\"\n  let res = job()\n  \"start:\\(res):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1682,
+    "out": 5633,
+    "reasoning": 5583
+   },
+   "out_bytes": 133,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1778,
+    "out": 793,
+    "reasoning": 730
+   },
+   "out_bytes": 158,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "wrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(() -> \"test\") == \"start:test:end\"\n  let res = job()\n  \"start:\\(res):end\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

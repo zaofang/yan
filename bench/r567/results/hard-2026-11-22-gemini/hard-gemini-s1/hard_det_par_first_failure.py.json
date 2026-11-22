@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 917,
+   "out": 1486,
+   "reasoning": 947,
+   "out_bytes": 1400
+  },
+  "body": {
+   "in": 1493,
+   "out": 3394,
+   "reasoning": 2689,
+   "out_bytes": 2011
+  }
+ },
+ "final": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel and raise Bad of the lowest-index bad element.\"\"\"\n    from concurrent.futures import Future, ThreadPoolExecutor, as_completed\n\n    if not xs:\n        return []\n\n    errors: dict[int, Bad] = {}\n    results: list[int] = [0] * len(xs)\n\n    with ThreadPoolExecutor() as executor:\n        futures: dict[Future[int], int] = {\n            executor.submit(check, x): i for i, x in enumerate(xs)\n        }\n        for future in as_completed(futures):\n            i = futures[future]\n            try:\n                results[i] = future.result()\n            except Bad as err:\n                errors[i] = err\n\n    if errors:\n        raise errors[min(errors)]\n\n    return results\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_failure() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 5, 8])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_lowest_index_raised_first_element() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([1, 3, 5])\n    assert exc_info.value.n == 1\n\n\ndef test_all_even_lowest_index_raised_multiple_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 7, 4, 3, 6, 9])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_last_element_failure() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 7])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_large_input_lowest_index_priority() -> None:\n    data = [2 * i for i in range(100)]\n    data[10] = 11\n    data[20] = 21\n    data[30] = 31\n    with pytest.raises(Bad) as exc_info:\n        all_even(data)\n    assert exc_info.value.n == 11\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 917,
+    "out": 1486,
+    "reasoning": 947
+   },
+   "out_bytes": 1400,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1493,
+    "out": 3394,
+    "reasoning": 2689
+   },
+   "out_bytes": 2011,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_first_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "import pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel and raise Bad of the lowest-index bad element.\"\"\"\n    from concurrent.futures import Future, ThreadPoolExecutor, as_completed\n\n    if not xs:\n        return []\n\n    errors: dict[int, Bad] = {}\n    results: list[int] = [0] * len(xs)\n\n    with ThreadPoolExecutor() as executor:\n        futures: dict[Future[int], int] = {\n            executor.submit(check, x): i for i, x in enumerate(xs)\n        }\n        for future in as_completed(futures):\n            i = futures[future]\n            try:\n                results[i] = future.result()\n            except Bad as err:\n                errors[i] = err\n\n    if errors:\n        raise errors[min(errors)]\n\n    return results\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_failure() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 5, 8])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_lowest_index_raised_first_element() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([1, 3, 5])\n    assert exc_info.value.n == 1\n\n\ndef test_all_even_lowest_index_raised_multiple_bad() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 7, 4, 3, 6, 9])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_last_element_failure() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 6, 7])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_large_input_lowest_index_priority() -> None:\n    data = [2 * i for i in range(100)]\n    data[10] = 11\n    data[20] = 21\n    data[30] = 31\n    with pytest.raises(Bad) as exc_info:\n        all_even(data)\n    assert exc_info.value.n == 11\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

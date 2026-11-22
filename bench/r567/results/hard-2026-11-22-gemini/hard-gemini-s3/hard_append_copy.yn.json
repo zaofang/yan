@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1663,
+   "out": 10336,
+   "reasoning": 10287,
+   "out_bytes": 116
+  },
+  "body": {
+   "in": 1758,
+   "out": 351,
+   "reasoning": 297,
+   "out_bytes": 123
+  }
+ },
+ "final": "add_name(var dst: List[str], s: str) =\n  post dst.len() > 0\n  ex add_name(&dst, \"a\") == None\n  dst.append(copy s)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1663,
+    "out": 10336,
+    "reasoning": 10287
+   },
+   "out_bytes": 116,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1758,
+    "out": 351,
+    "reasoning": 297
+   },
+   "out_bytes": 123,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/append_copy",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "add_name(var dst: List[str], s: str) =\n  post dst.len() > 0\n  ex add_name(&dst, \"a\") == None\n  dst.append(copy s)\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

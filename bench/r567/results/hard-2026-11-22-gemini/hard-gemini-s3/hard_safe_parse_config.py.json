@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 868,
+   "out": 997,
+   "reasoning": 489,
+   "out_bytes": 1493
+  },
+  "body": {
+   "in": 1413,
+   "out": 1406,
+   "reasoning": 820,
+   "out_bytes": 1787
+  }
+ },
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in name=value per-line config text, or \"\" if absent.\"\"\"\n    result = \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if not sep:\n            continue\n        if k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_found() -> None:\n    text = \"host=localhost\\nport=8080\\ndebug=true\"\n    assert config_value(text, \"port\") == \"8080\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"debug\") == \"true\"\n\n\ndef test_config_value_missing() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n    assert config_value(\"\", \"port\") == \"\"\n\n\ndef test_config_value_whitespace_trimmed() -> None:\n    text = \"  user = alice \\n  password = secret \"\n    assert config_value(text, \"user\") == \"alice\"\n    assert config_value(text, \"password\") == \"secret\"\n\n\ndef test_config_value_contains_equals() -> None:\n    text = \"query=a=1&b=2\"\n    assert config_value(text, \"query\") == \"a=1&b=2\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"key=\"\n    assert config_value(text, \"key\") == \"\"\n\n\ndef test_config_value_exact_key_match() -> None:\n    text = \"prefix_key=value1\\nkey=value2\\nkey_suffix=value3\"\n    assert config_value(text, \"key\") == \"value2\"\n\n\ndef test_config_value_ignores_comments_and_blank_lines() -> None:\n    text = \"# comment\\n\\nkey=value\\n  \\n# another comment\"\n    assert config_value(text, \"key\") == \"value\"\n\n\ndef test_config_value_last_occurrence_wins() -> None:\n    text = \"key=first\\nkey=second\"\n    assert config_value(text, \"key\") == \"second\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 868,
+    "out": 997,
+    "reasoning": 489
+   },
+   "out_bytes": 1493,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1413,
+    "out": 1406,
+    "reasoning": 820
+   },
+   "out_bytes": 1787,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in name=value per-line config text, or \"\" if absent.\"\"\"\n    result = \"\"\n    for raw in text.splitlines():\n        line = raw.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if not sep:\n            continue\n        if k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_found() -> None:\n    text = \"host=localhost\\nport=8080\\ndebug=true\"\n    assert config_value(text, \"port\") == \"8080\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"debug\") == \"true\"\n\n\ndef test_config_value_missing() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n    assert config_value(\"\", \"port\") == \"\"\n\n\ndef test_config_value_whitespace_trimmed() -> None:\n    text = \"  user = alice \\n  password = secret \"\n    assert config_value(text, \"user\") == \"alice\"\n    assert config_value(text, \"password\") == \"secret\"\n\n\ndef test_config_value_contains_equals() -> None:\n    text = \"query=a=1&b=2\"\n    assert config_value(text, \"query\") == \"a=1&b=2\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"key=\"\n    assert config_value(text, \"key\") == \"\"\n\n\ndef test_config_value_exact_key_match() -> None:\n    text = \"prefix_key=value1\\nkey=value2\\nkey_suffix=value3\"\n    assert config_value(text, \"key\") == \"value2\"\n\n\ndef test_config_value_ignores_comments_and_blank_lines() -> None:\n    text = \"# comment\\n\\nkey=value\\n  \\n# another comment\"\n    assert config_value(text, \"key\") == \"value\"\n\n\ndef test_config_value_last_occurrence_wins() -> None:\n    text = \"key=first\\nkey=second\"\n    assert config_value(text, \"key\") == \"second\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

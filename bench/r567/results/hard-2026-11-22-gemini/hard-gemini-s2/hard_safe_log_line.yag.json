@@ -1,0 +1,97 @@
+{
+ "final": "def log_line(level: str, message: str) uses io:\n    \"\"\"Format a log line as [level] message and print it.\"\"\"\n    io.print(f\"[{level}] {message}\")\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [
+      "W831"
+     ],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2028,
+    "out": 4464,
+    "reasoning": 4421
+   },
+   "out_bytes": 135
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2136,
+    "out": 470,
+    "reasoning": 416
+   },
+   "out_bytes": 164
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_log_line",
+ "tokens": {
+  "body": {
+   "in": 2136,
+   "out": 470,
+   "reasoning": 416,
+   "out_bytes": 164
+  },
+  "spec": {
+   "in": 2028,
+   "out": 4464,
+   "reasoning": 4421,
+   "out_bytes": 135
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def log_line(level: str, message: str) -> None uses io:\n    \"\"\"Format a log line as [level] message and print it.\"\"\"\n    io.print(f\"[{level}] {message}\")\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

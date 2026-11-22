@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 843,
+   "out": 402,
+   "reasoning": 82,
+   "out_bytes": 850
+  },
+  "body": {
+   "in": 1200,
+   "out": 690,
+   "reasoning": 321,
+   "out_bytes": 971
+  }
+ },
+ "final": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"Return True when the byte x (0 to 255) has an odd number of set bits.\"\"\"\n    if not (0 <= x <= 255):\n        raise ValueError(f\"Value out of byte range [0, 255]: {x}\")\n    return x.bit_count() % 2 == 1\n\n\ndef test_parity_zero() -> None:\n    assert parity(0) is False\n\n\ndef test_parity_single_bit() -> None:\n    assert parity(1) is True\n    assert parity(2) is True\n    assert parity(128) is True\n\n\ndef test_parity_powers_and_combinations() -> None:\n    assert parity(3) is False  # 0b00000011 -> 2 bits (even)\n    assert parity(7) is True  # 0b00000111 -> 3 bits (odd)\n    assert parity(15) is False  # 0b00001111 -> 4 bits (even)\n    assert parity(255) is False  # 0b11111111 -> 8 bits (even)\n    assert parity(254) is True  # 0b11111110 -> 7 bits (odd)\n\n\ndef test_parity_out_of_range() -> None:\n    with pytest.raises(ValueError):\n        parity(-1)\n    with pytest.raises(ValueError):\n        parity(256)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 843,
+    "out": 402,
+    "reasoning": 82
+   },
+   "out_bytes": 850,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1200,
+    "out": 690,
+    "reasoning": 321
+   },
+   "out_bytes": 971,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/bit_parity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef parity(x: int) -> bool:\n    \"\"\"Return True when the byte x (0 to 255) has an odd number of set bits.\"\"\"\n    if not (0 <= x <= 255):\n        raise ValueError(f\"Value out of byte range [0, 255]: {x}\")\n    return x.bit_count() % 2 == 1\n\n\ndef test_parity_zero() -> None:\n    assert parity(0) is False\n\n\ndef test_parity_single_bit() -> None:\n    assert parity(1) is True\n    assert parity(2) is True\n    assert parity(128) is True\n\n\ndef test_parity_powers_and_combinations() -> None:\n    assert parity(3) is False  # 0b00000011 -> 2 bits (even)\n    assert parity(7) is True  # 0b00000111 -> 3 bits (odd)\n    assert parity(15) is False  # 0b00001111 -> 4 bits (even)\n    assert parity(255) is False  # 0b11111111 -> 8 bits (even)\n    assert parity(254) is True  # 0b11111110 -> 7 bits (odd)\n\n\ndef test_parity_out_of_range() -> None:\n    with pytest.raises(ValueError):\n        parity(-1)\n    with pytest.raises(ValueError):\n        parity(256)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

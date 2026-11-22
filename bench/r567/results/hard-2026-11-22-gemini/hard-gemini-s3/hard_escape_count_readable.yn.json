@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1753,
+   "out": 968,
+   "reasoning": 927,
+   "out_bytes": 118
+  },
+  "body": {
+   "in": 1840,
+   "out": 2850,
+   "reasoning": 2760,
+   "out_bytes": 273
+  }
+ },
+ "final": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  ex count_readable([]) == 0\n  with fs = fs.sub(\"notes\")\n    var count = 0\n    for name in names\n      let content = fs.read(name) else \"\"\n      if content != \"\"\n        count += 1\n    return count\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1753,
+    "out": 968,
+    "reasoning": 927
+   },
+   "out_bytes": 118,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1840,
+    "out": 2850,
+    "reasoning": 2760
+   },
+   "out_bytes": 273,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "count_readable(names: List[str]) -> int uses fs =\n  post out >= 0\n  ex count_readable([]) == 0\n  with fs = fs.sub(\"notes\")\n    var count = 0\n    for name in names\n      let content = fs.read(name) else \"\"\n      if content != \"\"\n        count += 1\n    return count\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

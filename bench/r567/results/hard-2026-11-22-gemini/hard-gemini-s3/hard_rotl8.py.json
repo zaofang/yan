@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 875,
+   "out": 1962,
+   "reasoning": 1323,
+   "out_bytes": 1247
+  },
+  "body": {
+   "in": 1551,
+   "out": 1810,
+   "reasoning": 1140,
+   "out_bytes": 1308
+  }
+ },
+ "final": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate an 8-bit integer x (0-255) left by k bits (0-7), wrapping high bits around.\"\"\"\n    k %= 8\n    return ((x << k) & 0xFF) | (x >> (8 - k) if k else 0)\n\n\ndef test_rotl8_zero_shift() -> None:\n    assert rotl8(0b10110001, 0) == 0b10110001\n    assert rotl8(0, 0) == 0\n    assert rotl8(255, 0) == 255\n\n\ndef test_rotl8_single_bit_shifts() -> None:\n    for k in range(8):\n        assert rotl8(1, k) == 1 << k\n\n\ndef test_rotl8_wrap_high_bits() -> None:\n    # 0b10000000 rotated left by 1 becomes 0b00000001\n    assert rotl8(128, 1) == 1\n    # 0b10000001 rotated left by 1 becomes 0b00000011\n    assert rotl8(129, 1) == 3\n    # 0b11110000 rotated left by 4 becomes 0b00001111\n    assert rotl8(240, 4) == 15\n    # 0b00000001 rotated left by 7 becomes 0b10000000\n    assert rotl8(1, 7) == 128\n\n\ndef test_rotl8_all_ones_and_zeros() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(255, k) == 255\n\n\ndef test_rotl8_patterns() -> None:\n    # 0b10100101 (165) rotated left by 2 -> 0b10010110 (150)\n    assert rotl8(165, 2) == 150\n    # 0b10100101 (165) rotated left by 3 -> 0b00101101 (45)\n    assert rotl8(165, 3) == 45\n    # 0b10100101 (165) rotated left by 6 -> 0b01101001 (105)\n    assert rotl8(165, 6) == 105\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 875,
+    "out": 1962,
+    "reasoning": 1323
+   },
+   "out_bytes": 1247,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1551,
+    "out": 1810,
+    "reasoning": 1140
+   },
+   "out_bytes": 1308,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate an 8-bit integer x (0-255) left by k bits (0-7), wrapping high bits around.\"\"\"\n    k %= 8\n    return ((x << k) & 0xFF) | (x >> (8 - k) if k else 0)\n\n\ndef test_rotl8_zero_shift() -> None:\n    assert rotl8(0b10110001, 0) == 0b10110001\n    assert rotl8(0, 0) == 0\n    assert rotl8(255, 0) == 255\n\n\ndef test_rotl8_single_bit_shifts() -> None:\n    for k in range(8):\n        assert rotl8(1, k) == 1 << k\n\n\ndef test_rotl8_wrap_high_bits() -> None:\n    # 0b10000000 rotated left by 1 becomes 0b00000001\n    assert rotl8(128, 1) == 1\n    # 0b10000001 rotated left by 1 becomes 0b00000011\n    assert rotl8(129, 1) == 3\n    # 0b11110000 rotated left by 4 becomes 0b00001111\n    assert rotl8(240, 4) == 15\n    # 0b00000001 rotated left by 7 becomes 0b10000000\n    assert rotl8(1, 7) == 128\n\n\ndef test_rotl8_all_ones_and_zeros() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(255, k) == 255\n\n\ndef test_rotl8_patterns() -> None:\n    # 0b10100101 (165) rotated left by 2 -> 0b10010110 (150)\n    assert rotl8(165, 2) == 150\n    # 0b10100101 (165) rotated left by 3 -> 0b00101101 (45)\n    assert rotl8(165, 3) == 45\n    # 0b10100101 (165) rotated left by 6 -> 0b01101001 (105)\n    assert rotl8(165, 6) == 105\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

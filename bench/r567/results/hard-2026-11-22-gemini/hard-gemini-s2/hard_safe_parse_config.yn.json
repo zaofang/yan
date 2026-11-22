@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1680,
+   "out": 803,
+   "reasoning": 734,
+   "out_bytes": 181
+  },
+  "body": {
+   "in": 1799,
+   "out": 2695,
+   "reasoning": 2537,
+   "out_bytes": 441
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  ex config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n  ex config_value(\"host=localhost\", \"user\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    let k = parts.get(0) else continue\n    let v = parts.get(1) else continue\n    if k == key\n      var val = copy v\n      for i in range(2, parts.len())\n        val = \"\\(val)=\\(parts[i])\"\n      return val\n  \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1680,
+    "out": 803,
+    "reasoning": 734
+   },
+   "out_bytes": 181,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1799,
+    "out": 2695,
+    "reasoning": 2537
+   },
+   "out_bytes": 441,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "config_value(text: str, key: str) -> str =\n  ex config_value(\"host=localhost\\nport=8080\", \"port\") == \"8080\"\n  ex config_value(\"host=localhost\", \"user\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    let k = parts.get(0) else continue\n    let v = parts.get(1) else continue\n    if k == key\n      var val = copy v\n      for i in range(2, parts.len())\n        val = \"\\(val)=\\(parts[i])\"\n      return val\n  \"\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

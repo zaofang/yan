@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 859,
+   "out": 803,
+   "reasoning": 421,
+   "out_bytes": 933
+  },
+  "body": {
+   "in": 1278,
+   "out": 1989,
+   "reasoning": 1485,
+   "out_bytes": 1240
+  }
+ },
+ "final": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Precondition: n >= 0.\n    Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1).\n    \"\"\"\n    assert n >= 0\n    if n < 2:\n        r = n\n    else:\n        x0 = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            x1 = (x0 + n // x0) // 2\n            if x1 >= x0:\n                r = x0\n                break\n            x0 = x1\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_isqrt_small() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n\n\ndef test_isqrt_near_squares() -> None:\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n    assert isqrt(10) == 3\n    assert isqrt(15) == 3\n    assert isqrt(16) == 4\n    assert isqrt(17) == 4\n\n\ndef test_isqrt_larger() -> None:\n    assert isqrt(99) == 9\n    assert isqrt(100) == 10\n    assert isqrt(101) == 10\n    assert isqrt(10_000) == 100\n    assert isqrt(10_000_000_000) == 100_000\n\n\ndef test_isqrt_negative_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-100)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 859,
+    "out": 803,
+    "reasoning": 421
+   },
+   "out_bytes": 933,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1278,
+    "out": 1989,
+    "reasoning": 1485
+   },
+   "out_bytes": 1240,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "import pytest\n\n\ndef isqrt(n: int) -> int:\n    \"\"\"Return the largest integer r such that r * r <= n.\n\n    Precondition: n >= 0.\n    Postcondition: r >= 0 and r * r <= n < (r + 1) * (r + 1).\n    \"\"\"\n    assert n >= 0\n    if n < 2:\n        r = n\n    else:\n        x0 = 1 << ((n.bit_length() + 1) // 2)\n        while True:\n            x1 = (x0 + n // x0) // 2\n            if x1 >= x0:\n                r = x0\n                break\n            x0 = x1\n    assert r >= 0 and r * r <= n < (r + 1) * (r + 1)\n    return r\n\n\ndef test_isqrt_small() -> None:\n    assert isqrt(0) == 0\n    assert isqrt(1) == 1\n    assert isqrt(2) == 1\n    assert isqrt(3) == 1\n    assert isqrt(4) == 2\n\n\ndef test_isqrt_near_squares() -> None:\n    assert isqrt(8) == 2\n    assert isqrt(9) == 3\n    assert isqrt(10) == 3\n    assert isqrt(15) == 3\n    assert isqrt(16) == 4\n    assert isqrt(17) == 4\n\n\ndef test_isqrt_larger() -> None:\n    assert isqrt(99) == 9\n    assert isqrt(100) == 10\n    assert isqrt(101) == 10\n    assert isqrt(10_000) == 100\n    assert isqrt(10_000_000_000) == 100_000\n\n\ndef test_isqrt_negative_precondition() -> None:\n    with pytest.raises(AssertionError):\n        isqrt(-1)\n    with pytest.raises(AssertionError):\n        isqrt(-100)\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

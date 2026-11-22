@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1669,
+   "out": 1556,
+   "reasoning": 1476,
+   "out_bytes": 148
+  },
+  "body": {
+   "in": 1795,
+   "out": 1019,
+   "reasoning": 839,
+   "out_bytes": 321
+  }
+ },
+ "final": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  ex pick([10, 20, 30], 0) == 10\n  ex pick([10, 20, 30], 1) == 20\n  let n = xs.len()\n  let idx = (seed % n + n) % n\n  xs[idx]\n\ntest_pick() =\n  assert pick([10, 20, 30], 0) == 10\n  assert pick([10, 20, 30], 4) == 20\n  assert pick([10, 20, 30], -1) == 30\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1669,
+    "out": 1556,
+    "reasoning": 1476
+   },
+   "out_bytes": 148,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1795,
+    "out": 1019,
+    "reasoning": 839
+   },
+   "out_bytes": 321,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "pick(xs: List[int], seed: int) -> int =\n  pre xs.len() > 0\n  ex pick([10, 20, 30], 0) == 10\n  ex pick([10, 20, 30], 1) == 20\n  let n = xs.len()\n  let idx = (seed % n + n) % n\n  xs[idx]\n\ntest_pick() =\n  assert pick([10, 20, 30], 0) == 10\n  assert pick([10, 20, 30], 4) == 20\n  assert pick([10, 20, 30], -1) == 30\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

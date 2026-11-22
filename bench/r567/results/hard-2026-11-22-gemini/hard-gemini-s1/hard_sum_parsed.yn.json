@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1673,
+   "out": 415,
+   "reasoning": 362,
+   "out_bytes": 141
+  },
+  "body": {
+   "in": 1776,
+   "out": 629,
+   "reasoning": 538,
+   "out_bytes": 239
+  }
+ },
+ "final": "type BadInput = { text: str }\n\nsum_parsed(xs: List[str]) -> int fail BadInput =\n  ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n  var total = 0\n  for s in xs\n    let n = s.parse_int() else fail BadInput(text: copy s)\n    total += n\n  total\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1673,
+    "out": 415,
+    "reasoning": 362
+   },
+   "out_bytes": 141,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1776,
+    "out": 629,
+    "reasoning": 538
+   },
+   "out_bytes": 239,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "type BadInput = { text: str }\n\nsum_parsed(xs: List[str]) -> int fail BadInput =\n  ex sum_parsed([\"1\", \"2\", \"3\"]) == 6\n  var total = 0\n  for s in xs\n    let n = s.parse_int() else fail BadInput(text: copy s)\n    total += n\n  total\n",
+ "primer": "primer-yn.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

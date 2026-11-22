@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1654,
+   "out": 4044,
+   "reasoning": 4001,
+   "out_bytes": 96
+  },
+  "body": {
+   "in": 1747,
+   "out": 464,
+   "reasoning": 413,
+   "out_bytes": 112
+  }
+ },
+ "final": "bump_all(var xs: List[int], by: int) =\n  ex bump_all(&[1, 2], 3) == None\n  for var x in xs\n    x += by\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1654,
+    "out": 4044,
+    "reasoning": 4001
+   },
+   "out_bytes": 96,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1747,
+    "out": 464,
+    "reasoning": 413
+   },
+   "out_bytes": 112,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "bump_all(var xs: List[int], by: int) =\n  ex bump_all(&[1, 2], 3) == None\n  for var x in xs\n    x += by\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

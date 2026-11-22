@@ -1,0 +1,80 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 2253,
+   "out": 2230,
+   "reasoning": 1423,
+   "out_bytes": 2042
+  },
+  "body": {
+   "in": 1803,
+   "out": 905,
+   "reasoning": 468,
+   "out_bytes": 1172
+  }
+ },
+ "final": "def parity(x: int) -> int:\n    \"\"\"Return the parity of x (0 for even, 1 for odd).\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity of each element in xs, computed in parallel, in input order.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    if not xs:\n        return []\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(parity, xs))\n\n\ndef test_parity() -> None:\n    assert parity(0) == 0\n    assert parity(1) == 1\n    assert parity(2) == 0\n    assert parity(-1) == 1\n    assert parity(-2) == 0\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([42]) == [0]\n    assert parities([7]) == [1]\n\n\ndef test_parities_order_preserved() -> None:\n    xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n    assert parities(xs) == [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]\n\n\ndef test_parities_negative_numbers() -> None:\n    xs = [-5, -4, -3, -2, -1, 0]\n    assert parities(xs) == [1, 0, 1, 0, 1, 0]\n\n\ndef test_parities_large_sequence() -> None:\n    xs = list(range(200))\n    expected = [x % 2 for x in xs]\n    assert parities(xs) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 880,
+    "out": 1792,
+    "reasoning": 1378
+   },
+   "out_bytes": 1048,
+   "ok": false,
+   "report": "test_task.py:25: error: Non-overlapping equality check (left operand type: \"list[int]\", right operand type: \"Literal[1]\")  [comparison-overlap]\nFound 1 error in 1 file (checked 1 source file)"
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1373,
+    "out": 438,
+    "reasoning": 45
+   },
+   "out_bytes": 994,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1803,
+    "out": 905,
+    "reasoning": 468
+   },
+   "out_bytes": 1172,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/det_par_order",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "determinism",
+ "first_draft": "def parity(x: int) -> int:\n    \"\"\"Return the parity of x (0 for even, 1 for odd).\"\"\"\n    return x % 2\n\n\ndef parities(xs: list[int]) -> list[int]:\n    \"\"\"Return the parity of each element in xs, computed in parallel, in input order.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    if not xs:\n        return []\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(parity, xs))\n\n\ndef test_parity() -> None:\n    assert parity(0) == 0\n    assert parity(1) == 1\n    assert parity(2) == 0\n    assert parity(-1) == 1\n    assert parity(-2) == 0\n\n\ndef test_parities_empty() -> None:\n    assert parities([]) == []\n\n\ndef test_parities_single() -> None:\n    assert parities([42]) == [0]\n    assert parities([7]) == [1]\n\n\ndef test_parities_order_preserved() -> None:\n    xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n    assert parities(xs) == [1, 0, 1, 0, 1, 0, 1, 0, 1, 0]\n\n\ndef test_parities_negative_numbers() -> None:\n    xs = [-5, -4, -3, -2, -1, 0]\n    assert parities(xs) == [1, 0, 1, 0, 1, 0]\n\n\ndef test_parities_large_sequence() -> None:\n    xs = list(range(200))\n    expected = [x % 2 for x in xs]\n    assert parities(xs) == expected\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

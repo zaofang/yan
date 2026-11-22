@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 868,
+   "out": 867,
+   "reasoning": 321,
+   "out_bytes": 1521
+  },
+  "body": {
+   "in": 1451,
+   "out": 1352,
+   "reasoning": 728,
+   "out_bytes": 1817
+  }
+ },
+ "final": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in name=value config text, or \"\" if absent.\"\"\"\n    result = \"\"\n    for line in text.splitlines():\n        line = line.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if not sep:\n            continue\n        if k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_present() -> None:\n    text = \"host=localhost\\nport=8080\\ndebug=true\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"port\") == \"8080\"\n    assert config_value(text, \"debug\") == \"true\"\n\n\ndef test_config_value_missing() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_whitespace_and_empty_lines() -> None:\n    text = \"\\n  host =  127.0.0.1  \\n\\n  timeout = 30 \\n\"\n    assert config_value(text, \"host\") == \"127.0.0.1\"\n    assert config_value(text, \"timeout\") == \"30\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"flag=\\nother=val\"\n    assert config_value(text, \"flag\") == \"\"\n\n\ndef test_config_value_contains_equals() -> None:\n    text = \"url=https://example.com/api?a=1&b=2\\ntoken=abc=123\"\n    assert config_value(text, \"url\") == \"https://example.com/api?a=1&b=2\"\n    assert config_value(text, \"token\") == \"abc=123\"\n\n\ndef test_config_value_duplicate_key_prefers_last() -> None:\n    text = \"retries=1\\nretries=3\"\n    assert config_value(text, \"retries\") == \"3\"\n\n\ndef test_config_value_ignores_comments_and_malformed_lines() -> None:\n    text = \"# comment\\nno_equal_sign\\nkey=val\"\n    assert config_value(text, \"key\") == \"val\"\n    assert config_value(text, \"# comment\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 868,
+    "out": 867,
+    "reasoning": 321
+   },
+   "out_bytes": 1521,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1451,
+    "out": 1352,
+    "reasoning": 728
+   },
+   "out_bytes": 1817,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for `key` in name=value config text, or \"\" if absent.\"\"\"\n    result = \"\"\n    for line in text.splitlines():\n        line = line.strip()\n        if not line or line.startswith(\"#\"):\n            continue\n        k, sep, v = line.partition(\"=\")\n        if not sep:\n            continue\n        if k.strip() == key:\n            result = v.strip()\n    return result\n\n\ndef test_config_value_present() -> None:\n    text = \"host=localhost\\nport=8080\\ndebug=true\"\n    assert config_value(text, \"host\") == \"localhost\"\n    assert config_value(text, \"port\") == \"8080\"\n    assert config_value(text, \"debug\") == \"true\"\n\n\ndef test_config_value_missing() -> None:\n    text = \"host=localhost\\nport=8080\"\n    assert config_value(text, \"missing\") == \"\"\n    assert config_value(\"\", \"host\") == \"\"\n\n\ndef test_config_value_whitespace_and_empty_lines() -> None:\n    text = \"\\n  host =  127.0.0.1  \\n\\n  timeout = 30 \\n\"\n    assert config_value(text, \"host\") == \"127.0.0.1\"\n    assert config_value(text, \"timeout\") == \"30\"\n\n\ndef test_config_value_empty_value() -> None:\n    text = \"flag=\\nother=val\"\n    assert config_value(text, \"flag\") == \"\"\n\n\ndef test_config_value_contains_equals() -> None:\n    text = \"url=https://example.com/api?a=1&b=2\\ntoken=abc=123\"\n    assert config_value(text, \"url\") == \"https://example.com/api?a=1&b=2\"\n    assert config_value(text, \"token\") == \"abc=123\"\n\n\ndef test_config_value_duplicate_key_prefers_last() -> None:\n    text = \"retries=1\\nretries=3\"\n    assert config_value(text, \"retries\") == \"3\"\n\n\ndef test_config_value_ignores_comments_and_malformed_lines() -> None:\n    text = \"# comment\\nno_equal_sign\\nkey=val\"\n    assert config_value(text, \"key\") == \"val\"\n    assert config_value(text, \"# comment\") == \"\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

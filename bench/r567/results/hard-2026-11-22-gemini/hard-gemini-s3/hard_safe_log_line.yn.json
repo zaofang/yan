@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1669,
+   "out": 2662,
+   "reasoning": 2561,
+   "out_bytes": 294
+  },
+  "body": {
+   "in": 1816,
+   "out": 928,
+   "reasoning": 811,
+   "out_bytes": 331
+  }
+ },
+ "final": "format_log(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  post out == \"[\\(level)] \\(message)\"\n  ex format_log(\"INFO\", \"server started\") == \"[INFO] server started\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  io.print(format_log(level, message))\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1669,
+    "out": 2662,
+    "reasoning": 2561
+   },
+   "out_bytes": 294,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1816,
+    "out": 928,
+    "reasoning": 811
+   },
+   "out_bytes": 331,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "format_log(level: str, message: str) -> str =\n  pre level.char_count() > 0\n  post out == \"[\\(level)] \\(message)\"\n  ex format_log(\"INFO\", \"server started\") == \"[INFO] server started\"\n  \"[\\(level)] \\(message)\"\n\nlog_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  io.print(format_log(level, message))\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

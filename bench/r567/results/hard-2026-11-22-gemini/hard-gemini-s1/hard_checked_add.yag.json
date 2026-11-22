@@ -1,0 +1,95 @@
+{
+ "final": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two 64-bit signed integers, returning None on overflow.\"\"\"\n    ex checked_add(1, 2) == 3\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    max_val = 9223372036854775807\n    min_val = -9223372036854775808\n    if b > 0 and a > max_val - b:\n        return None\n    if b < 0 and a < min_val - b:\n        return None\n    return a + b\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2020,
+    "out": 922,
+    "reasoning": 798
+   },
+   "out_bytes": 269
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2209,
+    "out": 2497,
+    "reasoning": 2278
+   },
+   "out_bytes": 455
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/checked_add",
+ "tokens": {
+  "body": {
+   "in": 2209,
+   "out": 2497,
+   "reasoning": 2278,
+   "out_bytes": 455
+  },
+  "spec": {
+   "in": 2020,
+   "out": 922,
+   "reasoning": 798,
+   "out_bytes": 269
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "numbers",
+ "first_draft": "def checked_add(a: int, b: int) -> int | None:\n    \"\"\"Add two 64-bit signed integers, returning None on overflow.\"\"\"\n    ex checked_add(1, 2) == 3\n    ex checked_add(9223372036854775807, 1) is None\n    ex checked_add(-9223372036854775808, -1) is None\n    max_val = 9223372036854775807\n    min_val = -9223372036854775808\n    if b > 0 and a > max_val - b:\n        return None\n    if b < 0 and a < min_val - b:\n        return None\n    return a + b\n",
+ "primer": "primer.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

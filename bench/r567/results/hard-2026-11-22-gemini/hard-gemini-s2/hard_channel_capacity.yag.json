@@ -1,0 +1,95 @@
+{
+ "final": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Send elements into a channel of given capacity without blocking until full, returning the count of accepted sends.\"\"\"\n    pre cap >= 0\n    post out >= 0 and out <= cap and out <= xs.len()\n    tx, rx = Channel[int](cap)\n    count = 0\n    for x in xs:\n        tx.try_send(x) else return count\n        count += 1\n    return count\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2026,
+    "out": 1243,
+    "reasoning": 1167
+   },
+   "out_bytes": 271
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2167,
+    "out": 569,
+    "reasoning": 448
+   },
+   "out_bytes": 402
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/channel_capacity",
+ "tokens": {
+  "body": {
+   "in": 2167,
+   "out": 569,
+   "reasoning": 448,
+   "out_bytes": 402
+  },
+  "spec": {
+   "in": 2026,
+   "out": 1243,
+   "reasoning": 1167,
+   "out_bytes": 271
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "def accepted(cap: int, xs: list[int]) -> int uses nondet:\n    \"\"\"Send elements into a channel of given capacity without blocking until full, returning the count of accepted sends.\"\"\"\n    pre cap >= 0\n    post out >= 0 and out <= cap and out <= xs.len()\n    tx, rx = Channel[int](cap)\n    count = 0\n    for x in xs:\n        tx.try_send(x) else return count\n        count += 1\n    return count\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

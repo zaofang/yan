@@ -1,0 +1,85 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 3454,
+   "out": 10256,
+   "reasoning": 10155,
+   "out_bytes": 263
+  },
+  "body": {
+   "in": 1868,
+   "out": 456,
+   "reasoning": 393,
+   "out_bytes": 156
+  }
+ },
+ "final": "wrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(() -> \"mid\") == \"start:mid:end\"\n  let res = job()\n  \"start:\\(res):end\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1682,
+    "out": 4301,
+    "reasoning": 4250
+   },
+   "out_bytes": 132,
+   "ok": false,
+   "report": "E100 task.yn:3:14 `\\` unexpected character",
+   "codes": [
+    "E100"
+   ]
+  },
+  {
+   "phase": "spec",
+   "round": 1,
+   "usage": {
+    "in": 1772,
+    "out": 5955,
+    "reasoning": 5905
+   },
+   "out_bytes": 131,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1868,
+    "out": 456,
+    "reasoning": 393
+   },
+   "out_bytes": 156,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_closure_logging",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "wrapped(job: () -> str) -> str =\n  post out.char_count() >= 10\n  ex wrapped(() -> \"mid\") == \"start:mid:end\"\n  let res = job()\n  \"start:\\(res):end\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

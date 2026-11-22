@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1680,
+   "out": 633,
+   "reasoning": 544,
+   "out_bytes": 213
+  },
+  "body": {
+   "in": 1815,
+   "out": 2649,
+   "reasoning": 2372,
+   "out_bytes": 727
+  }
+ },
+ "final": "config_value(text: str, key: str) -> str =\n  post out.char_count() >= 0\n  ex config_value(\"user=alice\\nport=8080\", \"port\") == \"8080\"\n  ex config_value(\"user=alice\\nport=8080\", \"host\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    let k = parts.get(0) else continue\n    if k == key\n      let first_val = parts.get(1) else continue\n      var val = copy first_val\n      for i in range(2, parts.len())\n        val = \"\\(val)=\\(parts[i])\"\n      return val\n  \"\"\n\ntest_config_value() =\n  assert config_value(\"user=alice\\nport=8080\", \"port\") == \"8080\"\n  assert config_value(\"user=alice\\nport=8080\", \"host\") == \"\"\n  assert config_value(\"url=http://example.com?a=1\", \"url\") == \"http://example.com?a=1\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1680,
+    "out": 633,
+    "reasoning": 544
+   },
+   "out_bytes": 213,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1815,
+    "out": 2649,
+    "reasoning": 2372
+   },
+   "out_bytes": 727,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_parse_config",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "config_value(text: str, key: str) -> str =\n  post out.char_count() >= 0\n  ex config_value(\"user=alice\\nport=8080\", \"port\") == \"8080\"\n  ex config_value(\"user=alice\\nport=8080\", \"host\") == \"\"\n  for line in text.split(\"\\n\")\n    let parts = line.split(\"=\")\n    let k = parts.get(0) else continue\n    if k == key\n      let first_val = parts.get(1) else continue\n      var val = copy first_val\n      for i in range(2, parts.len())\n        val = \"\\(val)=\\(parts[i])\"\n      return val\n  \"\"\n\ntest_config_value() =\n  assert config_value(\"user=alice\\nport=8080\", \"port\") == \"8080\"\n  assert config_value(\"user=alice\\nport=8080\", \"host\") == \"\"\n  assert config_value(\"url=http://example.com?a=1\", \"url\") == \"http://example.com?a=1\"\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

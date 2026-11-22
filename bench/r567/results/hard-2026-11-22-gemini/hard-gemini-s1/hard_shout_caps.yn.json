@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1648,
+   "out": 2226,
+   "reasoning": 2198,
+   "out_bytes": 77
+  },
+  "body": {
+   "in": 1720,
+   "out": 614,
+   "reasoning": 574,
+   "out_bytes": 101
+  }
+ },
+ "final": "shout(xs: List[str]) uses io =\n  ex shout([]) == None\n  for s in xs\n    io.print(s.upper())\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1648,
+    "out": 2226,
+    "reasoning": 2198
+   },
+   "out_bytes": 77,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1720,
+    "out": 614,
+    "reasoning": 574
+   },
+   "out_bytes": 101,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/shout_caps",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "first_draft": "shout(xs: List[str]) uses io =\n  ex shout([]) == None\n  for s in xs\n    io.print(s.upper())\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

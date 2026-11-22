@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 856,
+   "out": 1353,
+   "reasoning": 1124,
+   "out_bytes": 652
+  },
+  "body": {
+   "in": 1120,
+   "out": 1220,
+   "reasoning": 958,
+   "out_bytes": 797
+  }
+ },
+ "final": "def square(x: int) -> int:\n    \"\"\"Return the square of x.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element in xs in parallel using a thread pool.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(5) == 25\n    assert square(-4) == 16\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_single() -> None:\n    assert squares([3]) == [9]\n\n\ndef test_squares_preserves_order() -> None:\n    assert squares([1, -2, 3, 0, 5]) == [1, 4, 9, 0, 25]\n\n\ndef test_squares_many() -> None:\n    assert squares(list(range(100))) == [i * i for i in range(100)]\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 856,
+    "out": 1353,
+    "reasoning": 1124
+   },
+   "out_bytes": 652,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1120,
+    "out": 1220,
+    "reasoning": 958
+   },
+   "out_bytes": 797,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_squares",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "def square(x: int) -> int:\n    \"\"\"Return the square of x.\"\"\"\n    return x * x\n\n\ndef squares(xs: list[int]) -> list[int]:\n    \"\"\"Square every element in xs in parallel using a thread pool.\"\"\"\n    from concurrent.futures import ThreadPoolExecutor\n\n    with ThreadPoolExecutor() as executor:\n        return list(executor.map(square, xs))\n\n\ndef test_square() -> None:\n    assert square(0) == 0\n    assert square(5) == 25\n    assert square(-4) == 16\n\n\ndef test_squares_empty() -> None:\n    assert squares([]) == []\n\n\ndef test_squares_single() -> None:\n    assert squares([3]) == [9]\n\n\ndef test_squares_preserves_order() -> None:\n    assert squares([1, -2, 3, 0, 5]) == [1, 4, 9, 0, 25]\n\n\ndef test_squares_many() -> None:\n    assert squares(list(range(100))) == [i * i for i in range(100)]\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

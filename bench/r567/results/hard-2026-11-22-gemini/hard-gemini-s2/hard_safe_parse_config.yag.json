@@ -1,0 +1,95 @@
+{
+ "final": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for key in name=value per-line config text, or empty string.\"\"\"\n    ex config_value(text=\"a=1\\nb=2\", key=\"b\") == \"2\"\n    ex config_value(text=\"a=1\\nb=2\", key=\"c\") == \"\"\n    for line in text.splitlines():\n        k, sep, val = line.partition(\"=\")\n        if sep == \"=\" and k == key:\n            return val\n    return \"\"\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2037,
+    "out": 722,
+    "reasoning": 627
+   },
+   "out_bytes": 257
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2197,
+    "out": 3114,
+    "reasoning": 2980
+   },
+   "out_bytes": 399
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/safe_parse_config",
+ "tokens": {
+  "body": {
+   "in": 2197,
+   "out": 3114,
+   "reasoning": 2980,
+   "out_bytes": 399
+  },
+  "spec": {
+   "in": 2037,
+   "out": 722,
+   "reasoning": 627,
+   "out_bytes": 257
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def config_value(text: str, key: str) -> str:\n    \"\"\"Return the value for key in name=value per-line config text, or empty string.\"\"\"\n    ex config_value(text=\"a=1\\nb=2\", key=\"b\") == \"2\"\n    ex config_value(text=\"a=1\\nb=2\", key=\"c\") == \"\"\n    for line in text.splitlines():\n        k, sep, val = line.partition(\"=\")\n        if sep == \"=\" and k == key:\n            return val\n    return \"\"\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

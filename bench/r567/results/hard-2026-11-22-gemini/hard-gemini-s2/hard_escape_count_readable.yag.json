@@ -1,0 +1,95 @@
+{
+ "final": "def count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count how many names correspond to readable files in the notes directory.\"\"\"\n    post out >= 0 and out <= names.len()\n    count = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if is_readable(name):\n                count += 1\n    return count\n\ndef is_readable(name: str) -> bool uses fs:\n    _ = fs.read(name) else return False\n    return True\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2103,
+    "out": 963,
+    "reasoning": 908
+   },
+   "out_bytes": 196
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2223,
+    "out": 3172,
+    "reasoning": 3045
+   },
+   "out_bytes": 439
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/escape_count_readable",
+ "tokens": {
+  "body": {
+   "in": 2223,
+   "out": 3172,
+   "reasoning": 3045,
+   "out_bytes": 439
+  },
+  "spec": {
+   "in": 2103,
+   "out": 963,
+   "reasoning": 908,
+   "out_bytes": 196
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def is_readable(name: str) -> bool uses fs:\n    _ = fs.read(name) else return False\n    return True\n\ndef count_readable(names: list[str]) -> int uses fs:\n    \"\"\"Count how many names correspond to readable files in the notes directory.\"\"\"\n    post out >= 0 and out <= names.len()\n    count = 0\n    with fs = fs.sub(\"notes\"):\n        for name in names:\n            if is_readable(name):\n                count += 1\n    return count\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

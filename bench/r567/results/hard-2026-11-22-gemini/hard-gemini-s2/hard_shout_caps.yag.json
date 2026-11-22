@@ -1,0 +1,95 @@
+{
+ "final": "def shout(xs: list[str]) uses io:\n    \"\"\"Print every string upper-cased on its own line.\"\"\"\n    for s in xs:\n        io.print(s.upper())\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2005,
+    "out": 982,
+    "reasoning": 944
+   },
+   "out_bytes": 118
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2108,
+    "out": 567,
+    "reasoning": 515
+   },
+   "out_bytes": 155
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/shout_caps",
+ "tokens": {
+  "body": {
+   "in": 2108,
+   "out": 567,
+   "reasoning": 515,
+   "out_bytes": 155
+  },
+  "spec": {
+   "in": 2005,
+   "out": 982,
+   "reasoning": 944,
+   "out_bytes": 118
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "capabilities",
+ "first_draft": "def shout(xs: list[str]) -> None uses io:\n    \"\"\"Print every string upper-cased on its own line.\"\"\"\n    for s in xs:\n        io.print(s.upper())\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

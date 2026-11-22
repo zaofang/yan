@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1649,
+   "out": 491,
+   "reasoning": 397,
+   "out_bytes": 208
+  },
+  "body": {
+   "in": 1789,
+   "out": 1150,
+   "reasoning": 1050,
+   "out_bytes": 219
+  }
+ },
+ "final": "first_or(xs: List[int], default: int) -> int =\n  post (xs.len() == 0 and out == default) or (xs.len() > 0 and out == xs[0])\n  ex first_or([1, 2, 3], 0) == 1\n  ex first_or([], 42) == 42\n  xs.get(0) else default\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1649,
+    "out": 491,
+    "reasoning": 397
+   },
+   "out_bytes": 208,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1789,
+    "out": 1150,
+    "reasoning": 1050
+   },
+   "out_bytes": 219,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/first_or",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "first_or(xs: List[int], default: int) -> int =\n  post (xs.len() == 0 and out == default) or (xs.len() > 0 and out == xs[0])\n  ex first_or([1, 2, 3], 0) == 1\n  ex first_or([], 42) == 42\n  xs.get(0) else default\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

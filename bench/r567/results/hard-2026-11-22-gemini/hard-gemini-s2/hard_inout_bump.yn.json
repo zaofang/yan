@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1654,
+   "out": 14692,
+   "reasoning": 14643,
+   "out_bytes": 113
+  },
+  "body": {
+   "in": 1749,
+   "out": 301,
+   "reasoning": 244,
+   "out_bytes": 129
+  }
+ },
+ "final": "bump_all(var xs: List[int], by: int) =\n  pre xs.len() >= 0\n  post xs.len() >= 0\n  ex True\n  for var x in xs\n    x += by\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1654,
+    "out": 14692,
+    "reasoning": 14643
+   },
+   "out_bytes": 113,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1749,
+    "out": 301,
+    "reasoning": 244
+   },
+   "out_bytes": 129,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/inout_bump",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "bump_all(var xs: List[int], by: int) =\n  pre xs.len() >= 0\n  post xs.len() >= 0\n  ex True\n  for var x in xs\n    x += by\n",
+ "primer": "primer-yn.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

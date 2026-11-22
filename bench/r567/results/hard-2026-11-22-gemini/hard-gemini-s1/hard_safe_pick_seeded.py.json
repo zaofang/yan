@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 856,
+   "out": 1004,
+   "reasoning": 739,
+   "out_bytes": 692
+  },
+  "body": {
+   "in": 1156,
+   "out": 706,
+   "reasoning": 416,
+   "out_bytes": 778
+  }
+ },
+ "final": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element from a non-empty list using seed.\"\"\"\n    if not xs:\n        raise ValueError(\"xs must not be empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_deterministic() -> None:\n    data = [10, 20, 30, 40]\n    assert pick(data, 0) == pick(data, 0)\n    assert pick(data, 1) == 20\n    assert pick(data, 4) == 10\n\n\ndef test_pick_single_element() -> None:\n    assert pick([42], 0) == 42\n    assert pick([42], 7) == 42\n    assert pick([42], -3) == 42\n\n\ndef test_pick_negative_seed() -> None:\n    data = [10, 20, 30]\n    assert pick(data, -1) == 30\n    assert pick(data, -2) == 20\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 856,
+    "out": 1004,
+    "reasoning": 739
+   },
+   "out_bytes": 692,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1156,
+    "out": 706,
+    "reasoning": 416
+   },
+   "out_bytes": 778,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_pick_seeded",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "import pytest\n\n\ndef pick(xs: list[int], seed: int) -> int:\n    \"\"\"Deterministically pick an element from a non-empty list using seed.\"\"\"\n    if not xs:\n        raise ValueError(\"xs must not be empty\")\n    return xs[seed % len(xs)]\n\n\ndef test_pick_deterministic() -> None:\n    data = [10, 20, 30, 40]\n    assert pick(data, 0) == pick(data, 0)\n    assert pick(data, 1) == 20\n    assert pick(data, 4) == 10\n\n\ndef test_pick_single_element() -> None:\n    assert pick([42], 0) == 42\n    assert pick([42], 7) == 42\n    assert pick([42], -3) == 42\n\n\ndef test_pick_negative_seed() -> None:\n    data = [10, 20, 30]\n    assert pick(data, -1) == 30\n    assert pick(data, -2) == 20\n\n\ndef test_pick_empty_raises() -> None:\n    with pytest.raises(ValueError):\n        pick([], 0)\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

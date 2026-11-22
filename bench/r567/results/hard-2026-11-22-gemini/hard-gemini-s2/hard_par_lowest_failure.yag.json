@@ -1,0 +1,95 @@
+{
+ "final": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x if even, or fail with Bad when x is odd.\"\"\"\n    ex check(2) == 2\n    ex check(1) == Err(Bad(n=1))\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Return xs in order if all are even, or fail with Bad of the first odd element.\"\"\"\n    ex all_even([]) == []\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == Err(Bad(n=3))\n    return par [check(x)? for x in xs]\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2080,
+    "out": 1918,
+    "reasoning": 1744
+   },
+   "out_bytes": 449
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2319,
+    "out": 1056,
+    "reasoning": 850
+   },
+   "out_bytes": 526
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/par_lowest_failure",
+ "tokens": {
+  "body": {
+   "in": 2319,
+   "out": 1056,
+   "reasoning": 850,
+   "out_bytes": 526
+  },
+  "spec": {
+   "in": 2080,
+   "out": 1918,
+   "reasoning": 1744,
+   "out_bytes": 449
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "class Bad:\n    n: int\n\ndef check(x: int) -> int fail Bad:\n    \"\"\"Return x if even, or fail with Bad when x is odd.\"\"\"\n    ex check(2) == 2\n    ex check(1) == fail Bad(n=1)\n    if x % 2 == 1:\n        fail Bad(n=x)\n    return x\n\ndef all_even(xs: list[int]) -> list[int] fail Bad:\n    \"\"\"Return xs in order if all are even, or fail with Bad of the first odd element.\"\"\"\n    ex all_even([]) == []\n    ex all_even([2, 4, 6]) == [2, 4, 6]\n    ex all_even([2, 3, 5]) == fail Bad(n=3)\n    return par [check(x)? for x in xs]\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

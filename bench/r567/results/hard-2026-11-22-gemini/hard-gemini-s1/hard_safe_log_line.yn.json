@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1669,
+   "out": 4669,
+   "reasoning": 4618,
+   "out_bytes": 143
+  },
+  "body": {
+   "in": 1766,
+   "out": 421,
+   "reasoning": 361,
+   "out_bytes": 165
+  }
+ },
+ "final": "log_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  ex log_line(\"INFO\", \"server ready\") == None\n  io.print(\"[\\(level)] \\(message)\")\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1669,
+    "out": 4669,
+    "reasoning": 4618
+   },
+   "out_bytes": 143,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1766,
+    "out": 421,
+    "reasoning": 361
+   },
+   "out_bytes": 165,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/safe_log_line",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "log_line(level: str, message: str) uses io =\n  pre level.char_count() > 0\n  ex log_line(\"INFO\", \"server ready\") == None\n  io.print(\"[\\(level)] \\(message)\")\n",
+ "primer": "primer-yn.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}

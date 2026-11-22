@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 931,
+   "out": 1090,
+   "reasoning": 623,
+   "out_bytes": 1227
+  },
+  "body": {
+   "in": 1435,
+   "out": 5242,
+   "reasoning": 4737,
+   "out_bytes": 1365
+  }
+ },
+ "final": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel and raise the Bad of the lowest-index bad element.\"\"\"\n    with ThreadPoolExecutor() as executor:\n        futures = [executor.submit(check, x) for x in xs]\n        return [f.result() for f in futures]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_odd() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 7, 8])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_first_odd_raised_when_multiple() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 5, 4, 7, 9])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_first_element_odd() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([3, 1, 2, 4])\n    assert exc_info.value.n == 3\n\n\ndef test_all_even_large_input() -> None:\n    xs = [2 * i for i in range(100)]\n    xs[42] = 43\n    xs[80] = 81\n    with pytest.raises(Bad) as exc_info:\n        all_even(xs)\n    assert exc_info.value.n == 43\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 931,
+    "out": 1090,
+    "reasoning": 623
+   },
+   "out_bytes": 1227,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1435,
+    "out": 5242,
+    "reasoning": 4737
+   },
+   "out_bytes": 1365,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/par_lowest_failure",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "from concurrent.futures import ThreadPoolExecutor\nimport pytest\n\n\nclass Bad(Exception):\n    def __init__(self, n: int) -> None:\n        self.n = n\n\n\ndef check(x: int) -> int:\n    if x % 2 == 1:\n        raise Bad(x)\n    return x\n\n\ndef all_even(xs: list[int]) -> list[int]:\n    \"\"\"Check every element in parallel and raise the Bad of the lowest-index bad element.\"\"\"\n    with ThreadPoolExecutor() as executor:\n        futures = [executor.submit(check, x) for x in xs]\n        return [f.result() for f in futures]\n\n\ndef test_all_even_empty() -> None:\n    assert all_even([]) == []\n\n\ndef test_all_even_success() -> None:\n    assert all_even([0, 2, 4, 6, 8]) == [0, 2, 4, 6, 8]\n\n\ndef test_all_even_single_odd() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 4, 7, 8])\n    assert exc_info.value.n == 7\n\n\ndef test_all_even_first_odd_raised_when_multiple() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([2, 5, 4, 7, 9])\n    assert exc_info.value.n == 5\n\n\ndef test_all_even_first_element_odd() -> None:\n    with pytest.raises(Bad) as exc_info:\n        all_even([3, 1, 2, 4])\n    assert exc_info.value.n == 3\n\n\ndef test_all_even_large_input() -> None:\n    xs = [2 * i for i in range(100)]\n    xs[42] = 43\n    xs[80] = 81\n    with pytest.raises(Bad) as exc_info:\n        all_even(xs)\n    assert exc_info.value.n == 43\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

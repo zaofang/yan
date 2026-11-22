@@ -1,0 +1,95 @@
+{
+ "final": "def read_public(path: str) -> str uses fs:\n    \"\"\"Return the text at path inside the notes directory, or an empty string.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(path) else \"\"\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2147,
+    "out": 2560,
+    "reasoning": 2519
+   },
+   "out_bytes": 143
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2253,
+    "out": 1030,
+    "reasoning": 970
+   },
+   "out_bytes": 203
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/rt_dotdot_forms",
+ "tokens": {
+  "body": {
+   "in": 2253,
+   "out": 1030,
+   "reasoning": 970,
+   "out_bytes": 203
+  },
+  "spec": {
+   "in": 2147,
+   "out": 2560,
+   "reasoning": 2519,
+   "out_bytes": 143
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "def read_public(path: str) -> str uses fs:\n    \"\"\"Return the text at path inside the notes directory, or an empty string.\"\"\"\n    with fs = fs.sub(\"notes\"):\n        return fs.read(path) else \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

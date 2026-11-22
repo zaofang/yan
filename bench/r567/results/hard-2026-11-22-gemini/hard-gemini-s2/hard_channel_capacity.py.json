@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 859,
+   "out": 971,
+   "reasoning": 685,
+   "out_bytes": 843
+  },
+  "body": {
+   "in": 1182,
+   "out": 1493,
+   "reasoning": 1129,
+   "out_bytes": 1077
+  }
+ },
+ "final": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Create a bounded queue of capacity `cap` and try to put each element\n\n    from `xs` without blocking. Count how many elements were accepted\n    before the queue became full, then stop.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n            count += 1\n        except queue.Full:\n            break\n    return count\n\n\ndef test_accepted_fewer_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_accepted_exceeds_capacity() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_accepted_exact_capacity() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_accepted_empty_list() -> None:\n    assert accepted(3, []) == 0\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_accepted_single_capacity() -> None:\n    assert accepted(1, [42]) == 1\n    assert accepted(1, [42, 43]) == 1\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 859,
+    "out": 971,
+    "reasoning": 685
+   },
+   "out_bytes": 843,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1182,
+    "out": 1493,
+    "reasoning": 1129
+   },
+   "out_bytes": 1077,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/channel_capacity",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "concurrency",
+ "first_draft": "import queue\n\nimport pytest\n\n\ndef accepted(cap: int, xs: list[int]) -> int:\n    \"\"\"Create a bounded queue of capacity `cap` and try to put each element\n\n    from `xs` without blocking. Count how many elements were accepted\n    before the queue became full, then stop.\n    \"\"\"\n    if cap <= 0:\n        return 0\n    q: queue.Queue[int] = queue.Queue(maxsize=cap)\n    count = 0\n    for x in xs:\n        try:\n            q.put_nowait(x)\n            count += 1\n        except queue.Full:\n            break\n    return count\n\n\ndef test_accepted_fewer_than_capacity() -> None:\n    assert accepted(5, [1, 2, 3]) == 3\n\n\ndef test_accepted_exceeds_capacity() -> None:\n    assert accepted(2, [10, 20, 30, 40]) == 2\n\n\ndef test_accepted_exact_capacity() -> None:\n    assert accepted(3, [1, 2, 3]) == 3\n\n\ndef test_accepted_empty_list() -> None:\n    assert accepted(3, []) == 0\n\n\ndef test_accepted_zero_capacity() -> None:\n    assert accepted(0, [1, 2, 3]) == 0\n\n\ndef test_accepted_single_capacity() -> None:\n    assert accepted(1, [42]) == 1\n    assert accepted(1, [42, 43]) == 1\n",
+ "primer": "primer.md",
+ "cases": 2,
+ "hidden_first": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 2,
+  "total": 2,
+  "ok": true
+ }
+}

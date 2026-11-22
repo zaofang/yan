@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 880,
+   "out": 607,
+   "reasoning": 271,
+   "out_bytes": 1038
+  },
+  "body": {
+   "in": 1253,
+   "out": 518,
+   "reasoning": 141,
+   "out_bytes": 1186
+  }
+ },
+ "final": "import pytest\n\n\nclass BadInput(Exception):\n    def __init__(self, text: str) -> None:\n        self.text = text\n\n\ndef sum_parsed(xs: list[str]) -> int:\n    \"\"\"Parse every string as an integer and return their sum.\n\n    Raises BadInput with the offending string for the first non-integer encountered.\n    \"\"\"\n    total = 0\n    for s in xs:\n        try:\n            total += int(s)\n        except ValueError:\n            raise BadInput(s) from None\n    return total\n\n\ndef test_sum_parsed_empty() -> None:\n    assert sum_parsed([]) == 0\n\n\ndef test_sum_parsed_valid() -> None:\n    assert sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    assert sum_parsed([\"10\", \"-5\", \"0\"]) == 5\n\n\ndef test_sum_parsed_invalid() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"1\", \"two\", \"3\"])\n    assert exc_info.value.text == \"two\"\n\n\ndef test_sum_parsed_first_invalid() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"abc\", \"def\"])\n    assert exc_info.value.text == \"abc\"\n\n\ndef test_sum_parsed_invalid_float_string() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"1\", \"2.5\", \"3\"])\n    assert exc_info.value.text == \"2.5\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 880,
+    "out": 607,
+    "reasoning": 271
+   },
+   "out_bytes": 1038,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1253,
+    "out": 518,
+    "reasoning": 141
+   },
+   "out_bytes": 1186,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/sum_parsed",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "failure",
+ "first_draft": "import pytest\n\n\nclass BadInput(Exception):\n    def __init__(self, text: str) -> None:\n        self.text = text\n\n\ndef sum_parsed(xs: list[str]) -> int:\n    \"\"\"Parse every string as an integer and return their sum.\n\n    Raises BadInput with the offending string for the first non-integer encountered.\n    \"\"\"\n    total = 0\n    for s in xs:\n        try:\n            total += int(s)\n        except ValueError:\n            raise BadInput(s) from None\n    return total\n\n\ndef test_sum_parsed_empty() -> None:\n    assert sum_parsed([]) == 0\n\n\ndef test_sum_parsed_valid() -> None:\n    assert sum_parsed([\"1\", \"2\", \"3\"]) == 6\n    assert sum_parsed([\"10\", \"-5\", \"0\"]) == 5\n\n\ndef test_sum_parsed_invalid() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"1\", \"two\", \"3\"])\n    assert exc_info.value.text == \"two\"\n\n\ndef test_sum_parsed_first_invalid() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"abc\", \"def\"])\n    assert exc_info.value.text == \"abc\"\n\n\ndef test_sum_parsed_invalid_float_string() -> None:\n    with pytest.raises(BadInput) as exc_info:\n        sum_parsed([\"1\", \"2.5\", \"3\"])\n    assert exc_info.value.text == \"2.5\"\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

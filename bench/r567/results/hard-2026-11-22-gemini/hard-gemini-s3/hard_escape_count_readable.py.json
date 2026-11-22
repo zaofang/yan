@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 909,
+   "out": 1566,
+   "reasoning": 768,
+   "out_bytes": 2550
+  },
+  "body": {
+   "in": 1744,
+   "out": 5539,
+   "reasoning": 4624,
+   "out_bytes": 3026
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count how many names refer to readable files strictly inside the 'notes' directory.\"\"\"\n    base = Path(\"notes\").resolve()\n    if not base.is_dir():\n        return 0\n\n    count = 0\n    for name in names:\n        try:\n            target = (base / name).resolve()\n            if target == base or not target.is_relative_to(base):\n                continue\n            if not target.is_file():\n                continue\n            with target.open(\"rb\"):\n                pass\n            count += 1\n        except (ValueError, OSError):\n            continue\n\n    return count\n\n\ndef test_count_readable_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n\n    assert count_readable([]) == 0\n\n\ndef test_count_readable_basic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (notes / \"b.txt\").write_text(\"world\", encoding=\"utf-8\")\n\n    assert count_readable([\"a.txt\", \"b.txt\", \"c.txt\"]) == 2\n\n\ndef test_count_readable_subdirectories(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    sub = notes / \"sub\"\n    sub.mkdir(parents=True)\n    (sub / \"nested.txt\").write_text(\"nested content\", encoding=\"utf-8\")\n\n    assert count_readable([\"sub/nested.txt\"]) == 1\n    # Directory itself should not count as a readable file\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_count_readable_path_traversal_attempts(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"confidential\", encoding=\"utf-8\")\n\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"safe.txt\").write_text(\"safe\", encoding=\"utf-8\")\n\n    traversal_names = [\n        \"../secret.txt\",\n        \"sub/../../secret.txt\",\n        str(secret.resolve()),\n        \"/etc/passwd\",\n        \"safe.txt\",\n    ]\n    # Only safe.txt should be counted\n    assert count_readable(traversal_names) == 1\n\n\ndef test_count_readable_symlink_escape(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"confidential\", encoding=\"utf-8\")\n\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n\n    symlink_path = notes / \"symlink_to_secret.txt\"\n    try:\n        symlink_path.symlink_to(secret)\n    except OSError:\n        pytest.skip(\"Symlinks not supported in this environment\")\n\n    assert count_readable([\"symlink_to_secret.txt\"]) == 0\n\n\ndef test_count_readable_missing_notes_dir(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    # 'notes' directory does not exist\n    assert count_readable([\"a.txt\"]) == 0\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 909,
+    "out": 1566,
+    "reasoning": 768
+   },
+   "out_bytes": 2550,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1744,
+    "out": 5539,
+    "reasoning": 4624
+   },
+   "out_bytes": 3026,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/escape_count_readable",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from pathlib import Path\n\nimport pytest\n\n\ndef count_readable(names: list[str]) -> int:\n    \"\"\"Count how many names refer to readable files strictly inside the 'notes' directory.\"\"\"\n    base = Path(\"notes\").resolve()\n    if not base.is_dir():\n        return 0\n\n    count = 0\n    for name in names:\n        try:\n            target = (base / name).resolve()\n            if target == base or not target.is_relative_to(base):\n                continue\n            if not target.is_file():\n                continue\n            with target.open(\"rb\"):\n                pass\n            count += 1\n        except (ValueError, OSError):\n            continue\n\n    return count\n\n\ndef test_count_readable_empty(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n\n    assert count_readable([]) == 0\n\n\ndef test_count_readable_basic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"a.txt\").write_text(\"hello\", encoding=\"utf-8\")\n    (notes / \"b.txt\").write_text(\"world\", encoding=\"utf-8\")\n\n    assert count_readable([\"a.txt\", \"b.txt\", \"c.txt\"]) == 2\n\n\ndef test_count_readable_subdirectories(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes = tmp_path / \"notes\"\n    sub = notes / \"sub\"\n    sub.mkdir(parents=True)\n    (sub / \"nested.txt\").write_text(\"nested content\", encoding=\"utf-8\")\n\n    assert count_readable([\"sub/nested.txt\"]) == 1\n    # Directory itself should not count as a readable file\n    assert count_readable([\"sub\"]) == 0\n\n\ndef test_count_readable_path_traversal_attempts(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"confidential\", encoding=\"utf-8\")\n\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n    (notes / \"safe.txt\").write_text(\"safe\", encoding=\"utf-8\")\n\n    traversal_names = [\n        \"../secret.txt\",\n        \"sub/../../secret.txt\",\n        str(secret.resolve()),\n        \"/etc/passwd\",\n        \"safe.txt\",\n    ]\n    # Only safe.txt should be counted\n    assert count_readable(traversal_names) == 1\n\n\ndef test_count_readable_symlink_escape(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"confidential\", encoding=\"utf-8\")\n\n    notes = tmp_path / \"notes\"\n    notes.mkdir()\n\n    symlink_path = notes / \"symlink_to_secret.txt\"\n    try:\n        symlink_path.symlink_to(secret)\n    except OSError:\n        pytest.skip(\"Symlinks not supported in this environment\")\n\n    assert count_readable([\"symlink_to_secret.txt\"]) == 0\n\n\ndef test_count_readable_missing_notes_dir(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    # 'notes' directory does not exist\n    assert count_readable([\"a.txt\"]) == 0\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 953,
+   "out": 1515,
+   "reasoning": 524,
+   "out_bytes": 3122
+  },
+  "body": {
+   "in": 1981,
+   "out": 2625,
+   "reasoning": 1513,
+   "out_bytes": 3558
+  }
+ },
+ "final": "from pathlib import Path\n\nimport pytest\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text at request path within 'notes', or an empty string.\n\n    Paths escaping 'notes' (e.g. absolute paths, parent directory traversals)\n    or pointing to non-files, missing files, or unreadable files return an empty string.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n        if not base.is_dir():\n            return \"\"\n        req_path = Path(path)\n        if req_path.is_absolute():\n            return \"\"\n        target = (base / req_path).resolve()\n        if not target.is_relative_to(base) or not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError, ValueError):\n        return \"\"\n\n\ndef test_read_simple_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    (notes_dir / \"intro.txt\").write_text(\"Hello, world!\", encoding=\"utf-8\")\n\n    assert read_public(\"intro.txt\") == \"Hello, world!\"\n\n\ndef test_read_nested_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    sub = tmp_path / \"notes\" / \"sub\"\n    sub.mkdir(parents=True)\n    (sub / \"nested.txt\").write_text(\"Nested content\", encoding=\"utf-8\")\n\n    assert read_public(\"sub/nested.txt\") == \"Nested content\"\n\n\ndef test_path_wanders_and_returns(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    (notes_dir / \"sub\").mkdir(parents=True)\n    (notes_dir / \"target.txt\").write_text(\"Found it\", encoding=\"utf-8\")\n\n    assert read_public(\"sub/../target.txt\") == \"Found it\"\n    assert read_public(\"./target.txt\") == \"Found it\"\n\n\ndef test_escape_via_parent_traversal(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"Confidential\", encoding=\"utf-8\")\n\n    assert read_public(\"../secret.txt\") == \"\"\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n    assert read_public(\"..\") == \"\"\n\n\ndef test_escape_via_absolute_path(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    secret = tmp_path / \"outside.txt\"\n    secret.write_text(\"Hidden\", encoding=\"utf-8\")\n\n    assert read_public(str(secret.resolve())) == \"\"\n\n\ndef test_missing_or_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    sub = notes_dir / \"sub\"\n    sub.mkdir(parents=True)\n\n    assert read_public(\"nonexistent.txt\") == \"\"\n    assert read_public(\"sub\") == \"\"\n    assert read_public(\"\") == \"\"\n    assert read_public(\".\") == \"\"\n\n\ndef test_notes_directory_missing(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert read_public(\"anything.txt\") == \"\"\n\n\ndef test_symlink_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"Classified\", encoding=\"utf-8\")\n\n    leak_link = notes_dir / \"leak.txt\"\n    try:\n        leak_link.symlink_to(secret)\n    except OSError:\n        pytest.skip(\"Symlinks not supported on this platform\")\n\n    assert read_public(\"leak.txt\") == \"\"\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 953,
+    "out": 1515,
+    "reasoning": 524
+   },
+   "out_bytes": 3122,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1981,
+    "out": 2625,
+    "reasoning": 1513
+   },
+   "out_bytes": 3558,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rt_dotdot_forms",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "safety",
+ "first_draft": "from pathlib import Path\n\nimport pytest\n\n\ndef read_public(path: str) -> str:\n    \"\"\"Return the text at request path within 'notes', or an empty string.\n\n    Paths escaping 'notes' (e.g. absolute paths, parent directory traversals)\n    or pointing to non-files, missing files, or unreadable files return an empty string.\n    \"\"\"\n    try:\n        base = Path(\"notes\").resolve()\n        if not base.is_dir():\n            return \"\"\n        req_path = Path(path)\n        if req_path.is_absolute():\n            return \"\"\n        target = (base / req_path).resolve()\n        if not target.is_relative_to(base) or not target.is_file():\n            return \"\"\n        return target.read_text(encoding=\"utf-8\")\n    except (OSError, UnicodeDecodeError, ValueError):\n        return \"\"\n\n\ndef test_read_simple_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    (notes_dir / \"intro.txt\").write_text(\"Hello, world!\", encoding=\"utf-8\")\n\n    assert read_public(\"intro.txt\") == \"Hello, world!\"\n\n\ndef test_read_nested_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    sub = tmp_path / \"notes\" / \"sub\"\n    sub.mkdir(parents=True)\n    (sub / \"nested.txt\").write_text(\"Nested content\", encoding=\"utf-8\")\n\n    assert read_public(\"sub/nested.txt\") == \"Nested content\"\n\n\ndef test_path_wanders_and_returns(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    (notes_dir / \"sub\").mkdir(parents=True)\n    (notes_dir / \"target.txt\").write_text(\"Found it\", encoding=\"utf-8\")\n\n    assert read_public(\"sub/../target.txt\") == \"Found it\"\n    assert read_public(\"./target.txt\") == \"Found it\"\n\n\ndef test_escape_via_parent_traversal(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    (tmp_path / \"secret.txt\").write_text(\"Confidential\", encoding=\"utf-8\")\n\n    assert read_public(\"../secret.txt\") == \"\"\n    assert read_public(\"sub/../../secret.txt\") == \"\"\n    assert read_public(\"..\") == \"\"\n\n\ndef test_escape_via_absolute_path(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    secret = tmp_path / \"outside.txt\"\n    secret.write_text(\"Hidden\", encoding=\"utf-8\")\n\n    assert read_public(str(secret.resolve())) == \"\"\n\n\ndef test_missing_or_directory(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    sub = notes_dir / \"sub\"\n    sub.mkdir(parents=True)\n\n    assert read_public(\"nonexistent.txt\") == \"\"\n    assert read_public(\"sub\") == \"\"\n    assert read_public(\"\") == \"\"\n    assert read_public(\".\") == \"\"\n\n\ndef test_notes_directory_missing(\n    tmp_path: Path, monkeypatch: pytest.MonkeyPatch\n) -> None:\n    monkeypatch.chdir(tmp_path)\n    assert read_public(\"anything.txt\") == \"\"\n\n\ndef test_symlink_escape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:\n    monkeypatch.chdir(tmp_path)\n    notes_dir = tmp_path / \"notes\"\n    notes_dir.mkdir()\n    secret = tmp_path / \"secret.txt\"\n    secret.write_text(\"Classified\", encoding=\"utf-8\")\n\n    leak_link = notes_dir / \"leak.txt\"\n    try:\n        leak_link.symlink_to(secret)\n    except OSError:\n        pytest.skip(\"Symlinks not supported on this platform\")\n\n    assert read_public(\"leak.txt\") == \"\"\n",
+ "primer": "primer.md",
+ "cases": 6,
+ "hidden_first": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 6,
+  "total": 6,
+  "ok": true
+ }
+}

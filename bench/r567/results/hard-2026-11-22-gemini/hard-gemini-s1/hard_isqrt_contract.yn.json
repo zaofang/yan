@@ -1,0 +1,70 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 1662,
+   "out": 1240,
+   "reasoning": 1152,
+   "out_bytes": 181
+  },
+  "body": {
+   "in": 1796,
+   "out": 2441,
+   "reasoning": 2268,
+   "out_bytes": 410
+  }
+ },
+ "final": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and (out + 1) * (out + 1) > n\n  ex isqrt(0) == 0\n  ex isqrt(8) == 2\n  ex isqrt(9) == 3\n  if n == 0\n    0\n  else\n    var low = 1\n    var high = n\n    var ans = 1\n    while low <= high\n      let mid = low + (high - low) // 2\n      if mid <= n // mid\n        ans = mid\n        low = mid + 1\n      else\n        high = mid - 1\n    ans\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 1662,
+    "out": 1240,
+    "reasoning": 1152
+   },
+   "out_bytes": 181,
+   "ok": true,
+   "report": "",
+   "codes": []
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1796,
+    "out": 2441,
+    "reasoning": 2268
+   },
+   "out_bytes": 410,
+   "ok": true,
+   "report": "",
+   "codes": []
+  }
+ ],
+ "schema": 1,
+ "task": "hard/isqrt_contract",
+ "suite": "hard",
+ "arm": "yn",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "contracts",
+ "first_draft": "isqrt(n: int) -> int =\n  pre n >= 0\n  post out >= 0 and out * out <= n and (out + 1) * (out + 1) > n\n  ex isqrt(0) == 0\n  ex isqrt(8) == 2\n  ex isqrt(9) == 3\n  if n == 0\n    0\n  else\n    var low = 1\n    var high = n\n    var ans = 1\n    while low <= high\n      let mid = low + (high - low) // 2\n      if mid <= n // mid\n        ans = mid\n        low = mid + 1\n      else\n        high = mid - 1\n    ans\n",
+ "primer": "primer-yn.md",
+ "cases": 4,
+ "hidden_first": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 4,
+  "total": 4,
+  "ok": true
+ }
+}

@@ -1,0 +1,68 @@
+{
+ "status": "green",
+ "rounds_to_green": 1,
+ "tokens": {
+  "spec": {
+   "in": 875,
+   "out": 1079,
+   "reasoning": 408,
+   "out_bytes": 1312
+  },
+  "body": {
+   "in": 1583,
+   "out": 2112,
+   "reasoning": 1402,
+   "out_bytes": 1393
+  }
+ },
+ "final": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate an 8-bit integer x left by k bits (0 <= k <= 7).\"\"\"\n    k = k % 8\n    x = x & 0xFF\n    return ((x << k) | (x >> (8 - k))) & 0xFF if k else x\n\n\ndef test_rotl8_zero_shift() -> None:\n    assert rotl8(0b10110010, 0) == 0b10110010\n    assert rotl8(0, 0) == 0\n    assert rotl8(255, 0) == 255\n\n\ndef test_rotl8_basic_rotations() -> None:\n    # 0b10000001 rotated left by 1 -> 0b00000011\n    assert rotl8(0b10000001, 1) == 0b00000011\n    # 0b11110000 rotated left by 4 -> 0b00001111\n    assert rotl8(0b11110000, 4) == 0b00001111\n    # 0b10101010 rotated left by 1 -> 0b01010101\n    assert rotl8(0b10101010, 1) == 0b01010101\n    # Single bit rotating from bit 0 to bit 7\n    assert rotl8(1, 7) == 128\n\n\ndef test_rotl8_identity_on_extremes() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(255, k) == 255\n\n\ndef test_rotl8_full_cycle() -> None:\n    val = 0b00010011\n    current = val\n    for _ in range(8):\n        current = rotl8(current, 1)\n    assert current == val\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"k\", \"expected\"),\n    [\n        (0b00000001, 1, 0b00000010),\n        (0b01000000, 2, 0b00000001),\n        (0b11000001, 3, 0b00001110),\n        (0b00111100, 6, 0b00001111),\n    ],\n)\ndef test_rotl8_parametrized(x: int, k: int, expected: int) -> None:\n    assert rotl8(x, k) == expected\n",
+ "rounds": [
+  {
+   "phase": "spec",
+   "round": 0,
+   "usage": {
+    "in": 875,
+    "out": 1079,
+    "reasoning": 408
+   },
+   "out_bytes": 1312,
+   "ok": true,
+   "report": ""
+  },
+  {
+   "phase": "body",
+   "round": 0,
+   "usage": {
+    "in": 1583,
+    "out": 2112,
+    "reasoning": 1402
+   },
+   "out_bytes": 1393,
+   "ok": true,
+   "report": ""
+  }
+ ],
+ "schema": 1,
+ "task": "hard/rotl8",
+ "suite": "hard",
+ "arm": "py",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "bits",
+ "first_draft": "import pytest\n\n\ndef rotl8(x: int, k: int) -> int:\n    \"\"\"Rotate an 8-bit integer x left by k bits (0 <= k <= 7).\"\"\"\n    k = k % 8\n    x = x & 0xFF\n    return ((x << k) | (x >> (8 - k))) & 0xFF if k else x\n\n\ndef test_rotl8_zero_shift() -> None:\n    assert rotl8(0b10110010, 0) == 0b10110010\n    assert rotl8(0, 0) == 0\n    assert rotl8(255, 0) == 255\n\n\ndef test_rotl8_basic_rotations() -> None:\n    # 0b10000001 rotated left by 1 -> 0b00000011\n    assert rotl8(0b10000001, 1) == 0b00000011\n    # 0b11110000 rotated left by 4 -> 0b00001111\n    assert rotl8(0b11110000, 4) == 0b00001111\n    # 0b10101010 rotated left by 1 -> 0b01010101\n    assert rotl8(0b10101010, 1) == 0b01010101\n    # Single bit rotating from bit 0 to bit 7\n    assert rotl8(1, 7) == 128\n\n\ndef test_rotl8_identity_on_extremes() -> None:\n    for k in range(8):\n        assert rotl8(0, k) == 0\n        assert rotl8(255, k) == 255\n\n\ndef test_rotl8_full_cycle() -> None:\n    val = 0b00010011\n    current = val\n    for _ in range(8):\n        current = rotl8(current, 1)\n    assert current == val\n\n\n@pytest.mark.parametrize(\n    (\"x\", \"k\", \"expected\"),\n    [\n        (0b00000001, 1, 0b00000010),\n        (0b01000000, 2, 0b00000001),\n        (0b11000001, 3, 0b00001110),\n        (0b00111100, 6, 0b00001111),\n    ],\n)\ndef test_rotl8_parametrized(x: int, k: int, expected: int) -> None:\n    assert rotl8(x, k) == expected\n",
+ "primer": "primer.md",
+ "cases": 3,
+ "hidden_first": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 3,
+  "total": 3,
+  "ok": true
+ }
+}

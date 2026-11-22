@@ -1,0 +1,95 @@
+{
+ "final": "def add_name(var dst: list[str], s: str):\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s.copy())\n",
+ "model": "openrouter:google/gemini-3.8-flash",
+ "rounds": [
+  {
+   "ok": true,
+   "phase": "spec",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "spec_check"
+    }
+   ],
+   "usage": {
+    "in": 2022,
+    "out": 2278,
+    "reasoning": 2237
+   },
+   "out_bytes": 114
+  },
+  {
+   "ok": true,
+   "phase": "body",
+   "report": null,
+   "round": 0,
+   "tools": [
+    {
+     "codes": [],
+     "tool": "apply_patch"
+    },
+    {
+     "codes": [],
+     "replaced": 0,
+     "tool": "autofix"
+    },
+    {
+     "codes": [],
+     "failed": [],
+     "tool": "run_tests"
+    }
+   ],
+   "usage": {
+    "in": 2128,
+    "out": 392,
+    "reasoning": 344
+   },
+   "out_bytes": 131
+  }
+ ],
+ "rounds_to_green": 1,
+ "schema": 1,
+ "status": "green",
+ "task": "hard/append_copy",
+ "tokens": {
+  "body": {
+   "in": 2128,
+   "out": 392,
+   "reasoning": 344,
+   "out_bytes": 131
+  },
+  "spec": {
+   "in": 2022,
+   "out": 2278,
+   "reasoning": 2237,
+   "out_bytes": 114
+  }
+ },
+ "toolchain": {
+  "hash": "blake3:ea172d16a85a965825cadfa0659bab730aacef88f1d172f841e6f382251f44d7",
+  "version": "0.0.0"
+ },
+ "lowering_candidates": [],
+ "suite": "hard",
+ "arm": "yag",
+ "shots": 5,
+ "decoding": "free",
+ "tokenizer": "provider",
+ "impossible": false,
+ "category": "ownership",
+ "first_draft": "def add_name(var dst: list[str], s: str) -> None:\n    \"\"\"Append a copy of s to dst in place.\"\"\"\n    dst.append(s.copy())\n",
+ "primer": "primer.md",
+ "cases": 1,
+ "hidden_first": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ },
+ "hidden_final": {
+  "passed": 1,
+  "total": 1,
+  "ok": true
+ }
+}
