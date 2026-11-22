@@ -1,0 +1,4 @@
+spec = "18.3"
+rows = ["R16"]
+commands = [["patch", "--format", "json", "patch.json"], ["op", "log"]]
+milestone = "M1"

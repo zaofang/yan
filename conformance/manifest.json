@@ -20277,6 +20277,94 @@
    }
   },
   {
+   "path": "mcp/tc_autofix",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R918"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R918"
+    ],
+    "server": "toolchain",
+    "note": "autofix returns the patch that canonical printing makes to the module",
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "mcp/tc_pack_context",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R918"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R918"
+    ],
+    "server": "toolchain",
+    "note": "pack_context ranks by dependency distance from the items named in the task and stays under the token budget",
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "mcp/tc_search_type",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R918"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R918"
+    ],
+    "server": "toolchain",
+    "note": "a malformed type is a tool error",
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "mcp/tc_undo",
+   "kind": "mcp",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R918"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R918"
+    ],
+    "server": "toolchain",
+    "note": "undo reverts the last applied patch; a second undo with nothing logged is a tool error",
+    "milestone": "M1"
+   }
+  },
+  {
    "path": "cli/fix-remove-ampersand",
    "kind": "cli",
    "milestone": "M1",
@@ -20326,6 +20414,86 @@
      "yag",
      "--format",
      "gbnf"
+    ],
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/op-log",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [
+    "R16"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "rows": [
+     "R16"
+    ],
+    "commands": [
+     [
+      "patch",
+      "--format",
+      "json",
+      "patch.json"
+     ],
+     [
+      "op",
+      "log"
+     ]
+    ],
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/schema-gen",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "11.9"
+   ],
+   "rows": [
+    "R937"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "11.9",
+    "rows": [
+     "R937"
+    ],
+    "command": [
+     "schema",
+     "gen",
+     "trades.parquet"
+    ],
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/skill",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "21.3"
+   ],
+   "rows": [
+    "R289"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.3",
+    "rows": [
+     "R289"
+    ],
+    "command": [
+     "skill"
     ],
     "milestone": "M1"
    }

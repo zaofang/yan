@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R918"]
+server = "toolchain"
+note = "pack_context ranks by dependency distance from the items named in the task and stays under the token budget"
+milestone = "M1"

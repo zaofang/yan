@@ -1,0 +1,2 @@
+{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2026-07-28","serverInfo":{"name":"yan","version":"0.0.0"}}}
+{"id":2,"jsonrpc":"2.0","result":{"content":[{"text":"{\"base\":{\"f\":\"b3:684e7e4686ef206aadd9ff2c86088919feee531323a97c07b2b3594b02e0bc9d\"},\"module\":\"m\",\"replace\":[\"def f(x: int) -> int:\\n    return x\"]}","type":"text"}],"structuredContent":{"patch":{"base":{"f":"b3:684e7e4686ef206aadd9ff2c86088919feee531323a97c07b2b3594b02e0bc9d"},"module":"m","replace":["def f(x: int) -> int:\n    return x"]}}}}

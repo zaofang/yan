@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R918"]
+server = "toolchain"
+note = "autofix returns the patch that canonical printing makes to the module"
+milestone = "M1"
