@@ -1,0 +1,5 @@
+spec = "18.2"
+rows = ["R292"]
+command = ["fix", "m.yag"]
+files = ["m.yag"]
+milestone = "M1"
