@@ -1,0 +1,4 @@
+{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2026-07-28","serverInfo":{"name":"yan","version":"0.0.0"}}}
+{"id":2,"jsonrpc":"2.0","result":{"content":[{"text":"the patch applied","type":"text"}],"structuredContent":{"hashes":{"f":"b3:040df381efefae040e03b99fee6133cd9511b64739f288a1bf6531f2e7c13062"},"ok":true,"written":true}}}
+{"id":3,"jsonrpc":"2.0","result":{"content":[{"text":"reverted 1 operation(s)","type":"text"}],"structuredContent":{"ok":true,"reverted":[{"file":"./m.yag","from":"b3:040df381efefae040e03b99fee6133cd9511b64739f288a1bf6531f2e7c13062","to":"b3:0b33c302eeab63382166b8a0e5789ff906c9dfe4fe35ee3dc2ee872bd9453443"}]}}}
+{"id":4,"jsonrpc":"2.0","result":{"content":[{"text":"cannot undo 1: the log holds 0","type":"text"}],"isError":true}}

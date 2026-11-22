@@ -1,0 +1,6 @@
+# schema blake3:9861658a7cdef6948562050b66f3a4729aa899c71e023d525d23c921e0679ec4
+class TradesRow:
+    id: int
+    price: float | None
+    name: str
+    ok: bool

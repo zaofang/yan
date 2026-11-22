@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R918"]
+server = "toolchain"
+note = "a malformed type is a tool error"
+milestone = "M1"

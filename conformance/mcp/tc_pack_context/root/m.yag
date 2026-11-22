@@ -1,0 +1,23 @@
+def f0() -> int:
+    """d"""
+    return f1()
+
+def f1() -> int:
+    """d"""
+    return f2()
+
+def f2() -> int:
+    """d"""
+    return f3()
+
+def f3() -> int:
+    """d"""
+    return f4()
+
+def f4() -> int:
+    """d"""
+    return f5()
+
+def f5() -> int:
+    """d"""
+    return f6()

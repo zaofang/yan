@@ -1,0 +1,4 @@
+spec = "11.9"
+rows = ["R937"]
+command = ["schema", "gen", "trades.parquet"]
+milestone = "M1"

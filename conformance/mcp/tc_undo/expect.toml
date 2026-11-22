@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R918"]
+server = "toolchain"
+note = "undo reverts the last applied patch; a second undo with nothing logged is a tool error"
+milestone = "M1"
