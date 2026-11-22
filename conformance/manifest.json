@@ -7012,6 +7012,32 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/deadline_scopes_nested.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "3 7 111\n4 -1\n",
+   "exit": 0
+  },
+  {
+   "path": "yag/run/concurrency/deadline_scopes_par.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "9.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "stdout": "30\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/lowest_index_failure.yag",
    "kind": "run",
    "milestone": "M1",

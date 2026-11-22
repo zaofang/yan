@@ -1,0 +1,44 @@
+# spec: 9.4
+# note: nested deadline scopes with non-blocking bodies end on break, return, fail and fall-through, on every backend (RFC 0093 S2b-1)
+# stdout:
+# 3 7 111
+# 4 -1
+
+class Bad:
+    code: int
+
+def inner(t: MonoInstant) -> int fail Timeout uses time:
+    n = 0
+    for i in range(0, 5):
+        with deadline(t + 2 * s):
+            if i == 3:
+                break
+            n = n + i
+    return n
+
+def early(t: MonoInstant) -> int fail Timeout uses time:
+    with deadline(t + 9 * s):
+        with deadline(t + 1 * s):
+            return 7
+    return 0
+
+def nested(t: MonoInstant) -> int fail Timeout uses time:
+    total = 0
+    with deadline(t + 5 * s):
+        total = total + 1
+        with deadline(t + 2 * s):
+            total = total + 10
+        with deadline(t + 9 * s):
+            total = total + 100
+    return total
+
+def failing(t: MonoInstant, x: int) -> int fail Bad | Timeout uses time:
+    with deadline(t + 5 * s):
+        if x < 0:
+            fail Bad(code=x)
+        return x
+
+def main() uses io, time:
+    t = time.monotonic()
+    print(f"{inner(t) else e -> -1} {early(t) else e -> -1} {nested(t) else e -> -1}")
+    print(f"{failing(t, 4) else e -> -1} {failing(t, -4) else e -> -1}")
