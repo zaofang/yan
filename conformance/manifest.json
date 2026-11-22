@@ -20249,6 +20249,94 @@
     ],
     "code": "E201"
    }
+  },
+  {
+   "path": "cli/fix-remove-ampersand",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.2"
+   ],
+   "rows": [
+    "R292"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.2",
+    "rows": [
+     "R292"
+    ],
+    "command": [
+     "fix",
+     "m.yag"
+    ],
+    "files": [
+     "m.yag"
+    ],
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/grammar-yag-gbnf",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "14.3"
+   ],
+   "rows": [
+    "R994"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "14.3",
+    "rows": [
+     "R994"
+    ],
+    "command": [
+     "grammar",
+     "--as",
+     "yag",
+     "--format",
+     "gbnf"
+    ],
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/undo-patch",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.3"
+   ],
+   "rows": [
+    "R16"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.3",
+    "rows": [
+     "R16"
+    ],
+    "commands": [
+     [
+      "patch",
+      "--format",
+      "json",
+      "patch.json"
+     ],
+     [
+      "undo"
+     ]
+    ],
+    "files": [
+     "m.yag"
+    ],
+    "milestone": "M1"
+   }
   }
  ]
 }
