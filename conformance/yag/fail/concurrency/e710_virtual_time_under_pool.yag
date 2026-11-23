@@ -1,0 +1,9 @@
+# spec: 7.3
+# rows: R396
+# note: virtual time advances only at quiescence, which pool lacks
+# expect: E710 at 8:21
+
+def main() uses io, time:
+    with sched = pool():
+        with time = virtual(time.now()):
+            io.print("a")
