@@ -1,21 +1,6 @@
 use super::*;
 
 impl Lower<'_, '_, '_> {
-    /// Whether handler expression `h` of type `ht` implements `Concurrent` (R1003): a std handler
-    /// constructor marked `@concurrent`, or a type with `impl Concurrent`. The opaque `Sched`
-    /// type of any other expression does not.
-    fn handler_concurrent(&self, h: &j::Expr, ht: &Ty) -> bool {
-        if let j::ExprKind::Call(f, _) = &h.kind
-            && let j::ExprKind::Name(n) = &f.kind
-            && let Some(d) = ["sched", "sim", "evented"]
-                .iter()
-                .find_map(|m| crate::stdlib::decl(&format!("std.{m}.{n}")))
-        {
-            return d.concurrent;
-        }
-        self.implements(ht, "Concurrent")
-    }
-
     pub(super) fn stmt_inner(&mut self, s: &j::Stmt) -> R<()> {
         use j::StmtKind as K;
         let at = s.span;
@@ -280,7 +265,7 @@ impl Lower<'_, '_, '_> {
             } => {
                 self.par_waits(b, *concurrent);
                 self.par_shares(b, at);
-                if *concurrent && self.sched_not_concurrent {
+                if *concurrent && self.sched.not_concurrent {
                     self.err(
                         "E708",
                         at,
@@ -442,12 +427,19 @@ impl Lower<'_, '_, '_> {
                     self.expect(&ht, &want, h.span);
                 }
                 self.handlers.push(name.clone());
-                let outer = self.sched_not_concurrent;
+                if name == "time" && self.sched.pool && super::sched::is_call(h, "virtual") {
+                    self.err(
+                        "E710",
+                        h.span,
+                        "`virtual` time advances only at quiescence, which the `pool` scheduler lacks; bind `sequential()` or another quiescent `sched`".into(),
+                    );
+                }
+                let outer = self.sched;
                 if name == "sched" {
-                    self.sched_not_concurrent = !self.handler_concurrent(h, &ht);
+                    self.sched = self.sched_of(h, &ht);
                 }
                 let b = self.block(&body.stmts);
-                self.sched_not_concurrent = outer;
+                self.sched = outer;
                 self.handlers.pop();
                 self.emit(
                     StmtKind::With {

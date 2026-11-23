@@ -1739,3 +1739,22 @@ fn for_over_bytes_lowers_without_diagnostics() {
     let (_, d) = lower(src);
     assert!(d.is_empty(), "{d:?}");
 }
+
+#[test]
+fn virtual_time_under_pool_is_e710() {
+    let src = |sched: &str| {
+        format!(
+            "pub def main() uses io, time:\n    with sched = {sched}:\n        \
+             with time = virtual(time.now()):\n            io.print(\"a\")\n"
+        )
+    };
+    let codes = |s: &str| {
+        lower(&src(s))
+            .1
+            .iter()
+            .map(|d| d.code.clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(codes("pool()"), ["E710"]);
+    assert!(codes("sequential()").is_empty());
+}
