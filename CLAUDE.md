@@ -11,6 +11,16 @@ the previous is red. A PR states which stage it claims.
 
 Laws and gates: [docs/development-laws.md](docs/development-laws.md).
 
+## Issues
+
+Issues are the source of truth for every step and to-do (lead, 2026-11-06; entry #449). On conflict, issues win.
+
+1. Start: link the issue, or create it first. Title starts with the row id; labels `owner:`, `kind:`, `ms:`.
+2. Progress: comment when a PR opens (link it), when blocked (one line, reason), and when scope changes.
+3. Close: the PR body says `Closes #N`; merge closes it. Work that ends without a PR closes `not_planned` with a reason.
+4. New work: every new decision, to-do or follow-up becomes an issue in the turn it is found, with `Depends on #N` lines, added to its milestone tracker. Search open issues for the row id first.
+5. Decisions: `owner:antonio kind:decision`; record the answer and date in a comment, then close.
+
 ## Changing the spec
 
 CASE WITH ROW (lead decision 2026-11-16, #1025; replaces the 2026-11-12 spec freeze, exit met at 59.1
