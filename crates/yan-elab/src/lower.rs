@@ -50,6 +50,7 @@ mod pyfid;
 pub(crate) mod reentrant;
 mod rhs;
 mod scalar;
+mod sched;
 mod std_calls;
 mod stmt_form;
 pub(crate) mod subscript;
@@ -115,7 +116,7 @@ struct Lower<'a, 'c, 's> {
     /// Capabilities bound by an enclosing `with name = handler`.
     handlers: Vec<String>,
     /// The innermost enclosing `with sched = ...` binds a handler that does not implement `Concurrent` (E708).
-    sched_not_concurrent: bool,
+    sched: sched::Ctx,
     /// Each call of a non-`par` callable local, for E716.
     fn_calls: Vec<(String, Span)>,
     /// `k = lambda ...` with no expected type: the target and lambda, lowered at the first call.
@@ -857,7 +858,7 @@ fn function_body_with(
         want_ret: None,
         handlers: Vec::new(),
         // The hosted default handler is `pool`, which is not `Concurrent` (R1003).
-        sched_not_concurrent: f.name == "main",
+        sched: sched::Ctx::of_fn(&f.name),
         fn_calls: Vec::new(),
         pending: HashMap::new(),
         target: None,
