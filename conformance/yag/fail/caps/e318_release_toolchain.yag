@@ -1,0 +1,6 @@
+# spec: 21.4
+# flags: --level release
+# expect: E318 at 5:5
+
+def main() uses io, toolchain:
+    io.print(toolchain.sig("m"))
