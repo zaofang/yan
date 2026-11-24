@@ -1,0 +1,2 @@
+FAIL tests.a.test_fails (proposed) failed: assert failed at tests/a.yag:2: `1 == 2`; left is 1, right is 2 | repro: yan test --only tests.a.test_fails
+1 of 2 tests passed

@@ -1,0 +1,6 @@
+def test_a_scoped() uses fs:
+    with fs = fake_fs({"x.txt": "1"}):
+        assert (fs.read("x.txt") else err -> "missing") == "1"
+
+def test_b_after() uses fs:
+    assert (fs.read("x.txt") else err -> "missing") == "missing"

@@ -2380,3 +2380,8 @@ sections = "18, 19.1, 19.2"
 rows = "R1141"
 topic = "`yan toolchain` reports the installed toolchain and the maximum `yan` requirement over the package and its locked dependencies, E025 when the installed one is older, and fetches nothing; `yan self update` and fetching move to M2b (RFC 0100 D2)"
 sections = "18, 20.3, 25"
+
+[[entry]]
+rows = "R1142 to R1147"
+topic = "test isolation: each test file runs in its own process (R1142); env is the empty fake_env (R1143); no real working directory, relative paths stay inside the in-memory file system (R1144); a fake_fs binding is scoped (R1145); capabilities stop at the package ceiling and no binding crosses tests (R1146); a verdict is independent of which other tests ran (R1147) (#1916, #1911)"
+sections = "18.4"

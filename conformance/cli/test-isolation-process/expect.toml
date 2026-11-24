@@ -1,0 +1,6 @@
+spec = "18.4"
+rows = ["R1142"]
+note = "a failing test in one test file leaves every other file's tests passing"
+commands = [["test", "--no-cache"]]
+exit = 1
+milestone = "M1"

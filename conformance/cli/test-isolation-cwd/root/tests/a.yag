@@ -1,0 +1,3 @@
+def test_relative_path_misses_real_cwd() uses fs:
+    assert (fs.read("real.txt") else err -> "missing") == "missing"
+    assert (fs.read("src/lib.yag") else err -> "missing") == "missing"
