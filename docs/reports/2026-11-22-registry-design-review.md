@@ -20,6 +20,8 @@ The design is coherent and complete enough for M1. Every RFC 0020 decision (D1 t
 
 19.3 "Namespaces and names" binds a DNS namespace through a `_yong` TXT record. `yong` is a retired name (CLAUDE.md practice 15: retired names do not appear outside the archive), and the record name is a protocol constant, so it must be settled before the registry exists. Recommended: `_yan`. This is a spec edit and needs the lead's decision and a lead-owned PR; not made here.
 
+Status 2026-11-24: spec 19.3 now says `_yan` (PR #1891, merged). The lead's decision is still to be recorded in the countersign block.
+
 ### F2: no conformance case cites R635 to R647
 
 At 140beda no case under conformance/ cites any of R635 to R647 (RFC 0020's rows). Later rows (R1075, R1079 and others) cover name resolution, but the dependency kinds, overrides, pre-release rule, Python lock, yank, search snapshot, E016 refusals and the optional lock fields have no case. This is spec debt under practice 16 and counts toward the M1 conformance items (#413, #415, #416, #418). Proposed `conform/*` cases are a lead-gated follow-up.
