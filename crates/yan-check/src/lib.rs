@@ -5,6 +5,7 @@
 
 mod flags;
 mod flow;
+mod graph;
 pub mod own;
 mod post;
 
@@ -103,6 +104,11 @@ fn generic_sends(
 }
 
 pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
+    check_in(file, src, m, false)
+}
+
+/// [`check`] for `--level release` (8.5) when `release` is set.
+pub fn check_in(file: &str, src: &str, m: &Module, release: bool) -> Vec<Diagnostic> {
     let g = Globals::new(m);
     let mut diags = Vec::new();
     let mut callees: HashMap<String, HashSet<String>> = HashMap::new();
@@ -201,6 +207,24 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
         &generic_calls.take(),
         &mut diags,
     );
+    let graph = graph::Graph::new(callees, g.fns.clone());
+    if release {
+        // The platform binds a default handler for each capability `main` reaches (7.3).
+        for f in graph.users(
+            g.fns.contains_key("main").then_some("main"),
+            "toolchain",
+            "Toolchain",
+        ) {
+            diags.push(error(
+                file,
+                src,
+                &format!("{module}.{}", f.path.join(".")),
+                "E318",
+                f.name_span,
+                "a release build never binds `toolchain`, which `main` reaches here".into(),
+            ));
+        }
+    }
     let contracts = has_invariant.get()
         || g.fns.values().any(|f| {
             f.contracts.iter().any(|c| {
@@ -215,7 +239,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
             .contracts
             .iter()
             .any(|c| matches!(c, Contract::Decreases(_)));
-        if !decreases && reaches(&callees, key) {
+        if !decreases && graph.recursive(key) {
             diags.push(error(
                 file,
                 src,
@@ -227,26 +251,6 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
         }
     }
     diags
-}
-
-/// Does a path through the call graph lead from `f` back to `f`?
-fn reaches(callees: &HashMap<String, HashSet<String>>, f: &str) -> bool {
-    let mut seen = HashSet::new();
-    let mut stack: Vec<&str> = callees
-        .get(f)
-        .into_iter()
-        .flatten()
-        .map(String::as_str)
-        .collect();
-    while let Some(g) = stack.pop() {
-        if g == f {
-            return true;
-        }
-        if seen.insert(g) {
-            stack.extend(callees.get(g).into_iter().flatten().map(String::as_str));
-        }
-    }
-    false
 }
 
 /// 5.4: a `drop` body uses no capability except `alloc`, and a `@linear` type has no `Drop`.
