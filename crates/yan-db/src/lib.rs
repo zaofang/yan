@@ -556,7 +556,7 @@ pub fn diagnostics(db: &dyn Db, file: SourceFile) -> Result<Vec<Diagnostic>, Str
         Loaded::Ready(m, _, mut d) => {
             let path = file.path(db).display().to_string();
             d.extend(
-                yan_check::check(&path, file.text(db), &m)
+                yan_check::check_in(&path, file.text(db), &m, Settings::get(db).release(db))
                     .into_iter()
                     .map(|mut x| {
                         // An error in an item copied from a module this one names, which that module's
