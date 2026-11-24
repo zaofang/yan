@@ -419,9 +419,10 @@ def main() -> None:
     a.grammar_py_fenced = fence_python_grammar(a.grammar_py) if a.grammar_py else None
     if a.decoding == "grammar" and "py" in a.arms.split(",") and not a.grammar_py:
         sys.exit("--decoding grammar with the py arm needs --grammar-py")
-    if a.decoding == "grammar" and not a.model.startswith("compat:"):
+    if a.decoding == "grammar" and not a.model.startswith(("compat:", "openrouter:")):
         sys.exit(
-            "constrained decoding needs a server that takes a grammar: use --model compat:URL#MODEL"
+            "constrained decoding needs a grammar-capable endpoint: use --model compat:URL#MODEL "
+            "or openrouter:fireworks-hosted-model"
         )
 
     ts = taskset.select(a.suite.split(","), a.limit, a.seed)
