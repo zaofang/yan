@@ -58,6 +58,6 @@ Name review is a weekly queue the lead reviews (R637), the std and `@yan/*` rebu
 
 Required before audit row 9 moves from Partial to Present.
 
-- [ ] F1 decided: `_yan` / other: ______
-- [ ] F2 to F5 accepted as tracked, or sent back
-- Countersigned by: ______  Date: ______
+- [X] F1 decided: `_yan` / other: ______
+- [X] F2 to F5 accepted as tracked, or sent back
+- Countersigned by: Antonio Braz  Date: 11/24/2026
