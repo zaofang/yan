@@ -8,10 +8,11 @@ As a module it gives the harness the same call for the typed-Python arm.
 Models (the SPEC argument):
   claude:MODEL        the `claude -p` CLI, billed to the session's Anthropic credits; no key needed
   anthropic:MODEL     the Messages API with ANTHROPIC_API_KEY; usage is the provider's own count
-  compat:URL#MODEL    an OpenAI-compatible server (llama.cpp, vLLM). The only vendor that can apply
-                      the GBNF grammar in $R567_GRAMMAR, which the harness sets for constrained runs
+  compat:URL#MODEL    an OpenAI-compatible server (llama.cpp, vLLM); applies the GBNF grammar in
+                      $R567_GRAMMAR, which the harness sets for constrained runs
   openrouter:VENDOR/MODEL  OpenRouter with OPENROUTER_API_KEY. Each call appends its cost to
-                      $R567_LEDGER; calls stop once the ledger reaches $R567_CAP_USD (default 19)
+                      $R567_LEDGER; calls stop once the ledger reaches $R567_CAP_USD (default 19).
+                      Applies $R567_GRAMMAR through response_format type grammar (Fireworks models)
   oracle:DIR[?wrong]  scripted replies from DIR/NAME.yag and DIR/NAME.py, for dry runs (no network)
 
 usage: python model.py SPEC
@@ -132,8 +133,15 @@ class Compat:
 
 
 class OpenRouter:
-    def __init__(self, model: str):
+    """With a grammar, the request sends response_format type grammar and pins the provider named in
+    $R567_PROVIDER (default fireworks) with require_parameters, so an endpoint that ignores the
+    grammar fails the call instead of answering unconstrained."""
+
+    def __init__(self, model: str, grammar_file: str | None = None):
         self.model, self.key = model, os.environ["OPENROUTER_API_KEY"]
+        grammar_file = grammar_file or os.environ.get("R567_GRAMMAR")
+        self.grammar = pathlib.Path(grammar_file).read_text() if grammar_file else None
+        self.provider = os.environ.get("R567_PROVIDER", "fireworks")
         self.ledger = pathlib.Path(os.environ.get("R567_LEDGER", "openrouter-ledger.jsonl"))
         self.cap = float(os.environ.get("R567_CAP_USD", "19"))
         self.temperature = float(os.environ.get("R567_TEMPERATURE", "0.3"))
@@ -161,15 +169,20 @@ class OpenRouter:
         if self.spent() >= self.cap:
             raise RuntimeError(f"spend cap ${self.cap} reached")
         t0 = time.time()
+        body: dict = {
+            "model": self.model, "max_tokens": max_tokens, "temperature": self.temperature,
+            "messages": [{"role": "system", "content": system}, *msgs],
+            "usage": {"include": True},
+        }  # fmt: skip
+        if self.grammar:
+            body["response_format"] = {"type": "grammar", "grammar": self.grammar}
+            body["provider"] = {"only": [self.provider], "require_parameters": True,
+                                "allow_fallbacks": False}  # fmt: skip
         r = self.post_retry(
             "https://openrouter.ai/api/v1/chat/completions",
-            {
-                "model": self.model, "max_tokens": max_tokens, "temperature": self.temperature,
-                "messages": [{"role": "system", "content": system}, *msgs],
-                "usage": {"include": True},
-            },
+            body,
             {"authorization": f"Bearer {self.key}"},
-        )  # fmt: skip
+        )
         if "choices" not in r:
             raise RuntimeError(f"openrouter: {json.dumps(r.get('error', r))[:300]}")
         u = r["usage"]
@@ -216,12 +229,11 @@ class Oracle:
 
 def make(spec: str, grammar_file: str | None = None):
     vendor, _, rest = spec.partition(":")
-    if vendor == "compat":
-        return Compat(rest, grammar_file)
+    if vendor in ("compat", "openrouter"):
+        return {"compat": Compat, "openrouter": OpenRouter}[vendor](rest, grammar_file)
     return {
         "claude": ClaudeCode,
         "anthropic": Anthropic,
-        "openrouter": OpenRouter,
         "oracle": Oracle,
     }[vendor](rest)
 
