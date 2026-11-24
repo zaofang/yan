@@ -1,0 +1,4 @@
+spec = "21.1"
+rows = ["R675"]
+code = "P006"
+note = "an item added under a name a frozen clause uses changes what the clause means (R675)"

@@ -1,0 +1,1 @@
+{"module":"m","replace":["def price(qty: int, unit: int) -> int:\n    pre qty >= 0\n    post out >= 0\n    ex price(2, 3) == 7\n    return qty * unit"]}

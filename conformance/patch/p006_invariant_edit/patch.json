@@ -1,0 +1,1 @@
+{"module":"m","replace":["def total(xs: list[int]) -> int:\n    t = 0\n    for x in xs:\n        invariant t >= -1\n        t += x\n    return t"]}

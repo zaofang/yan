@@ -1,0 +1,1 @@
+{"module":"m","replace":["def count(n: int) -> int:\n    pre n >= 0\n    decreases n + 1\n    if n == 0:\n        return 0\n    return count(n - 1)"]}
