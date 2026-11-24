@@ -28,6 +28,7 @@ mod log;
 mod math;
 mod moves;
 mod mutex;
+mod once;
 mod ordering;
 mod path;
 mod pattern;
@@ -1202,6 +1203,8 @@ impl<'a, 'm> Fn<'a, 'm> {
                 | Shape::Ref(_)
                 | Shape::Atomic(_)
                 | Shape::Mutex(_)
+                | Shape::Once(_)
+                | Shape::Lazy(_)
                 | Shape::Guard(_)
                 | Shape::Actor(_),
                 1,

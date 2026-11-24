@@ -46,6 +46,10 @@ pub enum Shape {
     Atomic(Ty),
     /// A `Mutex[T]`: a block whose word 0 is the lock flag and whose words from 1 hold `T`.
     Mutex(Box<Shape>),
+    /// A `Once[T]`: a block whose word 0 is the state and whose words from 1 hold `T`.
+    Once(Box<Shape>),
+    /// A `Lazy[T]`: a block of the state, the initializer's code and environment, then `T`.
+    Lazy(Box<Shape>),
     /// A `MutexGuard[T]`: the address of its mutex's block; dropping it clears the flag.
     Guard(Box<Shape>),
     /// A `set`: a `yan_rt::map` block whose entries are keys with no value slots.
@@ -109,6 +113,8 @@ impl Shape {
             | Shape::Ref(_)
             | Shape::Atomic(_)
             | Shape::Mutex(_)
+            | Shape::Once(_)
+            | Shape::Lazy(_)
             | Shape::Guard(_)
             | Shape::Set(_)
             | Shape::Boxed(_) => out.push(Ty::Ptr),
@@ -397,6 +403,12 @@ impl Types<'_> {
                     }
                     ("Mutex", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Mutex(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("Once", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Once(Box::new(self.shape_in(e, stack)?)));
+                    }
+                    ("Lazy", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
+                        return Ok(Shape::Lazy(Box::new(self.shape_in(e, stack)?)));
                     }
                     ("MutexGuard", [y::TArg::Type(e)]) if !self.recs.contains_key(name) => {
                         return Ok(Shape::Guard(Box::new(self.shape_in(e, stack)?)));

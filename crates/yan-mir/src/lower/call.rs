@@ -313,6 +313,9 @@ impl<'a, 'm> Fn<'a, 'm> {
         if super::mutex::MUTEX_IDS.contains(&id) {
             return self.mutex_call(id, c, dst);
         }
+        if super::once::ONCE_IDS.contains(&id) {
+            return self.once_call(id, c, dst);
+        }
         if super::sync::ATOMIC_IDS.contains(&id) {
             return self.atomic_call(id, c, dst);
         }

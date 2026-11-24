@@ -7228,6 +7228,22 @@
    "exit": 0
   },
   {
+   "path": "yag/run/concurrency/once_lazy.yag",
+   "kind": "run",
+   "milestone": "M1",
+   "spec": [
+    "6.3",
+    "17.1"
+   ],
+   "rows": [
+    "R393"
+   ],
+   "flags": [],
+   "expect": [],
+   "stdout": "None\n7\n7\n7\n42\n42\n",
+   "exit": 0
+  },
+  {
    "path": "yag/run/concurrency/par_concurrent_channel_progress.yag",
    "kind": "run",
    "milestone": "M2a",

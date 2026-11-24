@@ -1,0 +1,9 @@
+"""Lazy: a value computed by its initializer on first `force` (6.3, R393)."""
+
+@intrinsic
+@since("1.0")
+pub def Lazy[T](f: Callable[[], T]) -> Lazy[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def force[T](self: Lazy[T]) -> T from self: ...

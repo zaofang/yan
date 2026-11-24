@@ -247,6 +247,30 @@ impl Lower<'_, '_, '_> {
                 );
                 Ok((Rhs::Call(c), Ty::Coll("Atomic", vec![t]), None))
             }
+            j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if (n == "Once" || n == "Lazy") && !self.value_bound(n)) =>
+            {
+                let j::ExprKind::Name(cn) = &b.kind else {
+                    unreachable!("matched")
+                };
+                let (cn, once) = (if cn == "Once" { "Once" } else { "Lazy" }, cn == "Once");
+                let Some(named) = self.type_expr(k) else {
+                    return unsupported("`Once` or `Lazy` of a type that is not a type expression");
+                };
+                let t = self.g.ty(&named, self.cx, k.span)?;
+                let Some(xs) = self.positional(args, usize::from(!once), cn, at)? else {
+                    return Ok((Rhs::Atom(Atom::Lit(Literal::Unit, at)), Ty::Err, None));
+                };
+                let (path, vals) = if once {
+                    ("std.sync.once.Once", Vec::new())
+                } else {
+                    let want = Ty::Fn(false, Vec::new(), Box::new(t.clone()));
+                    let (f, ft) = self.atom(xs[0], Some(&want))?;
+                    self.expect(&ft, &want, xs[0].span);
+                    ("std.sync.lazy.Lazy", vec![sink_arg(f)])
+                };
+                let c = call(path, vec![t.targ()], vals, at);
+                Ok((Rhs::Call(c), Ty::Coll(cn, vec![t]), None))
+            }
             j::ExprKind::Index(b, k) if matches!(&b.kind, j::ExprKind::Name(n) if n == "Mutex" && !self.value_bound(n)) =>
             {
                 let Some(named) = self.type_expr(k) else {

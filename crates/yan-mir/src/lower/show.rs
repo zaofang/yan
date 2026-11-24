@@ -49,7 +49,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Actor(_) => return unsupported("`show` of an actor handle"),
             Shape::Arena | Shape::Ref(_) => return unsupported("`show` of an arena or a `Ref`"),
             Shape::Atomic(_) => return unsupported("`show` of an `Atomic`"),
-            Shape::Mutex(_) | Shape::Guard(_) => {
+            Shape::Mutex(_) | Shape::Once(_) | Shape::Lazy(_) | Shape::Guard(_) => {
                 return unsupported("`show` of a `Mutex` or a `MutexGuard`");
             }
             Shape::Set(k) => self.show_set(v[0].clone(), k)?,
@@ -485,7 +485,7 @@ impl<'a, 'm> Fn<'a, 'm> {
             Shape::Actor(_) => return unsupported("a copy of an actor handle"),
             Shape::Arena => return unsupported("a copy of an arena"),
             Shape::Atomic(_) => return unsupported("a copy of an `Atomic`"),
-            Shape::Mutex(_) | Shape::Guard(_) => {
+            Shape::Mutex(_) | Shape::Once(_) | Shape::Lazy(_) | Shape::Guard(_) => {
                 return unsupported("a copy of a `Mutex` or a `MutexGuard`");
             }
         })

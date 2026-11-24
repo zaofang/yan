@@ -110,6 +110,8 @@ pub fn layout(s: &Shape) -> Layout {
         | Shape::Ref(_)
         | Shape::Atomic(_)
         | Shape::Mutex(_)
+        | Shape::Once(_)
+        | Shape::Lazy(_)
         | Shape::Guard(_)
         | Shape::Set(_)
         | Shape::Boxed(_) => plain(8, 8),

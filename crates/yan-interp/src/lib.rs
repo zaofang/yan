@@ -37,6 +37,7 @@ mod math;
 mod meta;
 mod native;
 mod net;
+mod once;
 mod path;
 mod prelude;
 mod proc;
@@ -285,6 +286,7 @@ fn stage0_here(m: &Module, f: &str, limits: Limits) -> R<Stage0> {
             woken: Vec::new(),
             atom_tys: Vec::new(),
             mutexes: Vec::new(),
+            onces: Vec::new(),
             actors: Vec::new(),
             sups: Default::default(),
             actor_waits: Vec::new(),
@@ -452,6 +454,8 @@ pub(crate) struct Interp<'o> {
     /// Each `Mutex`, by mutex: its value and whether a guard holds it (6.3). A cooperative task
     /// never waits on a lock (R395), so a lock found held is a deadlock.
     mutexes: Vec<(Value, bool)>,
+    /// Each `Once` and `Lazy`, by cell: the value once set, and a `Lazy`'s pending initializer (6.3).
+    onces: Vec<(Option<Value>, Option<Value>)>,
     /// Each actor, by actor (9.6).
     actors: Vec<sync::Actor>,
     /// Every supervisor and the open `with supervisor` scopes (9.6).
@@ -923,6 +927,7 @@ fn entry(
         woken: Vec::new(),
         atom_tys: Vec::new(),
         mutexes: Vec::new(),
+        onces: Vec::new(),
         actors: Vec::new(),
         sups: Default::default(),
         actor_waits: Vec::new(),
