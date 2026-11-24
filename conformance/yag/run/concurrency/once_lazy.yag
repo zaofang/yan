@@ -1,0 +1,19 @@
+# spec: 6.3, 17.1
+# rows: R393
+# note: Once.get_or_init runs the first initializer only and later calls return the stored value; Lazy runs its initializer on the first force (#1899)
+# stdout:
+# None
+# 7
+# 7
+# 7
+# 42
+# 42
+def main() uses io:
+    o = Once[int]()
+    print(o.get())
+    print(o.get_or_init(lambda: 7))
+    print(o.get_or_init(lambda: 9))
+    print(o.get())
+    l = Lazy[int](lambda: 42)
+    print(l.force())
+    print(l.force())

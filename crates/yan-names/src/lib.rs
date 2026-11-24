@@ -63,6 +63,8 @@ pub const TYPES: &[TypeName] = &[
     row("Atomic", "Atomic", "Atomic", 1),
     row("Mutex", "Mutex", "Mutex", 1),
     row("MutexGuard", "MutexGuard", "MutexGuard", 1),
+    row("Once", "Once", "Once", 1),
+    row("Lazy", "Lazy", "Lazy", 1),
     row("Sender", "Sender", "Sender", 1),
     row("Receiver", "Receiver", "Receiver", 1),
     row("Actor", "Actor", "Actor", 2),

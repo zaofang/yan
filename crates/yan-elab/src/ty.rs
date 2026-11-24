@@ -52,7 +52,7 @@ pub enum Ty {
 }
 
 /// Each std.collections type, by its Yan Agent name; its Yan Core name is in the projection table.
-pub const COLLECTIONS: [&str; 40] = [
+pub const COLLECTIONS: [&str; 42] = [
     "deque",
     "iter",
     "heap",
@@ -82,6 +82,8 @@ pub const COLLECTIONS: [&str; 40] = [
     "Atomic",
     "Mutex",
     "MutexGuard",
+    "Once",
+    "Lazy",
     "Sender",
     "Receiver",
     "Actor",
@@ -318,6 +320,8 @@ impl Ty {
             Ty::Coll("Atomic", _) => Some("sync.atomic"),
             Ty::Coll("Mutex", _) => Some("sync.mutex"),
             Ty::Coll("MutexGuard", _) => Some("sync.mutex.guard"),
+            Ty::Coll("Once", _) => Some("sync.once"),
+            Ty::Coll("Lazy", _) => Some("sync.lazy"),
             Ty::Coll("Sender", _) => Some("chan.sender"),
             Ty::Coll("Receiver", _) => Some("chan.receiver"),
             Ty::Coll("Actor" | "SendOnly" | "Undelivered", _) => Some("actor"),

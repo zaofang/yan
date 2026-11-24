@@ -2351,6 +2351,8 @@ fn wire(t: &Ty) -> bool {
                 "Rc" | "Arc"
                     | "Cell"
                     | "Atomic"
+                    | "Once"
+                    | "Lazy"
                     | "Sender"
                     | "Receiver"
                     | "Group"

@@ -1,0 +1,14 @@
+"""Once: a value initialized at most once, on first use (6.3, R393). The initializer of a `Once`
+reachable from several tasks may use only `alloc` (E714)."""
+
+@intrinsic
+@since("1.0")
+pub def Once[T]() -> Once[T]: ...
+
+@intrinsic
+@since("1.0")
+pub def get_or_init[T](self: Once[T], f: Callable[[], T]) -> T from self: ...
+
+@intrinsic
+@since("1.0")
+pub def get[T](self: Once[T]) -> T | None from self: ...

@@ -50,7 +50,7 @@ fn walk(parts: Components, t: &Type, open: &mut Vec<String>) -> AutoTraits {
                     sync: false,
                     ..args
                 },
-                Some("Mutex") => AutoTraits {
+                Some("Mutex" | "Once" | "Lazy") => AutoTraits {
                     send: args.send,
                     sync: args.send,
                 },

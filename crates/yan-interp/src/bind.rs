@@ -36,7 +36,10 @@ static VM: LazyLock<Vec<(Id, Bind)>> = LazyLock::new(|| {
     let keyed = crate::keyed::IDS
         .iter()
         .map(|&id| (id, Bind::Vm(|vm, id, a| vm.keyed_call(id, a))));
-    iter.chain(keyed).collect()
+    let once = crate::once::IDS
+        .iter()
+        .map(|&id| (id, Bind::Vm(|vm, id, a| vm.once_call(id, a))));
+    iter.chain(keyed).chain(once).collect()
 });
 
 static TABLE: LazyLock<Vec<Option<Bind>>> = LazyLock::new(|| {
