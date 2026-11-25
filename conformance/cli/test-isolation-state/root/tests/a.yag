@@ -1,0 +1,6 @@
+def test_a_uses_scope() uses env:
+    with env = fake_env(vars={"K": "1"}):
+        assert env.var("K") == Some("1")
+
+def test_b_sees_none() uses env:
+    assert env.var("K") == None

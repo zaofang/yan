@@ -1,0 +1,6 @@
+spec = "18.4"
+rows = ["R1145"]
+note = "a fake_fs bound in one test is not seen by the next test"
+commands = [["test", "--no-cache"]]
+exit = 0
+milestone = "M1"

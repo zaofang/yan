@@ -1,0 +1,2 @@
+E314 ./tests/a.yag:1:26 test_needs_fs: `fs` `fs` is outside the package's capability ceiling
+1 of 1 tests passed

@@ -1,0 +1,6 @@
+spec = "18.4"
+rows = ["R1143"]
+note = "a test sees the empty fake_env, not the real environment; a binding in one test is gone in the next"
+commands = [["test", "--no-cache"]]
+exit = 0
+milestone = "M1"

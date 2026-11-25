@@ -1,0 +1,10 @@
+def test_a_default_is_empty() uses env:
+    assert env.var("HOME") == None
+    assert env.vars() == {}
+
+def test_b_binds() uses env:
+    with env = fake_env(vars={"K": "1"}):
+        assert env.var("K") == Some("1")
+
+def test_c_after_binding() uses env:
+    assert env.var("K") == None

@@ -1,0 +1,2 @@
+def test_needs_fs() uses fs:
+    assert (fs.read("x") else err -> "missing") == "missing"

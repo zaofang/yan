@@ -1,0 +1,6 @@
+spec = "18.4"
+rows = ["R1144"]
+note = "the test file system has no working directory of the real process: relative paths miss its files"
+commands = [["test", "--no-cache"]]
+exit = 0
+milestone = "M1"

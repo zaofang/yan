@@ -1,0 +1,6 @@
+spec = "18.4"
+rows = ["R1146"]
+note = "a test holds no capability beyond the package ceiling (E314) and the tests of other files are unaffected"
+commands = [["test", "--no-cache"]]
+exit = 1
+milestone = "M1"

@@ -20735,6 +20735,180 @@
    }
   },
   {
+   "path": "cli/test-isolation-caps",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1146"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1146"
+    ],
+    "note": "a test holds no capability beyond the package ceiling (E314) and the tests of other files are unaffected",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ]
+    ],
+    "exit": 1,
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/test-isolation-cwd",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1144"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1144"
+    ],
+    "note": "the test file system has no working directory of the real process: relative paths miss its files",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ]
+    ],
+    "exit": 0,
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/test-isolation-env",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1143"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1143"
+    ],
+    "note": "a test sees the empty fake_env, not the real environment; a binding in one test is gone in the next",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ]
+    ],
+    "exit": 0,
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/test-isolation-fs",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1145"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1145"
+    ],
+    "note": "a fake_fs bound in one test is not seen by the next test",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ]
+    ],
+    "exit": 0,
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/test-isolation-process",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1142"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1142"
+    ],
+    "note": "a failing test in one test file leaves every other file's tests passing",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ]
+    ],
+    "exit": 1,
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/test-isolation-state",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "18.4"
+   ],
+   "rows": [
+    "R1147"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "18.4",
+    "rows": [
+     "R1147"
+    ],
+    "note": "a test verdict does not depend on which other tests ran: the full run and a run of one test agree",
+    "commands": [
+     [
+      "test",
+      "--no-cache"
+     ],
+     [
+      "test",
+      "--only",
+      "tests.a.test_b_sees_none",
+      "--no-cache"
+     ]
+    ],
+    "exit": 0,
+    "milestone": "M1"
+   }
+  },
+  {
    "path": "cli/undo-patch",
    "kind": "cli",
    "milestone": "M1",

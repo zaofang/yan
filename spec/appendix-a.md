@@ -483,6 +483,7 @@ Every v0.3 change row and resolved SPEC\_QUESTION now lives in the body. `archiv
 | R1139 | a method signature of a trait or impl inherits the visibility of its trait or type: it is public when the trait or the implementing type is `pub`, and R1134 applies to it, so a `pkg` or private item there is E336 (RFC 0084 D3) | 3.5, 25 |
 | R1140 | `bins` maps a tool name to a module path under `src/`; `yan x PKG TOOL [-- ARGS]` runs that module's `main` for a locked `tools` package under that package's own ceiling, and fails listing the valid names when PKG or TOOL is not declared; `--format json` checks the tool under its ceiling and prints the diagnostic records without running it (RFC 0100 D1) | 18, 19.1, 19.2 |
 | R1141 | `yan toolchain` reports the installed toolchain and the maximum `yan` requirement over the package and its locked dependencies, E025 when the installed one is older, and fetches nothing; `yan self update` and fetching move to M2b (RFC 0100 D2) | 18, 20.3, 25 |
+| R1142 to R1147 | test isolation: each test file runs in its own process (R1142); env is the empty fake_env (R1143); no real working directory, relative paths stay inside the in-memory file system (R1144); a fake_fs binding is scoped (R1145); capabilities stop at the package ceiling and no binding crosses tests (R1146); a verdict is independent of which other tests ran (R1147) (#1916, #1911) | 18.4 |
 
 <!-- /rows -->
 
