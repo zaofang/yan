@@ -1,0 +1,4 @@
+spec = "21.1"
+rows = ["R300"]
+code = "P006"
+note = "post clauses are frozen"

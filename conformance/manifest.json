@@ -17773,6 +17773,153 @@
    }
   },
   {
+   "path": "patch/p006_contract_item_delete",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "deleting an item removes its frozen clauses"
+   }
+  },
+  {
+   "path": "patch/p006_decreases_edit",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "decreases clauses are frozen"
+   }
+  },
+  {
+   "path": "patch/p006_ex_edit",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "ex clauses are frozen"
+   }
+  },
+  {
+   "path": "patch/p006_frozen_meaning",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R675"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R675"
+    ],
+    "code": "P006",
+    "note": "an item added under a name a frozen clause uses changes what the clause means (R675)"
+   }
+  },
+  {
+   "path": "patch/p006_invariant_edit",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "invariant clauses are frozen"
+   }
+  },
+  {
+   "path": "patch/p006_post_edit",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "post clauses are frozen"
+   }
+  },
+  {
+   "path": "patch/p006_test_delete",
+   "kind": "patch",
+   "milestone": "M1",
+   "spec": [
+    "21.1"
+   ],
+   "rows": [
+    "R300"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.1",
+    "rows": [
+     "R300"
+    ],
+    "code": "P006",
+    "note": "deleting a test function is a change to it"
+   }
+  },
+  {
    "path": "patch/p006_test_replace",
    "kind": "patch",
    "milestone": "M1",

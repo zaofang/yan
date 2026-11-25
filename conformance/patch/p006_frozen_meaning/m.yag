@@ -1,0 +1,22 @@
+def price(qty: int, unit: int) -> int:
+    pre qty >= 0
+    post out >= abs(0)
+    ex price(2, 3) == 6
+    return qty * unit
+
+def count(n: int) -> int:
+    pre n >= 0
+    decreases n
+    if n == 0:
+        return 0
+    return count(n - 1)
+
+def total(xs: list[int]) -> int:
+    t = 0
+    for x in xs:
+        invariant t >= 0
+        t += x
+    return t
+
+def test_price():
+    assert price(2, 3) == 6
