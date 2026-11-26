@@ -13587,6 +13587,25 @@
    ]
   },
   {
+   "path": "yn/fail/kernel/e320_kernel_calls_recursive.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.1"
+   ],
+   "rows": [
+    "R320"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E320",
+     "line": 11,
+     "col": 1
+    }
+   ]
+  },
+  {
    "path": "yn/fail/kernel/e521_partial_tile.yn",
    "kind": "fail",
    "milestone": "M3",

@@ -27,6 +27,7 @@ mod kernel;
 mod lower;
 pub mod marks;
 mod package;
+mod profile;
 mod reify;
 mod s0caps;
 mod session;
@@ -993,6 +994,7 @@ pub fn elaborate_pkg(
             });
         }
     }
+    profile::check(&m.items, &mut cx);
     items.extend(stdlib::lower(&g, &std_fns)?);
     items.extend(g.generated.take());
     for it in &m.items {

@@ -435,39 +435,43 @@ fn deny(it: &j::Item, module: &[j::Decorator], item: &str, start: usize, cx: &mu
     }
 }
 
-/// E900: every expression that allocates in a function marked `@forbid(alloc)` (5.7, R447).
-fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
-    forbid(it, cx, "alloc", |x| {
-        use j::ExprKind as K;
-        matches!(
-            x.kind,
-            K::List(_) | K::Set(_) | K::Dict(_) | K::Comp { .. } | K::FStr { .. }
-        )
-    });
+/// An expression that allocates (5.7, R447).
+pub(crate) fn allocates(x: &j::Expr) -> bool {
+    use j::ExprKind as K;
+    matches!(
+        x.kind,
+        K::List(_) | K::Set(_) | K::Dict(_) | K::Comp { .. } | K::FStr { .. }
+    )
 }
 
-/// E900: every `Rc` or `Arc` count operation in a function marked `@forbid(rc)`: construction
-/// and `share` (5.7, R447). Not transitive; the profile check owns the call graph.
-fn forbid_rc(it: &j::Item, cx: &mut Cx) {
-    forbid(it, cx, "rc", |x| {
-        let j::ExprKind::Call(c, _) = &x.kind else {
-            return false;
-        };
-        let counted = |n: &str| matches!(n, "Rc" | "Arc");
-        match &c.kind {
-            j::ExprKind::Name(n) => counted(n),
-            j::ExprKind::Attr(b, m, _) => {
-                m == "share" || matches!(&b.kind, j::ExprKind::Name(n) if counted(n))
-            }
-            _ => false,
-        }
-    });
-}
-
-fn forbid(it: &j::Item, cx: &mut Cx, what: &str, hit: impl Fn(&j::Expr) -> bool) {
-    let j::ItemKind::Func(f) = &it.kind else {
-        return;
+/// An `Rc` or `Arc` count operation: construction and `share` (5.7, R447).
+pub(crate) fn counts_rc(x: &j::Expr) -> bool {
+    let j::ExprKind::Call(c, _) = &x.kind else {
+        return false;
     };
+    let counted = |n: &str| matches!(n, "Rc" | "Arc");
+    match &c.kind {
+        j::ExprKind::Name(n) => counted(n),
+        j::ExprKind::Attr(b, m, _) => {
+            m == "share" || matches!(&b.kind, j::ExprKind::Name(n) if counted(n))
+        }
+        _ => false,
+    }
+}
+
+/// E900: every expression that allocates in a function marked `@forbid(alloc)`. Not transitive;
+/// the profile check owns the call graph.
+fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
+    forbid(it, cx, "alloc", allocates);
+}
+
+/// E900: every `Rc` or `Arc` count operation in a function marked `@forbid(rc)`.
+fn forbid_rc(it: &j::Item, cx: &mut Cx) {
+    forbid(it, cx, "rc", counts_rc);
+}
+
+/// Every expression of `f`'s body satisfying `hit`, in source order.
+pub(crate) fn find(f: &j::FuncDef, hit: impl Fn(&j::Expr) -> bool) -> Vec<&j::Expr> {
     let mut found = Vec::new();
     let mut stack: Vec<&[j::Stmt]> = f.body.iter().map(|b| b.stmts.as_slice()).collect();
     while let Some(stmts) = stack.pop() {
@@ -475,14 +479,22 @@ fn forbid(it: &j::Item, cx: &mut Cx, what: &str, hit: impl Fn(&j::Expr) -> bool)
             for e in lower::stmt_exprs(s) {
                 lower::walk(e, &mut |x| {
                     if hit(x) {
-                        found.push(x.span);
+                        found.push(x);
                     }
                 });
             }
             stack.extend(lower::sub_blocks(s));
         }
     }
-    found.sort_by_key(|s| (s.line, s.col));
+    found.sort_by_key(|x| (x.span.line, x.span.col));
+    found
+}
+
+fn forbid(it: &j::Item, cx: &mut Cx, what: &str, hit: impl Fn(&j::Expr) -> bool) {
+    let j::ItemKind::Func(f) = &it.kind else {
+        return;
+    };
+    let found: Vec<Span> = find(f, hit).into_iter().map(|x| x.span).collect();
     for at in found {
         let msg = match what {
             "alloc" => format!("`{}` is `@forbid(alloc)` and this allocates", f.name),
