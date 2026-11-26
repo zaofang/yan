@@ -20664,6 +20664,34 @@
    }
   },
   {
+   "path": "cli/build-release-toolchain",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R16"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R16"
+    ],
+    "command": [
+     "build",
+     "--release",
+     "-o",
+     "out",
+     "m.yag"
+    ],
+    "exit": 1,
+    "milestone": "M1"
+   }
+  },
+  {
    "path": "cli/fix-remove-ampersand",
    "kind": "cli",
    "milestone": "M1",

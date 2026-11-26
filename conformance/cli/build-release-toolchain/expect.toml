@@ -1,0 +1,5 @@
+spec = "21.4"
+rows = ["R16"]
+command = ["build", "--release", "-o", "out", "m.yag"]
+exit = 1
+milestone = "M1"
