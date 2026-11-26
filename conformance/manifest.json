@@ -14837,6 +14837,25 @@
    ]
   },
   {
+   "path": "yn/fail/unsafe/e900_forbid_rc.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "5.7"
+   ],
+   "rows": [
+    "R447"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E900",
+     "line": 7,
+     "col": 3
+    }
+   ]
+  },
+  {
    "path": "yn/fail/unsafe/e901_unsafe_fn_outside_ffi.yn",
    "kind": "fail",
    "milestone": "M3",
