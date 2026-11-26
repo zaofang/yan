@@ -472,6 +472,9 @@ enum Command {
         strict: bool,
         #[arg(long)]
         level: Option<String>,
+        /// Release build (18.1); same as `--level release`.
+        #[arg(long)]
+        release: bool,
         /// Build twice in separate roots and fail on any byte difference (E010).
         #[arg(long)]
         verify: bool,
@@ -664,13 +667,14 @@ fn main() -> ExitCode {
             file,
             strict,
             level,
+            release,
             verify,
             output,
         } => build::run(
             &file,
             &output,
             verify,
-            Database::new(strict, level.as_deref() == Some("release")),
+            Database::new(strict, release || level.as_deref() == Some("release")),
         ),
         Command::Test {
             format,
