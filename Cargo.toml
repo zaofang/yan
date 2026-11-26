@@ -36,6 +36,7 @@ egg = { version = "0.11", default-features = false, features = ["deterministic"]
 yan-core = { path = "crates/yan-core" }
 yan-diag = { path = "crates/yan-diag" }
 yan-interp = { path = "crates/yan-interp" }
+yan-callgraph = { path = "crates/yan-callgraph" }
 yan-check = { path = "crates/yan-check" }
 yan-std = { path = "crates/yan-std" }
 yan-rt = { path = "crates/yan-rt" }

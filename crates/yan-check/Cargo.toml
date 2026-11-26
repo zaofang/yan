@@ -8,6 +8,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+yan-callgraph.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true
 yan-flow.workspace = true
