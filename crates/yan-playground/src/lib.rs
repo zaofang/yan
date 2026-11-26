@@ -178,7 +178,10 @@ mod tests {
                 .unwrap()
                 .contains("std.io.print")
         );
-        assert!(v["views"]["yn"]["error"].is_string());
+        assert_eq!(
+            v["views"]["yn"]["text"],
+            "pub main() uses io = io.print(\"hello, world\")\n"
+        );
     }
 
     #[test]
