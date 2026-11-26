@@ -12273,7 +12273,7 @@
    "expect": [
     {
      "code": "E316",
-     "line": 9,
+     "line": 11,
      "col": 31
     }
    ]
@@ -13603,6 +13603,25 @@
      "code": "E315",
      "line": 14,
      "col": 3
+    }
+   ]
+  },
+  {
+   "path": "yn/fail/kernel/e320_kernel_calls_recursive.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "17.1"
+   ],
+   "rows": [
+    "R320"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E320",
+     "line": 11,
+     "col": 1
     }
    ]
   },

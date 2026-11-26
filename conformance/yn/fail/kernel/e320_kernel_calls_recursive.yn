@@ -1,0 +1,16 @@
+-- spec: 17.1
+-- rows: R320
+-- note: the kernel profile follows calls; the recursion is in a callee, so the kernel is named
+-- expect: E320 at 11:1
+
+spin(x: float) -> float =
+  spin(x)
+
+@kernel(tile: 8, 8)
+@access(a: elementwise, out: elementwise)
+scale(at: TileOrigin, a: Array[64, 64, float]) -> Array[64, 64, float] =
+  for i in range(0, 8)
+    for j in range(0, 8)
+      out[at.i0 + i, at.i1 + j] = spin(a[at.i0 + i, at.i1 + j])
+
+main() = 0
