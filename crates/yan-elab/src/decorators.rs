@@ -233,7 +233,11 @@ pub(crate) fn check(
                             kind: j::ExprKind::Name(n),
                             ..
                         }) if n == "alloc" => forbid_alloc(it, cx),
-                        _ => return unsupported("`@forbid` other than `alloc`"),
+                        j::ArgKind::Expr(j::Expr {
+                            kind: j::ExprKind::Name(n),
+                            ..
+                        }) if n == "rc" => forbid_rc(it, cx),
+                        _ => return unsupported("`@forbid` other than `alloc` and `rc`"),
                     }
                 }
             }
@@ -433,6 +437,34 @@ fn deny(it: &j::Item, module: &[j::Decorator], item: &str, start: usize, cx: &mu
 
 /// E900: every expression that allocates in a function marked `@forbid(alloc)` (5.7, R447).
 fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
+    forbid(it, cx, "alloc", |x| {
+        use j::ExprKind as K;
+        matches!(
+            x.kind,
+            K::List(_) | K::Set(_) | K::Dict(_) | K::Comp { .. } | K::FStr { .. }
+        )
+    });
+}
+
+/// E900: every `Rc` or `Arc` count operation in a function marked `@forbid(rc)`: construction
+/// and `share` (5.7, R447). Not transitive; the profile check owns the call graph.
+fn forbid_rc(it: &j::Item, cx: &mut Cx) {
+    forbid(it, cx, "rc", |x| {
+        let j::ExprKind::Call(c, _) = &x.kind else {
+            return false;
+        };
+        let counted = |n: &str| matches!(n, "Rc" | "Arc");
+        match &c.kind {
+            j::ExprKind::Name(n) => counted(n),
+            j::ExprKind::Attr(b, m, _) => {
+                m == "share" || matches!(&b.kind, j::ExprKind::Name(n) if counted(n))
+            }
+            _ => false,
+        }
+    });
+}
+
+fn forbid(it: &j::Item, cx: &mut Cx, what: &str, hit: impl Fn(&j::Expr) -> bool) {
     let j::ItemKind::Func(f) = &it.kind else {
         return;
     };
@@ -442,11 +474,7 @@ fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
         for s in stmts {
             for e in lower::stmt_exprs(s) {
                 lower::walk(e, &mut |x| {
-                    use j::ExprKind as K;
-                    if matches!(
-                        x.kind,
-                        K::List(_) | K::Set(_) | K::Dict(_) | K::Comp { .. } | K::FStr { .. }
-                    ) {
+                    if hit(x) {
                         found.push(x.span);
                     }
                 });
@@ -456,12 +484,14 @@ fn forbid_alloc(it: &j::Item, cx: &mut Cx) {
     }
     found.sort_by_key(|s| (s.line, s.col));
     for at in found {
-        cx.err(
-            "E900",
-            at,
-            &f.name,
-            format!("`{}` is `@forbid(alloc)` and this allocates", f.name),
-        );
+        let msg = match what {
+            "alloc" => format!("`{}` is `@forbid(alloc)` and this allocates", f.name),
+            _ => format!(
+                "`{}` is `@forbid({what})` and this counts a reference",
+                f.name
+            ),
+        };
+        cx.err("E900", at, &f.name, msg);
     }
 }
 
