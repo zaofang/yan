@@ -1,0 +1,12 @@
+-- spec: 7.6
+-- rows: R305, R379
+-- note: replay(trace, live: [...]) may name only output-only capabilities (#1932)
+-- expect: E316 at 11:31
+
+pass(t: Bytes) -> int uses log =
+  with log = replay(t, live: ["log", "metrics"])
+    1
+
+roll(t: Bytes) -> int uses log =
+  with log = replay(t, live: ["net", "metrics"])
+    1

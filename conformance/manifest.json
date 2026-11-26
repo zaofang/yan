@@ -12259,6 +12259,26 @@
    ]
   },
   {
+   "path": "yn/fail/caps/e316_replay_live_non_output.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "7.6"
+   ],
+   "rows": [
+    "R305",
+    "R379"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E316",
+     "line": 9,
+     "col": 31
+    }
+   ]
+  },
+  {
    "path": "yn/fail/concurrency/e200_chan_near_miss.yn",
    "kind": "fail",
    "milestone": "M3",
