@@ -2520,6 +2520,7 @@ dependencies = [
  "num-traits",
  "serde_json",
  "unicode-normalization",
+ "yan-callgraph",
  "yan-check",
  "yan-core",
  "yan-db",

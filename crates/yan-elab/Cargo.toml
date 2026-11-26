@@ -13,6 +13,7 @@ num-bigint.workspace = true
 num-traits.workspace = true
 serde_json.workspace = true
 unicode-normalization = "0.1.26"
+yan-callgraph.workspace = true
 yan-check.workspace = true
 yan-core.workspace = true
 yan-diag.workspace = true
