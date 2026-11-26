@@ -405,6 +405,16 @@ impl Lower<'_, '_, '_> {
                         ),
                     );
                 }
+                for (cap, at) in super::replay::live_non_output(h) {
+                    self.err(
+                        "E316",
+                        at,
+                        format!(
+                            "`live:` names `{cap}`, whose operations return values the program \
+                             reads; only `log` and `metrics` may run live under replay"
+                        ),
+                    );
+                }
                 let never = matches!(&h.kind, j::ExprKind::Call(f, args)
                     if args.is_empty() && matches!(&f.kind, j::ExprKind::Name(n) if n == "never"));
                 if name == "fault" && self.cx.release && !never {
