@@ -20132,6 +20132,20 @@
    }
   },
   {
+   "path": "fmt/yn_canonical_form",
+   "kind": "fmt",
+   "milestone": "M1",
+   "spec": [
+    "15.4"
+   ],
+   "rows": [],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "15.4"
+   }
+  },
+  {
    "path": "view/mir_arith",
    "kind": "view",
    "milestone": "M1",
