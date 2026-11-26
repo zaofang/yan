@@ -101,7 +101,7 @@ E312 = "crates/yan-check/src/lib.rs"
 E313 = "crates/yan-elab/src/lower/propagate.rs"
 E314 = "crates/yan-elab/src/desugar.rs"
 E315 = "crates/yan-elab/src/lower/rhs.rs"
-E316 = { unimplemented = "#825" }
+E316 = "crates/yan-elab/src/lower/replay.rs"
 E317 = "crates/yan-elab/src/lower/stmt_form.rs"
 E318 = "crates/yan-check/src/lib.rs"
 E319 = { unimplemented = "#825" }
