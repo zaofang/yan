@@ -1,0 +1,2 @@
+def main() uses io, toolchain:
+    io.print(toolchain.sig("m"))

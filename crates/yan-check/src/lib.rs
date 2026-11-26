@@ -5,9 +5,10 @@
 
 mod flags;
 mod flow;
-mod graph;
 pub mod own;
 mod post;
+#[cfg(test)]
+mod release_tests;
 
 pub use flags::drop_flags;
 pub use post::check_optimized;
@@ -15,6 +16,7 @@ pub use post::check_optimized;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 
+use yan_callgraph::{Cap, Edge, Graph};
 use yan_core::ast::*;
 use yan_core::auto_traits::auto_traits;
 use yan_core::{intrinsics, subst, type_text};
@@ -111,7 +113,7 @@ pub fn check(file: &str, src: &str, m: &Module) -> Vec<Diagnostic> {
 pub fn check_in(file: &str, src: &str, m: &Module, release: bool) -> Vec<Diagnostic> {
     let g = Globals::new(m);
     let mut diags = Vec::new();
-    let mut callees: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut graph = Graph::default();
     let module = m.path.join(".");
     let has_invariant = std::cell::Cell::new(false);
     let sent: std::cell::RefCell<HashMap<String, HashSet<Name>>> = Default::default();
@@ -149,7 +151,7 @@ pub fn check_in(file: &str, src: &str, m: &Module, release: bool) -> Vec<Diagnos
                     format!("{module}.{key}"),
                     &mut diags,
                 );
-                callees.insert(key, c);
+                graph.add_fn(&key, c, caps(f));
             }
             ItemKind::Impl(imp) => {
                 let is_drop = imp.trait_.path.last().is_some_and(|n| n == "Drop");
@@ -207,14 +209,12 @@ pub fn check_in(file: &str, src: &str, m: &Module, release: bool) -> Vec<Diagnos
         &generic_calls.take(),
         &mut diags,
     );
-    let graph = graph::Graph::new(callees, g.fns.clone());
     if release {
         // The platform binds a default handler for each capability `main` reaches (7.3).
-        for f in graph.users(
-            g.fns.contains_key("main").then_some("main"),
-            "toolchain",
-            "Toolchain",
-        ) {
+        let users = graph.users(g.fns.contains_key("main").then_some("main"), |c| {
+            c.name == "toolchain" || c.ty == "Toolchain"
+        });
+        for f in users.into_iter().filter_map(|k| g.fns.get(k)) {
             diags.push(error(
                 file,
                 src,
@@ -239,7 +239,7 @@ pub fn check_in(file: &str, src: &str, m: &Module, release: bool) -> Vec<Diagnos
             .contracts
             .iter()
             .any(|c| matches!(c, Contract::Decreases(_)));
-        if !decreases && graph.recursive(key) {
+        if !decreases && graph.recursive(key, &[]) {
             diags.push(error(
                 file,
                 src,
@@ -289,6 +289,20 @@ fn check_drop(
             "a `@linear` type cannot implement `Drop`".into(),
         ));
     }
+}
+
+/// The capabilities `f` takes.
+fn caps(f: &FnDef) -> Vec<Cap> {
+    f.params
+        .iter()
+        .filter_map(|p| match p {
+            Param::Cap { name, ty } => Some(Cap {
+                name: name.to_string(),
+                ty: ty.path.last().cloned().unwrap_or_default(),
+            }),
+            Param::Value { .. } => None,
+        })
+        .collect()
 }
 
 fn error(file: &str, src: &str, item: &str, code: &str, span: Span, message: String) -> Diagnostic {
@@ -549,7 +563,9 @@ struct Cx<'g, 'm> {
     /// no other branch used it (that case is E417 at the second use).
     par_by_type: Vec<(Name, usize, Span, &'static str, String)>,
     with_depth: usize,
-    callees: HashSet<String>,
+    callees: HashSet<(String, Edge)>,
+    /// The kind of edge `call` records: `become` makes it a tail transfer.
+    edge: Edge,
     /// This function's type parameters whose values it sends to another task.
     sent_tparams: HashSet<Name>,
     /// Calls to generic functions of the module: callee, type arguments and the call's span.
@@ -619,6 +635,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             par_by_type: Vec::new(),
             with_depth: 0,
             callees: HashSet::new(),
+            edge: Edge::Call,
             sent_tparams: HashSet::new(),
             generic_calls: Vec::new(),
             has_invariant: false,
@@ -1857,7 +1874,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             };
         }
         if let Some((key, f)) = self.g.function(&name) {
-            self.callees.insert(key.to_owned());
+            self.callees.insert((key.to_owned(), self.edge));
             self.closure_caps(c, f);
             if !f.tparams.is_empty() && c.targs.len() == f.tparams.len() {
                 self.generic_calls
@@ -1941,7 +1958,9 @@ impl<'g, 'm> Cx<'g, 'm> {
             self.err("E273", c.span, "`become` through a closure".into());
             return;
         }
+        self.edge = Edge::Become;
         let (_, callee) = self.call(c);
+        self.edge = Edge::Call;
         if let Some(f) = callee
             && f.params.len() == c.args.len()
             && f.tparams.is_empty()

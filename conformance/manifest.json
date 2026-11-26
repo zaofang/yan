@@ -14857,6 +14857,25 @@
    ]
   },
   {
+   "path": "yn/fail/unsafe/e900_forbid_rc.yn",
+   "kind": "fail",
+   "milestone": "M3",
+   "spec": [
+    "5.7"
+   ],
+   "rows": [
+    "R447"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E900",
+     "line": 7,
+     "col": 3
+    }
+   ]
+  },
+  {
    "path": "yn/fail/unsafe/e901_unsafe_fn_outside_ffi.yn",
    "kind": "fail",
    "milestone": "M3",
@@ -20661,6 +20680,34 @@
     ],
     "server": "toolchain",
     "note": "undo reverts the last applied patch; a second undo with nothing logged is a tool error",
+    "milestone": "M1"
+   }
+  },
+  {
+   "path": "cli/build-release-toolchain",
+   "kind": "cli",
+   "milestone": "M1",
+   "spec": [
+    "21.4"
+   ],
+   "rows": [
+    "R16"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "21.4",
+    "rows": [
+     "R16"
+    ],
+    "command": [
+     "build",
+     "--release",
+     "-o",
+     "out",
+     "m.yag"
+    ],
+    "exit": 1,
     "milestone": "M1"
    }
   },

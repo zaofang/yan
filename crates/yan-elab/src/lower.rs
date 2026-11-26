@@ -48,6 +48,7 @@ mod propagate;
 mod ptr;
 mod pyfid;
 pub(crate) mod reentrant;
+mod replay;
 mod rhs;
 mod scalar;
 mod sched;

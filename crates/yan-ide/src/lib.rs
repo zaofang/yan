@@ -3,6 +3,7 @@
 
 mod context;
 mod hole;
+mod to_yn;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -379,34 +380,51 @@ pub fn view(
                 Front::Yir(_) => unreachable!("a .yn file has a Yan front end"),
             }
         }
-        // print(resugar(raise(elaborate(X)))) (16.4, R559).
-        (Surface::Yag, _) => match yan_db::load(db, file).as_ref().map_err(|m| tool(m))? {
-            Loaded::Ready(m, trivia, _) => {
-                let trivia = &if marks.bare {
-                    Default::default()
-                } else {
-                    trivia.clone()
-                };
-                let raised = yan_hir::raise::raise(m, trivia, &yan_elab::StdInfo)
-                    .map_err(|e| unsupported(&format!("raising {e}")))?;
-                let unused = yan_hir::raise::unconsumed(trivia, &raised);
-                if marks.strict && !unused.is_empty() {
-                    return Err(ViewError::Diagnostics(unused_spellings(
-                        file.path(db),
-                        m,
-                        &unused,
-                    )));
-                }
-                yan_yag::resugar(raised.module)
-                    .map(|x| yan_yag::print(&x))
-                    .map_err(|what| ViewError::Outside(what.to_owned()))
+        // print(raise(elaborate(X))) as Yan: the Yan projection of law 5 (16.4).
+        (Surface::Yn, Some(Surface::Yn)) => canonical(file.path(db), file.text(db)),
+        (Surface::Yn, Some(Surface::Yag)) => {
+            match yan_db::front(db, file).as_ref().map_err(|m| tool(m))? {
+                Front::Hir(h, _) => to_yn(h),
+                Front::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
+                Front::Yir(_) => unreachable!("a .yag file has a Yan Agent front end"),
             }
-            Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
-        },
-        _ => Err(ViewError::Tool(format!(
-            "no printer for `{}` yet",
-            surface_name(as_)
-        ))),
+        }
+        (Surface::Yn, _) => to_yn(&raised(db, file, marks)?),
+        // print(resugar(raise(elaborate(X)))) (16.4, R559).
+        (Surface::Yag, _) => yan_yag::resugar(raised(db, file, marks)?)
+            .map(|x| yan_yag::print(&x))
+            .map_err(|what| ViewError::Outside(what.to_owned())),
+    }
+}
+
+fn to_yn(h: &yan_hir::Module) -> Result<String, ViewError> {
+    to_yn::to_yn(h)
+        .map(|m| yan_yn::print(&m))
+        .map_err(ViewError::Outside)
+}
+
+/// The Yan Core module of `file` raised to the HIR, with the spellings its trivia kept.
+fn raised(db: &dyn Db, file: SourceFile, marks: Marks) -> Result<yan_hir::Module, ViewError> {
+    match yan_db::load(db, file).as_ref().map_err(|m| tool(m))? {
+        Loaded::Ready(m, trivia, _) => {
+            let trivia = &if marks.bare {
+                Default::default()
+            } else {
+                trivia.clone()
+            };
+            let raised = yan_hir::raise::raise(m, trivia, &yan_elab::StdInfo)
+                .map_err(|e| unsupported(&format!("raising {e}")))?;
+            let unused = yan_hir::raise::unconsumed(trivia, &raised);
+            if marks.strict && !unused.is_empty() {
+                return Err(ViewError::Diagnostics(unused_spellings(
+                    file.path(db),
+                    m,
+                    &unused,
+                )));
+            }
+            Ok(raised.module)
+        }
+        Loaded::Stopped(d) => Err(ViewError::Diagnostics(d.clone())),
     }
 }
 
