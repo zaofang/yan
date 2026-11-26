@@ -1,0 +1,11 @@
+type Position = { sym: str, qty: int }
+
+fetch(a: int) -> int =
+  let b = 1
+
+  let c = 2
+  a + b + c
+
+total(a: int) -> int =
+  let s = a
+  s
