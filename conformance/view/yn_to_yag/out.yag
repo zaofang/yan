@@ -1,0 +1,6 @@
+class Pos:
+    sym: str
+    qty: int
+
+def first(a: int) -> int:
+    return a
