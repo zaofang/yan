@@ -217,7 +217,15 @@ jobs:
       - run: cargo build --locked -p yan-rt
       # nextest does not run doctests.
       # The native build test is one serial test of about 5 minutes: it runs in the `native` job, in parallel.
-      - run: cargo nextest run --locked --no-fail-fast -E 'not test(=built_programs_match_the_interpreter)'
+      - run: cargo nextest run --locked --no-run -E 'not test(=built_programs_match_the_interpreter)'
+      - name: diag
+        run: |
+          grep -m1 'model name' /proc/cpuinfo; grep -m1 flags /proc/cpuinfo
+          sudo apt-get update -qq && sudo apt-get install -y -qq gdb >/dev/null
+          B=$(ls -t target/debug/deps/yan_elab-* | grep -v '\.d$' | head -1); echo $B
+          for i in 1 2 3; do $B --exact selftest::exact_int_literals_type_as_floats --nocapture; echo rc=$?; done || true
+          gdb -batch -ex run -ex bt -ex 'x/8i $pc-16' -ex 'info registers rip' --args $B --exact selftest::exact_int_literals_type_as_floats --nocapture 2>&1 | tail -60 || true
+          exit 1
       - run: cargo test --locked --doc
       - run: uv sync --locked
       - run: uv run python tools/third_party.py --check
