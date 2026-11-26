@@ -165,3 +165,61 @@ pub(crate) fn check(items: &[j::Item], cx: &mut Cx) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Options, elaborate};
+
+    /// E320 messages for a program with one `@kernel` function calling `helper`.
+    fn e320(helper: &str, call: &str) -> Vec<String> {
+        let src = format!(
+            "{helper}\n\n@kernel(tile: 8, 8)\n@access(a: elementwise, out: elementwise)\n\
+             scale(at: TileOrigin, a: Array[64, 64, float]) -> Array[64, 64, float] =\n\
+             \x20 for i in range(0, 8)\n    for j in range(0, 8)\n      out[at.i0 + i, at.i1 + j] = {call}\n\nmain() = 0\n"
+        );
+        let (ast, d) = yan_yn::parse("t.yn", &src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, d) = yan_yn::lower("t.yn", &src, &ast).expect("lowers");
+        assert!(d.is_empty(), "{d:?}");
+        let opts = Options {
+            yn: true,
+            ..Options::default()
+        };
+        let (_, d) = elaborate("t.yn", &src, &h, opts).expect("supported");
+        d.into_iter()
+            .filter(|d| d.code == "E320")
+            .map(|d| d.message)
+            .collect()
+    }
+
+    #[test]
+    fn a_callee_that_recurses_breaks_the_kernel_profile() {
+        let m = e320(
+            "spin(x: float) -> float =\n  spin(x)",
+            "spin(a[at.i0 + i, at.i1 + j])",
+        );
+        assert_eq!(m.len(), 1, "{m:?}");
+        assert!(
+            m[0].contains("`kernel` profile rule: no recursion"),
+            "{m:?}"
+        );
+    }
+
+    #[test]
+    fn a_callee_that_allocates_breaks_the_kernel_profile() {
+        let m = e320(
+            "grow(x: float) -> float =\n  xs = [x]\n  x",
+            "grow(a[at.i0 + i, at.i1 + j])",
+        );
+        assert!(m.iter().any(|s| s.contains("@forbid(alloc)")), "{m:?}");
+    }
+
+    #[test]
+    fn a_pure_callee_passes() {
+        let m = e320(
+            "twice(x: float) -> float =\n  x + x",
+            "twice(a[at.i0 + i, at.i1 + j])",
+        );
+        assert!(m.is_empty(), "{m:?}");
+    }
+}
