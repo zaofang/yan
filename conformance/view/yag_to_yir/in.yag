@@ -1,0 +1,9 @@
+class Pos:
+    sym: str
+    qty: int
+
+def names(xs: list[Pos]) -> list[str]:
+    return [p.sym for p in xs]
+
+def first(xs: list[int]) -> int | None:
+    return None

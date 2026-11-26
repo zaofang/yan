@@ -1,0 +1,24 @@
+module in
+
+record Pos { pub sym: Str, pub qty: i64 }
+
+fn names(let xs: List[Pos]) -> List[Str] {
+    var _c1: List[Str] = std.list.new[Str]()
+    var _i3: i64 = 0
+    let _t4: i64 = std.list.len[Pos](let xs)
+    loop '_l2 {
+        let _t5: bool = ge_i64(let _i3, let _t4)
+        if _t5 {
+            break '_l2
+        }
+        let p: Pos = xs[_i3]
+        _i3 = add_checked_i64(let _i3, let 1)
+        let _t6: Str = copy p.sym
+        std.list.append[Str](inout _c1, sink _t6)
+    }
+    ret _c1
+}
+
+fn first(let xs: List[i64]) -> Option[i64] {
+    ret None
+}

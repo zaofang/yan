@@ -1,0 +1,3 @@
+type Pos = { sym: str, qty: int }
+
+first(a: int) -> int = a
