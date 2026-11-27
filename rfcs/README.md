@@ -124,3 +124,4 @@ conformance case in the same PR set.
 | [0098](0098-failable-integer-conversion-and-trunc-as.md) | The failable integer conversion and the meaning of `trunc_as` | accepted | pending |
 | [0099](0099-with-tail-value.md) | The tail value of `with` and `unsafe` blocks, and diverging branches of a conditional | accepted | R1131, D2 pending |
 | [0100](0100-yan-x-and-toolchain.md) | `yan x` tool entry points and `yan toolchain` at M1 | accepted | R1140, R1141 |
+| [0101](0101-output-only-capability-marker.md) | The `@output_only` capability marker | accepted | pending |
