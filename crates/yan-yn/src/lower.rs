@@ -478,9 +478,13 @@ impl Lower<'_> {
                     nonblocking,
                     span,
                 } => {
-                    if !from.is_empty() || attrs.iter().any(|a| a.name != "access") {
+                    if !from.is_empty()
+                        || attrs
+                            .iter()
+                            .any(|a| !matches!(a.name.as_str(), "access" | "stack"))
+                    {
                         return unsupported(
-                            "attributes other than `@access` and `from` on extern items",
+                            "attributes other than `@access`, `@stack` and `from` on extern items",
                         );
                     }
                     let mut ps = Vec::new();

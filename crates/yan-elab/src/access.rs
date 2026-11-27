@@ -101,6 +101,10 @@ pub(crate) fn lower(
 ) -> R<Vec<y::Attr>> {
     let mut out = Vec::new();
     for d in attrs {
+        // `@stack` is read by the profile check (E321), not lowered.
+        if d.path == ["stack"] {
+            continue;
+        }
         if d.path != ["access"] {
             return unsupported("attributes other than `@access` on extern items");
         }
