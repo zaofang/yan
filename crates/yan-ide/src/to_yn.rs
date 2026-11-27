@@ -16,9 +16,6 @@ fn outside<T>(what: &str) -> R<T> {
 
 /// `m` as a Yan module the Yan printer can print.
 pub fn to_yn(m: &h::Module) -> R<Module> {
-    if m.doc.is_some() {
-        return outside("module documentation");
-    }
     if !m.reexports.is_empty() {
         return outside("`pub use` re-exports");
     }
@@ -44,6 +41,12 @@ pub fn to_yn(m: &h::Module) -> R<Module> {
         self_ty: None,
     };
     Ok(Module {
+        header: m
+            .header
+            .iter()
+            .map(|h| h.trim_start_matches('#').trim().to_owned())
+            .collect(),
+        doc: m.doc.clone(),
         attrs: m.attrs.iter().map(attr).collect::<R<_>>()?,
         items: m.items.iter().map(|i| c.item(i)).collect::<R<_>>()?,
         cst: Default::default(),
@@ -253,27 +256,32 @@ fn field(f: &h::Field) -> R<Field> {
     })
 }
 
+fn fn_doc(f: &h::FuncDef) -> Option<String> {
+    f.body.as_ref().and_then(|b| b.doc.clone())
+}
+
 impl Conv {
     fn item(&mut self, i: &h::Item) -> R<Item> {
+        let doc = match &i.kind {
+            h::ItemKind::Func(f) | h::ItemKind::Lemma(f) | h::ItemKind::Sub(f) => fn_doc(f),
+            h::ItemKind::Record(r) => r.doc.clone(),
+            h::ItemKind::Trait(t) => t.doc.clone(),
+            _ => None,
+        };
         let kind = match &i.kind {
             h::ItemKind::Func(f) => ItemKind::Fn(self.func(f, FnKind::Plain)?),
             h::ItemKind::Lemma(f) => ItemKind::Fn(self.func(f, FnKind::Lemma)?),
             h::ItemKind::Sub(f) => ItemKind::Fn(self.func(f, FnKind::Sub)?),
-            h::ItemKind::Record(r) => {
-                if r.doc.is_some() {
-                    return outside("record documentation");
-                }
-                ItemKind::Type(TypeDef {
-                    name: r.name.clone(),
-                    name_span: NO,
-                    tparams: tparams(&r.tparams)?,
-                    rhs: TypeRhs::Record {
-                        fields: r.fields.iter().map(field).collect::<R<_>>()?,
-                        positional: (r.positional > 0).then_some(r.positional),
-                    },
-                    refine: None,
-                })
-            }
+            h::ItemKind::Record(r) => ItemKind::Type(TypeDef {
+                name: r.name.clone(),
+                name_span: NO,
+                tparams: tparams(&r.tparams)?,
+                rhs: TypeRhs::Record {
+                    fields: r.fields.iter().map(field).collect::<R<_>>()?,
+                    positional: (r.positional > 0).then_some(r.positional),
+                },
+                refine: None,
+            }),
             h::ItemKind::Type(t) => ItemKind::Type(TypeDef {
                 name: t.name.clone(),
                 name_span: NO,
@@ -305,9 +313,6 @@ impl Conv {
                 value: expr(value)?,
             }),
             h::ItemKind::Trait(t) => {
-                if t.doc.is_some() {
-                    return outside("trait documentation");
-                }
                 self.self_ty = Some(h::Type::bare("Self"));
                 let def = TraitDef {
                     name: t.name.clone(),
@@ -345,6 +350,7 @@ impl Conv {
                 for (fs, k) in [(&i.fns, FnKind::Plain), (&i.subs, FnKind::Sub)] {
                     for f in fs {
                         items.push(Item {
+                            doc: fn_doc(f),
                             attrs: Vec::new(),
                             vis: h::Vis::Private,
                             kind: ItemKind::Fn(self.func(f, k)?),
@@ -371,6 +377,7 @@ impl Conv {
             h::ItemKind::Verbatim(_) => return outside("an erased lemma"),
         };
         Ok(Item {
+            doc,
             attrs: i.decorators.iter().map(attr).collect::<R<_>>()?,
             vis: i.vis,
             kind,
@@ -443,12 +450,7 @@ impl Conv {
                     span: NO,
                 }],
             },
-            Some(b) => {
-                if b.doc.is_some() {
-                    return outside("function documentation");
-                }
-                self.body(f, b, ret_ty.is_some())?
-            }
+            Some(b) => self.body(f, b, ret_ty.is_some())?,
         };
         Ok(FnDef {
             unsafe_: f.unsafe_at.map(|_| NO),
@@ -1421,6 +1423,20 @@ mod tests {
             yn(src),
             "f(xs: List[int]) -> int =\n  var n = 0\n  for x in xs\n    n += x\n  let k = xs.len()\n  n + k\n"
         );
+    }
+
+    #[test]
+    fn docs_and_headers() {
+        let src = "# spec: 1\n\n\"\"\"Module.\"\"\"\n\ndef f(x: int) -> int:\n    \"\"\"Add one.\"\"\"\n    return x + 1\n";
+        let out = yn(src);
+        println!("{out}");
+        assert!(
+            out.starts_with("-- spec: 1\n\n--- Module.\n\n--- Add one.\nf("),
+            "{out}"
+        );
+        let (m, d) = yan_yn::parse("t.yn", &out);
+        assert!(d.is_empty(), "{d:?}");
+        assert_eq!(yan_yn::print(&m), out);
     }
 
     #[test]

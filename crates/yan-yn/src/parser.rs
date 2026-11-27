@@ -360,6 +360,8 @@ impl<'a> Parser<'a> {
             }
         }
         Module {
+            header: Vec::new(),
+            doc: None,
             attrs,
             items,
             cst: Default::default(),
@@ -415,6 +417,7 @@ impl<'a> Parser<'a> {
         if self.is_kw("use") {
             let kind = self.use_decl()?;
             return Ok(Item {
+                doc: None,
                 attrs,
                 vis: if reexport { Vis::Pub } else { Vis::Private },
                 kind,
@@ -450,6 +453,7 @@ impl<'a> Parser<'a> {
             _ => return self.fail("an item"),
         };
         Ok(Item {
+            doc: None,
             attrs,
             vis,
             kind,
@@ -914,6 +918,7 @@ impl<'a> Parser<'a> {
                 let attrs = self.attrs()?;
                 let f = self.fn_def(None)?;
                 def.items.push(Item {
+                    doc: None,
                     attrs,
                     vis: Vis::Private,
                     kind: ItemKind::Fn(f),
