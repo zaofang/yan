@@ -8,6 +8,7 @@ mod access;
 mod accuracy;
 mod affine;
 mod bounds;
+mod calls;
 mod chan_names;
 mod cli;
 mod consttime;
@@ -1367,7 +1368,7 @@ fn collect(g: &mut Globals, m: &j::Module, cx: &mut Cx) -> R<()> {
                 if f.name.starts_with("test_")
                     && let Some(b) = &f.body
                 {
-                    lower::callees(&b.stmts, &mut g.tested);
+                    calls::callees(&b.stmts, &mut g.tested);
                 }
             }
             j::ItemKind::Const { name, ty, .. } => {

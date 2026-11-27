@@ -820,7 +820,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
         if let j::ItemKind::Func(f) = &it.kind {
             seen.insert(f.name.clone());
             if let Some(b) = &f.body {
-                crate::lower::body_callees(b, &mut names);
+                crate::calls::body_callees(b, &mut names);
                 crate::kernel::array_callees(&b.stmts, &mut names);
                 if crate::kernel::takes_origin(f) {
                     names.insert("checked2".into());
@@ -854,7 +854,7 @@ fn bodies(m: &j::Module) -> Vec<Body> {
                 continue;
             }
             let Some(b) = &d.def.body else { continue };
-            crate::lower::body_callees(b, &mut names);
+            crate::calls::body_callees(b, &mut names);
             let mut def = d.def.clone();
             def.name = key;
             out.push(Body {
