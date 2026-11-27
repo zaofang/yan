@@ -13,6 +13,7 @@ use crate::{Cx, decorators, kernel, lower};
 struct Facts<'a> {
     fns: HashMap<&'a str, &'a j::FuncDef>,
     externs: HashSet<&'a str>,
+    records: HashMap<&'a str, &'a j::Record>,
     /// Functions calling an extern function that carries no `@stack(bytes)` (R321).
     unstacked: HashSet<&'a str>,
     graph: Graph,
@@ -65,6 +66,31 @@ const KERNEL: Profile = Profile {
             name: "no extern",
             broken: |f, reach| named(reach, |k| f.externs.contains(k)),
         },
+        Rule {
+            code: "E320",
+            name: "no dyn",
+            broken: |f, reach| {
+                named(reach, |k| {
+                    f.fns
+                        .get(k)
+                        .is_some_and(|d| sig_types(d).into_iter().any(indirect))
+                })
+            },
+        },
+        Rule {
+            code: "E320",
+            name: "only GPU-representable types",
+            broken: |f, reach| {
+                named(reach, |k| {
+                    f.fns.get(k).is_some_and(|d| {
+                        let tps = tparam_names(d);
+                        sig_types(d)
+                            .into_iter()
+                            .any(|t| !f.gpu_type(t, &tps, &mut HashSet::new()))
+                    })
+                })
+            },
+        },
     ],
 };
 
@@ -88,6 +114,73 @@ const EMBEDDED: Profile = Profile {
         },
     ],
 };
+
+/// Scalars a kernel may hold, in both spellings of the 64-bit types.
+const GPU_SCALARS: &[&str] = &[
+    "bool", "int", "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "float", "f16", "bf16",
+    "f32", "f64",
+];
+
+/// Containers and tile types that exist on the device.
+const GPU_CONTAINERS: &[&str] = &["Vec", "Array", "DeviceArray", "Tile", "TileOrigin"];
+
+fn sig_types(d: &j::FuncDef) -> Vec<&j::Type> {
+    let params = d.params.iter().filter_map(|p| match p {
+        j::Param::Value { ty, .. } | j::Param::Pack { ty, .. } => Some(ty),
+        j::Param::Slash => None,
+    });
+    params
+        .chain(d.ret.iter().filter_map(|r| r.ty.as_ref()))
+        .collect()
+}
+
+fn tparam_names(d: &j::FuncDef) -> Vec<&str> {
+    d.tparams
+        .iter()
+        .map(|t| match t {
+            j::TParam::Type { name, .. } | j::TParam::Value { name, .. } => name.as_str(),
+        })
+        .collect()
+}
+
+/// A trait object or function value: a call through it has no static callee (R320).
+fn indirect(t: &j::Type) -> bool {
+    match t {
+        j::Type::Dyn { .. } | j::Type::Callable { .. } => true,
+        j::Type::Named { args, .. } => args
+            .iter()
+            .any(|a| matches!(a, j::TArg::Type(t) if indirect(t))),
+        _ => false,
+    }
+}
+
+impl Facts<'_> {
+    /// Whether `t` is a scalar, a `Vec`, a tile or array of those, or a record of those.
+    /// Indirect types are the `no dyn` rule's, not this one's.
+    fn gpu_type<'s>(&'s self, t: &'s j::Type, tps: &[&str], seen: &mut HashSet<&'s str>) -> bool {
+        let j::Type::Named { path, args } = t else {
+            return true;
+        };
+        let [name] = path.as_slice() else {
+            return false;
+        };
+        let name = name.as_str();
+        let args_ok = |seen: &mut HashSet<&'s str>| {
+            args.iter()
+                .all(|a| !matches!(a, j::TArg::Type(t) if !self.gpu_type(t, tps, seen)))
+        };
+        if tps.contains(&name) || GPU_SCALARS.contains(&name) || GPU_CONTAINERS.contains(&name) {
+            return args_ok(seen);
+        }
+        match self.records.get(name) {
+            Some(r) if seen.insert(r.name.as_str()) => {
+                args_ok(seen) && r.fields.iter().all(|fl| self.gpu_type(&fl.ty, &[], seen))
+            }
+            Some(_) => true,
+            None => false,
+        }
+    }
+}
 
 fn named(reach: &HashSet<&str>, pred: impl Fn(&str) -> bool) -> Vec<String> {
     let mut out: Vec<String> = reach
@@ -192,9 +285,17 @@ fn facts(items: &[j::Item]) -> Facts<'_> {
         };
         graph.add_fn(name, edges, uses);
     }
+    let records = items
+        .iter()
+        .filter_map(|it| match &it.kind {
+            j::ItemKind::Record(r) => Some((r.name.as_str(), r)),
+            _ => None,
+        })
+        .collect();
     Facts {
         fns,
         externs,
+        records,
         unstacked,
         graph,
     }
@@ -306,6 +407,59 @@ mod tests {
         let m = e320(
             "twice(x: float) -> float =\n  x + x",
             "twice(a[at.i0 + i, at.i1 + j])",
+        );
+        assert!(m.is_empty(), "{m:?}");
+    }
+
+    /// `elaborate` refuses `dyn` before diagnostics are returned, so the rule is checked on HIR.
+    #[test]
+    fn a_dyn_signature_is_indirect() {
+        let src = "trait Op\n  run(self, x: float) -> float\n\n\
+                   viaop(o: dyn Op, x: float) -> float =\n  x\n\nplain(x: float) -> float =\n  x\n";
+        let (ast, d) = yan_yn::parse("t.yn", src);
+        assert!(d.is_empty(), "{d:?}");
+        let (h, _) = yan_yn::lower("t.yn", src, &ast).expect("lowers");
+        let indirect_fns: Vec<&str> = h
+            .items
+            .iter()
+            .filter_map(|it| match &it.kind {
+                yan_hir::ItemKind::Func(f)
+                    if super::sig_types(f).into_iter().any(super::indirect) =>
+                {
+                    Some(f.name.as_str())
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(indirect_fns, ["viaop"]);
+    }
+
+    #[test]
+    fn a_function_value_breaks_the_kernel_profile() {
+        let m = e320(
+            "apply(f: (float) -> float, x: float) -> float =\n  f(x)",
+            "apply(sin, a[at.i0 + i, at.i1 + j])",
+        );
+        assert!(m.iter().any(|s| s.contains("no dyn")), "{m:?}");
+    }
+
+    #[test]
+    fn a_non_gpu_type_breaks_the_kernel_profile() {
+        let m = e320(
+            "name(x: float, s: str) -> float =\n  x",
+            "name(a[at.i0 + i, at.i1 + j], \"k\")",
+        );
+        assert!(
+            m.iter().any(|s| s.contains("only GPU-representable types")),
+            "{m:?}"
+        );
+    }
+
+    #[test]
+    fn a_record_of_scalars_is_gpu_representable() {
+        let m = e320(
+            "type P = { x: float, y: f32 }\n\nlen(p: P) -> float =\n  p.x",
+            "len(P(x: a[at.i0 + i, at.i1 + j], y: 1.0))",
         );
         assert!(m.is_empty(), "{m:?}");
     }
