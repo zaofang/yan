@@ -510,6 +510,8 @@ struct Binding {
     bad_captures: Vec<(&'static str, Span)>,
     /// The capabilities the bound closure captures: name and type (R1025).
     cap_captures: Vec<(Name, Type)>,
+    /// Capabilities a closure's body passes on, by name and type text (E714).
+    body_caps: Vec<(Name, String)>,
     /// The bound closure captures a value that is not Send, or not Sync (6.4): a closure has
     /// the auto traits of what it captures.
     unsend_closure: bool,
@@ -699,6 +701,7 @@ impl<'g, 'm> Cx<'g, 'm> {
             try_at: None,
             bad_captures: Vec::new(),
             cap_captures: Vec::new(),
+            body_caps: Vec::new(),
             unsend_closure: false,
             unsync_closure: false,
         };
@@ -1242,6 +1245,10 @@ impl<'g, 'm> Cx<'g, 'm> {
                     Rhs::Copy(p) | Rhs::Move(p) if p.projs.is_empty() => self.caps_of(&p.root),
                     _ => Vec::new(),
                 };
+                let body_caps = match rhs {
+                    Rhs::Closure(c) => self.body_caps(c),
+                    _ => Vec::new(),
+                };
                 let closure_traits = self.closure_traits(rhs);
                 let got = self.rhs(rhs, *rhs_span);
                 self.compatible(ty, got, *rhs_span);
@@ -1260,6 +1267,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                     b.try_at = matches!(rhs, Rhs::Try(_)).then_some(*rhs_span);
                     b.bad_captures = bad_captures;
                     b.cap_captures = cap_captures;
+                    b.body_caps = body_caps;
                     (b.unsend_closure, b.unsync_closure) = closure_traits;
                 } else {
                     self.bind_pat(pat, *pat_span);
@@ -1798,6 +1806,54 @@ impl<'g, 'm> Cx<'g, 'm> {
         }
     }
 
+    /// The capabilities a closure body passes to calls, with their types.
+    fn body_caps(&self, c: &Closure) -> Vec<(Name, String)> {
+        let item = Item {
+            attrs: Vec::new(),
+            kind: ItemKind::Test(Test {
+                path: Vec::new(),
+                body: c.body.clone(),
+            }),
+            span: Span::default(),
+        };
+        let mut out = Vec::new();
+        yan_core::path::walk(&item, &mut |_, n| {
+            if let yan_core::path::Node::Arg(Arg::Cap(name, _)) = n
+                && let Some(Type::Named(t)) = self.env.get(name).and_then(|b| b.ty.as_ref())
+            {
+                out.push((name.clone(), t.path.last().cloned().unwrap_or_default()));
+            }
+        });
+        out.extend(nondet_marker(c).map(|_| ("nondet".to_owned(), "Nondet".to_owned())));
+        out
+    }
+
+    /// E714 (R393): the initializer of a `Once` or `Lazy` used inside a `par` passes on a
+    /// capability other than `alloc` and does not declare `uses nondet`.
+    fn once_initializer(&mut self, c: &Call, name: &str) {
+        let init = match name {
+            "std.sync.once.get_or_init" => 1,
+            "std.sync.lazy.Lazy" => 0,
+            _ => return,
+        };
+        if self.par.is_empty() {
+            return;
+        }
+        let Some(Arg::Value(_, Atom::Name(n, sp), _)) = c.args.get(init) else {
+            return;
+        };
+        let Some(b) = self.env.get(n) else { return };
+        if b.body_caps.iter().any(|(_, t)| t == "Nondet") {
+            return;
+        }
+        if let Some((cap, _)) = b.body_caps.iter().find(|(_, t)| t != "Alloc") {
+            let msg = format!(
+                "a `Once` or `Lazy` initializer reachable from several tasks uses capability `{cap}`; only `alloc` is allowed without `uses nondet`"
+            );
+            self.err("E714", *sp, msg);
+        }
+    }
+
     /// Check a call and its arguments. Returns the result type, when known, and the callee
     /// when it is a function of this module.
     fn call(&mut self, c: &Call) -> (Option<String>, Option<&'m FnDef>) {
@@ -1863,6 +1919,7 @@ impl<'g, 'm> Cx<'g, 'm> {
                 }
             }
         }
+        self.once_initializer(c, &name);
         if c.path.len() == 1 && self.env.contains_key(&name) {
             self.use_name(&name, c.span, How::Read);
             return match self.env.get(&name).and_then(|b| b.ty.clone()) {
