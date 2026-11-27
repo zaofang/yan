@@ -15,6 +15,16 @@ pub fn print(m: &Module) -> String {
         trivia: Comments::new(&m.cst.syntax(), 0),
         ..Printer::default()
     };
+    for h in &m.header {
+        p.out.push_str(&format!("-- {h}\n"));
+    }
+    if !m.header.is_empty() {
+        p.out.push('\n');
+    }
+    if let Some(d) = &m.doc {
+        p.doc(d);
+        p.out.push('\n');
+    }
     for a in &m.attrs {
         p.line(&format!("@{}", attr(a)));
     }
@@ -90,6 +100,12 @@ impl Printer {
         }
     }
 
+    fn doc(&mut self, text: &str) {
+        for l in text.lines() {
+            self.line(&format!("--- {l}").trim_end().to_owned());
+        }
+    }
+
     fn nested(&mut self, f: impl FnOnce(&mut Self)) {
         self.indent += 2;
         f(self);
@@ -97,6 +113,9 @@ impl Printer {
     }
 
     fn item(&mut self, item: &Item) {
+        if let Some(d) = &item.doc {
+            self.doc(d);
+        }
         for a in &item.attrs {
             self.line(&attr(a));
         }
