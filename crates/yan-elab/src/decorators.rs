@@ -251,6 +251,8 @@ pub(crate) fn check(
             // Read where an off-node start names it (`cluster_spawn`, E721).
             "remote" if matches!(it.kind, j::ItemKind::Func(_)) => {}
             "remote" => return unsupported("`@remote` on an item that is not a function"),
+            // Read by the profile check (E321).
+            "stack" => {}
             "constant_time" => crate::consttime::check(it, cx),
             "deny" => {}
             // Read when the type is declared (`item_wire`).

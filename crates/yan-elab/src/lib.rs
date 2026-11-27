@@ -770,6 +770,7 @@ pub fn elaborate_pkg(
                 .into(),
         );
     }
+    let profile = manifest.as_ref().and_then(|p| p.profile.clone());
     cx.previews = manifest.map(|p| p.previews).unwrap_or_default();
     kernel::prepare(&mut m);
     let m = &m;
@@ -994,7 +995,7 @@ pub fn elaborate_pkg(
             });
         }
     }
-    profile::check(&m.items, &mut cx);
+    profile::check(&m.items, profile.as_deref(), &mut cx);
     items.extend(stdlib::lower(&g, &std_fns)?);
     items.extend(g.generated.take());
     for it in &m.items {

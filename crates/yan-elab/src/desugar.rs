@@ -173,6 +173,8 @@ impl DepKind {
 pub struct Manifest {
     /// The capability ceiling; `None` when the manifest names none.
     pub capabilities: Option<Vec<String>>,
+    /// The program-wide profile, `profile = "embedded"` (17.1, R320).
+    pub profile: Option<String>,
     /// The previews the package opts into (20.6).
     pub previews: Vec<String>,
     /// The requirements of `dependencies`, `dev_dependencies` and `tools`, as written (R642).
@@ -437,6 +439,7 @@ pub fn manifest(m: &j::Module) -> Option<Manifest> {
             .collect(),
         capabilities: strs("capabilities"),
         previews: strs("preview").unwrap_or_default(),
+        profile: string("profile"),
     })
 }
 
