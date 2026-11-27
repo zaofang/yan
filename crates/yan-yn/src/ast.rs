@@ -9,6 +9,10 @@ pub type Name = String;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Module {
+    /// Leading `--` comment lines (file headers), printed before everything else.
+    pub header: Vec<String>,
+    /// `---` lines for the module, printed above the first item and set apart by a blank line.
+    pub doc: Option<String>,
     pub attrs: Vec<Attr>,
     pub items: Vec<Item>,
     /// The lossless syntax tree the module was read from (R995); never compared.
@@ -35,6 +39,8 @@ pub struct Attr {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Item {
+    /// `---` lines synthesized by a converter; read trees take docs from the `cst`.
+    pub doc: Option<String>,
     pub attrs: Vec<Attr>,
     pub vis: Vis,
     pub kind: ItemKind,
