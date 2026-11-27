@@ -1,0 +1,8 @@
+def ping(n: int) -> int:
+    return pong(n)
+
+def pong(n: int) -> int:
+    return ping(n)
+
+def main() -> int:
+    return 0

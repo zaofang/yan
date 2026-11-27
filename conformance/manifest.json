@@ -19047,6 +19047,29 @@
    }
   },
   {
+   "path": "pkg/e321_embedded_cycle",
+   "kind": "pkg",
+   "milestone": "M1",
+   "spec": [
+    "17.1"
+   ],
+   "rows": [
+    "R321"
+   ],
+   "flags": [],
+   "expect": [],
+   "expect_toml": {
+    "spec": "17.1",
+    "rows": "R321",
+    "note": "under profile embedded a call-graph cycle that is not a become tail call has no stack bound, E321",
+    "command": [
+     "check"
+    ],
+    "code": "E321",
+    "at": "src/app.yag:1:5"
+   }
+  },
+  {
    "path": "pkg/e332_edition_before_2026",
    "kind": "pkg",
    "milestone": "M1",
