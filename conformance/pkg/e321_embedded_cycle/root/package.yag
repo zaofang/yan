@@ -1,0 +1,8 @@
+package: Package = Package(
+    name="@conf/e321_embedded_cycle",
+    version="0.1.0",
+    yan="1.x",
+    platform="freestanding",
+    edition="next",
+    profile="embedded",
+)

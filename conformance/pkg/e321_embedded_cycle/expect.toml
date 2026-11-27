@@ -1,0 +1,6 @@
+spec = "17.1"
+rows = "R321"
+note = "under profile embedded a call-graph cycle that is not a become tail call has no stack bound, E321"
+command = ["check"]
+code = "E321"
+at = "src/app.yag:1:5"
