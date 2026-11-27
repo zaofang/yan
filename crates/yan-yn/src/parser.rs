@@ -317,6 +317,8 @@ impl<'a> Parser<'a> {
                 Tok::Punct("(" | "[" | "{") | Tok::SplParen => depth += 1,
                 Tok::Punct(")" | "]" | "}") => depth -= 1,
                 Tok::Punct("->") if depth == 0 => return true,
+                // `x else e -> h`: the arrow belongs to the handler, not to a clause
+                Tok::Kw("else") if depth == 0 => return false,
                 Tok::Newline | Tok::Indent | Tok::Dedent | Tok::Eof => return false,
                 _ => {}
             }
