@@ -1440,6 +1440,18 @@ mod tests {
     }
 
     #[test]
+    fn else_handler_first_line_is_not_a_clause() {
+        let src = "def f(c: Actor[Cell]) -> None:\n    c.add(1) else e -> None\n    c.add(2) else e -> None\n";
+        let out = yn(src);
+        let (m, d) = yan_yn::parse("t.yn", &out);
+        assert!(d.is_empty(), "{out}\n{d:?}");
+        assert!(matches!(
+            &m.items[0].kind,
+            yan_yn::ast::ItemKind::Fn(f) if matches!(f.body, yan_yn::ast::Body::Block { .. })
+        ));
+    }
+
+    #[test]
     fn implicit_subject() {
         let src = "def f(xs: list[Pos]) -> list[str]:\n    return xs.map(lambda it: it.sym)\n";
         assert_eq!(yn(src), "f(xs: List[Pos]) -> List[str] = xs.map(.sym)\n");
