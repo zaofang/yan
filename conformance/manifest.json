@@ -1074,6 +1074,25 @@
    ]
   },
   {
+   "path": "yag/fail/caps/e714_once_initializer_capability.yag",
+   "kind": "fail",
+   "milestone": "M1",
+   "spec": [
+    "6.3"
+   ],
+   "rows": [
+    "R393"
+   ],
+   "flags": [],
+   "expect": [
+    {
+     "code": "E714",
+     "line": 13,
+     "col": 29
+    }
+   ]
+  },
+  {
    "path": "yag/fail/concurrency/e200_chan_type_near_miss.yag",
    "kind": "fail",
    "milestone": "M1",

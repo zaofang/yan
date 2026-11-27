@@ -1,0 +1,14 @@
+# spec: 6.3
+# rows: R393
+# note: an initializer of a Once used from two par branches may use only alloc, so one that prints is E714
+# expect: E714 at 13:29
+
+def init() -> int uses io:
+    print("init")
+    return 1
+
+def main() uses io:
+    o = Once[int]()
+    par:
+        print(o.get_or_init(lambda: init()))
+        print(o.get_or_init(lambda: 2))
