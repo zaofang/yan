@@ -102,7 +102,7 @@ impl Printer {
 
     fn doc(&mut self, text: &str) {
         for l in text.lines() {
-            self.line(&format!("--- {l}").trim_end().to_owned());
+            self.line(format!("--- {l}").trim_end());
         }
     }
 
